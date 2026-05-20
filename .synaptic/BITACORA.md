@@ -235,7 +235,27 @@ Each entry follows this structure:
 }
 ```
 
+### Entry #8 - Primer commit realizado - Cycle 2 CERRADO
+```json
+{
+  "timestamp": "2026-05-20T23:20:00.000Z",
+  "cycle": 2,
+  "phase": 2,
+  "action": "SCAFFOLDING_COMMITTED",
+  "details": {
+    "commit": "f0b5202 (root-commit) en branch main",
+    "stats": "54 archivos, 2563 inserciones, working tree limpio",
+    "blocker_resuelto": "DG-007 A ejecutado - el usuario agrego la exclusion de la carpeta en Norton 360; git add/commit corrieron limpios",
+    "cycleClosure": "Cycle 2 (scaffolding) CERRADO con exito. Discovery + scaffolding completos, verificados y en control de versiones.",
+    "nextStep": "Cycle 3 / PASO 4 - primer hito implementable: interfaz ScoutAgent + wrapper OpenGrep + fixtures JS/TS+Python"
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 7,
+  "complianceScore": 100
+}
+```
+
 ---
 
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-20T23:00:00.000Z*
+*Last Updated: 2026-05-20T23:20:00.000Z*

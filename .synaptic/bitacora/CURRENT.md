@@ -6,29 +6,29 @@
 
 ## Current Cycle
 
-- **Cycle:** 2 — Foundations / Scaffolding
-- **Phase:** 2 — Foundations
-- **Status:** scaffolding verificado; DG-007 → A; **awaiting exclusión de Norton 360 por el usuario** para reintentar el commit
+- **Cycle:** 3 — PASO 4 / Scout Layer
+- **Phase:** 3 — Scout Layer
+- **Status:** scaffolding cerrado y commiteado; awaiting DG-008 (enfoque del primer hito)
 - **Compliance:** 100%
-- **Synaptic Strength:** 6
+- **Synaptic Strength:** 7
 
 ## Cycles cerrados
 
 - **Cycle 1** — discovery técnico (DG-001..DG-004, Q1) ✅
-- **Cycle 2** — scaffolding: generado y verificado; **commit pendiente** (bloqueado por Norton 360)
+- **Cycle 2** — scaffolding del monorepo (DG-005, DG-006, DG-007) — generado, verificado y **commiteado** (`f0b5202`) ✅
 
 ## Estado del repo
 
-- 7 paquetes pnpm declarados · `tsc -b` / ESLint / Vitest verdes
-- git: branch `main`, **sin commits aún** — bloqueado por Norton 360 (Auto-Protect)
-- ⚠️ AV activo: **Norton 360** — inspección TLS (L-001) + bloqueo de escritura en `.git/objects` (L-002)
+- commit inicial `f0b5202` en `main` — 54 archivos
+- 7 paquetes pnpm · `tsc -b` / ESLint / Vitest verdes
+- ⚠️ entorno Norton 360: exclusión de carpeta aplicada; `NODE_OPTIONS=--use-system-ca` para red (L-001/L-002)
 
-## Decision Gate
+## Decision Gate abierto
 
-- DG-007 → **Option A** (exclusión de AV) — awaiting que el usuario agregue la exclusión en Norton 360
+- DG-008 — enfoque del primer hito implementable (interfaz ScoutAgent + wrapper OpenGrep)
 
 ## Last Entry
 
-Entry #7 — DECISION_RECORDED (DG-007 A) — 2026-05-20 — PENDING
+Entry #8 — SCAFFOLDING_COMMITTED — 2026-05-20 — SUCCESS
 
 ---

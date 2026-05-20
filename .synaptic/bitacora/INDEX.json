@@ -2,7 +2,7 @@
   "version": "1.0",
   "projectId": "sentinel-1779304140796",
   "projectName": "SENTINEL",
-  "totalCycles": 1,
+  "totalCycles": 2,
   "currentTomeId": 1,
   "cyclesPerTome": 50,
   "tomes": [
@@ -16,10 +16,10 @@
         "from": "2026-05-20T19:09:00.852Z",
         "to": ""
       },
-      "summary": "Cycle 1: discovery cerrado. Cycle 2: scaffolding generado y verificado; commit bloqueado por Norton 360 (DG-007 A).",
+      "summary": "Cycle 1: discovery cerrado. Cycle 2: scaffolding del monorepo generado, verificado y commiteado (f0b5202).",
       "keyDecisions": ["DG-001", "DG-002", "DG-003", "DG-004", "DG-005", "DG-006", "DG-007", "Q1"],
-      "cycleCount": 1,
-      "successCount": 1,
+      "cycleCount": 2,
+      "successCount": 2,
       "failureCount": 0,
       "jsonPath": "tomes/tome-001.json",
       "mdPath": "tomes/tome-001.md",
@@ -50,5 +50,5 @@
       "2": 3
     }
   },
-  "lastUpdated": "2026-05-20T23:00:00.000Z"
+  "lastUpdated": "2026-05-20T23:20:00.000Z"
 }

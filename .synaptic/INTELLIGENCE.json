@@ -3,8 +3,8 @@
     "name": "SENTINEL",
     "fullName": "Synaptic Sentinel",
     "description": "Toolkit OSS de auditoria agentica de seguridad + capa premium LLM, vibe-coding-native, para la era del codigo generado por IA. Tercer producto de la familia Synaptic.",
-    "currentPhase": "foundation-scaffolding",
-    "overallProgress": "Cycle 1 cerrado (discovery). Cycle 2: scaffolding generado y verificado; commit bloqueado por Norton 360. DG-007 A decidido; awaiting exclusion de AV por el usuario."
+    "currentPhase": "scout-layer",
+    "overallProgress": "Cycles 1-2 CERRADOS. Discovery + scaffolding generado, verificado y commiteado (f0b5202). Cycle 3 abierto: PASO 4 - primer hito (Scout Layer)."
   },
   "decisions": [
     { "id": "DG-001", "title": "Estructura fisica del monorepo OSS/Pro", "selected": "B", "date": "2026-05-20", "summary": "Monorepo unico con workspaces marcados OSS/Pro + publish-oss.ts allowlist", "rationale": "Velocidad solo founder; refactors triviales; anti-filtracion en un script auditable" },
@@ -39,16 +39,15 @@
     }
   ],
   "implementationState": {
-    "lastCompletedTask": "Cycle 2: scaffolding generado y verificado; DG-007 resuelto (A); antivirus identificado como Norton 360",
-    "currentTask": "Awaiting que el usuario agregue D:/GoLAB/PROYECTOS/SENTINEL a las exclusiones de Auto-Protect/SONAR de Norton 360; luego se reintenta el commit inicial",
+    "lastCompletedTask": "Cycle 2 CERRADO: scaffolding generado, verificado y commiteado (primer commit atomico f0b5202, 54 archivos, branch main)",
+    "currentTask": "Cycle 3 / PASO 4 - primer hito implementable (Scout Layer). DG-008 abierto: enfoque del increment.",
     "pendingTasks": [
-      "Usuario: agregar exclusion de la carpeta en Norton 360",
-      "Reintentar y concretar el primer commit atomico",
-      "PASO 4 - primer hito: interfaz ScoutAgent + wrapper OpenGrep + fixtures JS/TS+Python"
+      "Resolver DG-008 - enfoque del primer hito",
+      "Implementar interfaz ScoutAgent + tipos compartidos (zod)",
+      "Implementar wrapper OpenGrep (child process) + normalizer",
+      "Fixtures de vulnerabilidades JS/TS + Python + tests"
     ],
-    "blockers": [
-      "Commit git bloqueado por Norton 360 (Auto-Protect bloquea escritura en .git/objects). Resolucion: DG-007 A - exclusion de la carpeta, pendiente de accion del usuario."
-    ]
+    "blockers": []
   },
   "contextNotes": [
     "Project SENTINEL - SYNAPTIC Protocol v3.0 - Enforcement STRICT + PERSISTENT",
@@ -56,10 +55,10 @@
     "Invariant inviolable: el codigo del cliente NUNCA cruza su perimetro",
     "Estructura: monorepo unico pnpm con 7 paquetes (DG-001 B / DG-005 B); build tsc -b project references",
     "Scaffolding verificado: pnpm install (204 pkgs), build, lint, test - todos verdes",
-    "git init local hecho (branch main); SIN commits aun - bloqueado por Norton 360 (DG-007 A pendiente)",
+    "Primer commit atomico f0b5202 en branch main (54 archivos); repo remoto GitHub aun diferido (DG-002 A)",
     "ENTORNO: antivirus activo Norton 360. Requiere NODE_OPTIONS=--use-system-ca para red (L-001) y exclusion de carpeta para git (L-002)",
     "git commit es 100% local y NO requiere token de GitHub; el push futuro (diferido por DG-002 A) usara gh ya autenticado como golab-arch",
     "Observacion: Python 3.14 vs Checkov; better-sqlite3 ABI con Electron; exactOptionalPropertyTypes estricto"
   ],
-  "lastUpdated": "2026-05-20T23:00:00.000Z"
+  "lastUpdated": "2026-05-20T23:20:00.000Z"
 }
