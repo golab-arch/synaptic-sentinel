@@ -255,7 +255,34 @@ Each entry follows this structure:
 }
 ```
 
+### Entry #9 - PASO 4 Increment 1: contrato ScoutAgent + tipos compartidos
+```json
+{
+  "timestamp": "2026-05-20T23:40:00.000Z",
+  "cycle": 3,
+  "phase": 3,
+  "action": "FEATURE_IMPLEMENTED",
+  "details": {
+    "DG-008": {
+      "title": "Alcance del primer increment de PASO 4",
+      "selected": "Option A",
+      "effect": "Contrato primero - interfaz ScoutAgent + tipos compartidos antes del wrapper OpenGrep"
+    },
+    "core_types": "packages/core/src/types/: severity, finding (Finding + FindingLocation + categorias + lifecycle), pheromone (matchea la tabla pheromones de colony.db), scan (Scan + ScanMode). Cada tipo = schema zod como fuente unica de verdad; el tipo TS se infiere con z.infer.",
+    "scouts": "packages/scouts/src/scout-agent.ts: interfaz ScoutAgent + ScanRequest (con AbortSignal como kill-switch, v0.4 9.6) + ScoutResult validado con zod (estados ok/partial/failed)",
+    "deps": "zod ^3.24 agregado a core y scouts",
+    "adjustments": "vitest.config.ts: aliases que resuelven los paquetes internos @synaptic-sentinel/* a su codigo fuente (tests corren sin build previo)",
+    "tests": "25 tests nuevos (severity 4, finding 7, pheromone 5, scan 5, scout-agent 4) + 3 smoke = 28 total",
+    "verification": "pnpm install / build (tsc -b) / lint (eslint) / test (vitest 28/28) - todos en verde",
+    "commit": "commit atomico feat(scouts,core) incluye codigo, tests y este registro"
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 8,
+  "complianceScore": 100
+}
+```
+
 ---
 
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-20T23:20:00.000Z*
+*Last Updated: 2026-05-20T23:40:00.000Z*

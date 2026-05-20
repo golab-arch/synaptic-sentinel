@@ -2,7 +2,7 @@
   "version": "1.0",
   "projectId": "sentinel-1779304140796",
   "projectName": "SENTINEL",
-  "totalCycles": 2,
+  "totalCycles": 3,
   "currentTomeId": 1,
   "cyclesPerTome": 50,
   "tomes": [
@@ -16,10 +16,10 @@
         "from": "2026-05-20T19:09:00.852Z",
         "to": ""
       },
-      "summary": "Cycle 1: discovery cerrado. Cycle 2: scaffolding del monorepo generado, verificado y commiteado (f0b5202).",
-      "keyDecisions": ["DG-001", "DG-002", "DG-003", "DG-004", "DG-005", "DG-006", "DG-007", "Q1"],
-      "cycleCount": 2,
-      "successCount": 2,
+      "summary": "Cycle 1: discovery. Cycle 2: scaffolding del monorepo (f0b5202). Cycle 3: PASO 4 Increment 1 - contrato ScoutAgent + tipos compartidos.",
+      "keyDecisions": ["DG-001", "DG-002", "DG-003", "DG-004", "DG-005", "DG-006", "DG-007", "DG-008", "Q1"],
+      "cycleCount": 3,
+      "successCount": 3,
       "failureCount": 0,
       "jsonPath": "tomes/tome-001.json",
       "mdPath": "tomes/tome-001.md",
@@ -34,12 +34,13 @@
     { "id": "DG-005", "title": "Alcance de la generacion de scaffolding", "selected": "B", "cycle": 2, "date": "2026-05-20" },
     { "id": "DG-006", "title": "Linter / formatter", "selected": "B", "cycle": 2, "date": "2026-05-20" },
     { "id": "DG-007", "title": "Desbloqueo del commit (antivirus)", "selected": "A", "cycle": 2, "date": "2026-05-20" },
+    { "id": "DG-008", "title": "Alcance del primer increment de PASO 4", "selected": "A", "cycle": 3, "date": "2026-05-20" },
     { "id": "Q1", "title": "Package manager", "selected": "pnpm", "cycle": 1, "date": "2026-05-20" }
   ],
   "metrics": {
-    "totalDecisions": 8,
+    "totalDecisions": 9,
     "optionDistribution": {
-      "A": 4,
+      "A": 5,
       "B": 3,
       "C": 0
     },
@@ -47,8 +48,9 @@
     "averageCompliance": 100,
     "phaseDistribution": {
       "1": 5,
-      "2": 3
+      "2": 3,
+      "3": 1
     }
   },
-  "lastUpdated": "2026-05-20T23:20:00.000Z"
+  "lastUpdated": "2026-05-20T23:40:00.000Z"
 }

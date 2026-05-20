@@ -1,12 +1,12 @@
 /**
  * @synaptic-sentinel/core
  *
- * Coordinator del enjambre (pipeline de stages), colony DB (memoria de
- * feromonas en SQLite) y tipos compartidos validados con zod.
- * El schema de la colony DB esta en ./colony/schema.sql.
- * Implementacion en PASO 4+ del roadmap.
+ * Coordinator del enjambre, colony DB (memoria de feromonas) y tipos
+ * compartidos. El schema de la colony DB esta en ./colony/schema.sql.
  *
  * Licencia: Apache-2.0 (OSS).
  */
 
 export const PACKAGE_NAME = '@synaptic-sentinel/core';
+
+export * from './types/index.js';

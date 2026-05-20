@@ -6,29 +6,32 @@
 
 ## Current Cycle
 
-- **Cycle:** 3 — PASO 4 / Scout Layer
+- **Cycle:** 4 — PASO 4 / Scout Layer
 - **Phase:** 3 — Scout Layer
-- **Status:** scaffolding cerrado y commiteado; awaiting DG-008 (enfoque del primer hito)
+- **Status:** contrato `ScoutAgent` + tipos listos; awaiting DG-009 (wrapper OpenGrep)
 - **Compliance:** 100%
-- **Synaptic Strength:** 7
+- **Synaptic Strength:** 8
 
 ## Cycles cerrados
 
 - **Cycle 1** — discovery técnico (DG-001..DG-004, Q1) ✅
-- **Cycle 2** — scaffolding del monorepo (DG-005, DG-006, DG-007) — generado, verificado y **commiteado** (`f0b5202`) ✅
+- **Cycle 2** — scaffolding del monorepo (DG-005, DG-006, DG-007) — `f0b5202` ✅
+- **Cycle 3** — PASO 4 Increment 1: contrato `ScoutAgent` + tipos compartidos (DG-008) ✅
 
 ## Estado del repo
 
-- commit inicial `f0b5202` en `main` — 54 archivos
-- 7 paquetes pnpm · `tsc -b` / ESLint / Vitest verdes
-- ⚠️ entorno Norton 360: exclusión de carpeta aplicada; `NODE_OPTIONS=--use-system-ca` para red (L-001/L-002)
+- 3 commits en `main` · 7 paquetes pnpm
+- `core`: tipos `Finding` / `Pheromone` / `Scan` / severidades con `zod`
+- `scouts`: interfaz `ScoutAgent` + `ScanRequest` + `ScoutResult`
+- `tsc -b` / ESLint / Vitest (28/28) verdes
+- ⚠️ entorno Norton 360: exclusión aplicada; `--use-system-ca` para red
 
 ## Decision Gate abierto
 
-- DG-008 — enfoque del primer hito implementable (interfaz ScoutAgent + wrapper OpenGrep)
+- DG-009 — enfoque del segundo increment de PASO 4 (wrapper OpenGrep)
 
 ## Last Entry
 
-Entry #8 — SCAFFOLDING_COMMITTED — 2026-05-20 — SUCCESS
+Entry #9 — FEATURE_IMPLEMENTED — 2026-05-20 — SUCCESS
 
 ---
