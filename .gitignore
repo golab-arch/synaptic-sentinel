@@ -1,0 +1,29 @@
+# Dependencias y artefactos de build
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+
+# Binarios de scanners descargados on-demand (DG-003 A) — NO versionar
+.scanners/
+
+# Colony DB: vive en el proyecto DEL CLIENTE, no en este repo.
+# Ignorada por defecto. Versionarla es OPCIONAL — ver docs/colony-db.md
+.synaptic-sentinel/colony.db
+.synaptic-sentinel/colony.db-wal
+.synaptic-sentinel/colony.db-shm
+
+# Secrets y entorno
+.env
+.env.local
+.env.*.local
+
+# Artefactos de extensión
+*.vsix
+
+# Logs de auditoría locales del IDE
+.vscode/synaptic/audit/
+
+# Sistema operativo / editor
+.DS_Store
+Thumbs.db

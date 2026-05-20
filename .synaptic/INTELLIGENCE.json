@@ -1,0 +1,65 @@
+{
+  "projectSummary": {
+    "name": "SENTINEL",
+    "fullName": "Synaptic Sentinel",
+    "description": "Toolkit OSS de auditoria agentica de seguridad + capa premium LLM, vibe-coding-native, para la era del codigo generado por IA. Tercer producto de la familia Synaptic.",
+    "currentPhase": "foundation-scaffolding",
+    "overallProgress": "Cycle 1 cerrado (discovery). Cycle 2: scaffolding generado y verificado; commit bloqueado por Norton 360. DG-007 A decidido; awaiting exclusion de AV por el usuario."
+  },
+  "decisions": [
+    { "id": "DG-001", "title": "Estructura fisica del monorepo OSS/Pro", "selected": "B", "date": "2026-05-20", "summary": "Monorepo unico con workspaces marcados OSS/Pro + publish-oss.ts allowlist", "rationale": "Velocidad solo founder; refactors triviales; anti-filtracion en un script auditable" },
+    { "id": "DG-002", "title": "Creacion del repositorio GitHub", "selected": "A", "date": "2026-05-20", "summary": "git init local ahora; repo remoto GitHub diferido", "rationale": "Evita infra remota prematura; respeta v0.4 8.4 LOCKED" },
+    { "id": "DG-003", "title": "Estrategia de binarios de scanners", "selected": "A", "date": "2026-05-20", "summary": "Binarios nativos pinneados, descarga on-demand", "rationale": "El producto debe correr sin Docker en el cliente; dev espeja prod" },
+    { "id": "DG-004", "title": "Reuso de @synaptic-sre/enforcement", "selected": "A", "date": "2026-05-20", "summary": "Referencia conceptual; reimplementacion idiomatica", "rationale": "Reuso literal bajo; Sentinel autonomo y sin deuda de licencia" },
+    { "id": "DG-005", "title": "Alcance de la generacion de scaffolding", "selected": "B", "date": "2026-05-20", "summary": "Esqueleto completo: 7 paquetes declarados", "rationale": "Hace explicito el split OSS/Pro desde el dia uno" },
+    { "id": "DG-006", "title": "Linter / formatter", "selected": "B", "date": "2026-05-20", "summary": "ESLint flat (typescript-eslint) + Prettier en el scaffolding", "rationale": "Un producto de calidad/seguridad de codigo debe tener linter real desde el primer commit" },
+    { "id": "DG-007", "title": "Desbloqueo del commit (interferencia de antivirus)", "selected": "A", "date": "2026-05-20", "summary": "Exclusion de la carpeta del proyecto en Norton 360", "rationale": "Ataca la causa raiz; desbloquea commit, pnpm install y descarga futura de scanners" },
+    { "id": "Q1", "title": "Package manager", "selected": "pnpm workspaces", "date": "2026-05-20", "summary": "pnpm v10.33.0", "rationale": "Ya instalado; preferencia v0.4 9.5; simple sin overhead" }
+  ],
+  "roadmap": [
+    { "phase": "Foundations", "weeks": "1-2", "items": ["Repo/monorepo setup + CI", "VSCode extension scaffolding", "colony.db schema + WAL", "BYOK + SecretStorage"] },
+    { "phase": "Scout Layer", "weeks": "2-5", "items": ["Interfaz ScoutAgent", "Wrappers OpenGrep/Gitleaks/Trivy/Checkov", "Output normalization"] },
+    { "phase": "Coordinator", "weeks": "5-7", "items": ["Pipeline stages 1-2", "Dedup + fp_known", "Error handling parcial"] },
+    { "phase": "Brain Layer (parcial)", "weeks": "6-10", "items": ["Triage Agent JS/TS + Python", "Vibe-Detect Agent", "Remediation Agent basico"] },
+    { "phase": "Inline UX", "weeks": "8-10", "items": ["Diagnostics + hover", "Code Actions + quickfix", "Status bar + tree view"] },
+    { "phase": "Output & Polish", "weeks": "10-12", "items": ["Tomo JSON/HTML export", "Test fixtures + benchmarks", "Onboarding doc", "Beta a design partners"] }
+  ],
+  "learnings": [
+    {
+      "id": "L-001",
+      "date": "2026-05-20",
+      "topic": "Norton 360 - inspeccion TLS",
+      "detail": "pnpm/Node fallan con UNABLE_TO_VERIFY_LEAF_SIGNATURE contra registry.npmjs.org. Norton 360 intercepta TLS; su root CA esta en el almacen de Windows, no en el bundle de Node. Workaround permanente: NODE_OPTIONS=--use-system-ca."
+    },
+    {
+      "id": "L-002",
+      "date": "2026-05-20",
+      "topic": "Norton 360 - bloqueo de escrituras de git",
+      "detail": "git add/commit fallan con 'Permission denied' al escribir objetos en .git/objects/. El Auto-Protect/SONAR de Norton 360 (no Windows Defender, que esta pasivo) bloquea los objetos git recien creados. Fix raiz (DG-007 A): excluir D:/GoLAB/PROYECTOS/SENTINEL de Auto-Protect/SONAR en Norton."
+    }
+  ],
+  "implementationState": {
+    "lastCompletedTask": "Cycle 2: scaffolding generado y verificado; DG-007 resuelto (A); antivirus identificado como Norton 360",
+    "currentTask": "Awaiting que el usuario agregue D:/GoLAB/PROYECTOS/SENTINEL a las exclusiones de Auto-Protect/SONAR de Norton 360; luego se reintenta el commit inicial",
+    "pendingTasks": [
+      "Usuario: agregar exclusion de la carpeta en Norton 360",
+      "Reintentar y concretar el primer commit atomico",
+      "PASO 4 - primer hito: interfaz ScoutAgent + wrapper OpenGrep + fixtures JS/TS+Python"
+    ],
+    "blockers": [
+      "Commit git bloqueado por Norton 360 (Auto-Protect bloquea escritura en .git/objects). Resolucion: DG-007 A - exclusion de la carpeta, pendiente de accion del usuario."
+    ]
+  },
+  "contextNotes": [
+    "Project SENTINEL - SYNAPTIC Protocol v3.0 - Enforcement STRICT + PERSISTENT",
+    "Documento maestro: context/Synaptic_Sentinel_v0.4.md - 31 decisiones, varias LOCKED",
+    "Invariant inviolable: el codigo del cliente NUNCA cruza su perimetro",
+    "Estructura: monorepo unico pnpm con 7 paquetes (DG-001 B / DG-005 B); build tsc -b project references",
+    "Scaffolding verificado: pnpm install (204 pkgs), build, lint, test - todos verdes",
+    "git init local hecho (branch main); SIN commits aun - bloqueado por Norton 360 (DG-007 A pendiente)",
+    "ENTORNO: antivirus activo Norton 360. Requiere NODE_OPTIONS=--use-system-ca para red (L-001) y exclusion de carpeta para git (L-002)",
+    "git commit es 100% local y NO requiere token de GitHub; el push futuro (diferido por DG-002 A) usara gh ya autenticado como golab-arch",
+    "Observacion: Python 3.14 vs Checkov; better-sqlite3 ABI con Electron; exactOptionalPropertyTypes estricto"
+  ],
+  "lastUpdated": "2026-05-20T23:00:00.000Z"
+}

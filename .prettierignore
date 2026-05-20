@@ -1,0 +1,7 @@
+dist/
+coverage/
+node_modules/
+.scanners/
+pnpm-lock.yaml
+.synaptic/
+context/

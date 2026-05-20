@@ -1,0 +1,12 @@
+# Normalizacion de fin de linea — dev en Windows, producto cross-platform
+* text=auto eol=lf
+
+# Binarios
+*.png   binary
+*.jpg   binary
+*.ico   binary
+*.vsix  binary
+*.db    binary
+
+# Lockfile — generado, sin diffs ruidosos
+pnpm-lock.yaml -diff linguist-generated

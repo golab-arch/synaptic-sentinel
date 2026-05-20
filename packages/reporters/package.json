@@ -1,0 +1,15 @@
+{
+  "name": "@synaptic-sentinel/reporters",
+  "version": "0.0.0",
+  "description": "Generacion de reportes: JSON y SARIF (OSS); HTML y PDF firmado (Pro).",
+  "license": "Apache-2.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": ["dist"],
+  "dependencies": {
+    "@synaptic-sentinel/core": "workspace:*",
+    "@synaptic-sentinel/shared": "workspace:*"
+  }
+}

@@ -1,0 +1,241 @@
+# BITACORA.md - SENTINEL
+
+## SYNAPTIC Protocol v3.0 - Chronological Activity Log
+
+---
+
+## FORMAT: JSON Entries
+
+Each entry follows this structure:
+```json
+{
+  "timestamp": "ISO-8601",
+  "cycle": number,
+  "phase": number,
+  "action": "ACTION_TYPE",
+  "details": { ... },
+  "outcome": "SUCCESS|FAILURE|PENDING",
+  "synapticStrength": number,
+  "complianceScore": number
+}
+```
+
+---
+
+## LOG ENTRIES
+
+### Entry #0 - Project Initialization
+```json
+{
+  "timestamp": "2026-05-20T19:09:00.816Z",
+  "cycle": 0,
+  "phase": 0,
+  "action": "PROJECT_INITIALIZED",
+  "details": {
+    "projectName": "SENTINEL",
+    "description": "Project SENTINEL",
+    "enforcementMode": "STRICT",
+    "synapticVersion": "3.0"
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 0,
+  "complianceScore": 100
+}
+```
+
+### Entry #1 - Kickoff: Context Load + Technical Discovery
+```json
+{
+  "timestamp": "2026-05-20T20:15:00.000Z",
+  "cycle": 1,
+  "phase": 1,
+  "action": "TECH_DISCOVERY",
+  "details": {
+    "paso1_context": "Leídos documento maestro Synaptic_Sentinel_v0.4.md (31 decisiones, varias LOCKED), Synaptic_Sentinel_Estructura_Repo.md, Kickoff Prompt y todos los archivos directores (MANTRA, RULES, DESIGN_DOC, BITACORA, session.json, INTELLIGENCE.json, bitacora/INDEX.json, CURRENT.md)",
+    "paso2_environment": {
+      "node": "v24.11.1 (OK, requiere >=20)",
+      "npm": "11.6.2",
+      "pnpm": "10.33.0 (disponible)",
+      "yarn": "no instalado",
+      "git": "2.51.0.windows.1",
+      "python": "3.14.0 via py launcher (python.exe es el stub de Microsoft Store)",
+      "docker": "28.4.0",
+      "wsl": "v2.7.3.0 (WSL2 disponible)",
+      "scanners": "OpenGrep / Gitleaks / Trivy / Checkov AUSENTES — estrategia de instalación pendiente",
+      "sentinelRepo": "git NO inicializado"
+    },
+    "enforcementPackage": "@synaptic-sre/enforcement ubicado en D:/GoLAB/PROYECTOS/SYNAPTIC_VSC_EXTENSION/packages/enforcement — ESM TypeScript zero-dep (ComplianceScorer, ResponseValidator, TemplateChecker, RegenerationEngine, decision-gate-utils)",
+    "decisionGateOpen": "DG-001 — estructura física del monorepo OSS/Pro (3 opciones presentadas)"
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 1,
+  "complianceScore": 100
+}
+```
+
+### Entry #2 - Discovery Decisions: DG-002 + Q1 + git init
+```json
+{
+  "timestamp": "2026-05-20T20:45:00.000Z",
+  "cycle": 1,
+  "phase": 1,
+  "action": "DECISION_RECORDED",
+  "details": {
+    "DG-002": {
+      "title": "Estructura del repositorio GitHub",
+      "selected": "Option A",
+      "effect": "git init local ejecutado en D:/GoLAB/PROYECTOS/SENTINEL (branch main); repo remoto GitHub diferido al PASO 3"
+    },
+    "Q1": {
+      "title": "Package manager",
+      "selected": "pnpm workspaces (v10.33.0)"
+    },
+    "gitInit": "SUCCESS - repo vacio, branch main, identidad global golab-arch/golab.develop@gmail.com presente; sin commit (primer commit en PASO 3 con .gitignore)",
+    "stillOpen": [
+      "DG-001 - estructura fisica del monorepo OSS/Pro - NO respondido por el usuario - BLOQUEA scaffolding",
+      "DG-003 - estrategia de binarios de scanners (ex-Q2) - presentado en este ciclo",
+      "DG-004 - reuso de @synaptic-sre/enforcement (ex-Q3) - presentado en este ciclo"
+    ]
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 2,
+  "complianceScore": 100
+}
+```
+
+### Entry #3 - Discovery Closed: DG-001 + DG-003 + DG-004
+```json
+{
+  "timestamp": "2026-05-20T21:10:00.000Z",
+  "cycle": 1,
+  "phase": 1,
+  "action": "DECISION_RECORDED",
+  "details": {
+    "DG-001": {
+      "title": "Estructura fisica del monorepo OSS/Pro",
+      "selected": "Option B",
+      "effect": "Monorepo unico con workspaces marcados OSS/Pro + script publish-oss.ts allowlist-based"
+    },
+    "DG-003": {
+      "title": "Estrategia de binarios de scanners",
+      "selected": "Option A",
+      "effect": "Binarios nativos pinneados, descarga on-demand via scripts/install-scanners.ts; mismo mecanismo dev y producto"
+    },
+    "DG-004": {
+      "title": "Reuso de @synaptic-sre/enforcement",
+      "selected": "Option A",
+      "effect": "Referencia conceptual de patrones; reimplementacion idiomatica; cero dependencia cross-repo"
+    },
+    "discoveryStatus": "CERRADO - las 5 decisiones de arranque resueltas (DG-001 B, DG-002 A, DG-003 A, DG-004 A, Q1 pnpm)",
+    "nextStep": "PASO 3 - propuesta de scaffolding presentada para aprobacion; NO se genero ningun archivo de scaffolding aun"
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 3,
+  "complianceScore": 100
+}
+```
+
+### Entry #4 - Scaffolding Scope Approved: DG-005
+```json
+{
+  "timestamp": "2026-05-20T21:40:00.000Z",
+  "cycle": 2,
+  "phase": 2,
+  "action": "DECISION_RECORDED",
+  "details": {
+    "DG-005": {
+      "title": "Alcance de la generacion de scaffolding",
+      "selected": "Option B",
+      "effect": "Esqueleto completo del workspace: 7 paquetes declarados con package.json/tsconfig/header de licencia/index.ts stub; codigo real solo en shared, core, scouts"
+    },
+    "colonyDbSchema": "Aprobadas las 2 mejoras propuestas: tabla meta (schema_version) + CHECK constraints en type, classification, confidence, decay_rate, evidence_count",
+    "scaffoldingAdjustments": "Usuario delega criterio. Se propone DG-006 (linter/formatter, decision no cubierta por v0.4) + auto-includes: .gitattributes (LF), docs/colony-db.md (requerido por kickoff), LICENSE-PRO stub",
+    "nextStep": "DG-006 abierto; tras resolverlo se genera el scaffolding completo + primer commit atomico"
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 4,
+  "complianceScore": 100
+}
+```
+
+### Entry #5 - Scaffolding Generated & Verified (DG-006 + DG-005 ejecutado)
+```json
+{
+  "timestamp": "2026-05-20T22:30:00.000Z",
+  "cycle": 2,
+  "phase": 2,
+  "action": "SCAFFOLDING_GENERATED",
+  "details": {
+    "DG-006": {
+      "title": "Linter / formatter",
+      "selected": "Option B",
+      "effect": "ESLint flat config (typescript-eslint) + Prettier configurados en el scaffolding"
+    },
+    "scope": "DG-005 B ejecutado - esqueleto completo del monorepo pnpm",
+    "rootFiles": "package.json, pnpm-workspace.yaml, .npmrc, tsconfig.base.json, tsconfig.json, vitest.config.ts, eslint.config.mjs, .prettierrc.json, .prettierignore, .gitignore, .gitattributes, .editorconfig, LICENSE (Apache-2.0 oficial), LICENSE-PRO (stub), README.md, docs/colony-db.md",
+    "packages": "7 declarados (shared, core, scouts, cli, reporters, vscode-extension, agents) con package.json + tsconfig.json + src/index.ts; core incluye src/colony/schema.sql con las 2 mejoras aprobadas",
+    "tests": "3 smoke tests (shared, core, scouts) - Vitest",
+    "verification": {
+      "pnpm_install": "OK - 204 paquetes",
+      "pnpm_build": "OK - tsc -b exit 0",
+      "pnpm_lint": "OK - eslint exit 0",
+      "pnpm_test": "OK - vitest 3/3 passed"
+    },
+    "adjustments": "build raiz via 'tsc -b' (project references) en vez de 'pnpm -r build'; esbuild declarado en pnpm.onlyBuiltDependencies (postura supply-chain)",
+    "blocker_resuelto": "pnpm install fallaba con TLS UNABLE_TO_VERIFY_LEAF_SIGNATURE - entorno con inspeccion TLS (proxy/AV); workaround NODE_OPTIONS=--use-system-ca",
+    "incidente": "Filtro de contenido corto la generacion inicial en Batch 2; LICENSE Apache-2.0 se obtuvo por descarga oficial",
+    "commit": "primer commit atomico en branch main incluye este registro"
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 5,
+  "complianceScore": 100
+}
+```
+
+### Entry #6 - Commit inicial BLOQUEADO (correccion de Entry #5)
+```json
+{
+  "timestamp": "2026-05-20T22:45:00.000Z",
+  "cycle": 2,
+  "phase": 2,
+  "action": "COMMIT_BLOCKED",
+  "details": {
+    "correccion": "Entry #5 anticipo el commit como realizado; NO se concreto. El scaffolding SI esta generado y verificado (pnpm install/build/lint/test verdes), pero el commit inicial esta BLOQUEADO.",
+    "causa": "git add/commit fallan con 'Permission denied' al escribir objetos en .git/objects/. Diagnostico: la ACL permite escritura, PowerShell escribe OK, Controlled Folder Access OFF, sandbox del harness descartado (fallo igual con sandbox off). Causa: antivirus / endpoint protection con real-time scanning bloqueando los objetos git recien creados.",
+    "intentos": "3 intentos de git add fallaron, en objetos distintos cada vez (no transitorio)",
+    "aclaracion": "El bloqueo es 100% LOCAL (.git/objects). NO tiene relacion con GitHub ni con tokens: git commit es una operacion local y no requiere autenticacion.",
+    "decisionAbierta": "DG-007 - resolucion del bloqueo (exclusion de AV vs bucle de reintentos)"
+  },
+  "outcome": "PENDING",
+  "synapticStrength": 5,
+  "complianceScore": 100
+}
+```
+
+### Entry #7 - DG-007 resuelto (A) + antivirus identificado: Norton 360
+```json
+{
+  "timestamp": "2026-05-20T23:00:00.000Z",
+  "cycle": 2,
+  "phase": 2,
+  "action": "DECISION_RECORDED",
+  "details": {
+    "DG-007": {
+      "title": "Desbloquear el commit inicial (interferencia de antivirus)",
+      "selected": "Option A",
+      "effect": "Exclusion de la carpeta del proyecto en el antivirus; luego se reintenta el commit"
+    },
+    "av_identificado": "El antivirus activo es Norton 360 (real-time Auto-Protect/SONAR), NO Windows Defender (en modo pasivo). Norton 360 en C:/Program Files/Norton/Suite. Las instrucciones de exclusion son las de Norton, no las de Defender.",
+    "pendiente": "El usuario debe agregar D:/GoLAB/PROYECTOS/SENTINEL a las exclusiones de Auto-Protect/SONAR de Norton 360; luego se reintenta el commit (1 intento limpio).",
+    "tls": "La inspeccion TLS (L-001) tambien es de Norton; se mantiene el workaround NODE_OPTIONS=--use-system-ca para operaciones de red."
+  },
+  "outcome": "PENDING",
+  "synapticStrength": 6,
+  "complianceScore": 100
+}
+```
+
+---
+
+*SYNAPTIC Protocol v3.0 - Continuous Logging Active*
+*Last Updated: 2026-05-20T23:00:00.000Z*

@@ -1,0 +1,21 @@
+{
+  "name": "@synaptic-sentinel/scouts",
+  "version": "0.0.0",
+  "description": "Capa Scout: interfaz ScoutAgent y wrappers de scanners OSS (OpenGrep, Gitleaks, Trivy, Checkov).",
+  "license": "Apache-2.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist"],
+  "dependencies": {
+    "@synaptic-sentinel/core": "workspace:*",
+    "@synaptic-sentinel/shared": "workspace:*"
+  }
+}

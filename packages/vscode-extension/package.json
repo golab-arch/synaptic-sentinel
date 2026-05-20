@@ -1,0 +1,23 @@
+{
+  "name": "@synaptic-sentinel/vscode-extension",
+  "displayName": "Synaptic Sentinel",
+  "version": "0.0.0",
+  "description": "Extension VSCode de Synaptic Sentinel - auditoria agentica de seguridad en el IDE.",
+  "license": "Apache-2.0",
+  "private": true,
+  "publisher": "golab",
+  "type": "module",
+  "engines": {
+    "vscode": "^1.95.0",
+    "node": ">=20"
+  },
+  "categories": ["Linters", "Other"],
+  "main": "./dist/index.js",
+  "contributes": {},
+  "dependencies": {
+    "@synaptic-sentinel/core": "workspace:*",
+    "@synaptic-sentinel/scouts": "workspace:*",
+    "@synaptic-sentinel/reporters": "workspace:*",
+    "@synaptic-sentinel/shared": "workspace:*"
+  }
+}

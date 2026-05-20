@@ -1,0 +1,12 @@
+{
+  "files": [],
+  "references": [
+    { "path": "packages/shared" },
+    { "path": "packages/core" },
+    { "path": "packages/scouts" },
+    { "path": "packages/cli" },
+    { "path": "packages/reporters" },
+    { "path": "packages/vscode-extension" },
+    { "path": "packages/agents" }
+  ]
+}

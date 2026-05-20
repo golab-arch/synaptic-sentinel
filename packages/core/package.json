@@ -1,0 +1,21 @@
+{
+  "name": "@synaptic-sentinel/core",
+  "version": "0.0.0",
+  "description": "Coordinator del enjambre, colony DB (feromonas) y tipos compartidos.",
+  "license": "Apache-2.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./colony/schema.sql": "./src/colony/schema.sql"
+  },
+  "files": ["dist", "src/colony/schema.sql"],
+  "dependencies": {
+    "@synaptic-sentinel/shared": "workspace:*"
+  }
+}
