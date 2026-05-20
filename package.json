@@ -12,12 +12,13 @@
   "scripts": {
     "build": "tsc -b",
     "clean": "tsc -b --clean",
-    "typecheck": "tsc -b",
+    "typecheck": "tsc -b && tsc -p scripts/tsconfig.json",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "scanners:install": "node --use-system-ca scripts/install-scanners.ts"
   },
   "devDependencies": {
     "@eslint/js": "^9.18.0",

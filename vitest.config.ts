@@ -16,12 +16,16 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
-    include: ['packages/*/tests/**/*.test.ts', 'packages/*/src/**/*.test.ts'],
+    include: [
+      'packages/*/tests/**/*.test.ts',
+      'packages/*/src/**/*.test.ts',
+      'scripts/**/*.test.ts',
+    ],
     passWithNoTests: true,
     coverage: {
       provider: 'v8',
       reportsDirectory: './coverage',
-      include: ['packages/*/src/**/*.ts'],
+      include: ['packages/*/src/**/*.ts', 'scripts/**/*.ts'],
       exclude: ['**/*.test.ts', '**/index.ts'],
     },
   },

@@ -12,6 +12,7 @@
 | DG-006 | Linter / formatter | **Option B** — ESLint flat (typescript-eslint) + Prettier en el scaffolding | 2026-05-20 | Un producto de calidad/seguridad de código debe tener linter real desde el primer commit |
 | DG-007 | Desbloqueo del commit (interferencia de antivirus) | **Option A** — exclusión de la carpeta del proyecto en el antivirus (Norton 360) | 2026-05-20 | Ataca la causa raíz; desbloquea commit, `pnpm install` y descarga futura de scanners |
 | DG-008 | Alcance del primer increment de PASO 4 | **Option A** — contrato primero: interfaz `ScoutAgent` + tipos compartidos antes del wrapper | 2026-05-20 | El contrato es el cimiento de core/scouts/agents/reporters; fijarlo y testearlo primero de-risk-ea el resto |
+| DG-009 | Alcance del segundo increment de PASO 4 | **Option A** — adquisición del binario primero (`scripts/install-scanners.ts`) | 2026-05-20 | La descarga bajo Norton (TLS, checksums, cross-platform) es la pieza de mayor riesgo de entorno; aislarla deja el wrapper como lógica pura |
 | Q1 | Package manager / tooling de monorepo | **pnpm workspaces** (v10.33.0) | 2026-05-20 | Ya instalado; preferencia v0.4 §9.5; sin overhead |
 
 **Discovery cerrado. Scaffolding generado, verificado y commiteado** (`f0b5202`, 54 archivos). **Cycle 2 CERRADO.** Siguiente: PASO 4 — Scout Layer.
@@ -39,6 +40,7 @@
 - 2026-05-20 — Cycle 1: arquitectura física fijada como monorepo único pnpm (DG-001 B), split OSS/Pro por workspace marcado.
 - 2026-05-20 — Cycle 2: scaffolding generado — 7 paquetes (shared, core, scouts, cli, reporters, vscode-extension, agents). Build con `tsc -b` project references. Primer commit atómico `f0b5202` en `main` (54 archivos) tras resolver el bloqueo de Norton 360 (DG-007 A).
 - 2026-05-20 — Cycle 3: PASO 4 Increment 1 — tipos compartidos (`Finding`, `Pheromone`, `Scan`, severidades) con `zod`, e interfaz `ScoutAgent`. 28 tests verdes.
+- 2026-05-20 — Cycle 4: PASO 4 Increment 2 — `scripts/install-scanners.ts` con manifest pinneado y checksums SHA-256. OpenGrep v1.22.0 descargado y verificado. 32 tests verdes.
 
 ---
 
@@ -62,10 +64,10 @@
 
 - **Name**: SENTINEL (Synaptic Sentinel)
 - **Description**: Toolkit OSS de auditoría agéntica de seguridad + capa premium LLM, vibe-coding-native.
-- **Phase**: Cycle 4 / PASO 4 — Scout Layer (contrato `ScoutAgent` listo; siguiente: wrapper OpenGrep)
+- **Phase**: Cycle 5 / PASO 4 — Scout Layer (contrato + binario OpenGrep listos; siguiente: `OpenGrepScout`)
 
 ---
 
 *Created: 2026-05-20T19:09:00.816Z*
-*Last Updated: 2026-05-20T23:40:00.000Z*
+*Last Updated: 2026-05-20T23:55:00.000Z*
 *SYNAPTIC Protocol v3.0*

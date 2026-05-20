@@ -4,7 +4,7 @@
     "fullName": "Synaptic Sentinel",
     "description": "Toolkit OSS de auditoria agentica de seguridad + capa premium LLM, vibe-coding-native, para la era del codigo generado por IA. Tercer producto de la familia Synaptic.",
     "currentPhase": "scout-layer",
-    "overallProgress": "Cycles 1-3 CERRADOS. Discovery + scaffolding (f0b5202) + PASO 4 Increment 1 (contrato ScoutAgent + tipos compartidos con zod, 28 tests verdes). Cycle 4 abierto: wrapper OpenGrep."
+    "overallProgress": "Cycles 1-4 CERRADOS. Discovery + scaffolding + contrato ScoutAgent + install-scanners (OpenGrep v1.22.0 descargado y verificado). 32 tests verdes. Cycle 5 abierto: OpenGrepScout."
   },
   "decisions": [
     { "id": "DG-001", "title": "Estructura fisica del monorepo OSS/Pro", "selected": "B", "date": "2026-05-20", "summary": "Monorepo unico con workspaces marcados OSS/Pro + publish-oss.ts allowlist", "rationale": "Velocidad solo founder; refactors triviales; anti-filtracion en un script auditable" },
@@ -15,6 +15,7 @@
     { "id": "DG-006", "title": "Linter / formatter", "selected": "B", "date": "2026-05-20", "summary": "ESLint flat (typescript-eslint) + Prettier en el scaffolding", "rationale": "Un producto de calidad/seguridad de codigo debe tener linter real desde el primer commit" },
     { "id": "DG-007", "title": "Desbloqueo del commit (interferencia de antivirus)", "selected": "A", "date": "2026-05-20", "summary": "Exclusion de la carpeta del proyecto en Norton 360", "rationale": "Ataca la causa raiz; desbloquea commit, pnpm install y descarga futura de scanners" },
     { "id": "DG-008", "title": "Alcance del primer increment de PASO 4", "selected": "A", "date": "2026-05-20", "summary": "Contrato primero: interfaz ScoutAgent + tipos compartidos antes del wrapper", "rationale": "El contrato es el cimiento de core/scouts/agents/reporters; fijarlo y testearlo primero de-risk-ea el resto" },
+    { "id": "DG-009", "title": "Alcance del segundo increment de PASO 4", "selected": "A", "date": "2026-05-20", "summary": "Adquisicion del binario primero: scripts/install-scanners.ts", "rationale": "La descarga bajo Norton (TLS, checksums, cross-platform) es la pieza de mayor riesgo de entorno; aislarla deja el wrapper como logica pura" },
     { "id": "Q1", "title": "Package manager", "selected": "pnpm workspaces", "date": "2026-05-20", "summary": "pnpm v10.33.0", "rationale": "Ya instalado; preferencia v0.4 9.5; simple sin overhead" }
   ],
   "roadmap": [
@@ -40,12 +41,12 @@
     }
   ],
   "implementationState": {
-    "lastCompletedTask": "Cycle 3 CERRADO: PASO 4 Increment 1 - contrato ScoutAgent + tipos compartidos (Finding/Pheromone/Scan/severidades) con zod; 28 tests verdes; commiteado",
-    "currentTask": "Cycle 4 / PASO 4 Increment 2 - wrapper OpenGrep. DG-009 abierto: enfoque del increment.",
+    "lastCompletedTask": "Cycle 4 CERRADO: PASO 4 Increment 2 - scripts/install-scanners.ts con manifest pinneado y checksums SHA-256; OpenGrep v1.22.0 descargado, verificado y ejecutable; 32 tests verdes; commiteado",
+    "currentTask": "Cycle 5 / PASO 4 Increment 3 - OpenGrepScout. DG-010 abierto: enfoque del increment.",
     "pendingTasks": [
-      "Resolver DG-009 - enfoque del segundo increment de PASO 4",
-      "scripts/install-scanners.ts - descarga pinneada del binario OpenGrep (contemplar TLS de Norton)",
-      "Wrapper OpenGrep (child process) + normalizer OpenGrep->Finding",
+      "Resolver DG-010 - enfoque del tercer increment de PASO 4",
+      "OpenGrepScout: implementa ScoutAgent (isAvailable + scan via child process)",
+      "Normalizer: salida JSON de OpenGrep -> Finding[]",
       "Fixtures de vulnerabilidades JS/TS + Python + tests de deteccion"
     ],
     "blockers": []
@@ -61,5 +62,5 @@
     "git commit es 100% local y NO requiere token de GitHub; el push futuro (diferido por DG-002 A) usara gh ya autenticado como golab-arch",
     "Observacion: Python 3.14 vs Checkov; better-sqlite3 ABI con Electron; exactOptionalPropertyTypes estricto"
   ],
-  "lastUpdated": "2026-05-20T23:40:00.000Z"
+  "lastUpdated": "2026-05-20T23:55:00.000Z"
 }

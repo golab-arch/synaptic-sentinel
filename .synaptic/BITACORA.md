@@ -282,7 +282,33 @@ Each entry follows this structure:
 }
 ```
 
+### Entry #10 - PASO 4 Increment 2: install-scanners (OpenGrep)
+```json
+{
+  "timestamp": "2026-05-20T23:55:00.000Z",
+  "cycle": 4,
+  "phase": 3,
+  "action": "FEATURE_IMPLEMENTED",
+  "details": {
+    "DG-009": {
+      "title": "Alcance del segundo increment de PASO 4",
+      "selected": "Option A",
+      "effect": "Solo scripts/install-scanners.ts - adquisicion del binario primero"
+    },
+    "files": "scripts/scanners.manifest.json (OpenGrep v1.22.0, 5 plataformas, checksums SHA-256 oficiales obtenidos de la GitHub API), scripts/install-scanners.ts (descarga + verificacion de checksum + idempotencia + cross-platform), scripts/install-scanners.test.ts, scripts/tsconfig.json",
+    "config": "vitest.config.ts incluye scripts/; package.json: script scanners:install (node --use-system-ca) y typecheck extendido a scripts",
+    "verification_real": "pnpm scanners:install descargo opengrep_windows_x86.exe (47123456 bytes); checksum SHA-256 verificado = f4f91b0a6268318df1dbb63e11f0ba2e9fdc355fa27d1de8fe9abf6c8a8e9efa; opengrep --version => 1.22.0",
+    "tests": "4 tests nuevos (install-scanners) - total 32 verdes",
+    "checks": "build / typecheck (incl. scripts) / lint / test - todos en verde",
+    "commit": "commit atomico feat(scripts) incluye codigo, tests y este registro"
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 9,
+  "complianceScore": 100
+}
+```
+
 ---
 
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-20T23:40:00.000Z*
+*Last Updated: 2026-05-20T23:55:00.000Z*
