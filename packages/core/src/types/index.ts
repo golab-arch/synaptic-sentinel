@@ -9,5 +9,6 @@
 export * from './severity.js';
 export * from './finding.js';
 export * from './pheromone.js';
+export * from './fp-known.js';
 export * from './scan.js';
 export * from './scout-agent.js';

@@ -82,6 +82,7 @@ describe('formatOutcome', () => {
       scanId: 'scan-1',
       status: 'ok' as const,
       findingsCount: 1,
+      suppressedCount: 0,
       scouts: [{ scoutId: 'opengrep', status: 'ok' as const, findings: 1 }],
       startedAt: '2026-05-21T00:00:00.000Z',
       finishedAt: '2026-05-21T00:00:05.000Z',
@@ -110,5 +111,39 @@ describe('formatOutcome', () => {
     expect(text).toContain('scout opengrep: ok');
     expect(text).toContain('[HIGH] sentinel-js-eval-usage');
     expect(text).toContain('src/x.js:2');
+    expect(text).not.toContain('Suprimidos'); // sin supresiones no se imprime la linea
+  });
+
+  it('reporta los hallazgos suprimidos y anota el ciclo de vida no-new', () => {
+    const outcome = {
+      scanId: 'scan-2',
+      status: 'ok' as const,
+      findingsCount: 1,
+      suppressedCount: 2,
+      scouts: [{ scoutId: 'opengrep', status: 'ok' as const, findings: 3 }],
+      startedAt: '2026-05-21T00:00:00.000Z',
+      finishedAt: '2026-05-21T00:00:05.000Z',
+    };
+    const findings = [
+      {
+        id: 'f-2',
+        scanId: 'scan-2',
+        scoutId: 'opengrep',
+        severity: 'medium' as const,
+        category: 'SAST' as const,
+        ruleId: 'rule-y',
+        title: 'rule-y',
+        message: 'Hallazgo recurrente',
+        location: { path: 'src/y.js', startLine: 5 },
+        complianceRefs: [],
+        fingerprint: 'fp-2',
+        lifecycleState: 'known' as const,
+        createdAt: '2026-05-21T00:00:00.000Z',
+      },
+    ];
+
+    const text = formatOutcome(outcome, findings);
+    expect(text).toContain('Suprimidos: 2');
+    expect(text).toContain('[MEDIUM] rule-y (known)');
   });
 });

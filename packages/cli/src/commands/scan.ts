@@ -65,6 +65,12 @@ export function formatOutcome(outcome: ScanOutcome, findings: readonly Finding[]
     `Scan ${outcome.scanId} — ${outcome.status.toUpperCase()}`,
     `Hallazgos: ${String(outcome.findingsCount)}`,
   ];
+  if (outcome.suppressedCount > 0) {
+    // Stage 2: duplicados intra-scan + falsos positivos confirmados (fp_known).
+    lines.push(
+      `Suprimidos: ${String(outcome.suppressedCount)} (duplicados o falsos positivos conocidos)`,
+    );
+  }
   for (const scout of outcome.scouts) {
     const detail = scout.error !== undefined ? ` (${scout.error})` : '';
     lines.push(
@@ -72,10 +78,13 @@ export function formatOutcome(outcome: ScanOutcome, findings: readonly Finding[]
     );
   }
   for (const finding of findings) {
+    // Se anota el ciclo de vida salvo `new`: p.ej. `(known)` = hallazgo ya
+    // visto en un scan anterior (stage 2 del Coordinator).
+    const lifecycle = finding.lifecycleState === 'new' ? '' : ` (${finding.lifecycleState})`;
     // Se muestra `title` (nombre limpio de la regla); `ruleId` crudo puede
     // traer el prefijo de ruta del --config de OpenGrep (ver FI-005).
     lines.push(
-      `  [${finding.severity.toUpperCase()}] ${finding.title} ` +
+      `  [${finding.severity.toUpperCase()}] ${finding.title}${lifecycle} ` +
         `— ${finding.location.path}:${String(finding.location.startLine)}`,
     );
   }

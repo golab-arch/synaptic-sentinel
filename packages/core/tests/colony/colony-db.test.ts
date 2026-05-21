@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { rmSync } from 'node:fs';
 import { ColonyDb } from '../../src/colony/colony-db.js';
+import { buildFpKnownPheromone } from '../../src/types/fp-known.js';
 
 /** Construye un scan valido de base. */
 function makeScan(overrides: Record<string, unknown> = {}): Record<string, unknown> {
@@ -94,6 +95,42 @@ describe('ColonyDb (base en memoria)', () => {
   it('rechaza una feromona cuyo scan no existe (foreign key)', () => {
     const db = ColonyDb.open(':memory:');
     expect(() => db.insertPheromone(makePheromone(randomUUID()))).toThrow();
+    db.close();
+  });
+});
+
+describe('ColonyDb.getKnownFingerprints', () => {
+  it('devuelve un set vacio cuando no hay feromonas', () => {
+    const db = ColonyDb.open(':memory:');
+    expect(db.getKnownFingerprints('finding').size).toBe(0);
+    db.close();
+  });
+
+  it('extrae payload.fingerprint solo de las feromonas del tipo pedido', () => {
+    const db = ColonyDb.open(':memory:');
+    const scan = makeScan();
+    db.insertScan(scan);
+    const scanId = String(scan['id']);
+    db.insertPheromones([
+      makePheromone(scanId, { payload: { fingerprint: 'fp-a' } }),
+      makePheromone(scanId, { payload: { fingerprint: 'fp-b' } }),
+    ]);
+    db.insertPheromone(
+      buildFpKnownPheromone({ scanId, agentId: 'tester', fingerprint: 'fp-falso' }),
+    );
+
+    expect([...db.getKnownFingerprints('finding')].sort()).toEqual(['fp-a', 'fp-b']);
+    expect([...db.getKnownFingerprints('fp_known')]).toEqual(['fp-falso']);
+    db.close();
+  });
+
+  it('ignora las feromonas sin fingerprint en el payload', () => {
+    const db = ColonyDb.open(':memory:');
+    const scan = makeScan();
+    db.insertScan(scan);
+    // payload sin `fingerprint` (forma valida de un Pheromone, payload libre).
+    db.insertPheromone(makePheromone(String(scan['id']), { payload: { findingId: 'f-1' } }));
+    expect(db.getKnownFingerprints('finding').size).toBe(0);
     db.close();
   });
 });

@@ -6,11 +6,11 @@
 
 ## Current Cycle
 
-- **Cycle:** 13 — pendiente DG-019 (próximo paso del roadmap)
+- **Cycle:** 14 — pendiente DG-020 (próximo paso del roadmap)
 - **Phase:** 5
-- **Status:** Cycle 12 CERRADO; awaiting DG-019
+- **Status:** Cycle 13 CERRADO; awaiting DG-020
 - **Compliance:** 100%
-- **Synaptic Strength:** 17
+- **Synaptic Strength:** 18
 
 ## Cycles cerrados
 
@@ -25,22 +25,23 @@
 - **Cycle 9** — CLI `synaptic-sentinel scan` — `8d957a2` ✅
 - **Cycle 10** — `reporters`: tomo + export JSON — `004a41e` ✅
 - **Cycle 11** — `install-scanners` + comprimidos; Gitleaks instalable (DG-017 A.1) — `6d7cf71` ✅
-- **Cycle 12** — `GitleaksScout` de punta a punta (DG-018 B) ✅ → **cobertura de secrets operativa**
+- **Cycle 12** — `GitleaksScout` de punta a punta (DG-018 B) — `d33b29e` ✅ → **cobertura de secrets operativa**
+- **Cycle 13** — `Coordinator` stage 2: dedup + `fp_known` + ciclo de vida (DG-019 A) ✅
 
 ## Estado del repo
 
-- 12 commits en `main` · 7 paquetes pnpm
-- Scouts (OpenGrep SAST + Gitleaks Secrets) + `colony.db` + `Coordinator` + CLI + `reporters` (tomo JSON)
-- El CLI `scan` corre OpenGrep **y** Gitleaks; Gitleaks con `--redact` (el secreto no se persiste)
-- OpenGrep v1.22.0 y Gitleaks v8.30.1 instalables vía `install-scanners`
-- `build` / `typecheck` / `lint` / `test` (86/86) verdes
+- 13 commits en `main` · 7 paquetes pnpm
+- Scouts (OpenGrep SAST + Gitleaks Secrets) + `colony.db` + `Coordinator` (stages 1 y 2) + CLI + `reporters`
+- `Coordinator` stage 2: dedup por `fingerprint`, supresión de `fp_known`, ciclo de vida `new`/`known` en re-scans
+- El CLI `scan` corre OpenGrep **y** Gitleaks; muestra `Suprimidos` y anota hallazgos `(known)`
+- `build` / `typecheck` / `lint` / `test` (94/94) verdes
 
 ## Decision Gate abierto
 
-- DG-019 — próximo paso del roadmap (a presentar)
+- DG-020 — próximo paso del roadmap (a presentar)
 
 ## Last Entry
 
-Entry #19 — FEATURE_IMPLEMENTED (DG-018 B) — 2026-05-21 — SUCCESS
+Entry #20 — FEATURE_IMPLEMENTED (DG-019 A) — 2026-05-21 — SUCCESS
 
 ---

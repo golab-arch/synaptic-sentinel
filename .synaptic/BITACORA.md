@@ -543,7 +543,33 @@ Each entry follows this structure:
 }
 ```
 
+### Entry #20 - DG-019 (A): Coordinator stage 2 - dedup + fp_known + ciclo de vida
+```json
+{
+  "timestamp": "2026-05-21T13:05:00.000Z",
+  "cycle": 13,
+  "phase": 5,
+  "action": "FEATURE_IMPLEMENTED",
+  "details": {
+    "DG-019": {
+      "title": "Proximo paso del roadmap",
+      "selected": "Option A",
+      "effect": "Coordinator stage 2: deduplicacion por fingerprint, supresion de falsos positivos confirmados (fp_known) y clasificacion de ciclo de vida (new/known) en re-scans"
+    },
+    "files": "packages/core/src/types/fp-known.ts (NUEVO - FpKnownPayloadSchema zod + buildFpKnownPheromone, via canonica y validada para registrar un falso positivo). colony-db.ts (getKnownFingerprints(type) - lee payload.fingerprint via json_extract). coordinator.ts (metodo privado applyStage2: 1. fp_known => suprime, 2. duplicado intra-scan => suprime, 3. visto en scan anterior => lifecycle 'known'; ScanOutcome gana suppressedCount). cli/commands/scan.ts (formatOutcome muestra 'Suprimidos: N' y anota el ciclo de vida no-new).",
+    "design": "El Coordinator CONSUME feromonas fp_known; la CREACION por el usuario (comando CLI / Brain Triage Agent) queda como FI-007. El tomo aun no declara suppressedCount => FI-006.",
+    "verification_real": "synaptic-sentinel scan x3 sobre un probe (eval() + AWS key): scan 1 => 2 hallazgos 'new'; scan 2 (re-scan) => 2 hallazgos '(known)'; tras insertar un fp_known via buildFpKnownPheromone, scan 4 => 'Hallazgos: 1, Suprimidos: 1' (el secreto se suprime, el eval() persiste como known).",
+    "tests": "8 nuevos (colony-db getKnownFingerprints 3, coordinator stage 2 4, CLI formatOutcome suprimidos/known 1) - total 94 verdes (86 -> 94)",
+    "checks": "build / typecheck / lint / test - todos en verde",
+    "commit": "commit atomico feat(core,cli) incluye codigo, tests y este registro"
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 18,
+  "complianceScore": 100
+}
+```
+
 ---
 
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-21T12:40:00.000Z*
+*Last Updated: 2026-05-21T13:05:00.000Z*

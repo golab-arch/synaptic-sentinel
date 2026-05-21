@@ -33,6 +33,7 @@ function makeOutcome(scanId: string): Record<string, unknown> {
     scanId,
     status: 'ok',
     findingsCount: 0,
+    suppressedCount: 0,
     scouts: [{ scoutId: 'opengrep', status: 'ok', findings: 0 }],
     startedAt: '2026-05-21T00:00:00.000Z',
     finishedAt: '2026-05-21T00:00:05.000Z',

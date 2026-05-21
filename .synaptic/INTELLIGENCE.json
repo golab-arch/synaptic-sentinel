@@ -3,8 +3,8 @@
     "name": "SENTINEL",
     "fullName": "Synaptic Sentinel",
     "description": "Toolkit OSS de auditoria agentica de seguridad + capa premium LLM, vibe-coding-native, para la era del codigo generado por IA. Tercer producto de la familia Synaptic.",
-    "currentPhase": "scout-layer",
-    "overallProgress": "Cycles 1-12 CERRADOS. PASO 4 + colony.db + Coordinator + CLI + reporters + install-scanners con comprimidos. GitleaksScout operativo de punta a punta (DG-018 B): el CLI scan corre OpenGrep Y Gitleaks; cobertura de secrets validada con el binario real. 86 tests verdes."
+    "currentPhase": "coordinator",
+    "overallProgress": "Cycles 1-13 CERRADOS. PASO 4 + colony.db + Coordinator (stages 1 y 2) + CLI + reporters + install-scanners. GitleaksScout operativo (OpenGrep Y Gitleaks). Coordinator stage 2 (DG-019 A): dedup por fingerprint, supresion de fp_known y ciclo de vida new/known en re-scans. 94 tests verdes."
   },
   "decisions": [
     { "id": "DG-001", "title": "Estructura fisica del monorepo OSS/Pro", "selected": "B", "date": "2026-05-20", "summary": "Monorepo unico con workspaces marcados OSS/Pro + publish-oss.ts allowlist", "rationale": "Velocidad solo founder; refactors triviales; anti-filtracion en un script auditable" },
@@ -25,6 +25,7 @@
     { "id": "DG-016", "title": "Proximo paso del roadmap (reporters)", "selected": "B", "date": "2026-05-21", "summary": "Paquete reporters - modelo del tomo + export JSON con firma SHA-256", "rationale": "Cierra scan -> artefacto entregable; en el camino critico de la definicion de Done del MVP (8.1)" },
     { "id": "DG-017", "title": "Proximo paso del roadmap (GitleaksScout)", "selected": "A", "date": "2026-05-21", "summary": "GitleaksScout en 2 increments: A.1 install-scanners + comprimidos, A.2 el scout", "rationale": "Cobertura de secrets, riesgo bajo; Gitleaks ships archivos -> A.1 agrega extraccion" },
     { "id": "DG-018", "title": "Enfoque del GitleaksScout (DG-017 A.2)", "selected": "B", "date": "2026-05-21", "summary": "GitleaksScout completo de punta a punta + fixture con secreto + test de integracion + wiring en el CLI", "rationale": "Deja la cobertura de secrets operativa y validada contra el binario real; runProcess extraido a modulo compartido evita duplicacion" },
+    { "id": "DG-019", "title": "Proximo paso del roadmap (Coordinator stage 2)", "selected": "A", "date": "2026-05-21", "summary": "Coordinator stage 2: dedup por fingerprint + supresion de fp_known + ciclo de vida new/known en re-scans", "rationale": "Endurece el pipeline antes de sumar scouts o brain layer; un re-scan ya no duplica feromonas y respeta los falsos positivos confirmados" },
     { "id": "Q1", "title": "Package manager", "selected": "pnpm workspaces", "date": "2026-05-20", "summary": "pnpm v10.33.0", "rationale": "Ya instalado; preferencia v0.4 9.5; simple sin overhead" }
   ],
   "roadmap": [
@@ -40,7 +41,9 @@
     { "id": "FI-002", "topic": "Suite de tests", "detail": "Los tests de integracion de OpenGrep suman ~46s a pnpm test. Separar en test:unit y test:integration." },
     { "id": "FI-003", "topic": "Catalogo de reglas", "detail": "sentinel-baseline.yaml tiene 4 reglas pattern-based. Ampliar el catalogo SAST (taint analysis, mas CWEs)." },
     { "id": "FI-004", "topic": "Cache de scanners del producto", "detail": "El CLI resuelve OpenGrep desde .scanners/ relativo al cwd. El producto enviado necesita una cache de scanners propia (global por usuario) y auto-instalacion." },
-    { "id": "FI-005", "topic": "ruleId de OpenGrep", "detail": "El check_id de OpenGrep trae el prefijo de ruta cuando --config es un archivo; Finding.ruleId lo hereda. El CLI muestra title (limpio). Evaluar normalizar ruleId a un id canonico en el normalizer." }
+    { "id": "FI-005", "topic": "ruleId de OpenGrep", "detail": "El check_id de OpenGrep trae el prefijo de ruta cuando --config es un archivo; Finding.ruleId lo hereda. El CLI muestra title (limpio). Evaluar normalizar ruleId a un id canonico en el normalizer." },
+    { "id": "FI-006", "topic": "suppressedCount en el tomo", "detail": "El Coordinator stage 2 reporta suppressedCount (dedup + fp_known), pero el tomo no lo declara. Un artefacto de auditoria deberia incluir suppressedCount en summary para transparencia." },
+    { "id": "FI-007", "topic": "Creacion de fp_known", "detail": "El Coordinator ya consume feromonas fp_known; falta la via de creacion para el usuario (comando CLI mark-fp y/o accion del Brain Triage Agent). Hoy solo se crean via buildFpKnownPheromone (API)." }
   ],
   "learnings": [
     {
@@ -57,11 +60,12 @@
     }
   ],
   "implementationState": {
-    "lastCompletedTask": "Cycle 12 CERRADO: DG-018 B - GitleaksScout de punta a punta (scout categoria Secrets con --redact + normalizer + fixture con secreto + test de integracion con Gitleaks real + wiring en el CLI). runProcess extraido a modulo compartido. El CLI scan corre OpenGrep Y Gitleaks; verificado contra binarios reales. 86 tests verdes; commiteado.",
-    "currentTask": "Cycle 13 abierto. DG-019 a presentar: proximo paso del roadmap.",
+    "lastCompletedTask": "Cycle 13 CERRADO: DG-019 A - Coordinator stage 2. Dedup por fingerprint (intra-scan), supresion de falsos positivos confirmados (feromonas fp_known) y clasificacion de ciclo de vida (new/known) en re-scans. Nuevo contrato FpKnownPayload + buildFpKnownPheromone; ColonyDb.getKnownFingerprints (json_extract); ScanOutcome.suppressedCount; el CLI muestra Suprimidos/known. Verificado end-to-end con 3 scans. 94 tests verdes; commiteado.",
+    "currentTask": "Cycle 14 abierto. DG-020 a presentar: proximo paso del roadmap.",
     "pendingTasks": [
-      "Resolver DG-019 - proximo paso del roadmap",
-      "Roadmap restante MVP: Coordinator stage 2 (dedup + fp_known), wrappers Trivy/Checkov, brain layer (Triage Agent), findings inline en la extension VSCode, tomo HTML, BYOK + SecretStorage"
+      "Resolver DG-020 - proximo paso del roadmap",
+      "FI-006 (suppressedCount en el tomo) y FI-007 (via de creacion de fp_known: comando CLI mark-fp / Brain Triage Agent)",
+      "Roadmap restante MVP: wrappers Trivy/Checkov (SCA/IaC), brain layer (Triage Agent), findings inline en la extension VSCode, tomo HTML, BYOK + SecretStorage"
     ],
     "blockers": []
   },
@@ -76,5 +80,5 @@
     "git commit es 100% local y NO requiere token de GitHub; el push futuro (diferido por DG-002 A) usara gh ya autenticado como golab-arch",
     "Observacion: Python 3.14 vs Checkov; better-sqlite3 ABI con Electron; exactOptionalPropertyTypes estricto"
   ],
-  "lastUpdated": "2026-05-21T12:40:00.000Z"
+  "lastUpdated": "2026-05-21T13:05:00.000Z"
 }

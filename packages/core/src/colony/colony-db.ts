@@ -155,6 +155,29 @@ export class ColonyDb {
       .map(rowToPheromone);
   }
 
+  /**
+   * Devuelve el conjunto de `fingerprint` presentes en las feromonas de `type`.
+   *
+   * Lee `payload.fingerprint` con `json_extract`. Habilita la deduplicacion
+   * entre scans del Coordinator (stage 2): el tipo `finding` da los hallazgos
+   * ya vistos en scans anteriores; `fp_known`, los falsos positivos
+   * confirmados. Una feromona sin `fingerprint` en su payload se ignora.
+   */
+  getKnownFingerprints(type: PheromoneType): Set<string> {
+    const rows = this.#db
+      .prepare(
+        "SELECT DISTINCT json_extract(payload, '$.fingerprint') AS fingerprint " +
+          'FROM pheromones WHERE type = ?',
+      )
+      .all(type);
+    const fingerprints = new Set<string>();
+    for (const row of rows) {
+      const value = (row as { fingerprint: unknown }).fingerprint;
+      if (typeof value === 'string' && value.length > 0) fingerprints.add(value);
+    }
+    return fingerprints;
+  }
+
   /** Feromonas asociadas a un archivo, opcionalmente filtradas por tipo. */
   getPheromonesByTarget(targetPath: string, type?: PheromoneType): Pheromone[] {
     const rows =
