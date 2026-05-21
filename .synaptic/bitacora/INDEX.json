@@ -2,7 +2,7 @@
   "version": "1.0",
   "projectId": "sentinel-1779304140796",
   "projectName": "SENTINEL",
-  "totalCycles": 5,
+  "totalCycles": 6,
   "currentTomeId": 1,
   "cyclesPerTome": 50,
   "tomes": [
@@ -16,10 +16,10 @@
         "from": "2026-05-20T19:09:00.852Z",
         "to": ""
       },
-      "summary": "Cycle 1: discovery. Cycle 2: scaffolding (f0b5202). Cycle 3: contrato ScoutAgent + tipos (7b6bd8b). Cycle 4: install-scanners + OpenGrep (a94f1e7). Cycle 5: OpenGrepScout + normalizer.",
-      "keyDecisions": ["DG-001", "DG-002", "DG-003", "DG-004", "DG-005", "DG-006", "DG-007", "DG-008", "DG-009", "DG-010", "Q1"],
-      "cycleCount": 5,
-      "successCount": 5,
+      "summary": "Cycles 1-6: discovery, scaffolding, y PASO 4 completo (capa Scout con OpenGrep end-to-end: contrato, install-scanners, OpenGrepScout, normalizer, ruleset, fixtures, integracion).",
+      "keyDecisions": ["DG-001", "DG-002", "DG-003", "DG-004", "DG-005", "DG-006", "DG-007", "DG-008", "DG-009", "DG-010", "DG-011", "Q1"],
+      "cycleCount": 6,
+      "successCount": 6,
       "failureCount": 0,
       "jsonPath": "tomes/tome-001.json",
       "mdPath": "tomes/tome-001.md",
@@ -37,13 +37,14 @@
     { "id": "DG-008", "title": "Alcance del primer increment de PASO 4", "selected": "A", "cycle": 3, "date": "2026-05-20" },
     { "id": "DG-009", "title": "Alcance del segundo increment de PASO 4", "selected": "A", "cycle": 4, "date": "2026-05-20" },
     { "id": "DG-010", "title": "Alcance del tercer increment de PASO 4", "selected": "A", "cycle": 5, "date": "2026-05-20" },
+    { "id": "DG-011", "title": "Cuarto increment de PASO 4", "selected": "B", "cycle": 6, "date": "2026-05-21" },
     { "id": "Q1", "title": "Package manager", "selected": "pnpm", "cycle": 1, "date": "2026-05-20" }
   ],
   "metrics": {
-    "totalDecisions": 11,
+    "totalDecisions": 12,
     "optionDistribution": {
       "A": 7,
-      "B": 3,
+      "B": 4,
       "C": 0
     },
     "overallSuccessRate": 100,
@@ -51,8 +52,8 @@
     "phaseDistribution": {
       "1": 5,
       "2": 3,
-      "3": 3
+      "3": 4
     }
   },
-  "lastUpdated": "2026-05-21T00:15:00.000Z"
+  "lastUpdated": "2026-05-21T09:45:00.000Z"
 }

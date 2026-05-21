@@ -335,7 +335,35 @@ Each entry follows this structure:
 }
 ```
 
+### Entry #12 - PASO 4 Increment 4: fixtures + integracion - PASO 4 COMPLETO
+```json
+{
+  "timestamp": "2026-05-21T09:45:00.000Z",
+  "cycle": 6,
+  "phase": 3,
+  "action": "FEATURE_IMPLEMENTED",
+  "details": {
+    "DG-011": {
+      "title": "Cuarto increment de PASO 4",
+      "selected": "Option B",
+      "effect": "Ruleset OpenGrep curado + fixtures vulnerables JS/TS/Python + tests de integracion con el binario real"
+    },
+    "ruleset": "packages/scouts/src/opengrep/rules/sentinel-baseline.yaml - 4 reglas SAST (eval, new Function, exec, subprocess shell=True) con metadata CWE/OWASP",
+    "fixtures": "packages/scouts/tests/opengrep/fixtures/vulnerable/{javascript,typescript,python}/ - codigo deliberadamente vulnerable",
+    "integration_tests": "3 tests que ejecutan OpenGrep real sobre las fixtures; usan describe.skip si el binario no esta instalado (CI sin binario no falla)",
+    "verification_real": "OpenGrep detecta: eval() en JS (severity high), new Function() en TS, exec() + subprocess shell=True en Python. 51 tests verdes (build/typecheck/lint/test)",
+    "config": "fixtures excluidas de ESLint/Prettier; ruleset incluido en files de @synaptic-sentinel/scouts",
+    "milestone": "PASO 4 del kickoff COMPLETO - primer scout funcional end-to-end (OpenGrep) detectando vulnerabilidades reales en los dos lenguajes LOCKED del MVP (JS/TS + Python)",
+    "observacion": "los tests de integracion suman ~46s a pnpm test; a futuro conviene separar test:unit / test:integration",
+    "commit": "commit atomico feat(scouts) incluye codigo, tests y este registro"
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 11,
+  "complianceScore": 100
+}
+```
+
 ---
 
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-21T00:15:00.000Z*
+*Last Updated: 2026-05-21T09:45:00.000Z*

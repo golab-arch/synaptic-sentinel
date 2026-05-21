@@ -14,6 +14,7 @@
 | DG-008 | Alcance del primer increment de PASO 4 | **Option A** — contrato primero: interfaz `ScoutAgent` + tipos compartidos antes del wrapper | 2026-05-20 | El contrato es el cimiento de core/scouts/agents/reporters; fijarlo y testearlo primero de-risk-ea el resto |
 | DG-009 | Alcance del segundo increment de PASO 4 | **Option A** — adquisición del binario primero (`scripts/install-scanners.ts`) | 2026-05-20 | La descarga bajo Norton (TLS, checksums, cross-platform) es la pieza de mayor riesgo de entorno; aislarla deja el wrapper como lógica pura |
 | DG-010 | Alcance del tercer increment de PASO 4 | **Option A** — `OpenGrepScout` + normalizer, unit-tested contra salida JSON real | 2026-05-20 | Aísla el último unknown (CLI/JSON de OpenGrep); normalizer testeado contra output real capturado |
+| DG-011 | Cuarto increment de PASO 4 | **Option B** — ruleset curado + fixtures JS/TS+Python + tests de integración | 2026-05-21 | Cierra PASO 4 completo con detección real en los dos lenguajes LOCKED del MVP |
 | Q1 | Package manager / tooling de monorepo | **pnpm workspaces** (v10.33.0) | 2026-05-20 | Ya instalado; preferencia v0.4 §9.5; sin overhead |
 
 **Discovery cerrado. Scaffolding generado, verificado y commiteado** (`f0b5202`, 54 archivos). **Cycle 2 CERRADO.** Siguiente: PASO 4 — Scout Layer.
@@ -43,6 +44,7 @@
 - 2026-05-20 — Cycle 3: PASO 4 Increment 1 — tipos compartidos (`Finding`, `Pheromone`, `Scan`, severidades) con `zod`, e interfaz `ScoutAgent`. 28 tests verdes.
 - 2026-05-20 — Cycle 4: PASO 4 Increment 2 — `scripts/install-scanners.ts` con manifest pinneado y checksums SHA-256. OpenGrep v1.22.0 descargado y verificado. 32 tests verdes.
 - 2026-05-21 — Cycle 5: PASO 4 Increment 3 — `OpenGrepScout` (implementa `ScoutAgent`) + normalizer (OpenGrep JSON → `Finding`). 48 tests verdes.
+- 2026-05-21 — Cycle 6: PASO 4 Increment 4 — ruleset baseline + fixtures vulnerables + tests de integración con OpenGrep real. **PASO 4 COMPLETO.** 51 tests verdes.
 
 ---
 
@@ -66,10 +68,10 @@
 
 - **Name**: SENTINEL (Synaptic Sentinel)
 - **Description**: Toolkit OSS de auditoría agéntica de seguridad + capa premium LLM, vibe-coding-native.
-- **Phase**: Cycle 6 / PASO 4 — Scout Layer (`OpenGrepScout` + normalizer listos; siguiente: fixtures + tests de integración)
+- **Phase**: PASO 4 COMPLETO (OpenGrep scout end-to-end). Cycle 7 — siguiente paso del roadmap a definir (DG-012)
 
 ---
 
 *Created: 2026-05-20T19:09:00.816Z*
-*Last Updated: 2026-05-21T00:15:00.000Z*
+*Last Updated: 2026-05-21T09:45:00.000Z*
 *SYNAPTIC Protocol v3.0*

@@ -1,0 +1,65 @@
+# Synaptic Sentinel - ruleset baseline de OpenGrep.
+#
+# Conjunto curado y minimo de reglas SAST para los lenguajes LOCKED del MVP
+# (JS/TS + Python). Reglas basadas en patrones sintacticos simples y
+# deterministas; el catalogo se amplia en fases posteriores.
+#
+# Licencia: Apache-2.0 (OSS).
+rules:
+  - id: sentinel-js-eval-usage
+    languages:
+      - javascript
+      - typescript
+    severity: ERROR
+    message: >-
+      Uso de eval(): ejecuta codigo arbitrario en runtime. Si el argumento
+      proviene de una fuente no confiable es una inyeccion de codigo.
+    metadata:
+      cwe:
+        - "CWE-95: Improper Neutralization of Directives in Dynamically Evaluated Code"
+      owasp:
+        - "A03:2021 - Injection"
+      category: security
+    pattern: eval(...)
+
+  - id: sentinel-js-new-function
+    languages:
+      - javascript
+      - typescript
+    severity: WARNING
+    message: >-
+      Uso de "new Function()": construye codigo a partir de strings en runtime,
+      equivalente a eval().
+    metadata:
+      cwe:
+        - "CWE-95: Improper Neutralization of Directives in Dynamically Evaluated Code"
+      category: security
+    pattern: new Function(...)
+
+  - id: sentinel-py-exec-usage
+    languages:
+      - python
+    severity: ERROR
+    message: "Uso de exec(): ejecuta codigo Python arbitrario en runtime."
+    metadata:
+      cwe:
+        - "CWE-95: Improper Neutralization of Directives in Dynamically Evaluated Code"
+      owasp:
+        - "A03:2021 - Injection"
+      category: security
+    pattern: exec(...)
+
+  - id: sentinel-py-subprocess-shell
+    languages:
+      - python
+    severity: ERROR
+    message: >-
+      subprocess con shell=True: si algun argumento proviene de entrada no
+      confiable, habilita inyeccion de comandos del sistema operativo.
+    metadata:
+      cwe:
+        - "CWE-78: Improper Neutralization of Special Elements used in an OS Command"
+      owasp:
+        - "A03:2021 - Injection"
+      category: security
+    pattern: subprocess.$FUNC(..., shell=True, ...)

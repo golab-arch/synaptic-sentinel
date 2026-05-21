@@ -13,7 +13,7 @@
       "import": "./dist/index.js"
     }
   },
-  "files": ["dist"],
+  "files": ["dist", "src/opengrep/rules"],
   "dependencies": {
     "@synaptic-sentinel/core": "workspace:*",
     "@synaptic-sentinel/shared": "workspace:*",

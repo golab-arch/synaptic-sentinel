@@ -4,7 +4,7 @@
     "fullName": "Synaptic Sentinel",
     "description": "Toolkit OSS de auditoria agentica de seguridad + capa premium LLM, vibe-coding-native, para la era del codigo generado por IA. Tercer producto de la familia Synaptic.",
     "currentPhase": "scout-layer",
-    "overallProgress": "Cycles 1-5 CERRADOS. Discovery + scaffolding + contrato ScoutAgent + install-scanners + OpenGrepScout/normalizer. 48 tests verdes. Cycle 6 abierto: fixtures + tests de integracion."
+    "overallProgress": "Cycles 1-6 CERRADOS. PASO 4 del kickoff COMPLETO: capa Scout con OpenGrep funcional end-to-end (detecta vulnerabilidades reales en JS/TS y Python). 51 tests verdes. Cycle 7 abierto: proximo paso del roadmap (DG-012)."
   },
   "decisions": [
     { "id": "DG-001", "title": "Estructura fisica del monorepo OSS/Pro", "selected": "B", "date": "2026-05-20", "summary": "Monorepo unico con workspaces marcados OSS/Pro + publish-oss.ts allowlist", "rationale": "Velocidad solo founder; refactors triviales; anti-filtracion en un script auditable" },
@@ -17,6 +17,7 @@
     { "id": "DG-008", "title": "Alcance del primer increment de PASO 4", "selected": "A", "date": "2026-05-20", "summary": "Contrato primero: interfaz ScoutAgent + tipos compartidos antes del wrapper", "rationale": "El contrato es el cimiento de core/scouts/agents/reporters; fijarlo y testearlo primero de-risk-ea el resto" },
     { "id": "DG-009", "title": "Alcance del segundo increment de PASO 4", "selected": "A", "date": "2026-05-20", "summary": "Adquisicion del binario primero: scripts/install-scanners.ts", "rationale": "La descarga bajo Norton (TLS, checksums, cross-platform) es la pieza de mayor riesgo de entorno; aislarla deja el wrapper como logica pura" },
     { "id": "DG-010", "title": "Alcance del tercer increment de PASO 4", "selected": "A", "date": "2026-05-20", "summary": "OpenGrepScout + normalizer, unit-tested contra salida JSON real capturada", "rationale": "Aisla el ultimo unknown (CLI/JSON de OpenGrep); normalizer testeado contra output real" },
+    { "id": "DG-011", "title": "Cuarto increment de PASO 4", "selected": "B", "date": "2026-05-21", "summary": "Ruleset curado + fixtures JS/TS+Python + tests de integracion con OpenGrep real", "rationale": "Cierra PASO 4 completo con deteccion real en los dos lenguajes LOCKED del MVP" },
     { "id": "Q1", "title": "Package manager", "selected": "pnpm workspaces", "date": "2026-05-20", "summary": "pnpm v10.33.0", "rationale": "Ya instalado; preferencia v0.4 9.5; simple sin overhead" }
   ],
   "roadmap": [
@@ -42,13 +43,11 @@
     }
   ],
   "implementationState": {
-    "lastCompletedTask": "Cycle 5 CERRADO: PASO 4 Increment 3 - OpenGrepScout (implementa ScoutAgent) + normalizer (OpenGrep JSON -> Finding); 48 tests verdes; commiteado",
-    "currentTask": "Cycle 6 / PASO 4 Increment 4 - fixtures de vulnerabilidades + tests de integracion. DG-011 abierto: enfoque del increment.",
+    "lastCompletedTask": "Cycle 6 CERRADO: PASO 4 Increment 4 - ruleset baseline + fixtures vulnerables JS/TS/Python + tests de integracion con OpenGrep real. PASO 4 del kickoff COMPLETO. 51 tests verdes; commiteado.",
+    "currentTask": "Cycle 7 - proximo paso del roadmap. DG-012 abierto.",
     "pendingTasks": [
-      "Resolver DG-011 - cuarto increment de PASO 4",
-      "Fixtures curadas de codigo vulnerable JS/TS (+ Python)",
-      "Ruleset OpenGrep para los tests (local vs --config auto)",
-      "Tests de integracion: scan() en vivo sobre las fixtures"
+      "Resolver DG-012 - proximo paso (mas scouts: Gitleaks/Trivy/Checkov; o Coordinator stage 1 + colony.db)",
+      "Roadmap restante MVP: 4 scouts, Coordinator stages 1-3, BYOK, findings inline, tomo JSON/HTML"
     ],
     "blockers": []
   },
@@ -63,5 +62,5 @@
     "git commit es 100% local y NO requiere token de GitHub; el push futuro (diferido por DG-002 A) usara gh ya autenticado como golab-arch",
     "Observacion: Python 3.14 vs Checkov; better-sqlite3 ABI con Electron; exactOptionalPropertyTypes estricto"
   ],
-  "lastUpdated": "2026-05-21T00:15:00.000Z"
+  "lastUpdated": "2026-05-21T09:45:00.000Z"
 }

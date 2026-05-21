@@ -5,3 +5,7 @@ node_modules/
 pnpm-lock.yaml
 .synaptic/
 context/
+
+# Fixtures de tests y reglas de scanners: se mantienen tal cual se escriben.
+**/tests/**/fixtures/
+**/opengrep/rules/

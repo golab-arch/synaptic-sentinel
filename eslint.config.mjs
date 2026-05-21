@@ -12,6 +12,8 @@ export default tseslint.config(
       '.scanners/**',
       '.synaptic/**',
       'context/**',
+      // Fixtures deliberadamente vulnerables: no se lintean.
+      '**/tests/**/fixtures/**',
     ],
   },
   js.configs.recommended,
