@@ -26,6 +26,8 @@ interface SpawnCliOptions {
   readonly cliEntry: string;
   readonly cwd: string;
   readonly args: readonly string[];
+  /** Variables de entorno extra (se fusionan con `process.env`). */
+  readonly env?: Readonly<Record<string, string>>;
   readonly nodePath?: string;
   readonly signal?: AbortSignal;
 }
@@ -35,6 +37,7 @@ function spawnCli(options: SpawnCliOptions): Promise<CliProcessResult> {
   return new Promise<CliProcessResult>((resolvePromise, reject) => {
     const child = spawn(options.nodePath ?? 'node', [options.cliEntry, ...options.args], {
       cwd: options.cwd,
+      ...(options.env !== undefined ? { env: { ...process.env, ...options.env } } : {}),
       ...(options.signal !== undefined ? { signal: options.signal } : {}),
     });
     let stderr = '';
@@ -133,4 +136,36 @@ export async function runCliMarkFp(options: RunCliMarkFpOptions): Promise<void> 
     ...(options.signal !== undefined ? { signal: options.signal } : {}),
   });
   assertCliOk(result, 'mark-fp');
+}
+
+/** Opciones para correr el triage del Brain Layer a traves de la CLI. */
+export interface RunCliTriageOptions {
+  /** Ruta al entry de la CLI (`cli/dist/index.js`). */
+  readonly cliEntry: string;
+  /** Carpeta del proyecto a triar. */
+  readonly workspacePath: string;
+  /** API key de Anthropic (BYOK). Se pasa por entorno, nunca por argumentos. */
+  readonly apiKey: string;
+  /** Ejecutable de Node a usar. Por defecto `node` (del PATH). */
+  readonly nodePath?: string;
+  /** Senal de cancelacion. */
+  readonly signal?: AbortSignal;
+}
+
+/**
+ * Corre el triage del Brain Layer llamando a la CLI (`synaptic-sentinel
+ * triage`). La API key se entrega via `ANTHROPIC_API_KEY` en el entorno del
+ * child process — nunca como argumento (no debe aparecer en la lista de
+ * procesos). Lanza si la CLI no termina con codigo 0.
+ */
+export async function runCliTriage(options: RunCliTriageOptions): Promise<void> {
+  const result = await spawnCli({
+    cliEntry: options.cliEntry,
+    cwd: options.workspacePath,
+    args: ['triage', '--path', options.workspacePath],
+    env: { ANTHROPIC_API_KEY: options.apiKey },
+    ...(options.nodePath !== undefined ? { nodePath: options.nodePath } : {}),
+    ...(options.signal !== undefined ? { signal: options.signal } : {}),
+  });
+  assertCliOk(result, 'triage');
 }

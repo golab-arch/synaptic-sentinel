@@ -5,6 +5,7 @@ import {
   findingToDiagnosticInput,
   findingsInRange,
   groupDiagnosticsByPath,
+  triageLabel,
 } from '../src/diagnostics.js';
 import type { ExtensionFinding } from '../src/tomo.js';
 
@@ -65,6 +66,27 @@ describe('findingToDiagnosticInput', () => {
   it('anota el ciclo de vida no-new en el mensaje', () => {
     const input = findingToDiagnosticInput(makeFinding({ lifecycleState: 'known' }));
     expect(input.message).toBe('rule-x (known): Hallazgo de prueba');
+  });
+
+  it('anota el veredicto de triage en el mensaje', () => {
+    const input = findingToDiagnosticInput(
+      makeFinding({
+        triage: { classification: 'false_positive', confidence: 0.9, rationale: 'sin riesgo' },
+      }),
+    );
+    expect(input.message).toContain('[triage: falso positivo]');
+  });
+});
+
+describe('triageLabel', () => {
+  it('traduce las clasificaciones de triage', () => {
+    expect(triageLabel('true_positive')).toBe('verdadero positivo');
+    expect(triageLabel('false_positive')).toBe('falso positivo');
+    expect(triageLabel('inconclusive')).toBe('inconcluso');
+  });
+
+  it('devuelve la clasificacion cruda si es desconocida', () => {
+    expect(triageLabel('otra')).toBe('otra');
   });
 });
 

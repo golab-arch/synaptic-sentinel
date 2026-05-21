@@ -13,6 +13,13 @@ const FindingLocationSchema = z.object({
   snippet: z.string().optional(),
 });
 
+/** Veredicto de triage del Brain Layer (forma minima, solo para mostrar). */
+const ExtensionTriageSchema = z.object({
+  classification: z.string().min(1),
+  confidence: z.number().min(0).max(1),
+  rationale: z.string().min(1),
+});
+
 /** Hallazgo, en la forma minima que consume la extension. */
 const ExtensionFindingSchema = z.object({
   severity: SeveritySchema,
@@ -24,6 +31,8 @@ const ExtensionFindingSchema = z.object({
   /** Huella estable: identifica el hallazgo para marcarlo como falso positivo. */
   fingerprint: z.string().min(1),
   lifecycleState: z.string().min(1).default('new'),
+  /** Veredicto de triage, presente solo si el hallazgo fue triado. */
+  triage: ExtensionTriageSchema.optional(),
 });
 
 /**

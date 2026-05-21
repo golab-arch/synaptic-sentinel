@@ -755,7 +755,35 @@ Each entry follows this structure:
 }
 ```
 
+### Entry #28 - DG-027 (B): triage en la extension VSCode (BYOK + SecretStorage)
+```json
+{
+  "timestamp": "2026-05-21T17:00:00.000Z",
+  "cycle": 20,
+  "phase": 7,
+  "action": "FEATURE_IMPLEMENTED",
+  "details": {
+    "DG-027": {
+      "title": "Proximo paso del roadmap",
+      "selected": "Option B",
+      "effect": "Triage en la extension VSCode: comando 'Triage Findings' (BYOK via SecretStorage), comando 'Set Anthropic API Key', y los veredictos de triage anotados en los diagnostics del IDE."
+    },
+    "files": "vscode-extension: cli-runner.ts (runCliTriage; spawnCli gana soporte de env). tomo.ts (ExtensionFinding gana triage opcional). diagnostics.ts (findingToDiagnosticInput anota el veredicto en el mensaje; triageLabel). index.ts (comandos triageWorkspace + setAnthropicApiKey; BYOK via context.secrets/SecretStorage; status bar 'triando'). package.json (2 comandos contribuidos).",
+    "flow": "setAnthropicApiKey guarda la key en el almacen de secretos de VSCode (cifrado por el SO). triageWorkspace: lee la key, lanza la CLI 'triage' y re-escanea para refrescar los diagnostics con los veredictos (el tomo los incluye desde DG-026). Cubre el v0.4 §487: 'BYOK configurable via VSCode SecretStorage'.",
+    "security": "La API key se guarda en SecretStorage (cifrada por el SO), nunca en la configuracion ni en texto plano. Se pasa al child process por ENTORNO (ANTHROPIC_API_KEY), nunca por argumentos - no debe aparecer en la lista de procesos.",
+    "verification_real": "6 tests nuevos. Bundle verificado: sin node:sqlite ni @synaptic-sentinel, vscode external, triageWorkspace/secrets/ANTHROPIC_API_KEY presentes. Contrato BYOK verificado end-to-end: la CLI triage sin la env var -> exit 1; con ANTHROPIC_API_KEY -> pasa el chequeo de key e intenta el triage.",
+    "verification_gap": "La conducta en vivo de la extension (comandos, UI de SecretStorage, withProgress) requiere un Extension Development Host (F5). El triage real con una API key valida de Anthropic no se verifica aqui.",
+    "tests": "6 nuevos (cli-runner runCliTriage 1, tomo triage 2, diagnostics triage/triageLabel 3) - total 171 verdes + 1 skipped",
+    "checks": "build / typecheck / lint / test - todos en verde",
+    "commit": "commit atomico feat(vscode-extension) incluye codigo, tests y este registro"
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 25,
+  "complianceScore": 100
+}
+```
+
 ---
 
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-21T16:30:00.000Z*
+*Last Updated: 2026-05-21T17:00:00.000Z*

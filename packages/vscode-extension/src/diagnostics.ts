@@ -35,18 +35,30 @@ export function diagnosticLevelForSeverity(severity: string): DiagnosticLevel {
   return LEVEL_BY_SEVERITY[severity] ?? 'warning';
 }
 
+/** Etiqueta legible de una clasificacion de triage. */
+export function triageLabel(classification: string): string {
+  if (classification === 'true_positive') return 'verdadero positivo';
+  if (classification === 'false_positive') return 'falso positivo';
+  if (classification === 'inconclusive') return 'inconcluso';
+  return classification;
+}
+
 /** Convierte un hallazgo en un `DiagnosticInput` agnostico de VSCode. */
 export function findingToDiagnosticInput(finding: ExtensionFinding): DiagnosticInput {
   const loc = finding.location;
   const startColumn = loc.startColumn ?? 1;
   const lifecycle = finding.lifecycleState !== 'new' ? ` (${finding.lifecycleState})` : '';
+  const triage =
+    finding.triage !== undefined
+      ? ` [triage: ${triageLabel(finding.triage.classification)}]`
+      : '';
   return {
     path: loc.path,
     startLine: loc.startLine,
     startColumn,
     endLine: loc.endLine ?? loc.startLine,
     endColumn: loc.endColumn ?? startColumn,
-    message: `${finding.title}${lifecycle}: ${finding.message}`,
+    message: `${finding.title}${lifecycle}: ${finding.message}${triage}`,
     level: diagnosticLevelForSeverity(finding.severity),
     ruleId: finding.ruleId,
     fingerprint: finding.fingerprint,

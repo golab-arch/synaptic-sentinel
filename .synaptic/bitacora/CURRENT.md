@@ -6,11 +6,11 @@
 
 ## Current Cycle
 
-- **Cycle:** 20 — pendiente DG-027 (próximo paso del roadmap)
+- **Cycle:** 21 — pendiente DG-028 (próximo paso del roadmap)
 - **Phase:** 7 — Brain Layer
-- **Status:** Cycle 19 CERRADO; awaiting DG-027
+- **Status:** Cycle 20 CERRADO; awaiting DG-028
 - **Compliance:** 100%
-- **Synaptic Strength:** 24
+- **Synaptic Strength:** 25
 
 ## Cycles cerrados
 
@@ -25,23 +25,24 @@
 - **Cycle 16** — reporter HTML del tomo + `suppressedCount` (DG-023 A) — `535d718` ✅
 - **Cycle 17** — Brain Layer increment 1: paquete `agents` + Triage Agent (DG-024 B) — `77f420a` ✅
 - **Cycle 18** — Brain Layer increment 2: comando CLI `triage` (DG-025 A) — `c5f7c30` ✅
-- **Cycle 19** — surface del triage en el tomo JSON+HTML (DG-026 A) ✅
+- **Cycle 19** — surface del triage en el tomo JSON+HTML (DG-026 A) — `6dce8c7` ✅
+- **Cycle 20** — triage en la extensión VSCode: BYOK + SecretStorage (DG-027 B) ✅
 
 ## Estado del repo
 
-- 19 commits en `main` · 7 paquetes pnpm
+- 20 commits en `main` · 7 paquetes pnpm
 - Motor determinista: scouts (OpenGrep SAST + Gitleaks Secrets) + `colony.db` (schema v2) + `Coordinator` (stages 1 y 2) + `reporters`
 - CLI: `synaptic-sentinel scan` (`--export` / `--export-html`), `mark-fp` y `triage` (Brain Layer, BYOK)
-- Extensión VSCode: comando `Scan Workspace` → diagnostics inline + Code Action "marcar falso positivo" + status bar
-- **Brain Layer (Pro)**: paquete `agents` + comando `triage`; los veredictos se surfacean en el tomo (JSON + HTML)
-- `build` (tsc -b + esbuild) / `typecheck` / `lint` / `test` (165/165 + 1 skipped) verdes
+- Extensión VSCode: `Scan Workspace`, `Triage Findings` (BYOK via SecretStorage), `Set Anthropic API Key`, Code Action "marcar falso positivo", status bar
+- **Brain Layer (Pro)**: paquete `agents` + comando `triage`; veredictos surfaceados en el tomo (JSON+HTML) y en los diagnostics del IDE
+- `build` (tsc -b + esbuild) / `typecheck` / `lint` / `test` (171/171 + 1 skipped) verdes
 
 ## Decision Gate abierto
 
-- DG-027 — próximo paso del roadmap (a presentar)
+- DG-028 — próximo paso del roadmap (a presentar)
 
 ## Last Entry
 
-Entry #27 — FEATURE_IMPLEMENTED (DG-026 A) — 2026-05-21 — SUCCESS
+Entry #28 — FEATURE_IMPLEMENTED (DG-027 B) — 2026-05-21 — SUCCESS
 
 ---

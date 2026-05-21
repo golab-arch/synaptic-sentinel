@@ -19,6 +19,16 @@
         "command": "synaptic-sentinel.scanWorkspace",
         "title": "Scan Workspace",
         "category": "Synaptic Sentinel"
+      },
+      {
+        "command": "synaptic-sentinel.triageWorkspace",
+        "title": "Triage Findings (Brain Layer)",
+        "category": "Synaptic Sentinel"
+      },
+      {
+        "command": "synaptic-sentinel.setAnthropicApiKey",
+        "title": "Set Anthropic API Key (BYOK)",
+        "category": "Synaptic Sentinel"
       }
     ],
     "configuration": {

@@ -48,6 +48,44 @@ describe('parseTomo', () => {
     expect(tomo.findings[0]?.lifecycleState).toBe('new');
   });
 
+  it('conserva el veredicto de triage cuando el finding lo trae', () => {
+    const tomo = parseTomo({
+      summary: { scanId: 's', status: 'ok', totalFindings: 1 },
+      findings: [
+        {
+          severity: 'high',
+          category: 'SAST',
+          ruleId: 'r',
+          title: 't',
+          message: 'm',
+          location: { path: 'a.js', startLine: 1 },
+          fingerprint: 'fp-1',
+          triage: { classification: 'false_positive', confidence: 0.9, rationale: 'sin riesgo' },
+        },
+      ],
+    });
+    expect(tomo.findings[0]?.triage?.classification).toBe('false_positive');
+    expect(tomo.findings[0]?.triage?.rationale).toBe('sin riesgo');
+  });
+
+  it('deja triage undefined cuando el finding no lo trae', () => {
+    const tomo = parseTomo({
+      summary: { scanId: 's', status: 'ok', totalFindings: 1 },
+      findings: [
+        {
+          severity: 'high',
+          category: 'SAST',
+          ruleId: 'r',
+          title: 't',
+          message: 'm',
+          location: { path: 'a.js', startLine: 1 },
+          fingerprint: 'fp-1',
+        },
+      ],
+    });
+    expect(tomo.findings[0]?.triage).toBeUndefined();
+  });
+
   it('rechaza un finding sin fingerprint', () => {
     expect(() =>
       parseTomo({

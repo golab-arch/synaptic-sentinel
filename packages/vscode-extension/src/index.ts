@@ -10,7 +10,7 @@
  */
 import { join } from 'node:path';
 import * as vscode from 'vscode';
-import { defaultCliEntry, runCliMarkFp, runCliScan } from './cli-runner.js';
+import { defaultCliEntry, runCliMarkFp, runCliScan, runCliTriage } from './cli-runner.js';
 import {
   findingToDiagnosticInput,
   findingsInRange,
@@ -24,8 +24,14 @@ import type { ExtensionFinding } from './tomo.js';
 const COMMAND_SCAN = 'synaptic-sentinel.scanWorkspace';
 /** Id del comando interno de marcado de falso positivo (lo invoca un Code Action). */
 const COMMAND_MARK_FP = 'synaptic-sentinel.markFalsePositive';
+/** Id del comando de triage del Brain Layer. */
+const COMMAND_TRIAGE = 'synaptic-sentinel.triageWorkspace';
+/** Id del comando para configurar la API key de Anthropic (BYOK). */
+const COMMAND_SET_API_KEY = 'synaptic-sentinel.setAnthropicApiKey';
 /** `source` que aparece en cada diagnostico. */
 const DIAGNOSTIC_SOURCE = 'Synaptic Sentinel';
+/** Clave del almacen de secretos de VSCode donde se guarda la API key. */
+const SECRET_API_KEY = 'synaptic-sentinel.anthropicApiKey';
 
 /** Estado del ultimo scan; alimenta los Code Actions de "marcar falso positivo". */
 interface ScanState {
@@ -45,6 +51,7 @@ export function activate(context: vscode.ExtensionContext): void {
   statusBar.show();
 
   const extensionRoot = context.extensionPath;
+  const secrets = context.secrets;
 
   context.subscriptions.push(
     diagnostics,
@@ -56,6 +63,12 @@ export function activate(context: vscode.ExtensionContext): void {
       if (typeof fingerprint === 'string') {
         void markFalsePositive(diagnostics, statusBar, extensionRoot, fingerprint);
       }
+    }),
+    vscode.commands.registerCommand(COMMAND_TRIAGE, () => {
+      void triageWorkspace(diagnostics, statusBar, extensionRoot, secrets);
+    }),
+    vscode.commands.registerCommand(COMMAND_SET_API_KEY, () => {
+      void setApiKey(secrets);
     }),
     vscode.languages.registerCodeActionsProvider(
       '*',
@@ -81,6 +94,12 @@ function setStatusScanning(statusBar: vscode.StatusBarItem): void {
 function setStatusResult(statusBar: vscode.StatusBarItem, count: number): void {
   statusBar.text = `$(shield) Sentinel: ${String(count)} hallazgo(s)`;
   statusBar.tooltip = 'Synaptic Sentinel: escanear de nuevo';
+}
+
+/** Estado "triando" del status bar. */
+function setStatusTriaging(statusBar: vscode.StatusBarItem): void {
+  statusBar.text = '$(sync~spin) Sentinel: triando...';
+  statusBar.tooltip = 'Synaptic Sentinel esta triando los hallazgos';
 }
 
 /** Convierte el nivel agnostico en la severidad de VSCode. */
@@ -226,4 +245,90 @@ async function markFalsePositive(
       `Synaptic Sentinel: no se pudo marcar el falso positivo. ${message}`,
     );
   }
+}
+
+/**
+ * Maneja el comando `Set Anthropic API Key`: guarda (o borra) la API key
+ * BYOK en el almacen de secretos de VSCode — cifrado por el sistema
+ * operativo, nunca en texto plano ni en la configuracion.
+ */
+async function setApiKey(secrets: vscode.SecretStorage): Promise<void> {
+  const key = await vscode.window.showInputBox({
+    title: 'Synaptic Sentinel — API key de Anthropic (BYOK)',
+    prompt: 'Se guarda cifrada en el almacen de secretos del sistema. Vacio = borrar.',
+    password: true,
+    ignoreFocusOut: true,
+  });
+  if (key === undefined) return; // el usuario cancelo
+  const trimmed = key.trim();
+  if (trimmed === '') {
+    await secrets.delete(SECRET_API_KEY);
+    void vscode.window.showInformationMessage('Synaptic Sentinel: API key eliminada.');
+    return;
+  }
+  await secrets.store(SECRET_API_KEY, trimmed);
+  void vscode.window.showInformationMessage('Synaptic Sentinel: API key guardada.');
+}
+
+/** Maneja el comando `Triage Findings`: corre el Brain Layer sobre el scan. */
+async function triageWorkspace(
+  diagnostics: vscode.DiagnosticCollection,
+  statusBar: vscode.StatusBarItem,
+  extensionRoot: string,
+  secrets: vscode.SecretStorage,
+): Promise<void> {
+  const folder = vscode.workspace.workspaceFolders?.[0];
+  if (folder === undefined) {
+    void vscode.window.showWarningMessage(
+      'Synaptic Sentinel: abre una carpeta de proyecto para triar.',
+    );
+    return;
+  }
+  if (lastScan === undefined) {
+    void vscode.window.showWarningMessage(
+      'Synaptic Sentinel: ejecuta "Scan Workspace" antes de triar.',
+    );
+    return;
+  }
+  const apiKey = await secrets.get(SECRET_API_KEY);
+  if (apiKey === undefined || apiKey === '') {
+    const pick = await vscode.window.showWarningMessage(
+      'Synaptic Sentinel: falta la API key de Anthropic (BYOK).',
+      'Configurar API key',
+    );
+    if (pick === 'Configurar API key') await setApiKey(secrets);
+    return;
+  }
+
+  const workspacePath = folder.uri.fsPath;
+  const cliEntry = resolveCliEntry(extensionRoot);
+  const previousCount = lastScan.findings.length;
+
+  await vscode.window.withProgress(
+    {
+      location: vscode.ProgressLocation.Notification,
+      title: 'Synaptic Sentinel: triando los hallazgos...',
+      cancellable: true,
+    },
+    async (_progress, token) => {
+      const controller = new AbortController();
+      token.onCancellationRequested(() => {
+        controller.abort();
+      });
+      setStatusTriaging(statusBar);
+      try {
+        await runCliTriage({ cliEntry, workspacePath, apiKey, signal: controller.signal });
+        // Re-escanear: el tomo ahora incluye los veredictos de triage (DG-026).
+        const tomo = await runCliScan({ cliEntry, workspacePath, signal: controller.signal });
+        lastScan = { workspacePath, findings: tomo.findings };
+        renderDiagnostics(diagnostics, workspacePath, tomo.findings);
+        setStatusResult(statusBar, tomo.findings.length);
+        void vscode.window.showInformationMessage('Synaptic Sentinel: triage completado.');
+      } catch (err) {
+        setStatusResult(statusBar, previousCount);
+        const message = err instanceof Error ? err.message : String(err);
+        void vscode.window.showErrorMessage(`Synaptic Sentinel: el triage fallo. ${message}`);
+      }
+    },
+  );
 }
