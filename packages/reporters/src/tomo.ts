@@ -26,6 +26,8 @@ const TomoSummarySchema = z.object({
   scanId: z.string().min(1),
   status: z.enum(['ok', 'degraded']),
   totalFindings: z.number().int().nonnegative(),
+  /** Hallazgos descartados en stage 2 del Coordinator (dedup + fp_known). */
+  suppressedCount: z.number().int().nonnegative(),
   bySeverity: z.record(z.number().int().nonnegative()),
   byCategory: z.record(z.number().int().nonnegative()),
 });
@@ -126,6 +128,7 @@ export function buildTomo(
       scanId: outcome.scanId,
       status: outcome.status,
       totalFindings: findings.length,
+      suppressedCount: outcome.suppressedCount,
       bySeverity,
       byCategory,
     },

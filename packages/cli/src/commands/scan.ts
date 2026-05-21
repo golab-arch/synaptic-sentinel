@@ -10,7 +10,7 @@ import {
   type ScoutAgent,
 } from '@synaptic-sentinel/core';
 import { BASELINE_RULESET_PATH, GitleaksScout, OpenGrepScout } from '@synaptic-sentinel/scouts';
-import { buildTomo, renderTomoJson } from '@synaptic-sentinel/reporters';
+import { buildTomo, renderTomoHtml, renderTomoJson } from '@synaptic-sentinel/reporters';
 
 /** Version reportada en los tomos exportados. */
 const SENTINEL_VERSION = '0.0.0';
@@ -25,6 +25,8 @@ export interface ScanCommandOptions {
   readonly gitleaksBin?: string;
   /** Ruta donde exportar el tomo en JSON, si se provee. */
   readonly exportPath?: string;
+  /** Ruta donde exportar el tomo en HTML, si se provee. */
+  readonly exportHtmlPath?: string;
 }
 
 /** Nombre del ejecutable de un scanner segun la plataforma actual. */
@@ -193,14 +195,21 @@ export async function runScanCommand(options: ScanCommandOptions): Promise<numbe
       .map((pheromone) => FindingSchema.parse(pheromone.payload));
     console.log(formatOutcome(outcome, findings));
 
-    if (options.exportPath !== undefined) {
+    if (options.exportPath !== undefined || options.exportHtmlPath !== undefined) {
       const tomo = buildTomo(outcome, findings, {
         rootPath: projectRoot,
         sentinelVersion: SENTINEL_VERSION,
       });
-      const exportTarget = resolve(options.exportPath);
-      writeFileSync(exportTarget, renderTomoJson(tomo));
-      console.log(`Tomo exportado: ${exportTarget}`);
+      if (options.exportPath !== undefined) {
+        const target = resolve(options.exportPath);
+        writeFileSync(target, renderTomoJson(tomo));
+        console.log(`Tomo exportado (JSON): ${target}`);
+      }
+      if (options.exportHtmlPath !== undefined) {
+        const target = resolve(options.exportHtmlPath);
+        writeFileSync(target, renderTomoHtml(tomo));
+        console.log(`Tomo exportado (HTML): ${target}`);
+      }
     }
     return 0;
   } finally {

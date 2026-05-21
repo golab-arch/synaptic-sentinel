@@ -4,7 +4,7 @@
     "fullName": "Synaptic Sentinel",
     "description": "Toolkit OSS de auditoria agentica de seguridad + capa premium LLM, vibe-coding-native, para la era del codigo generado por IA. Tercer producto de la familia Synaptic.",
     "currentPhase": "inline-ux",
-    "overallProgress": "Cycles 1-15 CERRADOS. Motor determinista completo (2 scouts, Coordinator stages 1 y 2, colony.db, CLI, reporters). Extension VSCode con lazo Inline UX cerrado (DG-022 B): scan + diagnostics inline + Code Action 'marcar falso positivo' (comando CLI mark-fp) + status bar. 119 tests verdes."
+    "overallProgress": "Cycles 1-16 CERRADOS. Motor determinista completo y surfaceado en el IDE (scan + diagnostics + Code Action mark-fp + status bar). Tomo exportable a JSON y HTML (DG-023 A) - el deliverable OSS queda redondo. 123 tests verdes."
   },
   "decisions": [
     { "id": "DG-001", "title": "Estructura fisica del monorepo OSS/Pro", "selected": "B", "date": "2026-05-20", "summary": "Monorepo unico con workspaces marcados OSS/Pro + publish-oss.ts allowlist", "rationale": "Velocidad solo founder; refactors triviales; anti-filtracion en un script auditable" },
@@ -29,6 +29,7 @@
     { "id": "DG-020", "title": "Proximo paso del roadmap (extension VSCode)", "selected": "B", "date": "2026-05-21", "summary": "Extension VSCode MVP: comando Scan + findings como diagnostics inline", "rationale": "El producto es VSCode-primary y solo existia como CLI; surfacea el pipeline determinista donde el dev trabaja" },
     { "id": "DG-021", "title": "Arquitectura de la extension VSCode MVP", "selected": "A", "date": "2026-05-21", "summary": "Arquitectura spawn-CLI: la extension lanza la CLI como child process, lee el tomo exportado y pinta diagnostics; no importa el motor", "rationale": "Vuelve irrelevante el Node del extension host (FI-001); la CLI es la unica fuente de verdad de ejecucion; extension delgada y facil de bundlear" },
     { "id": "DG-022", "title": "Proximo paso del roadmap (cierre del lazo Inline UX)", "selected": "B", "date": "2026-05-21", "summary": "Comando CLI mark-fp + Code Action 'marcar falso positivo' en la extension + status bar", "rationale": "DG-019 dejo el consumo de fp_known sin via de creacion; B cierra ese lazo end-to-end (cierra FI-007) y redondea la experiencia en el IDE" },
+    { "id": "DG-023", "title": "Proximo paso del roadmap (tomo HTML)", "selected": "A", "date": "2026-05-21", "summary": "Reporter HTML del tomo (auditoria legible y compartible) + suppressedCount en el resumen (FI-006)", "rationale": "El tomo es el deliverable del producto pero solo existia en JSON; HTML lo vuelve un informe real, cerrando la mitad OSS antes del Brain Layer" },
     { "id": "Q1", "title": "Package manager", "selected": "pnpm workspaces", "date": "2026-05-20", "summary": "pnpm v10.33.0", "rationale": "Ya instalado; preferencia v0.4 9.5; simple sin overhead" }
   ],
   "roadmap": [
@@ -45,11 +46,11 @@
     { "id": "FI-003", "topic": "Catalogo de reglas", "detail": "sentinel-baseline.yaml tiene 4 reglas pattern-based. Ampliar el catalogo SAST (taint analysis, mas CWEs)." },
     { "id": "FI-004", "topic": "Cache de scanners del producto", "detail": "El CLI resuelve OpenGrep desde .scanners/ relativo al cwd. El producto enviado necesita una cache de scanners propia (global por usuario) y auto-instalacion." },
     { "id": "FI-005", "topic": "ruleId de OpenGrep", "detail": "El check_id de OpenGrep trae el prefijo de ruta cuando --config es un archivo; Finding.ruleId lo hereda. El CLI muestra title (limpio). Evaluar normalizar ruleId a un id canonico en el normalizer." },
-    { "id": "FI-006", "topic": "suppressedCount en el tomo", "detail": "El Coordinator stage 2 reporta suppressedCount (dedup + fp_known), pero el tomo no lo declara. Un artefacto de auditoria deberia incluir suppressedCount en summary para transparencia." },
     { "id": "FI-008", "topic": "Empaquetado de la extension (.vsix)", "detail": "El MVP de la extension asume el layout del monorepo en dev: la CLI en el paquete hermano (cli/dist) y node en el PATH. Empaquetar como .vsix requiere bundlear/instalar la CLI y resolver un runtime de Node y la cache de scanners (ver FI-004)." }
   ],
   "resolvedImprovements": [
-    { "id": "FI-007", "topic": "Creacion de fp_known", "resolvedBy": "DG-022 B", "detail": "Cerrado: el comando CLI mark-fp y el Code Action 'marcar falso positivo' de la extension crean feromonas fp_known." }
+    { "id": "FI-007", "topic": "Creacion de fp_known", "resolvedBy": "DG-022 B", "detail": "Cerrado: el comando CLI mark-fp y el Code Action 'marcar falso positivo' de la extension crean feromonas fp_known." },
+    { "id": "FI-006", "topic": "suppressedCount en el tomo", "resolvedBy": "DG-023 A", "detail": "Cerrado: TomoSummary incluye suppressedCount, tomado de outcome.suppressedCount." }
   ],
   "learnings": [
     {
@@ -66,13 +67,13 @@
     }
   ],
   "implementationState": {
-    "lastCompletedTask": "Cycle 15 CERRADO: DG-022 B - cierre del lazo Inline UX. Comando CLI mark-fp (registra una feromona fp_known, idempotente) + Code Action 'marcar falso positivo' en la extension + status bar. ColonyDb.getPheromonesByFingerprint. El Code Action dispara mark-fp -> fp_known -> el Coordinator stage 2 la suprime en el proximo scan. Verificado end-to-end con la CLI real. Cierra FI-007. 119 tests verdes; commiteado.",
-    "currentTask": "Cycle 16 abierto. DG-023 a presentar: proximo paso del roadmap.",
+    "lastCompletedTask": "Cycle 16 CERRADO: DG-023 A - reporter HTML del tomo (renderTomoHtml, HTML autocontenido y con todo el contenido dinamico escapado) + suppressedCount en TomoSummary (FI-006). CLI gana --export-html. Verificado end-to-end: scan --export-html produce un HTML autocontenido con los hallazgos + integridad, sin filtrar el secreto. Cierra FI-006. 123 tests verdes; commiteado.",
+    "currentTask": "Cycle 17 abierto. DG-024 a presentar: proximo paso del roadmap.",
     "pendingTasks": [
-      "Resolver DG-023 - proximo paso del roadmap",
+      "Resolver DG-024 - proximo paso del roadmap",
       "Verificacion en vivo de la extension en un Extension Development Host (F5) - no automatizable aqui",
-      "FI-006 (suppressedCount en el tomo), FI-008 (empaquetado .vsix de la extension)",
-      "Roadmap restante MVP: wrappers Trivy/Checkov (SCA/IaC), brain layer (Triage Agent), tomo HTML, BYOK + SecretStorage"
+      "FI-008 (empaquetado .vsix de la extension)",
+      "Roadmap restante MVP: wrappers Trivy/Checkov (SCA/IaC), brain layer (Triage Agent + BYOK), HTML elaborado/PDF (Pro)"
     ],
     "blockers": []
   },
@@ -87,5 +88,5 @@
     "git commit es 100% local y NO requiere token de GitHub; el push futuro (diferido por DG-002 A) usara gh ya autenticado como golab-arch",
     "Observacion: Python 3.14 vs Checkov; better-sqlite3 ABI con Electron; exactOptionalPropertyTypes estricto"
   ],
-  "lastUpdated": "2026-05-21T14:30:00.000Z"
+  "lastUpdated": "2026-05-21T15:00:00.000Z"
 }

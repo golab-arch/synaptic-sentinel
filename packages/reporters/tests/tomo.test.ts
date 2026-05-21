@@ -54,6 +54,7 @@ describe('buildTomo', () => {
 
     expect(TomoSchema.safeParse(tomo).success).toBe(true);
     expect(tomo.summary.totalFindings).toBe(3);
+    expect(tomo.summary.suppressedCount).toBe(0); // FI-006: viene de outcome.suppressedCount
     expect(tomo.summary.bySeverity['high']).toBe(2);
     expect(tomo.summary.bySeverity['low']).toBe(1);
     expect(tomo.summary.byCategory['Secrets']).toBe(1);

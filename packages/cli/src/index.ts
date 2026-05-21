@@ -13,6 +13,7 @@ const USAGE = `Synaptic Sentinel — CLI
 Uso:
   synaptic-sentinel scan [--path <dir>] [--opengrep-bin <ruta>]
                          [--gitleaks-bin <ruta>] [--export <archivo>]
+                         [--export-html <archivo>]
   synaptic-sentinel mark-fp --fingerprint <fp> [--path <dir>] [--reason <texto>]
 
 Comandos:
@@ -24,6 +25,7 @@ Opciones:
   --opengrep-bin <ruta>  Ruta explicita al binario de OpenGrep
   --gitleaks-bin <ruta>  Ruta explicita al binario de Gitleaks
   --export <archivo>     Exporta el tomo del scan en JSON al archivo indicado
+  --export-html <arch.>  Exporta el tomo del scan en HTML al archivo indicado
   --fingerprint <fp>     Huella del hallazgo a marcar (comando mark-fp)
   --reason <texto>       Motivo del descarte (comando mark-fp)
   -h, --help             Muestra esta ayuda
@@ -37,6 +39,7 @@ async function main(): Promise<void> {
       'opengrep-bin': { type: 'string' },
       'gitleaks-bin': { type: 'string' },
       export: { type: 'string' },
+      'export-html': { type: 'string' },
       fingerprint: { type: 'string' },
       reason: { type: 'string' },
       help: { type: 'boolean', short: 'h' },
@@ -55,6 +58,7 @@ async function main(): Promise<void> {
       ...(values['opengrep-bin'] !== undefined ? { opengrepBin: values['opengrep-bin'] } : {}),
       ...(values['gitleaks-bin'] !== undefined ? { gitleaksBin: values['gitleaks-bin'] } : {}),
       ...(values.export !== undefined ? { exportPath: values.export } : {}),
+      ...(values['export-html'] !== undefined ? { exportHtmlPath: values['export-html'] } : {}),
     });
     return;
   }

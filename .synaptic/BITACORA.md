@@ -644,7 +644,35 @@ Each entry follows this structure:
 }
 ```
 
+### Entry #24 - DG-023 (A): tomo HTML + suppressedCount (FI-006)
+```json
+{
+  "timestamp": "2026-05-21T15:00:00.000Z",
+  "cycle": 16,
+  "phase": 6,
+  "action": "FEATURE_IMPLEMENTED",
+  "details": {
+    "DG-023": {
+      "title": "Proximo paso del roadmap",
+      "selected": "Option A",
+      "effect": "Reporter HTML del tomo (auditoria legible y compartible, v0.4 §4.3) + suppressedCount en el resumen del tomo (FI-006)."
+    },
+    "files": "reporters/src/html-reporter.ts (NUEVO - renderTomoHtml + escapeHtml; HTML autocontenido, sin recursos externos; todo el contenido dinamico se escapa). tomo.ts (TomoSummary gana suppressedCount, tomado de outcome.suppressedCount - FI-006). reporters/index.ts (export). cli/commands/scan.ts (opcion exportHtmlPath; el tomo se construye una vez y se exporta a JSON y/o HTML). cli/index.ts (flag --export-html).",
+    "scope_note": "MVP: HTML legible para mostrar a un stakeholder/CISO (v0.4 linea 489). El HTML 'elaborado' (navegacion, links, copy-paste de patches) queda como Pro (v0.4 linea 616).",
+    "security": "El reporte de una herramienta de seguridad no debe poder inyectar HTML a partir de los hallazgos: todo el contenido dinamico pasa por escapeHtml. Verificado: un message con <script> se renderiza escapado.",
+    "verification_real": "synaptic-sentinel scan --export-html sobre un probe (eval + AWS key): HTML de 4643 bytes, empieza con <!doctype html>, autocontenido (sin <link> ni src externo), con los 2 hallazgos + el hash de integridad; el valor del secreto (AKIA...) NO aparece en el HTML.",
+    "tests": "4 nuevos (html-reporter: escapeHtml 1 + renderTomoHtml 3; tomo: assercion de suppressedCount) - total 123 verdes (119 -> 123)",
+    "checks": "build / typecheck / lint / test - todos en verde",
+    "resolves": "FI-006 (suppressedCount en el tomo) queda cerrado.",
+    "commit": "commit atomico feat(reporters,cli) incluye codigo, tests y este registro"
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 21,
+  "complianceScore": 100
+}
+```
+
 ---
 
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-21T14:30:00.000Z*
+*Last Updated: 2026-05-21T15:00:00.000Z*
