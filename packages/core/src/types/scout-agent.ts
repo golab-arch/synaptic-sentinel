@@ -1,5 +1,7 @@
 import { z } from 'zod';
-import { FindingSchema, type FindingCategory, type ScanMode } from '@synaptic-sentinel/core';
+import { FindingSchema } from './finding.js';
+import type { FindingCategory } from './finding.js';
+import type { ScanMode } from './scan.js';
 
 /**
  * Estado de la ejecucion de un Scout.
@@ -18,8 +20,7 @@ export type ScoutStatus = z.infer<typeof ScoutStatusSchema>;
  * Peticion de escaneo que el Coordinator entrega a un Scout.
  *
  * No tiene schema `zod` porque incluye `signal`, un objeto de runtime no
- * serializable. La construye el Coordinator (interno y confiable), no se
- * recibe de una fuente no confiable.
+ * serializable. La construye el Coordinator (interno y confiable).
  */
 export interface ScanRequest {
   /** Scan al que pertenece esta ejecucion. */
@@ -65,6 +66,9 @@ export type ScoutResult = z.infer<typeof ScoutResultSchema>;
  * como child process dentro del perimetro del cliente y normaliza su salida
  * a `Finding[]`. El Coordinator lo invoca; el fallo de un Scout degrada el
  * scan, no lo aborta (v0.4 §3.7).
+ *
+ * El contrato vive en `core`; los wrappers concretos (ej. OpenGrepScout) lo
+ * implementan desde el paquete `scouts`.
  */
 export interface ScoutAgent {
   /** Identificador estable del scout (ej. `opengrep`). */

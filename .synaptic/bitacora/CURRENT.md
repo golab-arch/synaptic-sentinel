@@ -6,11 +6,11 @@
 
 ## Current Cycle
 
-- **Cycle:** 8 — Coordinator stage 1 (B.2)
+- **Cycle:** 9 — siguiente paso del roadmap (a definir)
 - **Phase:** 4 — Coordinator
-- **Status:** capa `colony.db` lista (B.1); awaiting DG-014 (enfoque del Coordinator stage 1)
+- **Status:** DG-012 B completo (scan end-to-end con persistencia); awaiting DG-015
 - **Compliance:** 100%
-- **Synaptic Strength:** 12
+- **Synaptic Strength:** 13
 
 ## Cycles cerrados
 
@@ -20,21 +20,26 @@
 - **Cycle 4** — `install-scanners.ts` + OpenGrep — `a94f1e7` ✅
 - **Cycle 5** — `OpenGrepScout` + normalizer — `2f7e597` ✅
 - **Cycle 6** — ruleset + fixtures + integración — `3b1eeb0` ✅ → **PASO 4 COMPLETO**
-- **Cycle 7** — capa `colony.db` (`ColonyDb` sobre `node:sqlite`) — DG-012 B.1 / DG-013 A ✅
+- **Cycle 7** — capa `colony.db` (`ColonyDb` / `node:sqlite`) — `91cabc7` ✅
+- **Cycle 8** — `Coordinator` stage 1 + refactor `ScoutAgent`→`core` ✅ → **DG-012 B COMPLETO**
+
+## Hito
+
+🏁 **Scan end-to-end funcional**: el `Coordinator` orquesta los scouts,
+agrega los `Finding` y los persiste como feromonas en `colony.db`.
 
 ## Estado del repo
 
-- 7 commits en `main` · 7 paquetes pnpm
-- Capa Scout: `ScoutAgent` + `OpenGrepScout` + normalizer + ruleset
-- `core`: tipos `zod` + `ColonyDb` (persistencia de feromonas/scans)
-- `build` / `typecheck` / `lint` / `test` (59/59) verdes
+- 8 commits en `main` · 7 paquetes pnpm
+- Capa Scout (OpenGrep) + `colony.db` + `Coordinator` stage 1
+- `build` / `typecheck` / `lint` / `test` (63/63) verdes
 
 ## Decision Gate abierto
 
-- DG-014 — enfoque del Coordinator stage 1 (B.2)
+- DG-015 — próximo paso del roadmap
 
 ## Last Entry
 
-Entry #14 — FEATURE_IMPLEMENTED (DG-013 A + B.1) — 2026-05-21 — SUCCESS
+Entry #15 — FEATURE_IMPLEMENTED (DG-014 A + B.2) — 2026-05-21 — SUCCESS
 
 ---

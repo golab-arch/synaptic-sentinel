@@ -1,7 +1,11 @@
 import { spawn } from 'node:child_process';
 import { access } from 'node:fs/promises';
-import type { FindingCategory } from '@synaptic-sentinel/core';
-import type { ScanRequest, ScoutAgent, ScoutResult } from '../scout-agent.js';
+import type {
+  FindingCategory,
+  ScanRequest,
+  ScoutAgent,
+  ScoutResult,
+} from '@synaptic-sentinel/core';
 import { OpenGrepOutputSchema } from './opengrep-output.js';
 import { normalizeOpenGrepOutput } from './normalizer.js';
 

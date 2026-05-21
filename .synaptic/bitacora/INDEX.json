@@ -2,7 +2,7 @@
   "version": "1.0",
   "projectId": "sentinel-1779304140796",
   "projectName": "SENTINEL",
-  "totalCycles": 7,
+  "totalCycles": 8,
   "currentTomeId": 1,
   "cyclesPerTome": 50,
   "tomes": [
@@ -16,10 +16,10 @@
         "from": "2026-05-20T19:09:00.852Z",
         "to": ""
       },
-      "summary": "Cycles 1-7: discovery, scaffolding, PASO 4 completo (capa Scout con OpenGrep end-to-end) y capa colony.db (ColonyDb sobre node:sqlite).",
-      "keyDecisions": ["DG-001", "DG-002", "DG-003", "DG-004", "DG-005", "DG-006", "DG-007", "DG-008", "DG-009", "DG-010", "DG-011", "DG-012", "DG-013", "Q1"],
-      "cycleCount": 7,
-      "successCount": 7,
+      "summary": "Cycles 1-8: discovery, scaffolding, PASO 4 completo (capa Scout/OpenGrep), capa colony.db y Coordinator stage 1 (scan end-to-end con persistencia).",
+      "keyDecisions": ["DG-001", "DG-002", "DG-003", "DG-004", "DG-005", "DG-006", "DG-007", "DG-008", "DG-009", "DG-010", "DG-011", "DG-012", "DG-013", "DG-014", "Q1"],
+      "cycleCount": 8,
+      "successCount": 8,
       "failureCount": 0,
       "jsonPath": "tomes/tome-001.json",
       "mdPath": "tomes/tome-001.md",
@@ -40,12 +40,13 @@
     { "id": "DG-011", "title": "Cuarto increment de PASO 4", "selected": "B", "cycle": 6, "date": "2026-05-21" },
     { "id": "DG-012", "title": "Proximo paso del roadmap", "selected": "B", "cycle": 7, "date": "2026-05-21" },
     { "id": "DG-013", "title": "Driver SQLite para colony.db", "selected": "A", "cycle": 7, "date": "2026-05-21" },
+    { "id": "DG-014", "title": "Alcance del Coordinator stage 1", "selected": "A", "cycle": 8, "date": "2026-05-21" },
     { "id": "Q1", "title": "Package manager", "selected": "pnpm", "cycle": 1, "date": "2026-05-20" }
   ],
   "metrics": {
-    "totalDecisions": 14,
+    "totalDecisions": 15,
     "optionDistribution": {
-      "A": 8,
+      "A": 9,
       "B": 5,
       "C": 0
     },
@@ -55,8 +56,8 @@
       "1": 5,
       "2": 3,
       "3": 4,
-      "4": 2
+      "4": 3
     }
   },
-  "lastUpdated": "2026-05-21T10:35:00.000Z"
+  "lastUpdated": "2026-05-21T11:05:00.000Z"
 }

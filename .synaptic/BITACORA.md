@@ -413,7 +413,33 @@ Each entry follows this structure:
 }
 ```
 
+### Entry #15 - DG-014 (A) + B.2: Coordinator stage 1 - DG-012 B COMPLETO
+```json
+{
+  "timestamp": "2026-05-21T11:05:00.000Z",
+  "cycle": 8,
+  "phase": 4,
+  "action": "FEATURE_IMPLEMENTED",
+  "details": {
+    "DG-014": {
+      "title": "Alcance del Coordinator stage 1",
+      "selected": "Option A",
+      "effect": "Coordinator stage 1 estricto + refactor del contrato ScoutAgent a core"
+    },
+    "refactor": "Contrato ScoutAgent/ScanRequest/ScoutResult/ScoutStatus movido de scouts a core/src/types/scout-agent.ts - evita la dependencia circular core<->scouts. scouts importa el contrato desde @synaptic-sentinel/core. Desviacion informada del andamio de Estructura_Repo.",
+    "coordinator": "packages/core/src/coordinator/coordinator.ts - clase Coordinator: runScan() registra el Scan, corre los scouts inyectados en paralelo (Least Agency, v0.4 §9.6), persiste cada Finding como feromona finding en colony.db, marca el scan completo. Un scout que falla degrada el scan, no lo aborta (v0.4 §3.7).",
+    "tests": "4 nuevos (Coordinator); scout-agent.test movido a core - total 63 verdes",
+    "checks": "build / typecheck / lint / test - todos en verde",
+    "milestone": "DG-012 B COMPLETO (B.1 capa colony.db + B.2 Coordinator). El sistema corre un scan end-to-end: scout -> findings -> persistencia de feromonas en la colony DB.",
+    "commit": "commit atomico feat(core) incluye codigo, tests y este registro"
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 13,
+  "complianceScore": 100
+}
+```
+
 ---
 
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-21T10:35:00.000Z*
+*Last Updated: 2026-05-21T11:05:00.000Z*

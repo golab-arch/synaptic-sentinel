@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { fileURLToPath } from 'node:url';
 import { OpenGrepScout, buildOpenGrepArgs } from '../../src/opengrep/opengrep-scout.js';
-import type { ScanRequest } from '../../src/scout-agent.js';
+import type { ScanRequest } from '@synaptic-sentinel/core';
 
 const baseRequest: ScanRequest = {
   scanId: 'scan-1',

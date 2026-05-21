@@ -6,7 +6,7 @@ import {
   type ScoutAgent,
   type ScanRequest,
   type ScoutResult,
-} from '../src/scout-agent.js';
+} from '../../src/types/scout-agent.js';
 
 /** Scout de prueba: implementa el contrato `ScoutAgent` sin scanner real. */
 const fakeScout: ScoutAgent = {

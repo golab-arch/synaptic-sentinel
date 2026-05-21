@@ -4,7 +4,7 @@
     "fullName": "Synaptic Sentinel",
     "description": "Toolkit OSS de auditoria agentica de seguridad + capa premium LLM, vibe-coding-native, para la era del codigo generado por IA. Tercer producto de la familia Synaptic.",
     "currentPhase": "coordinator",
-    "overallProgress": "Cycles 1-7 CERRADOS. PASO 4 completo + capa colony.db (ColonyDb sobre node:sqlite). 59 tests verdes. Cycle 8 abierto: Coordinator stage 1 (B.2)."
+    "overallProgress": "Cycles 1-8 CERRADOS. PASO 4 + colony.db + Coordinator stage 1 (DG-012 B completo): scan end-to-end con persistencia de feromonas. 63 tests verdes. Cycle 9 abierto: proximo paso (DG-015)."
   },
   "decisions": [
     { "id": "DG-001", "title": "Estructura fisica del monorepo OSS/Pro", "selected": "B", "date": "2026-05-20", "summary": "Monorepo unico con workspaces marcados OSS/Pro + publish-oss.ts allowlist", "rationale": "Velocidad solo founder; refactors triviales; anti-filtracion en un script auditable" },
@@ -20,6 +20,7 @@
     { "id": "DG-011", "title": "Cuarto increment de PASO 4", "selected": "B", "date": "2026-05-21", "summary": "Ruleset curado + fixtures JS/TS+Python + tests de integracion con OpenGrep real", "rationale": "Cierra PASO 4 completo con deteccion real en los dos lenguajes LOCKED del MVP" },
     { "id": "DG-012", "title": "Proximo paso del roadmap", "selected": "B", "date": "2026-05-21", "summary": "Coordinator stage 1 + persistencia en colony.db", "rationale": "La columna vertebral: scan -> dedup -> persiste; activa el schema de feromonas inerte" },
     { "id": "DG-013", "title": "Driver SQLite para colony.db", "selected": "A", "date": "2026-05-21", "summary": "node:sqlite - modulo integrado de Node, sin dependencias nativas", "rationale": "Cero ABI nativa (elimina friccion del modulo nativo en la extension VSCode); sincrono + WAL. Desviacion informada del v0.4 9.4" },
+    { "id": "DG-014", "title": "Alcance del Coordinator stage 1", "selected": "A", "date": "2026-05-21", "summary": "Coordinator stage 1 estricto + refactor ScoutAgent->core", "rationale": "Alcance literal de DG-012 B; el refactor del contrato a core evita la dependencia circular core<->scouts" },
     { "id": "Q1", "title": "Package manager", "selected": "pnpm workspaces", "date": "2026-05-20", "summary": "pnpm v10.33.0", "rationale": "Ya instalado; preferencia v0.4 9.5; simple sin overhead" }
   ],
   "roadmap": [
@@ -50,11 +51,11 @@
     }
   ],
   "implementationState": {
-    "lastCompletedTask": "Cycle 7 CERRADO: DG-013 A (node:sqlite) + B.1 - capa colony.db (clase ColonyDb: scans, pheromones, transacciones, validacion zod). 59 tests verdes; commiteado.",
-    "currentTask": "Cycle 8 / B.2 - Coordinator stage 1. DG-014 abierto: enfoque del increment.",
+    "lastCompletedTask": "Cycle 8 CERRADO: DG-014 A - refactor ScoutAgent->core + Coordinator stage 1. DG-012 B completo: scan end-to-end con persistencia. 63 tests verdes; commiteado.",
+    "currentTask": "Cycle 9 - proximo paso del roadmap. DG-015 abierto.",
     "pendingTasks": [
-      "Resolver DG-014 - enfoque del Coordinator stage 1",
-      "B.2 - Coordinator: orquesta scout(s) -> findings -> feromonas finding persistidas en colony.db"
+      "Resolver DG-015 - proximo paso (CLI scan; o mas scouts; o reporters/tomo)",
+      "Roadmap restante MVP: 4 scouts, Coordinator stage 2 (dedup), BYOK, findings inline (VSCode), tomo JSON/HTML"
     ],
     "blockers": []
   },
@@ -69,5 +70,5 @@
     "git commit es 100% local y NO requiere token de GitHub; el push futuro (diferido por DG-002 A) usara gh ya autenticado como golab-arch",
     "Observacion: Python 3.14 vs Checkov; better-sqlite3 ABI con Electron; exactOptionalPropertyTypes estricto"
   ],
-  "lastUpdated": "2026-05-21T10:35:00.000Z"
+  "lastUpdated": "2026-05-21T11:05:00.000Z"
 }
