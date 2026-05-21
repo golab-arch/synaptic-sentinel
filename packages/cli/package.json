@@ -13,6 +13,7 @@
   "files": ["dist"],
   "dependencies": {
     "@synaptic-sentinel/core": "workspace:*",
+    "@synaptic-sentinel/reporters": "workspace:*",
     "@synaptic-sentinel/scouts": "workspace:*",
     "@synaptic-sentinel/shared": "workspace:*"
   }

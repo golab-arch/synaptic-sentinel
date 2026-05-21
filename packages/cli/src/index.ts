@@ -10,7 +10,7 @@ import { runScanCommand } from './commands/scan.js';
 const USAGE = `Synaptic Sentinel — CLI
 
 Uso:
-  synaptic-sentinel scan [--path <dir>] [--opengrep-bin <ruta>]
+  synaptic-sentinel scan [--path <dir>] [--opengrep-bin <ruta>] [--export <archivo>]
 
 Comandos:
   scan    Escanea un proyecto y persiste los hallazgos en colony.db
@@ -18,6 +18,7 @@ Comandos:
 Opciones:
   --path <dir>           Directorio a escanear (por defecto: el directorio actual)
   --opengrep-bin <ruta>  Ruta explicita al binario de OpenGrep
+  --export <archivo>     Exporta el tomo del scan en JSON al archivo indicado
   -h, --help             Muestra esta ayuda
 `;
 
@@ -27,6 +28,7 @@ async function main(): Promise<void> {
     options: {
       path: { type: 'string' },
       'opengrep-bin': { type: 'string' },
+      export: { type: 'string' },
       help: { type: 'boolean', short: 'h' },
     },
   });
@@ -41,6 +43,7 @@ async function main(): Promise<void> {
     process.exitCode = await runScanCommand({
       path: values.path ?? process.cwd(),
       ...(values['opengrep-bin'] !== undefined ? { opengrepBin: values['opengrep-bin'] } : {}),
+      ...(values.export !== undefined ? { exportPath: values.export } : {}),
     });
     return;
   }

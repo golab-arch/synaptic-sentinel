@@ -11,6 +11,7 @@ export default defineConfig({
     alias: {
       '@synaptic-sentinel/core': workspaceSrc('core'),
       '@synaptic-sentinel/scouts': workspaceSrc('scouts'),
+      '@synaptic-sentinel/reporters': workspaceSrc('reporters'),
       '@synaptic-sentinel/shared': workspaceSrc('shared'),
     },
   },

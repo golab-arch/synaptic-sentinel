@@ -465,7 +465,33 @@ Each entry follows this structure:
 }
 ```
 
+### Entry #17 - DG-016 (B): reporters - tomo JSON
+```json
+{
+  "timestamp": "2026-05-21T12:00:00.000Z",
+  "cycle": 10,
+  "phase": 5,
+  "action": "FEATURE_IMPLEMENTED",
+  "details": {
+    "DG-016": {
+      "title": "Proximo paso del roadmap",
+      "selected": "Option B",
+      "effect": "Paquete reporters - modelo del tomo + export JSON"
+    },
+    "files": "packages/reporters/src/tomo.ts (modelo Tomo con zod: metadata, summary, findings, methodology, integrity; buildTomo + verifyTomoIntegrity + canonicalHash). json-reporter.ts (renderTomoJson). CLI gana synaptic-sentinel scan --export <archivo>.",
+    "integrity": "Firma SHA-256 sobre la forma canonica del cuerpo del tomo (v0.4 §4.2 - en todos los tiers); verifyTomoIntegrity detecta manipulacion del contenido",
+    "verification_real": "synaptic-sentinel scan --export sobre las fixtures: tomo JSON exportado (4921 bytes) - 4 findings, summary bySeverity {high:3,medium:1} byCategory {SAST:4}, integrity sha256",
+    "tests": "6 nuevos (tomo + json-reporter) - total 73 verdes",
+    "checks": "build / typecheck / lint / test - todos en verde",
+    "commit": "commit atomico feat(reporters,cli) incluye codigo, tests y este registro"
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 15,
+  "complianceScore": 100
+}
+```
+
 ---
 
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-21T11:30:00.000Z*
+*Last Updated: 2026-05-21T12:00:00.000Z*

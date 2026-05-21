@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readdirSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import {
   ColonyDb,
@@ -8,6 +8,10 @@ import {
   type ScanOutcome,
 } from '@synaptic-sentinel/core';
 import { BASELINE_RULESET_PATH, OpenGrepScout } from '@synaptic-sentinel/scouts';
+import { buildTomo, renderTomoJson } from '@synaptic-sentinel/reporters';
+
+/** Version reportada en los tomos exportados. */
+const SENTINEL_VERSION = '0.0.0';
 
 /** Opciones del comando `scan`. */
 export interface ScanCommandOptions {
@@ -15,6 +19,8 @@ export interface ScanCommandOptions {
   readonly path: string;
   /** Ruta explicita al binario de OpenGrep, si se provee. */
   readonly opengrepBin?: string;
+  /** Ruta donde exportar el tomo en JSON, si se provee. */
+  readonly exportPath?: string;
 }
 
 /**
@@ -67,8 +73,8 @@ export function formatOutcome(outcome: ScanOutcome, findings: readonly Finding[]
 
 /**
  * Ejecuta el comando `scan`: corre el Coordinator sobre `path`, persiste los
- * hallazgos en `colony.db` e imprime el resultado. Devuelve el codigo de
- * salida del proceso.
+ * hallazgos en `colony.db`, imprime el resultado y -si se pidio- exporta el
+ * tomo en JSON. Devuelve el codigo de salida del proceso.
  */
 export async function runScanCommand(options: ScanCommandOptions): Promise<number> {
   const projectRoot = resolve(options.path);
@@ -96,6 +102,16 @@ export async function runScanCommand(options: ScanCommandOptions): Promise<numbe
       .getPheromonesByScan(outcome.scanId)
       .map((pheromone) => FindingSchema.parse(pheromone.payload));
     console.log(formatOutcome(outcome, findings));
+
+    if (options.exportPath !== undefined) {
+      const tomo = buildTomo(outcome, findings, {
+        rootPath: projectRoot,
+        sentinelVersion: SENTINEL_VERSION,
+      });
+      const exportTarget = resolve(options.exportPath);
+      writeFileSync(exportTarget, renderTomoJson(tomo));
+      console.log(`Tomo exportado: ${exportTarget}`);
+    }
     return 0;
   } finally {
     db.close();

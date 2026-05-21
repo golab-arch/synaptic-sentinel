@@ -19,6 +19,7 @@
 | DG-013 | Driver SQLite para `colony.db` | **Option A** — `node:sqlite` (módulo integrado de Node) | 2026-05-21 | Cero dependencias y cero ABI nativa (elimina la fricción del módulo nativo en la extensión VSCode); síncrono + WAL. Desviación informada del v0.4 §9.4, que dijo "validar" |
 | DG-014 | Alcance del Coordinator stage 1 | **Option A** — Coordinator stage 1 estricto + refactor `ScoutAgent`→`core` | 2026-05-21 | Alcance literal de DG-012 B; el refactor del contrato a `core` evita la dependencia circular `core`↔`scouts` |
 | DG-015 | Próximo paso del roadmap | **Option A** — CLI `synaptic-sentinel scan` | 2026-05-21 | Convierte el pipeline interno en algo invocable por una persona; integra core+scouts+colony en un punto de entrada real |
+| DG-016 | Próximo paso del roadmap | **Option B** — reporters: modelo del tomo + export JSON | 2026-05-21 | Cierra el ciclo scan → artefacto entregable; en el camino crítico de la definición de "Done" del MVP (§8.1) |
 | Q1 | Package manager / tooling de monorepo | **pnpm workspaces** (v10.33.0) | 2026-05-20 | Ya instalado; preferencia v0.4 §9.5; sin overhead |
 
 **Discovery cerrado. Scaffolding generado, verificado y commiteado** (`f0b5202`, 54 archivos). **Cycle 2 CERRADO.** Siguiente: PASO 4 — Scout Layer.
@@ -52,6 +53,7 @@
 - 2026-05-21 — Cycle 7: capa `colony.db` (clase `ColonyDb` sobre `node:sqlite`) — DG-012 B.1. 59 tests verdes.
 - 2026-05-21 — Cycle 8: contrato `ScoutAgent` movido a `core`; `Coordinator` stage 1 (orquesta scouts → feromonas en `colony.db`) — DG-012 B.2. **DG-012 B COMPLETO.** 63 tests verdes.
 - 2026-05-21 — Cycle 9: CLI `synaptic-sentinel scan` (DG-015 A) — primer comando ejecutable; scan end-to-end desde terminal. 67 tests verdes.
+- 2026-05-21 — Cycle 10: paquete `reporters` — modelo del tomo + export JSON con firma SHA-256 (DG-016 B); `scan --export`. 73 tests verdes.
 
 ---
 
@@ -88,10 +90,10 @@ Items identificados para mejorar más adelante. No bloquean el MVP.
 
 - **Name**: SENTINEL (Synaptic Sentinel)
 - **Description**: Toolkit OSS de auditoría agéntica de seguridad + capa premium LLM, vibe-coding-native.
-- **Phase**: Cycle 10 / Phase 5 — CLI `scan` operativa; siguiente paso del roadmap a definir (DG-016)
+- **Phase**: Cycle 11 / Phase 5 — scan + tomo JSON operativos; siguiente paso del roadmap a definir (DG-017)
 
 ---
 
 *Created: 2026-05-20T19:09:00.816Z*
-*Last Updated: 2026-05-21T11:30:00.000Z*
+*Last Updated: 2026-05-21T12:00:00.000Z*
 *SYNAPTIC Protocol v3.0*
