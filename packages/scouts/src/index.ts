@@ -15,3 +15,4 @@ export * from './opengrep/opengrep-scout.js';
 export * from './opengrep/rules.js';
 export * from './gitleaks/gitleaks-scout.js';
 export * from './trivy/trivy-scout.js';
+export * from './checkov/checkov-scout.js';

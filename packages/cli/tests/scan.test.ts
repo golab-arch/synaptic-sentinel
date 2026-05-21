@@ -93,8 +93,14 @@ describe('buildScouts', () => {
       opengrepBin: '/x/opengrep',
       gitleaksBin: '/x/gitleaks',
       trivyBin: '/x/trivy',
+      checkovBin: '/x/checkov',
     });
-    expect(scouts.map((scout) => scout.id).sort()).toEqual(['gitleaks', 'opengrep', 'trivy']);
+    expect(scouts.map((scout) => scout.id).sort()).toEqual([
+      'checkov',
+      'gitleaks',
+      'opengrep',
+      'trivy',
+    ]);
   });
 });
 

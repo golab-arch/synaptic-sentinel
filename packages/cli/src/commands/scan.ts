@@ -11,6 +11,7 @@ import {
 } from '@synaptic-sentinel/core';
 import {
   BASELINE_RULESET_PATH,
+  CheckovScout,
   GitleaksScout,
   OpenGrepScout,
   TrivyScout,
@@ -30,6 +31,8 @@ export interface ScanCommandOptions {
   readonly gitleaksBin?: string;
   /** Ruta explicita al binario de Trivy, si se provee. */
   readonly trivyBin?: string;
+  /** Ruta explicita al binario de Checkov, si se provee. */
+  readonly checkovBin?: string;
   /** Ruta donde exportar el tomo en JSON, si se provee. */
   readonly exportPath?: string;
   /** Ruta donde exportar el tomo en HTML, si se provee. */
@@ -178,14 +181,25 @@ export function buildScouts(options: ScanCommandOptions): ScoutAgent[] {
     scouts.push(new TrivyScout({ binaryPath: trivyBin }));
   }
 
+  const checkovBin = resolveScannerBinary(
+    'checkov',
+    platformBinary('checkov'),
+    'SENTINEL_CHECKOV_BIN',
+    options.checkovBin,
+    searchRoot,
+  );
+  if (checkovBin !== undefined) {
+    scouts.push(new CheckovScout({ binaryPath: checkovBin }));
+  }
+
   return scouts;
 }
 
 /**
  * Ejecuta el comando `scan`: corre el Coordinator sobre `path` con todos los
- * scouts disponibles (OpenGrep + Gitleaks), persiste los hallazgos en
- * `colony.db`, imprime el resultado y -si se pidio- exporta el tomo en JSON.
- * Devuelve el codigo de salida del proceso.
+ * scouts disponibles (OpenGrep, Gitleaks, Trivy, Checkov), persiste los
+ * hallazgos en `colony.db`, imprime el resultado y -si se pidio- exporta el
+ * tomo en JSON/HTML. Devuelve el codigo de salida del proceso.
  */
 export async function runScanCommand(options: ScanCommandOptions): Promise<number> {
   const projectRoot = resolve(options.path);
@@ -193,7 +207,7 @@ export async function runScanCommand(options: ScanCommandOptions): Promise<numbe
   if (scouts.length === 0) {
     console.error(
       'No se encontro ningun scanner. Instala los scanners con "pnpm scanners:install" ' +
-        'o indica las rutas con --opengrep-bin / --gitleaks-bin.',
+        'o indica las rutas con --opengrep-bin / --gitleaks-bin / --trivy-bin / --checkov-bin.',
     );
     return 1;
   }

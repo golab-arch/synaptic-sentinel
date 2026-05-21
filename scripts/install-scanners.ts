@@ -19,7 +19,7 @@
 
 import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { chmod, mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -41,6 +41,11 @@ export interface ScannerSpec {
   readonly version: string;
   /** Repositorio GitHub `owner/name`. */
   readonly repo: string;
+  /**
+   * Subdirectorio dentro del archivo donde queda el binario, si no esta en
+   * la raiz. Tras extraer, el binario se aplana a la raiz de destino.
+   */
+  readonly archiveDir?: string;
   /** Targets indexados por `${platform}-${arch}`. */
   readonly platforms: Readonly<Record<string, PlatformTarget>>;
 }
@@ -147,13 +152,17 @@ function extractArchive(
   destDir: string,
   format: 'zip' | 'tar.gz',
 ): Promise<void> {
-  if (format === 'zip' && process.platform === 'win32') {
-    return spawnExtract('powershell', [
-      '-NoProfile',
-      '-NonInteractive',
-      '-Command',
-      `Expand-Archive -LiteralPath '${archivePath}' -DestinationPath '${destDir}' -Force`,
-    ]);
+  if (format === 'zip') {
+    if (process.platform === 'win32') {
+      return spawnExtract('powershell', [
+        '-NoProfile',
+        '-NonInteractive',
+        '-Command',
+        `Expand-Archive -LiteralPath '${archivePath}' -DestinationPath '${destDir}' -Force`,
+      ]);
+    }
+    // GNU tar no extrae .zip; `unzip` es la herramienta estandar en Unix.
+    return spawnExtract('unzip', ['-o', '-q', archivePath, '-d', destDir]);
   }
   return spawnExtract('tar', ['-xf', archivePath, '-C', destDir]);
 }
@@ -193,6 +202,15 @@ export async function installScanner(
     await writeFile(archivePath, data);
     await extractArchive(archivePath, destDir, target.archive);
     await rm(archivePath, { force: true });
+    // Si el binario quedo dentro de un subdirectorio del archivo, aplanarlo
+    // a la raiz de destino (ej. Checkov empaqueta el binario bajo dist/).
+    if (scanner.archiveDir !== undefined) {
+      const nested = join(destDir, scanner.archiveDir, target.binary);
+      if (await exists(nested)) {
+        await rename(nested, destPath);
+        await rm(join(destDir, scanner.archiveDir), { recursive: true, force: true });
+      }
+    }
     if (!(await exists(destPath))) {
       throw new Error(
         `El binario "${target.binary}" no aparecio tras extraer ${target.asset}.`,
