@@ -728,7 +728,34 @@ Each entry follows this structure:
 }
 ```
 
+### Entry #27 - DG-026 (A): surface del triage en el tomo
+```json
+{
+  "timestamp": "2026-05-21T16:30:00.000Z",
+  "cycle": 19,
+  "phase": 7,
+  "action": "FEATURE_IMPLEMENTED",
+  "details": {
+    "DG-026": {
+      "title": "Proximo paso del roadmap",
+      "selected": "Option A",
+      "effect": "Surface del triage en el tomo: cada hallazgo del tomo (JSON + HTML) lleva su veredicto de triage, mas un conteo byTriage en el resumen."
+    },
+    "files": "core/colony-db.ts (getTriageVerdicts + rowToTriageVerdict). reporters/tomo.ts (TomoFindingSchema = Finding + triage opcional; TomoSummary gana byTriage; buildTomo acepta triageVerdicts y hace join por fingerprint). reporters/html-reporter.ts (renderTriage: badge + rationale por hallazgo; seccion 'Por triage' en el resumen). cli/commands/scan.ts (scan --export pasa db.getTriageVerdicts() a buildTomo).",
+    "flow": "El triage corre como comando aparte y persiste los veredictos; el siguiente scan --export los adjunta al tomo via join por fingerprint (estable entre scans). El v0.4 §4.3: el HTML es para el stakeholder/CISO - ver un hallazgo triado (TP/FP) es lo que necesita.",
+    "verification_real": "4 tests nuevos. End-to-end: scan -> sembrar un veredicto de triage en colony.db -> scan --export/--export-html: el tomo JSON lleva findings[].triage (true_positive/0.93) + summary.byTriage; el HTML muestra 'Triage: verdadero positivo', el rationale y la seccion 'Por triage'.",
+    "ancillary_fix": "Corregido un flake del test de integracion de OpenGrep: timeout 30s -> 60s. El binario es lento y bajo la concurrencia del suite completo excedia 30s (aislado tardo 22-24s). Es FI-002 (separar test:unit / test:integration); el bump del timeout estabiliza el suite mientras tanto.",
+    "tests": "4 nuevos (colony-db getTriageVerdicts 1, tomo triage 2, html-reporter triage 1) - total 165 verdes + 1 skipped",
+    "checks": "build / typecheck / lint / test - todos en verde",
+    "commit": "commit atomico feat(reporters,core,cli) incluye codigo, tests y este registro"
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 24,
+  "complianceScore": 100
+}
+```
+
 ---
 
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-21T16:00:00.000Z*
+*Last Updated: 2026-05-21T16:30:00.000Z*

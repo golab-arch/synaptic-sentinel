@@ -2,7 +2,7 @@
   "version": "1.0",
   "projectId": "sentinel-1779304140796",
   "projectName": "SENTINEL",
-  "totalCycles": 18,
+  "totalCycles": 19,
   "currentTomeId": 1,
   "cyclesPerTome": 50,
   "tomes": [
@@ -16,10 +16,10 @@
         "from": "2026-05-20T19:09:00.852Z",
         "to": ""
       },
-      "summary": "Cycles 1-18: motor determinista completo (scouts, Coordinator stages 1-2, colony.db, CLI, reporters JSON+HTML), extension VSCode, y Brain Layer (paquete agents + comando CLI triage que corre el Triage Agent sobre los hallazgos, BYOK, y persiste los veredictos).",
-      "keyDecisions": ["DG-001", "DG-002", "DG-003", "DG-004", "DG-005", "DG-006", "DG-007", "DG-008", "DG-009", "DG-010", "DG-011", "DG-012", "DG-013", "DG-014", "DG-015", "DG-016", "DG-017", "DG-018", "DG-019", "DG-020", "DG-021", "DG-022", "DG-023", "DG-024", "DG-025", "Q1"],
-      "cycleCount": 18,
-      "successCount": 18,
+      "summary": "Cycles 1-19: motor determinista completo (scouts, Coordinator stages 1-2, colony.db, CLI, reporters JSON+HTML), extension VSCode, y Brain Layer (paquete agents + comando triage); los veredictos de triage se surfacean en el tomo (JSON + HTML).",
+      "keyDecisions": ["DG-001", "DG-002", "DG-003", "DG-004", "DG-005", "DG-006", "DG-007", "DG-008", "DG-009", "DG-010", "DG-011", "DG-012", "DG-013", "DG-014", "DG-015", "DG-016", "DG-017", "DG-018", "DG-019", "DG-020", "DG-021", "DG-022", "DG-023", "DG-024", "DG-025", "DG-026", "Q1"],
+      "cycleCount": 19,
+      "successCount": 19,
       "failureCount": 0,
       "jsonPath": "tomes/tome-001.json",
       "mdPath": "tomes/tome-001.md",
@@ -52,12 +52,13 @@
     { "id": "DG-023", "title": "Proximo paso del roadmap (tomo HTML)", "selected": "A", "cycle": 16, "date": "2026-05-21" },
     { "id": "DG-024", "title": "Proximo paso del roadmap (Brain Layer increment 1)", "selected": "B", "cycle": 17, "date": "2026-05-21" },
     { "id": "DG-025", "title": "Proximo paso del roadmap (Brain Layer increment 2 - comando triage)", "selected": "A", "cycle": 18, "date": "2026-05-21" },
+    { "id": "DG-026", "title": "Proximo paso del roadmap (surface del triage en el tomo)", "selected": "A", "cycle": 19, "date": "2026-05-21" },
     { "id": "Q1", "title": "Package manager", "selected": "pnpm", "cycle": 1, "date": "2026-05-20" }
   ],
   "metrics": {
-    "totalDecisions": 26,
+    "totalDecisions": 27,
     "optionDistribution": {
-      "A": 16,
+      "A": 17,
       "B": 10,
       "C": 0
     },
@@ -70,8 +71,8 @@
       "4": 3,
       "5": 5,
       "6": 4,
-      "7": 2
+      "7": 3
     }
   },
-  "lastUpdated": "2026-05-21T16:00:00.000Z"
+  "lastUpdated": "2026-05-21T16:30:00.000Z"
 }

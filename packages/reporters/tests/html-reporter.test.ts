@@ -77,4 +77,22 @@ describe('renderTomoHtml', () => {
     const tomo = buildTomo(makeOutcome({ findingsCount: 0 }), [], meta);
     expect(renderTomoHtml(tomo)).toContain('Sin hallazgos');
   });
+
+  it('renderiza el veredicto de triage cuando el hallazgo fue triado', () => {
+    const finding = makeFinding({ fingerprint: 'fp-t' });
+    const verdict = {
+      id: randomUUID(),
+      scanId: 'scan-1',
+      fingerprint: 'fp-t',
+      classification: 'false_positive',
+      confidence: 0.91,
+      rationale: 'no es explotable en este contexto',
+      agentId: 'triage',
+      createdAt: '2026-05-21T00:00:00.000Z',
+    };
+    const html = renderTomoHtml(buildTomo(makeOutcome(), [finding], meta, [verdict]));
+    expect(html).toContain('Triage: falso positivo');
+    expect(html).toContain('no es explotable en este contexto');
+    expect(html).toContain('Por triage');
+  });
 });

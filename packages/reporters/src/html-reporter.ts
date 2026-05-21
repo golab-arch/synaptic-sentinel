@@ -1,5 +1,5 @@
-import { SEVERITY_RANK, type Finding } from '@synaptic-sentinel/core';
-import type { Tomo } from './tomo.js';
+import { SEVERITY_RANK } from '@synaptic-sentinel/core';
+import type { Tomo, TomoFinding } from './tomo.js';
 
 /** Severidades en orden de gravedad descendente, para presentacion. */
 const SEVERITY_ORDER = ['critical', 'high', 'medium', 'low', 'info'] as const;
@@ -49,6 +49,10 @@ const STYLE = `
     font-size: 0.82rem; color: #5a5f6a; }
   .finding-msg { margin: 0.4rem 0 0; }
   .lifecycle { font-size: 0.72rem; color: #5a5f6a; }
+  .triage { margin: 0.45rem 0 0; font-size: 0.82rem; color: #3a3f4a; }
+  .triage-tp { background: #7c1d1d; }
+  .triage-fp { background: #1f7a3d; }
+  .triage-inc { background: #6b7280; }
   table { border-collapse: collapse; width: 100%; font-size: 0.88rem; }
   th, td { text-align: left; padding: 0.4rem 0.6rem; border-bottom: 1px solid #e0e2e6; }
   th { color: #5a5f6a; font-weight: 600; }
@@ -61,6 +65,20 @@ function severityClass(severity: string): string {
   return `sev-${SEVERITY_ORDER.includes(severity as (typeof SEVERITY_ORDER)[number]) ? severity : 'info'}`;
 }
 
+/** Etiqueta legible de una clasificacion de triage. */
+function triageLabel(classification: string): string {
+  if (classification === 'true_positive') return 'verdadero positivo';
+  if (classification === 'false_positive') return 'falso positivo';
+  return 'inconcluso';
+}
+
+/** Clase CSS de la badge de triage. */
+function triageClass(classification: string): string {
+  if (classification === 'true_positive') return 'triage-tp';
+  if (classification === 'false_positive') return 'triage-fp';
+  return 'triage-inc';
+}
+
 /** Renderiza los conteos de un `Record<string, number>` como chips. */
 function renderChips(counts: Readonly<Record<string, number>>): string {
   const entries = Object.entries(counts);
@@ -70,8 +88,19 @@ function renderChips(counts: Readonly<Record<string, number>>): string {
     .join('')}</div>`;
 }
 
+/** Renderiza el veredicto de triage de un hallazgo, si fue triado. */
+function renderTriage(finding: TomoFinding): string {
+  const triage = finding.triage;
+  if (triage === undefined) return '';
+  return (
+    `<p class="triage"><span class="badge ${triageClass(triage.classification)}">` +
+    `Triage: ${escapeHtml(triageLabel(triage.classification))}</span> ` +
+    `(confianza ${triage.confidence.toFixed(2)}) — ${escapeHtml(triage.rationale)}</p>`
+  );
+}
+
 /** Renderiza un hallazgo como una tarjeta. */
-function renderFinding(finding: Finding): string {
+function renderFinding(finding: TomoFinding): string {
   const loc = `${finding.location.path}:${String(finding.location.startLine)}`;
   const lifecycle =
     finding.lifecycleState !== 'new'
@@ -91,6 +120,7 @@ function renderFinding(finding: Finding): string {
       </div>
       <div class="finding-loc">${escapeHtml(loc)} · ${escapeHtml(finding.scoutId)}</div>
       <p class="finding-msg">${escapeHtml(finding.message)}</p>
+      ${renderTriage(finding)}
       ${refs}
     </article>`;
 }
@@ -127,6 +157,15 @@ export function renderTomoHtml(tomo: Tomo): string {
     sorted.length > 0
       ? sorted.map(renderFinding).join('\n')
       : '<p class="meta">Sin hallazgos. ✓</p>';
+  // Conteos de triage con etiquetas legibles; se omite la seccion sin triage.
+  const triageLabeled: Record<string, number> = {};
+  for (const [key, count] of Object.entries(summary.byTriage)) {
+    triageLabeled[triageLabel(key)] = count;
+  }
+  const triageSection =
+    Object.keys(triageLabeled).length > 0
+      ? `<p class="meta">Por triage</p>\n${renderChips(triageLabeled)}`
+      : '';
   const gitSha =
     metadata.gitSha !== undefined
       ? ` · commit <code>${escapeHtml(metadata.gitSha)}</code>`
@@ -158,6 +197,7 @@ estado <span class="badge ${summary.status === 'ok' ? 'ok' : 'degraded'}">${esca
 ${renderChips(summary.bySeverity)}
 <p class="meta">Por categoria</p>
 ${renderChips(summary.byCategory)}
+${triageSection}
 
 <h2>Metodologia</h2>
 <p class="meta">Scan iniciado ${escapeHtml(tomo.methodology.startedAt)},

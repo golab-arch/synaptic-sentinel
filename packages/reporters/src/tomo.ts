@@ -3,8 +3,10 @@ import { z } from 'zod';
 import {
   FindingSchema,
   ScoutStatusSchema,
+  TriageVerdictSchema,
   type Finding,
   type ScanOutcome,
+  type TriageVerdictRecord,
 } from '@synaptic-sentinel/core';
 
 /** Metadata del tomo (v0.4 §4.2). */
@@ -30,6 +32,8 @@ const TomoSummarySchema = z.object({
   suppressedCount: z.number().int().nonnegative(),
   bySeverity: z.record(z.number().int().nonnegative()),
   byCategory: z.record(z.number().int().nonnegative()),
+  /** Conteo de hallazgos por clasificacion de triage (vacio si no hubo triage). */
+  byTriage: z.record(z.number().int().nonnegative()),
 });
 
 /** Metodologia: scouts ejecutados y ventana temporal del scan. */
@@ -46,11 +50,22 @@ const TomoMethodologySchema = z.object({
   ),
 });
 
+/**
+ * Hallazgo del tomo: el `Finding` determinista mas el veredicto de triage
+ * del Brain Layer, presente solo si el hallazgo fue triado.
+ */
+export const TomoFindingSchema = FindingSchema.extend({
+  triage: TriageVerdictSchema.optional(),
+});
+
+/** Hallazgo del tomo (Finding + triage opcional). */
+export type TomoFinding = z.infer<typeof TomoFindingSchema>;
+
 /** Cuerpo del tomo: todo menos la firma de integridad. */
 export const TomoBodySchema = z.object({
   metadata: TomoMetadataSchema,
   summary: TomoSummarySchema,
-  findings: z.array(FindingSchema),
+  findings: z.array(TomoFindingSchema),
   methodology: TomoMethodologySchema,
 });
 
@@ -98,22 +113,41 @@ export interface TomoMetadataInput {
 /**
  * Construye un tomo a partir del resultado de un scan y sus hallazgos.
  *
- * El resumen es determinista (conteos); el enriquecimiento del Brain Layer
- * (posture score, explicaciones, mapeo de cumplimiento) se agrega aguas
- * abajo. Incluye una firma SHA-256 sobre la forma canonica del cuerpo, como
- * evidencia de no-manipulacion.
+ * Si se pasan `triageVerdicts`, cada hallazgo se enriquece con su veredicto
+ * de triage (join por `fingerprint`; el veredicto mas reciente gana). El
+ * resumen es determinista (conteos); incluye una firma SHA-256 sobre la
+ * forma canonica del cuerpo, como evidencia de no-manipulacion.
  */
 export function buildTomo(
   outcome: ScanOutcome,
   findings: readonly Finding[],
   meta: TomoMetadataInput,
+  triageVerdicts: readonly TriageVerdictRecord[] = [],
 ): Tomo {
+  // Join por fingerprint: el veredicto mas reciente gana (orden de entrada).
+  const triageByFingerprint = new Map<string, TriageVerdictRecord>();
+  for (const verdict of triageVerdicts) {
+    triageByFingerprint.set(verdict.fingerprint, verdict);
+  }
+
   const bySeverity: Record<string, number> = {};
   const byCategory: Record<string, number> = {};
-  for (const finding of findings) {
+  const byTriage: Record<string, number> = {};
+  const tomoFindings = findings.map((finding) => {
     bySeverity[finding.severity] = (bySeverity[finding.severity] ?? 0) + 1;
     byCategory[finding.category] = (byCategory[finding.category] ?? 0) + 1;
-  }
+    const verdict = triageByFingerprint.get(finding.fingerprint);
+    if (verdict === undefined) return { ...finding };
+    byTriage[verdict.classification] = (byTriage[verdict.classification] ?? 0) + 1;
+    return {
+      ...finding,
+      triage: {
+        classification: verdict.classification,
+        confidence: verdict.confidence,
+        rationale: verdict.rationale,
+      },
+    };
+  });
 
   const body = TomoBodySchema.parse({
     metadata: {
@@ -131,8 +165,9 @@ export function buildTomo(
       suppressedCount: outcome.suppressedCount,
       bySeverity,
       byCategory,
+      byTriage,
     },
-    findings: [...findings],
+    findings: tomoFindings,
     methodology: {
       startedAt: outcome.startedAt,
       finishedAt: outcome.finishedAt,

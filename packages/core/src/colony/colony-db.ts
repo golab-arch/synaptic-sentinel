@@ -48,6 +48,21 @@ function rowToPheromone(row: unknown): Pheromone {
   });
 }
 
+/** Convierte una fila de `triage_verdicts` en un `TriageVerdictRecord` validado. */
+function rowToTriageVerdict(row: unknown): TriageVerdictRecord {
+  const r = row as Record<string, unknown>;
+  return TriageVerdictRecordSchema.parse({
+    id: r['id'],
+    scanId: r['scan_id'],
+    fingerprint: r['fingerprint'],
+    classification: r['classification'],
+    confidence: r['confidence'],
+    rationale: r['rationale'],
+    agentId: r['agent_id'],
+    createdAt: r['created_at'],
+  });
+}
+
 /**
  * Memoria compartida del enjambre — wrapper de la colony DB (SQLite local).
  *
@@ -261,6 +276,14 @@ export class ColonyDb {
       if (typeof value === 'string' && value.length > 0) fingerprints.add(value);
     }
     return fingerprints;
+  }
+
+  /** Todos los veredictos de triage, ordenados por fecha de creacion. */
+  getTriageVerdicts(): TriageVerdictRecord[] {
+    return this.#db
+      .prepare('SELECT * FROM triage_verdicts ORDER BY created_at')
+      .all()
+      .map(rowToTriageVerdict);
   }
 
   /** Cierra la conexion con la base de datos. */

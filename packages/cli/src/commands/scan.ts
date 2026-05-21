@@ -196,10 +196,14 @@ export async function runScanCommand(options: ScanCommandOptions): Promise<numbe
     console.log(formatOutcome(outcome, findings));
 
     if (options.exportPath !== undefined || options.exportHtmlPath !== undefined) {
-      const tomo = buildTomo(outcome, findings, {
-        rootPath: projectRoot,
-        sentinelVersion: SENTINEL_VERSION,
-      });
+      // El tomo se enriquece con los veredictos de triage ya persistidos
+      // (de una corrida previa de `synaptic-sentinel triage`).
+      const tomo = buildTomo(
+        outcome,
+        findings,
+        { rootPath: projectRoot, sentinelVersion: SENTINEL_VERSION },
+        db.getTriageVerdicts(),
+      );
       if (options.exportPath !== undefined) {
         const target = resolve(options.exportPath);
         writeFileSync(target, renderTomoJson(tomo));

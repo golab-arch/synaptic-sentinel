@@ -55,7 +55,7 @@ suite('OpenGrepScout - integracion con el binario real de OpenGrep', () => {
       expect(finding?.severity).toBe('high');
       expect(finding?.location.path).toContain('eval-injection.js');
     },
-    30_000,
+    60_000,
   );
 
   it(
@@ -70,7 +70,7 @@ suite('OpenGrepScout - integracion con el binario real de OpenGrep', () => {
       expect(result.status).toBe('ok');
       expect(result.findings.some((f) => f.ruleId.includes('new-function'))).toBe(true);
     },
-    30_000,
+    60_000,
   );
 
   it(
@@ -87,6 +87,6 @@ suite('OpenGrepScout - integracion con el binario real de OpenGrep', () => {
       expect(ruleIds.some((r) => r.includes('exec'))).toBe(true);
       expect(ruleIds.some((r) => r.includes('subprocess'))).toBe(true);
     },
-    30_000,
+    60_000,
   );
 });

@@ -61,6 +61,39 @@ describe('buildTomo', () => {
     expect(tomo.metadata.scope.rootPath).toBe('/proyecto');
   });
 
+  it('adjunta el veredicto de triage al hallazgo con fingerprint coincidente', () => {
+    const finding = makeFinding('high', 'SAST');
+    finding['fingerprint'] = 'fp-triaged';
+    const verdict = {
+      id: randomUUID(),
+      scanId: 'scan-1',
+      fingerprint: 'fp-triaged',
+      classification: 'false_positive',
+      confidence: 0.95,
+      rationale: 'el patron se disparo pero no hay riesgo real',
+      agentId: 'triage',
+      createdAt: '2026-05-21T00:00:00.000Z',
+    };
+    const tomo = buildTomo(
+      makeOutcome('scan-1'),
+      [finding],
+      { rootPath: '/p', sentinelVersion: '0.0.0' },
+      [verdict],
+    );
+    expect(tomo.findings[0]?.triage?.classification).toBe('false_positive');
+    expect(tomo.findings[0]?.triage?.rationale).toContain('no hay riesgo real');
+    expect(tomo.summary.byTriage['false_positive']).toBe(1);
+  });
+
+  it('deja sin triage los hallazgos sin veredicto', () => {
+    const tomo = buildTomo(makeOutcome('scan-1'), [makeFinding('low', 'SAST')], {
+      rootPath: '/p',
+      sentinelVersion: '0.0.0',
+    });
+    expect(tomo.findings[0]?.triage).toBeUndefined();
+    expect(tomo.summary.byTriage).toEqual({});
+  });
+
   it('incluye una firma de integridad SHA-256 verificable', () => {
     const tomo = buildTomo(makeOutcome('scan-1'), [makeFinding('high', 'SAST')], {
       rootPath: '/p',

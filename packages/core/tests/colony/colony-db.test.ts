@@ -193,6 +193,20 @@ describe('ColonyDb - triage verdicts (schema v2)', () => {
     ).toThrow();
     db.close();
   });
+
+  it('getTriageVerdicts devuelve los registros insertados', () => {
+    const db = ColonyDb.open(':memory:');
+    const scan = makeScan();
+    db.insertScan(scan);
+    db.insertTriageVerdicts([
+      makeVerdict(String(scan['id']), { fingerprint: 'fp-a', rationale: 'motivo a' }),
+    ]);
+    const verdicts = db.getTriageVerdicts();
+    expect(verdicts).toHaveLength(1);
+    expect(verdicts[0]?.fingerprint).toBe('fp-a');
+    expect(verdicts[0]?.rationale).toBe('motivo a');
+    db.close();
+  });
 });
 
 describe('ColonyDb.getPheromonesByFingerprint', () => {
