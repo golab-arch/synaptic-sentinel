@@ -3,8 +3,8 @@
     "name": "SENTINEL",
     "fullName": "Synaptic Sentinel",
     "description": "Toolkit OSS de auditoria agentica de seguridad + capa premium LLM, vibe-coding-native, para la era del codigo generado por IA. Tercer producto de la familia Synaptic.",
-    "currentPhase": "reporters",
-    "overallProgress": "Cycles 1-10 CERRADOS. PASO 4 + colony.db + Coordinator + CLI + reporters (tomo JSON). synaptic-sentinel scan --export produce un evidence package JSON con firma SHA-256. 73 tests verdes. Cycle 11 abierto: proximo paso (DG-017)."
+    "currentPhase": "scout-layer",
+    "overallProgress": "Cycles 1-11 CERRADOS. PASO 4 + colony.db + Coordinator + CLI + reporters. install-scanners ahora soporta comprimidos; Gitleaks v8.30.1 instalable (DG-017 A.1). 74 tests verdes. Cycle 12 abierto: GitleaksScout (A.2)."
   },
   "decisions": [
     { "id": "DG-001", "title": "Estructura fisica del monorepo OSS/Pro", "selected": "B", "date": "2026-05-20", "summary": "Monorepo unico con workspaces marcados OSS/Pro + publish-oss.ts allowlist", "rationale": "Velocidad solo founder; refactors triviales; anti-filtracion en un script auditable" },
@@ -23,6 +23,7 @@
     { "id": "DG-014", "title": "Alcance del Coordinator stage 1", "selected": "A", "date": "2026-05-21", "summary": "Coordinator stage 1 estricto + refactor ScoutAgent->core", "rationale": "Alcance literal de DG-012 B; el refactor del contrato a core evita la dependencia circular core<->scouts" },
     { "id": "DG-015", "title": "Proximo paso del roadmap (CLI)", "selected": "A", "date": "2026-05-21", "summary": "CLI synaptic-sentinel scan", "rationale": "Convierte el pipeline interno en algo invocable por una persona; integra core+scouts+colony" },
     { "id": "DG-016", "title": "Proximo paso del roadmap (reporters)", "selected": "B", "date": "2026-05-21", "summary": "Paquete reporters - modelo del tomo + export JSON con firma SHA-256", "rationale": "Cierra scan -> artefacto entregable; en el camino critico de la definicion de Done del MVP (8.1)" },
+    { "id": "DG-017", "title": "Proximo paso del roadmap (GitleaksScout)", "selected": "A", "date": "2026-05-21", "summary": "GitleaksScout en 2 increments: A.1 install-scanners + comprimidos, A.2 el scout", "rationale": "Cobertura de secrets, riesgo bajo; Gitleaks ships archivos -> A.1 agrega extraccion" },
     { "id": "Q1", "title": "Package manager", "selected": "pnpm workspaces", "date": "2026-05-20", "summary": "pnpm v10.33.0", "rationale": "Ya instalado; preferencia v0.4 9.5; simple sin overhead" }
   ],
   "roadmap": [
@@ -55,11 +56,12 @@
     }
   ],
   "implementationState": {
-    "lastCompletedTask": "Cycle 10 CERRADO: DG-016 B - paquete reporters (modelo del tomo + export JSON con firma SHA-256). synaptic-sentinel scan --export produce el evidence package. 73 tests verdes; commiteado.",
-    "currentTask": "Cycle 11 - proximo paso del roadmap. DG-017 abierto.",
+    "lastCompletedTask": "Cycle 11 CERRADO: DG-017 A.1 - install-scanners soporta assets comprimidos (extraccion via tar); Gitleaks v8.30.1 instalable y verificado. 74 tests verdes; commiteado.",
+    "currentTask": "Cycle 12 / DG-017 A.2 - GitleaksScout. DG-018 abierto: enfoque del increment.",
     "pendingTasks": [
-      "Resolver DG-017 - proximo paso (mas scouts Gitleaks/Trivy/Checkov; tomo HTML; Coordinator stage 2 dedup; VSCode extension)",
-      "Roadmap restante MVP: 4 scouts, stage 2 (dedup), BYOK, findings inline (VSCode), tomo HTML"
+      "Resolver DG-018 - enfoque del GitleaksScout",
+      "A.2 - GitleaksScout: implementa ScoutAgent (categoria Secrets) + normalizer Gitleaks->Finding + fixtures + tests + wiring en el CLI",
+      "Roadmap restante MVP: Trivy/Checkov, stage 2 (dedup), BYOK, findings inline (VSCode), tomo HTML"
     ],
     "blockers": []
   },
@@ -74,5 +76,5 @@
     "git commit es 100% local y NO requiere token de GitHub; el push futuro (diferido por DG-002 A) usara gh ya autenticado como golab-arch",
     "Observacion: Python 3.14 vs Checkov; better-sqlite3 ABI con Electron; exactOptionalPropertyTypes estricto"
   ],
-  "lastUpdated": "2026-05-21T12:00:00.000Z"
+  "lastUpdated": "2026-05-21T12:25:00.000Z"
 }

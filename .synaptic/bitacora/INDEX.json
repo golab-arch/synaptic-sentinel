@@ -2,7 +2,7 @@
   "version": "1.0",
   "projectId": "sentinel-1779304140796",
   "projectName": "SENTINEL",
-  "totalCycles": 10,
+  "totalCycles": 11,
   "currentTomeId": 1,
   "cyclesPerTome": 50,
   "tomes": [
@@ -16,10 +16,10 @@
         "from": "2026-05-20T19:09:00.852Z",
         "to": ""
       },
-      "summary": "Cycles 1-10: discovery, scaffolding, PASO 4 (Scout/OpenGrep), colony.db, Coordinator stage 1, CLI scan y reporters (tomo JSON con firma SHA-256). Scan -> tomo operativo.",
-      "keyDecisions": ["DG-001", "DG-002", "DG-003", "DG-004", "DG-005", "DG-006", "DG-007", "DG-008", "DG-009", "DG-010", "DG-011", "DG-012", "DG-013", "DG-014", "DG-015", "DG-016", "Q1"],
-      "cycleCount": 10,
-      "successCount": 10,
+      "summary": "Cycles 1-11: discovery, scaffolding, PASO 4 (Scout/OpenGrep), colony.db, Coordinator, CLI, reporters (tomo JSON) e install-scanners con soporte de comprimidos (Gitleaks instalable).",
+      "keyDecisions": ["DG-001", "DG-002", "DG-003", "DG-004", "DG-005", "DG-006", "DG-007", "DG-008", "DG-009", "DG-010", "DG-011", "DG-012", "DG-013", "DG-014", "DG-015", "DG-016", "DG-017", "Q1"],
+      "cycleCount": 11,
+      "successCount": 11,
       "failureCount": 0,
       "jsonPath": "tomes/tome-001.json",
       "mdPath": "tomes/tome-001.md",
@@ -43,12 +43,13 @@
     { "id": "DG-014", "title": "Alcance del Coordinator stage 1", "selected": "A", "cycle": 8, "date": "2026-05-21" },
     { "id": "DG-015", "title": "Proximo paso del roadmap (CLI)", "selected": "A", "cycle": 9, "date": "2026-05-21" },
     { "id": "DG-016", "title": "Proximo paso del roadmap (reporters)", "selected": "B", "cycle": 10, "date": "2026-05-21" },
+    { "id": "DG-017", "title": "Proximo paso del roadmap (GitleaksScout)", "selected": "A", "cycle": 11, "date": "2026-05-21" },
     { "id": "Q1", "title": "Package manager", "selected": "pnpm", "cycle": 1, "date": "2026-05-20" }
   ],
   "metrics": {
-    "totalDecisions": 17,
+    "totalDecisions": 18,
     "optionDistribution": {
-      "A": 11,
+      "A": 12,
       "B": 6,
       "C": 0
     },
@@ -59,8 +60,8 @@
       "2": 3,
       "3": 4,
       "4": 3,
-      "5": 2
+      "5": 3
     }
   },
-  "lastUpdated": "2026-05-21T12:00:00.000Z"
+  "lastUpdated": "2026-05-21T12:25:00.000Z"
 }

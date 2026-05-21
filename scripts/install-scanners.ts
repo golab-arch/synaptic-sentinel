@@ -5,6 +5,9 @@
  * scripts/scanners.manifest.json, verificando su checksum SHA-256 contra
  * el valor oficial publicado en GitHub Releases (DG-003 A).
  *
+ * Soporta binarios sueltos y assets comprimidos (.zip / .tar.gz): estos
+ * ultimos se extraen con `tar` (disponible en Windows 10+, macOS y Linux).
+ *
  * Uso:  pnpm scanners:install
  *
  * Requiere Node >= 22.6 (type stripping nativo). El comando `pnpm` agrega
@@ -14,8 +17,9 @@
  * Licencia: Apache-2.0 (OSS).
  */
 
+import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { chmod, mkdir, readFile, stat, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -25,8 +29,10 @@ export interface PlatformTarget {
   readonly asset: string;
   /** Checksum SHA-256 oficial del asset (hex). */
   readonly sha256: string;
-  /** Nombre con el que se guarda el binario localmente. */
+  /** Nombre con el que queda el binario instalado. */
   readonly binary: string;
+  /** Formato del asset si es un comprimido; ausente = binario suelto. */
+  readonly archive?: 'zip' | 'tar.gz';
 }
 
 /** Especificacion de un scanner: version pinneada y targets por plataforma. */
@@ -52,7 +58,7 @@ export interface InstallOutcome {
   readonly scanner: string;
   readonly version: string;
   readonly path: string;
-  /** `cached` = ya estaba instalado con el checksum correcto. */
+  /** `cached` = ya estaba instalado. */
   readonly action: 'installed' | 'cached';
 }
 
@@ -113,6 +119,22 @@ async function downloadVerified(url: string, expectedSha256: string): Promise<Bu
   return data;
 }
 
+/** Extrae un archivo comprimido (.zip / .tar.gz) con `tar` (cross-platform). */
+function extractArchive(archivePath: string, destDir: string): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    const child = spawn('tar', ['-xf', archivePath, '-C', destDir]);
+    let stderr = '';
+    child.stderr?.on('data', (chunk: Buffer) => {
+      stderr += chunk.toString('utf8');
+    });
+    child.on('error', reject);
+    child.on('close', (code) => {
+      if (code === 0) resolve();
+      else reject(new Error(`tar fallo (exit ${String(code)}): ${stderr.trim()}`));
+    });
+  });
+}
+
 /** Instala (o verifica desde cache) un scanner segun su especificacion. */
 export async function installScanner(
   name: string,
@@ -122,21 +144,39 @@ export async function installScanner(
   const target = resolvePlatformTarget(scanner, process.platform, process.arch);
   const destDir = join(installDir, name, scanner.version);
   const destPath = join(destDir, target.binary);
+  const url = downloadUrl(scanner.repo, scanner.version, target.asset);
 
-  // Idempotencia: si ya esta instalado con el checksum correcto, no re-descargar.
-  if (await exists(destPath)) {
-    const current = sha256(await readFile(destPath));
-    if (current === target.sha256) {
+  if (target.archive === undefined) {
+    // Binario suelto: el sha256 del manifest es del propio binario.
+    if (await exists(destPath)) {
+      if (sha256(await readFile(destPath)) === target.sha256) {
+        return { scanner: name, version: scanner.version, path: destPath, action: 'cached' };
+      }
+    }
+    console.log(`  descargando ${name} ${scanner.version} (${target.asset})...`);
+    const data = await downloadVerified(url, target.sha256);
+    await mkdir(destDir, { recursive: true });
+    await writeFile(destPath, data);
+  } else {
+    // Comprimido: el sha256 del manifest es del archivo. Tras extraer no se
+    // puede re-verificar el binario, asi que la idempotencia es por existencia.
+    if (await exists(destPath)) {
       return { scanner: name, version: scanner.version, path: destPath, action: 'cached' };
+    }
+    console.log(`  descargando ${name} ${scanner.version} (${target.asset})...`);
+    const data = await downloadVerified(url, target.sha256);
+    await mkdir(destDir, { recursive: true });
+    const archivePath = join(destDir, target.asset);
+    await writeFile(archivePath, data);
+    await extractArchive(archivePath, destDir);
+    await rm(archivePath, { force: true });
+    if (!(await exists(destPath))) {
+      throw new Error(
+        `El binario "${target.binary}" no aparecio tras extraer ${target.asset}.`,
+      );
     }
   }
 
-  const url = downloadUrl(scanner.repo, scanner.version, target.asset);
-  console.log(`  descargando ${name} ${scanner.version} (${target.asset})...`);
-  const data = await downloadVerified(url, target.sha256);
-
-  await mkdir(destDir, { recursive: true });
-  await writeFile(destPath, data);
   if (process.platform !== 'win32') {
     await chmod(destPath, 0o755);
   }

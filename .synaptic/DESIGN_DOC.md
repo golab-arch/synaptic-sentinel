@@ -20,6 +20,7 @@
 | DG-014 | Alcance del Coordinator stage 1 | **Option A** — Coordinator stage 1 estricto + refactor `ScoutAgent`→`core` | 2026-05-21 | Alcance literal de DG-012 B; el refactor del contrato a `core` evita la dependencia circular `core`↔`scouts` |
 | DG-015 | Próximo paso del roadmap | **Option A** — CLI `synaptic-sentinel scan` | 2026-05-21 | Convierte el pipeline interno en algo invocable por una persona; integra core+scouts+colony en un punto de entrada real |
 | DG-016 | Próximo paso del roadmap | **Option B** — reporters: modelo del tomo + export JSON | 2026-05-21 | Cierra el ciclo scan → artefacto entregable; en el camino crítico de la definición de "Done" del MVP (§8.1) |
+| DG-017 | Próximo paso del roadmap | **Option A** — `GitleaksScout` (en 2 increments: A.1 install-scanners + comprimidos, A.2 el scout) | 2026-05-21 | Cobertura de secrets, riesgo bajo (patrón probado); Gitleaks ships archivos → A.1 agrega extracción a `install-scanners` |
 | Q1 | Package manager / tooling de monorepo | **pnpm workspaces** (v10.33.0) | 2026-05-20 | Ya instalado; preferencia v0.4 §9.5; sin overhead |
 
 **Discovery cerrado. Scaffolding generado, verificado y commiteado** (`f0b5202`, 54 archivos). **Cycle 2 CERRADO.** Siguiente: PASO 4 — Scout Layer.
@@ -54,6 +55,7 @@
 - 2026-05-21 — Cycle 8: contrato `ScoutAgent` movido a `core`; `Coordinator` stage 1 (orquesta scouts → feromonas en `colony.db`) — DG-012 B.2. **DG-012 B COMPLETO.** 63 tests verdes.
 - 2026-05-21 — Cycle 9: CLI `synaptic-sentinel scan` (DG-015 A) — primer comando ejecutable; scan end-to-end desde terminal. 67 tests verdes.
 - 2026-05-21 — Cycle 10: paquete `reporters` — modelo del tomo + export JSON con firma SHA-256 (DG-016 B); `scan --export`. 73 tests verdes.
+- 2026-05-21 — Cycle 11: `install-scanners` soporta assets comprimidos (extracción via `tar`); Gitleaks v8.30.1 instalable (DG-017 A.1).
 
 ---
 
@@ -90,10 +92,10 @@ Items identificados para mejorar más adelante. No bloquean el MVP.
 
 - **Name**: SENTINEL (Synaptic Sentinel)
 - **Description**: Toolkit OSS de auditoría agéntica de seguridad + capa premium LLM, vibe-coding-native.
-- **Phase**: Cycle 11 / Phase 5 — scan + tomo JSON operativos; siguiente paso del roadmap a definir (DG-017)
+- **Phase**: Cycle 12 / Phase 5 — Gitleaks instalable (A.1); siguiente: `GitleaksScout` (A.2)
 
 ---
 
 *Created: 2026-05-20T19:09:00.816Z*
-*Last Updated: 2026-05-21T12:00:00.000Z*
+*Last Updated: 2026-05-21T12:25:00.000Z*
 *SYNAPTIC Protocol v3.0*

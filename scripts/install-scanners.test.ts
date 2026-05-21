@@ -39,6 +39,22 @@ describe('resolvePlatformTarget', () => {
   it('lanza un error claro en una plataforma no soportada', () => {
     expect(() => resolvePlatformTarget(opengrep, 'sunos', 'sparc')).toThrow(/no soportada/);
   });
+
+  it('conserva el campo archive cuando el target es un comprimido', () => {
+    const gitleaks: ScannerSpec = {
+      version: 'v8.30.1',
+      repo: 'gitleaks/gitleaks',
+      platforms: {
+        'win32-x64': {
+          asset: 'gitleaks_8.30.1_windows_x64.zip',
+          sha256: 'd29144deff3a68aa93ced33dddf84b7fdc26070add4aa0f4513094c8332afc4e',
+          archive: 'zip',
+          binary: 'gitleaks.exe',
+        },
+      },
+    };
+    expect(resolvePlatformTarget(gitleaks, 'win32', 'x64').archive).toBe('zip');
+  });
 });
 
 describe('downloadUrl', () => {

@@ -491,7 +491,33 @@ Each entry follows this structure:
 }
 ```
 
+### Entry #18 - DG-017 (A) + A.1: install-scanners soporta archivos; Gitleaks instalable
+```json
+{
+  "timestamp": "2026-05-21T12:25:00.000Z",
+  "cycle": 11,
+  "phase": 5,
+  "action": "FEATURE_IMPLEMENTED",
+  "details": {
+    "DG-017": {
+      "title": "Proximo paso del roadmap",
+      "selected": "Option A",
+      "effect": "GitleaksScout - se ejecuta en 2 increments: A.1 (install-scanners con soporte de comprimidos + Gitleaks instalable), A.2 (el scout)"
+    },
+    "discovery": "Gitleaks v8.30.1 publica archivos comprimidos (.zip en Windows, .tar.gz en mac/linux), no binarios sueltos como OpenGrep. install-scanners necesitaba extraccion - hallazgo que agrando el alcance de DG-017 A.",
+    "files": "scripts/install-scanners.ts: PlatformTarget.archive opcional; installScanner ramifica binario-suelto vs comprimido; extractArchive via tar (cross-platform: Windows 10+, macOS, Linux). scripts/scanners.manifest.json: entrada gitleaks v8.30.1 (5 plataformas, checksums SHA-256 oficiales del archivo).",
+    "verification_real": "pnpm scanners:install descargo gitleaks_8.30.1_windows_x64.zip, verifico el checksum y extrajo con tar; gitleaks version => 8.30.1",
+    "tests": "1 test nuevo (resolvePlatformTarget con archive)",
+    "checks": "build / typecheck / lint / test (scripts) - verdes",
+    "commit": "commit atomico feat(scripts) incluye este registro"
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 16,
+  "complianceScore": 100
+}
+```
+
 ---
 
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-21T12:00:00.000Z*
+*Last Updated: 2026-05-21T12:25:00.000Z*

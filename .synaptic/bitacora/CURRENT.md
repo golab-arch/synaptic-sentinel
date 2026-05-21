@@ -6,11 +6,11 @@
 
 ## Current Cycle
 
-- **Cycle:** 11 — siguiente paso del roadmap (a definir)
+- **Cycle:** 12 — DG-017 A.2 (`GitleaksScout`)
 - **Phase:** 5
-- **Status:** scan + tomo JSON operativos; awaiting DG-017
+- **Status:** Gitleaks instalable (A.1); awaiting DG-018 (enfoque de A.2)
 - **Compliance:** 100%
-- **Synaptic Strength:** 15
+- **Synaptic Strength:** 16
 
 ## Cycles cerrados
 
@@ -23,25 +23,22 @@
 - **Cycle 7** — capa `colony.db` — `91cabc7` ✅
 - **Cycle 8** — `Coordinator` stage 1 + refactor — `ed0e427` ✅ → **DG-012 B COMPLETO**
 - **Cycle 9** — CLI `synaptic-sentinel scan` — `8d957a2` ✅
-- **Cycle 10** — `reporters`: tomo + export JSON (DG-016 B) ✅
-
-## Hito
-
-🏁 **Scan → tomo**: `synaptic-sentinel scan --export tomo.json` produce un
-evidence package JSON con resumen, findings y firma SHA-256.
+- **Cycle 10** — `reporters`: tomo + export JSON — `004a41e` ✅
+- **Cycle 11** — `install-scanners` + comprimidos; Gitleaks instalable (DG-017 A.1) ✅
 
 ## Estado del repo
 
-- 10 commits en `main` · 7 paquetes pnpm
+- 11 commits en `main` · 7 paquetes pnpm
 - Scout (OpenGrep) + `colony.db` + `Coordinator` + CLI + `reporters` (tomo JSON)
-- `build` / `typecheck` / `lint` / `test` (73/73) verdes
+- OpenGrep v1.22.0 y Gitleaks v8.30.1 instalables vía `install-scanners`
+- `build` / `typecheck` / `lint` / `test` (74/74) verdes
 
 ## Decision Gate abierto
 
-- DG-017 — próximo paso del roadmap
+- DG-018 — enfoque del `GitleaksScout` (DG-017 A.2)
 
 ## Last Entry
 
-Entry #17 — FEATURE_IMPLEMENTED (DG-016 B) — 2026-05-21 — SUCCESS
+Entry #18 — FEATURE_IMPLEMENTED (DG-017 A.1) — 2026-05-21 — SUCCESS
 
 ---
