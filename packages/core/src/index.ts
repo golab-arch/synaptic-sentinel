@@ -10,3 +10,4 @@
 export const PACKAGE_NAME = '@synaptic-sentinel/core';
 
 export * from './types/index.js';
+export * from './colony/colony-db.js';

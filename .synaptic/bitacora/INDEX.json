@@ -2,7 +2,7 @@
   "version": "1.0",
   "projectId": "sentinel-1779304140796",
   "projectName": "SENTINEL",
-  "totalCycles": 6,
+  "totalCycles": 7,
   "currentTomeId": 1,
   "cyclesPerTome": 50,
   "tomes": [
@@ -16,10 +16,10 @@
         "from": "2026-05-20T19:09:00.852Z",
         "to": ""
       },
-      "summary": "Cycles 1-6: discovery, scaffolding, y PASO 4 completo (capa Scout con OpenGrep end-to-end: contrato, install-scanners, OpenGrepScout, normalizer, ruleset, fixtures, integracion).",
-      "keyDecisions": ["DG-001", "DG-002", "DG-003", "DG-004", "DG-005", "DG-006", "DG-007", "DG-008", "DG-009", "DG-010", "DG-011", "Q1"],
-      "cycleCount": 6,
-      "successCount": 6,
+      "summary": "Cycles 1-7: discovery, scaffolding, PASO 4 completo (capa Scout con OpenGrep end-to-end) y capa colony.db (ColonyDb sobre node:sqlite).",
+      "keyDecisions": ["DG-001", "DG-002", "DG-003", "DG-004", "DG-005", "DG-006", "DG-007", "DG-008", "DG-009", "DG-010", "DG-011", "DG-012", "DG-013", "Q1"],
+      "cycleCount": 7,
+      "successCount": 7,
       "failureCount": 0,
       "jsonPath": "tomes/tome-001.json",
       "mdPath": "tomes/tome-001.md",
@@ -38,13 +38,15 @@
     { "id": "DG-009", "title": "Alcance del segundo increment de PASO 4", "selected": "A", "cycle": 4, "date": "2026-05-20" },
     { "id": "DG-010", "title": "Alcance del tercer increment de PASO 4", "selected": "A", "cycle": 5, "date": "2026-05-20" },
     { "id": "DG-011", "title": "Cuarto increment de PASO 4", "selected": "B", "cycle": 6, "date": "2026-05-21" },
+    { "id": "DG-012", "title": "Proximo paso del roadmap", "selected": "B", "cycle": 7, "date": "2026-05-21" },
+    { "id": "DG-013", "title": "Driver SQLite para colony.db", "selected": "A", "cycle": 7, "date": "2026-05-21" },
     { "id": "Q1", "title": "Package manager", "selected": "pnpm", "cycle": 1, "date": "2026-05-20" }
   ],
   "metrics": {
-    "totalDecisions": 12,
+    "totalDecisions": 14,
     "optionDistribution": {
-      "A": 7,
-      "B": 4,
+      "A": 8,
+      "B": 5,
       "C": 0
     },
     "overallSuccessRate": 100,
@@ -52,8 +54,9 @@
     "phaseDistribution": {
       "1": 5,
       "2": 3,
-      "3": 4
+      "3": 4,
+      "4": 2
     }
   },
-  "lastUpdated": "2026-05-21T09:45:00.000Z"
+  "lastUpdated": "2026-05-21T10:35:00.000Z"
 }

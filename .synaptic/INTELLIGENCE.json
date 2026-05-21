@@ -3,8 +3,8 @@
     "name": "SENTINEL",
     "fullName": "Synaptic Sentinel",
     "description": "Toolkit OSS de auditoria agentica de seguridad + capa premium LLM, vibe-coding-native, para la era del codigo generado por IA. Tercer producto de la familia Synaptic.",
-    "currentPhase": "scout-layer",
-    "overallProgress": "Cycles 1-6 CERRADOS. PASO 4 del kickoff COMPLETO: capa Scout con OpenGrep funcional end-to-end (detecta vulnerabilidades reales en JS/TS y Python). 51 tests verdes. Cycle 7 abierto: proximo paso del roadmap (DG-012)."
+    "currentPhase": "coordinator",
+    "overallProgress": "Cycles 1-7 CERRADOS. PASO 4 completo + capa colony.db (ColonyDb sobre node:sqlite). 59 tests verdes. Cycle 8 abierto: Coordinator stage 1 (B.2)."
   },
   "decisions": [
     { "id": "DG-001", "title": "Estructura fisica del monorepo OSS/Pro", "selected": "B", "date": "2026-05-20", "summary": "Monorepo unico con workspaces marcados OSS/Pro + publish-oss.ts allowlist", "rationale": "Velocidad solo founder; refactors triviales; anti-filtracion en un script auditable" },
@@ -18,6 +18,8 @@
     { "id": "DG-009", "title": "Alcance del segundo increment de PASO 4", "selected": "A", "date": "2026-05-20", "summary": "Adquisicion del binario primero: scripts/install-scanners.ts", "rationale": "La descarga bajo Norton (TLS, checksums, cross-platform) es la pieza de mayor riesgo de entorno; aislarla deja el wrapper como logica pura" },
     { "id": "DG-010", "title": "Alcance del tercer increment de PASO 4", "selected": "A", "date": "2026-05-20", "summary": "OpenGrepScout + normalizer, unit-tested contra salida JSON real capturada", "rationale": "Aisla el ultimo unknown (CLI/JSON de OpenGrep); normalizer testeado contra output real" },
     { "id": "DG-011", "title": "Cuarto increment de PASO 4", "selected": "B", "date": "2026-05-21", "summary": "Ruleset curado + fixtures JS/TS+Python + tests de integracion con OpenGrep real", "rationale": "Cierra PASO 4 completo con deteccion real en los dos lenguajes LOCKED del MVP" },
+    { "id": "DG-012", "title": "Proximo paso del roadmap", "selected": "B", "date": "2026-05-21", "summary": "Coordinator stage 1 + persistencia en colony.db", "rationale": "La columna vertebral: scan -> dedup -> persiste; activa el schema de feromonas inerte" },
+    { "id": "DG-013", "title": "Driver SQLite para colony.db", "selected": "A", "date": "2026-05-21", "summary": "node:sqlite - modulo integrado de Node, sin dependencias nativas", "rationale": "Cero ABI nativa (elimina friccion del modulo nativo en la extension VSCode); sincrono + WAL. Desviacion informada del v0.4 9.4" },
     { "id": "Q1", "title": "Package manager", "selected": "pnpm workspaces", "date": "2026-05-20", "summary": "pnpm v10.33.0", "rationale": "Ya instalado; preferencia v0.4 9.5; simple sin overhead" }
   ],
   "roadmap": [
@@ -27,6 +29,11 @@
     { "phase": "Brain Layer (parcial)", "weeks": "6-10", "items": ["Triage Agent JS/TS + Python", "Vibe-Detect Agent", "Remediation Agent basico"] },
     { "phase": "Inline UX", "weeks": "8-10", "items": ["Diagnostics + hover", "Code Actions + quickfix", "Status bar + tree view"] },
     { "phase": "Output & Polish", "weeks": "10-12", "items": ["Tomo JSON/HTML export", "Test fixtures + benchmarks", "Onboarding doc", "Beta a design partners"] }
+  ],
+  "futureImprovements": [
+    { "id": "FI-001", "topic": "Driver SQLite", "detail": "node:sqlite es experimental; si genera friccion (API en un Node mayor futuro, o extension host de VSCode con Node < 22.5), migrar a better-sqlite3 detras de la clase ColonyDb." },
+    { "id": "FI-002", "topic": "Suite de tests", "detail": "Los tests de integracion de OpenGrep suman ~46s a pnpm test. Separar en test:unit y test:integration." },
+    { "id": "FI-003", "topic": "Catalogo de reglas", "detail": "sentinel-baseline.yaml tiene 4 reglas pattern-based. Ampliar el catalogo SAST (taint analysis, mas CWEs)." }
   ],
   "learnings": [
     {
@@ -43,11 +50,11 @@
     }
   ],
   "implementationState": {
-    "lastCompletedTask": "Cycle 6 CERRADO: PASO 4 Increment 4 - ruleset baseline + fixtures vulnerables JS/TS/Python + tests de integracion con OpenGrep real. PASO 4 del kickoff COMPLETO. 51 tests verdes; commiteado.",
-    "currentTask": "Cycle 7 - proximo paso del roadmap. DG-012 abierto.",
+    "lastCompletedTask": "Cycle 7 CERRADO: DG-013 A (node:sqlite) + B.1 - capa colony.db (clase ColonyDb: scans, pheromones, transacciones, validacion zod). 59 tests verdes; commiteado.",
+    "currentTask": "Cycle 8 / B.2 - Coordinator stage 1. DG-014 abierto: enfoque del increment.",
     "pendingTasks": [
-      "Resolver DG-012 - proximo paso (mas scouts: Gitleaks/Trivy/Checkov; o Coordinator stage 1 + colony.db)",
-      "Roadmap restante MVP: 4 scouts, Coordinator stages 1-3, BYOK, findings inline, tomo JSON/HTML"
+      "Resolver DG-014 - enfoque del Coordinator stage 1",
+      "B.2 - Coordinator: orquesta scout(s) -> findings -> feromonas finding persistidas en colony.db"
     ],
     "blockers": []
   },
@@ -62,5 +69,5 @@
     "git commit es 100% local y NO requiere token de GitHub; el push futuro (diferido por DG-002 A) usara gh ya autenticado como golab-arch",
     "Observacion: Python 3.14 vs Checkov; better-sqlite3 ABI con Electron; exactOptionalPropertyTypes estricto"
   ],
-  "lastUpdated": "2026-05-21T09:45:00.000Z"
+  "lastUpdated": "2026-05-21T10:35:00.000Z"
 }

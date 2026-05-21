@@ -363,7 +363,57 @@ Each entry follows this structure:
 }
 ```
 
+### Entry #13 - DG-012 resuelto (B) + DG-013 abierto (driver SQLite)
+```json
+{
+  "timestamp": "2026-05-21T10:05:00.000Z",
+  "cycle": 7,
+  "phase": 4,
+  "action": "DECISION_RECORDED",
+  "details": {
+    "DG-012": {
+      "title": "Proximo paso del roadmap",
+      "selected": "Option B",
+      "effect": "Coordinator stage 1 + persistencia en colony.db"
+    },
+    "plan": "B se ejecutara en dos increments: B.1 = capa colony.db (driver SQLite + creacion desde schema.sql + repositorio de pheromones/scans), B.2 = Coordinator stage 1 (orquesta scouts -> findings -> feromonas en colony.db)",
+    "decisionAbierta": "DG-013 - driver SQLite (node:sqlite vs better-sqlite3 vs WASM). Decision arquitectonica no cerrada por el v0.4 (sugirio better-sqlite3 pero indico 'validar en discovery'); B.1 depende de esto",
+    "phase": "Phase 4 - Coordinator + colony.db"
+  },
+  "outcome": "PENDING",
+  "synapticStrength": 11,
+  "complianceScore": 100
+}
+```
+
+### Entry #14 - DG-013 (A) + B.1: capa colony.db
+```json
+{
+  "timestamp": "2026-05-21T10:35:00.000Z",
+  "cycle": 7,
+  "phase": 4,
+  "action": "FEATURE_IMPLEMENTED",
+  "details": {
+    "DG-013": {
+      "title": "Driver SQLite para colony.db",
+      "selected": "Option A",
+      "effect": "node:sqlite - modulo SQLite integrado de Node, sin dependencias nativas ni problema de ABI"
+    },
+    "increment": "B.1 - capa colony.db",
+    "files": "packages/core/src/colony/colony-db.ts (clase ColonyDb sobre node:sqlite: open + aplicacion idempotente del schema, repositorios de scans y pheromones, transacciones, validacion zod en cada insert). core/src/index.ts exporta ColonyDb.",
+    "node_sqlite": "verificado funcional en Node 24 sin flag (emite un ExperimentalWarning inofensivo)",
+    "tests": "8 nuevos (7 en memoria + 1 de persistencia en disco) - total 59 verdes",
+    "checks": "build / typecheck / lint / test - todos en verde",
+    "futureImprovement": "FI-001 registrado en DESIGN_DOC (seccion Mejoras Futuras): node:sqlite es experimental; si genera friccion, migrar a better-sqlite3 detras de la clase ColonyDb, que ya aisla la persistencia",
+    "commit": "commit atomico feat(core) incluye codigo, tests y este registro"
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 12,
+  "complianceScore": 100
+}
+```
+
 ---
 
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-21T09:45:00.000Z*
+*Last Updated: 2026-05-21T10:35:00.000Z*

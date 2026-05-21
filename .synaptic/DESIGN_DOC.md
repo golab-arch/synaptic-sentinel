@@ -15,6 +15,8 @@
 | DG-009 | Alcance del segundo increment de PASO 4 | **Option A** — adquisición del binario primero (`scripts/install-scanners.ts`) | 2026-05-20 | La descarga bajo Norton (TLS, checksums, cross-platform) es la pieza de mayor riesgo de entorno; aislarla deja el wrapper como lógica pura |
 | DG-010 | Alcance del tercer increment de PASO 4 | **Option A** — `OpenGrepScout` + normalizer, unit-tested contra salida JSON real | 2026-05-20 | Aísla el último unknown (CLI/JSON de OpenGrep); normalizer testeado contra output real capturado |
 | DG-011 | Cuarto increment de PASO 4 | **Option B** — ruleset curado + fixtures JS/TS+Python + tests de integración | 2026-05-21 | Cierra PASO 4 completo con detección real en los dos lenguajes LOCKED del MVP |
+| DG-012 | Próximo paso del roadmap | **Option B** — Coordinator stage 1 + persistencia en `colony.db` | 2026-05-21 | La columna vertebral: scan → dedup → persiste; activa el schema de feromonas inerte |
+| DG-013 | Driver SQLite para `colony.db` | **Option A** — `node:sqlite` (módulo integrado de Node) | 2026-05-21 | Cero dependencias y cero ABI nativa (elimina la fricción del módulo nativo en la extensión VSCode); síncrono + WAL. Desviación informada del v0.4 §9.4, que dijo "validar" |
 | Q1 | Package manager / tooling de monorepo | **pnpm workspaces** (v10.33.0) | 2026-05-20 | Ya instalado; preferencia v0.4 §9.5; sin overhead |
 
 **Discovery cerrado. Scaffolding generado, verificado y commiteado** (`f0b5202`, 54 archivos). **Cycle 2 CERRADO.** Siguiente: PASO 4 — Scout Layer.
@@ -45,6 +47,19 @@
 - 2026-05-20 — Cycle 4: PASO 4 Increment 2 — `scripts/install-scanners.ts` con manifest pinneado y checksums SHA-256. OpenGrep v1.22.0 descargado y verificado. 32 tests verdes.
 - 2026-05-21 — Cycle 5: PASO 4 Increment 3 — `OpenGrepScout` (implementa `ScoutAgent`) + normalizer (OpenGrep JSON → `Finding`). 48 tests verdes.
 - 2026-05-21 — Cycle 6: PASO 4 Increment 4 — ruleset baseline + fixtures vulnerables + tests de integración con OpenGrep real. **PASO 4 COMPLETO.** 51 tests verdes.
+- 2026-05-21 — Cycle 7: capa `colony.db` (clase `ColonyDb` sobre `node:sqlite`) — DG-012 B.1. 59 tests verdes.
+
+---
+
+## Mejoras Futuras / Deuda Técnica
+
+Items identificados para mejorar más adelante. No bloquean el MVP.
+
+| ID | Tema | Detalle |
+|----|------|---------|
+| FI-001 | Driver SQLite | `node:sqlite` es un módulo `experimental` de Node. Si su estatus genera fricción (cambios de API en un Node mayor futuro, o un extension host de VSCode con Node < 22.5), migrar a `better-sqlite3`. La persistencia ya está aislada detrás de la clase `ColonyDb`, así que el cambio sería local. |
+| FI-002 | Suite de tests | Los tests de integración de OpenGrep suman ~46s a `pnpm test`. Separar en `test:unit` (rápido) y `test:integration`. |
+| FI-003 | Catálogo de reglas | `sentinel-baseline.yaml` tiene 4 reglas pattern-based. Ampliar el catálogo SAST (taint analysis, más CWEs, cobertura por lenguaje). |
 
 ---
 
@@ -58,7 +73,7 @@
 - **Tests**: Vitest 3
 - **Linter/formatter**: ESLint 9 flat (typescript-eslint 8) + Prettier 3 — DECIDIDO (DG-006 B)
 - **Superficie**: VSCode Extension API — LOCKED
-- **DB local**: SQLite (`colony.db`, WAL mode) — driver a confirmar (better-sqlite3 vs node:sqlite)
+- **DB local**: SQLite (`colony.db`, WAL mode) — driver `node:sqlite` (DG-013 A); capa `ColonyDb`
 - **LLM**: `@anthropic-ai/sdk` con BYOK — LOCKED
 - **Scanners**: binarios nativos pinneados descargados on-demand — DECIDIDO (DG-003 A)
 
@@ -68,10 +83,10 @@
 
 - **Name**: SENTINEL (Synaptic Sentinel)
 - **Description**: Toolkit OSS de auditoría agéntica de seguridad + capa premium LLM, vibe-coding-native.
-- **Phase**: PASO 4 COMPLETO (OpenGrep scout end-to-end). Cycle 7 — siguiente paso del roadmap a definir (DG-012)
+- **Phase**: Cycle 8 / Phase 4 — capa `colony.db` lista (B.1); siguiente: Coordinator stage 1 (B.2)
 
 ---
 
 *Created: 2026-05-20T19:09:00.816Z*
-*Last Updated: 2026-05-21T09:45:00.000Z*
+*Last Updated: 2026-05-21T10:35:00.000Z*
 *SYNAPTIC Protocol v3.0*
