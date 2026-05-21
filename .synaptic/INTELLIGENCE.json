@@ -4,7 +4,7 @@
     "fullName": "Synaptic Sentinel",
     "description": "Toolkit OSS de auditoria agentica de seguridad + capa premium LLM, vibe-coding-native, para la era del codigo generado por IA. Tercer producto de la familia Synaptic.",
     "currentPhase": "inline-ux",
-    "overallProgress": "Cycles 1-14 CERRADOS. Motor determinista completo (2 scouts, Coordinator stages 1 y 2, colony.db, CLI, reporters). Extension VSCode MVP (DG-020 B / DG-021 A): arquitectura spawn-CLI - la extension lanza la CLI, lee el tomo y pinta diagnostics inline; capa UX delgada, sin node:sqlite en el extension host. 110 tests verdes."
+    "overallProgress": "Cycles 1-15 CERRADOS. Motor determinista completo (2 scouts, Coordinator stages 1 y 2, colony.db, CLI, reporters). Extension VSCode con lazo Inline UX cerrado (DG-022 B): scan + diagnostics inline + Code Action 'marcar falso positivo' (comando CLI mark-fp) + status bar. 119 tests verdes."
   },
   "decisions": [
     { "id": "DG-001", "title": "Estructura fisica del monorepo OSS/Pro", "selected": "B", "date": "2026-05-20", "summary": "Monorepo unico con workspaces marcados OSS/Pro + publish-oss.ts allowlist", "rationale": "Velocidad solo founder; refactors triviales; anti-filtracion en un script auditable" },
@@ -28,6 +28,7 @@
     { "id": "DG-019", "title": "Proximo paso del roadmap (Coordinator stage 2)", "selected": "A", "date": "2026-05-21", "summary": "Coordinator stage 2: dedup por fingerprint + supresion de fp_known + ciclo de vida new/known en re-scans", "rationale": "Endurece el pipeline antes de sumar scouts o brain layer; un re-scan ya no duplica feromonas y respeta los falsos positivos confirmados" },
     { "id": "DG-020", "title": "Proximo paso del roadmap (extension VSCode)", "selected": "B", "date": "2026-05-21", "summary": "Extension VSCode MVP: comando Scan + findings como diagnostics inline", "rationale": "El producto es VSCode-primary y solo existia como CLI; surfacea el pipeline determinista donde el dev trabaja" },
     { "id": "DG-021", "title": "Arquitectura de la extension VSCode MVP", "selected": "A", "date": "2026-05-21", "summary": "Arquitectura spawn-CLI: la extension lanza la CLI como child process, lee el tomo exportado y pinta diagnostics; no importa el motor", "rationale": "Vuelve irrelevante el Node del extension host (FI-001); la CLI es la unica fuente de verdad de ejecucion; extension delgada y facil de bundlear" },
+    { "id": "DG-022", "title": "Proximo paso del roadmap (cierre del lazo Inline UX)", "selected": "B", "date": "2026-05-21", "summary": "Comando CLI mark-fp + Code Action 'marcar falso positivo' en la extension + status bar", "rationale": "DG-019 dejo el consumo de fp_known sin via de creacion; B cierra ese lazo end-to-end (cierra FI-007) y redondea la experiencia en el IDE" },
     { "id": "Q1", "title": "Package manager", "selected": "pnpm workspaces", "date": "2026-05-20", "summary": "pnpm v10.33.0", "rationale": "Ya instalado; preferencia v0.4 9.5; simple sin overhead" }
   ],
   "roadmap": [
@@ -45,8 +46,10 @@
     { "id": "FI-004", "topic": "Cache de scanners del producto", "detail": "El CLI resuelve OpenGrep desde .scanners/ relativo al cwd. El producto enviado necesita una cache de scanners propia (global por usuario) y auto-instalacion." },
     { "id": "FI-005", "topic": "ruleId de OpenGrep", "detail": "El check_id de OpenGrep trae el prefijo de ruta cuando --config es un archivo; Finding.ruleId lo hereda. El CLI muestra title (limpio). Evaluar normalizar ruleId a un id canonico en el normalizer." },
     { "id": "FI-006", "topic": "suppressedCount en el tomo", "detail": "El Coordinator stage 2 reporta suppressedCount (dedup + fp_known), pero el tomo no lo declara. Un artefacto de auditoria deberia incluir suppressedCount en summary para transparencia." },
-    { "id": "FI-007", "topic": "Creacion de fp_known", "detail": "El Coordinator ya consume feromonas fp_known; falta la via de creacion para el usuario (comando CLI mark-fp y/o accion del Brain Triage Agent). Hoy solo se crean via buildFpKnownPheromone (API)." },
     { "id": "FI-008", "topic": "Empaquetado de la extension (.vsix)", "detail": "El MVP de la extension asume el layout del monorepo en dev: la CLI en el paquete hermano (cli/dist) y node en el PATH. Empaquetar como .vsix requiere bundlear/instalar la CLI y resolver un runtime de Node y la cache de scanners (ver FI-004)." }
+  ],
+  "resolvedImprovements": [
+    { "id": "FI-007", "topic": "Creacion de fp_known", "resolvedBy": "DG-022 B", "detail": "Cerrado: el comando CLI mark-fp y el Code Action 'marcar falso positivo' de la extension crean feromonas fp_known." }
   ],
   "learnings": [
     {
@@ -63,12 +66,12 @@
     }
   ],
   "implementationState": {
-    "lastCompletedTask": "Cycle 14 CERRADO: DG-020 B + DG-021 A - extension VSCode MVP con arquitectura spawn-CLI. La extension registra el comando Scan Workspace, lanza la CLI como child process, lee el tomo exportado y pinta los hallazgos como diagnostics inline. Modulos puros (tomo/cli-runner/diagnostics) desacoplados de la API vscode; bundle esbuild a dist/extension.cjs sin node:sqlite. Fix de la CLI: findScannersRoot resuelve .scanners/ sin depender del cwd. 110 tests verdes; commiteado.",
-    "currentTask": "Cycle 15 abierto. DG-022 a presentar: proximo paso del roadmap.",
+    "lastCompletedTask": "Cycle 15 CERRADO: DG-022 B - cierre del lazo Inline UX. Comando CLI mark-fp (registra una feromona fp_known, idempotente) + Code Action 'marcar falso positivo' en la extension + status bar. ColonyDb.getPheromonesByFingerprint. El Code Action dispara mark-fp -> fp_known -> el Coordinator stage 2 la suprime en el proximo scan. Verificado end-to-end con la CLI real. Cierra FI-007. 119 tests verdes; commiteado.",
+    "currentTask": "Cycle 16 abierto. DG-023 a presentar: proximo paso del roadmap.",
     "pendingTasks": [
-      "Resolver DG-022 - proximo paso del roadmap",
+      "Resolver DG-023 - proximo paso del roadmap",
       "Verificacion en vivo de la extension en un Extension Development Host (F5) - no automatizable aqui",
-      "FI-006 (suppressedCount en el tomo), FI-007 (via de creacion de fp_known), FI-008 (empaquetado .vsix de la extension)",
+      "FI-006 (suppressedCount en el tomo), FI-008 (empaquetado .vsix de la extension)",
       "Roadmap restante MVP: wrappers Trivy/Checkov (SCA/IaC), brain layer (Triage Agent), tomo HTML, BYOK + SecretStorage"
     ],
     "blockers": []
@@ -84,5 +87,5 @@
     "git commit es 100% local y NO requiere token de GitHub; el push futuro (diferido por DG-002 A) usara gh ya autenticado como golab-arch",
     "Observacion: Python 3.14 vs Checkov; better-sqlite3 ABI con Electron; exactOptionalPropertyTypes estricto"
   ],
-  "lastUpdated": "2026-05-21T14:00:00.000Z"
+  "lastUpdated": "2026-05-21T14:30:00.000Z"
 }

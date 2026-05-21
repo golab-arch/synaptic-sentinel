@@ -6,21 +6,26 @@
  */
 import { parseArgs } from 'node:util';
 import { runScanCommand } from './commands/scan.js';
+import { runMarkFpCommand } from './commands/mark-fp.js';
 
 const USAGE = `Synaptic Sentinel — CLI
 
 Uso:
   synaptic-sentinel scan [--path <dir>] [--opengrep-bin <ruta>]
                          [--gitleaks-bin <ruta>] [--export <archivo>]
+  synaptic-sentinel mark-fp --fingerprint <fp> [--path <dir>] [--reason <texto>]
 
 Comandos:
-  scan    Escanea un proyecto y persiste los hallazgos en colony.db
+  scan       Escanea un proyecto y persiste los hallazgos en colony.db
+  mark-fp    Marca un hallazgo como falso positivo (lo suprime en scans futuros)
 
 Opciones:
-  --path <dir>           Directorio a escanear (por defecto: el directorio actual)
+  --path <dir>           Directorio del proyecto (por defecto: el directorio actual)
   --opengrep-bin <ruta>  Ruta explicita al binario de OpenGrep
   --gitleaks-bin <ruta>  Ruta explicita al binario de Gitleaks
   --export <archivo>     Exporta el tomo del scan en JSON al archivo indicado
+  --fingerprint <fp>     Huella del hallazgo a marcar (comando mark-fp)
+  --reason <texto>       Motivo del descarte (comando mark-fp)
   -h, --help             Muestra esta ayuda
 `;
 
@@ -32,6 +37,8 @@ async function main(): Promise<void> {
       'opengrep-bin': { type: 'string' },
       'gitleaks-bin': { type: 'string' },
       export: { type: 'string' },
+      fingerprint: { type: 'string' },
+      reason: { type: 'string' },
       help: { type: 'boolean', short: 'h' },
     },
   });
@@ -48,6 +55,22 @@ async function main(): Promise<void> {
       ...(values['opengrep-bin'] !== undefined ? { opengrepBin: values['opengrep-bin'] } : {}),
       ...(values['gitleaks-bin'] !== undefined ? { gitleaksBin: values['gitleaks-bin'] } : {}),
       ...(values.export !== undefined ? { exportPath: values.export } : {}),
+    });
+    return;
+  }
+
+  if (command === 'mark-fp') {
+    const fingerprint = values.fingerprint;
+    if (fingerprint === undefined || fingerprint === '') {
+      console.error('mark-fp requiere --fingerprint <fp>.\n');
+      console.log(USAGE);
+      process.exitCode = 1;
+      return;
+    }
+    process.exitCode = runMarkFpCommand({
+      path: values.path ?? process.cwd(),
+      fingerprint,
+      ...(values.reason !== undefined ? { reason: values.reason } : {}),
     });
     return;
   }

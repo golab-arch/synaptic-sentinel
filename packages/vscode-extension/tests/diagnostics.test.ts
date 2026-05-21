@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest';
+import { join } from 'node:path';
 import {
   diagnosticLevelForSeverity,
   findingToDiagnosticInput,
+  findingsInRange,
   groupDiagnosticsByPath,
 } from '../src/diagnostics.js';
 import type { ExtensionFinding } from '../src/tomo.js';
@@ -15,6 +17,7 @@ function makeFinding(overrides: Partial<ExtensionFinding> = {}): ExtensionFindin
     title: 'rule-x',
     message: 'Hallazgo de prueba',
     location: { path: 'src/a.js', startLine: 4 },
+    fingerprint: 'fp-base',
     lifecycleState: 'new',
     ...overrides,
   };
@@ -44,6 +47,7 @@ describe('findingToDiagnosticInput', () => {
     expect(input.endColumn).toBe(1); // = startColumn
     expect(input.level).toBe('error');
     expect(input.message).toBe('rule-x: Hallazgo de prueba');
+    expect(input.fingerprint).toBe('fp-base');
   });
 
   it('respeta las columnas/lineas explicitas del finding', () => {
@@ -79,5 +83,27 @@ describe('groupDiagnosticsByPath', () => {
 
   it('devuelve un mapa vacio para una lista vacia', () => {
     expect(groupDiagnosticsByPath([]).size).toBe(0);
+  });
+});
+
+describe('findingsInRange', () => {
+  const workspacePath = join('repo', 'proyecto');
+
+  it('encuentra los hallazgos del documento dentro del rango de lineas', () => {
+    const findings = [
+      makeFinding({ location: { path: 'src/a.js', startLine: 5 }, fingerprint: 'fp-1' }),
+      makeFinding({ location: { path: 'src/a.js', startLine: 99 }, fingerprint: 'fp-2' }),
+      makeFinding({ location: { path: 'src/b.js', startLine: 5 }, fingerprint: 'fp-3' }),
+    ];
+    const docPath = join(workspacePath, 'src', 'a.js');
+    // La linea 5 (1-based) es la 4 (0-based) en vscode.Range.
+    const matches = findingsInRange(findings, workspacePath, docPath, 4, 4);
+    expect(matches.map((finding) => finding.fingerprint)).toEqual(['fp-1']);
+  });
+
+  it('devuelve vacio si el documento no coincide con ningun hallazgo', () => {
+    const findings = [makeFinding({ location: { path: 'src/a.js', startLine: 5 } })];
+    const otherDoc = join(workspacePath, 'src', 'otro.js');
+    expect(findingsInRange(findings, workspacePath, otherDoc, 0, 100)).toEqual([]);
   });
 });

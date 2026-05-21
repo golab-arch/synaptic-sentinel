@@ -616,7 +616,35 @@ Each entry follows this structure:
 }
 ```
 
+### Entry #23 - DG-022 (B): cierre del lazo Inline UX (mark-fp + Code Action)
+```json
+{
+  "timestamp": "2026-05-21T14:30:00.000Z",
+  "cycle": 15,
+  "phase": 6,
+  "action": "FEATURE_IMPLEMENTED",
+  "details": {
+    "DG-022": {
+      "title": "Proximo paso del roadmap",
+      "selected": "Option B",
+      "effect": "Cierra el lazo Inline UX: comando CLI mark-fp + Code Action 'marcar falso positivo' en la extension + status bar. Cierra FI-007 (via de creacion de feromonas fp_known)."
+    },
+    "files": "cli: commands/mark-fp.ts (NUEVO - runMarkFpCommand: valida que exista el hallazgo, idempotente, registra fp_known via buildFpKnownPheromone). index.ts (dispatch del comando mark-fp). core: ColonyDb.getPheromonesByFingerprint (json_extract). vscode-extension: tomo.ts (+fingerprint en el schema), diagnostics.ts (+findingsInRange, +fingerprint en DiagnosticInput), cli-runner.ts (refactor a spawnCli generico + runCliMarkFp), index.ts (CodeActionProvider 'marcar falso positivo' + comando interno markFalsePositive + status bar).",
+    "loop": "El Code Action de la extension dispara runCliMarkFp -> CLI mark-fp -> feromona fp_known -> el Coordinator (stage 2, DG-019) la suprime en el proximo scan. Cierra el lazo que DG-019 dejo abierto (consumia fp_known pero no habia forma de crearlos).",
+    "verification_real": "End-to-end con la CLI real: scan (2 hallazgos) -> mark-fp del secreto -> mark-fp de nuevo ('ya estaba marcado', idempotencia OK) -> re-scan: 'Hallazgos: 1, Suprimidos: 1' (secreto suprimido, eval persiste como known). Bundle: 134KB, sin node:sqlite ni @synaptic-sentinel, vscode external.",
+    "verification_gap": "El Code Action y el status bar en vivo requieren un Extension Development Host (F5); se validan por compilacion + bundle + unit tests de la logica pura (findingsInRange).",
+    "tests": "9 nuevos (cli mark-fp 4, core getPheromonesByFingerprint 1, vscode-extension findingsInRange 2 + tomo/cli-runner 2) - total 119 verdes (110 -> 119)",
+    "checks": "build / typecheck / lint / test - todos en verde",
+    "resolves": "FI-007 (creacion de fp_known) queda cerrado.",
+    "commit": "commit atomico feat(cli,vscode-extension,core) incluye codigo, tests y este registro"
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 20,
+  "complianceScore": 100
+}
+```
+
 ---
 
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-21T14:00:00.000Z*
+*Last Updated: 2026-05-21T14:30:00.000Z*

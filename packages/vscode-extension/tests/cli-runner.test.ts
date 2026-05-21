@@ -2,7 +2,7 @@ import { describe, it, expect, afterAll } from 'vitest';
 import { existsSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { defaultCliEntry, runCliScan } from '../src/cli-runner.js';
+import { defaultCliEntry, runCliMarkFp, runCliScan } from '../src/cli-runner.js';
 import { findingToDiagnosticInput } from '../src/diagnostics.js';
 
 const repoRoot = fileURLToPath(new URL('../../../', import.meta.url));
@@ -20,6 +20,18 @@ describe('runCliScan (manejo de error)', () => {
       runCliScan({
         cliEntry: join(repoRoot, 'no', 'existe', 'cli.js'),
         workspacePath: repoRoot,
+      }),
+    ).rejects.toThrow();
+  });
+});
+
+describe('runCliMarkFp (manejo de error)', () => {
+  it('rechaza si el entry de la CLI no existe', async () => {
+    await expect(
+      runCliMarkFp({
+        cliEntry: join(repoRoot, 'no', 'existe', 'cli.js'),
+        workspacePath: repoRoot,
+        fingerprint: 'fp-x',
       }),
     ).rejects.toThrow();
   });

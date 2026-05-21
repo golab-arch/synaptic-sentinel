@@ -41,10 +41,29 @@ describe('parseTomo', () => {
           title: 't',
           message: 'm',
           location: { path: 'a.js', startLine: 3 },
+          fingerprint: 'fp-x',
         },
       ],
     });
     expect(tomo.findings[0]?.lifecycleState).toBe('new');
+  });
+
+  it('rechaza un finding sin fingerprint', () => {
+    expect(() =>
+      parseTomo({
+        summary: { scanId: 's', status: 'ok', totalFindings: 1 },
+        findings: [
+          {
+            severity: 'low',
+            category: 'SAST',
+            ruleId: 'r',
+            title: 't',
+            message: 'm',
+            location: { path: 'a.js', startLine: 1 },
+          },
+        ],
+      }),
+    ).toThrow();
   });
 
   it('rechaza un tomo cuyo finding tiene una severidad invalida', () => {
@@ -59,6 +78,7 @@ describe('parseTomo', () => {
             title: 't',
             message: 'm',
             location: { path: 'a.js', startLine: 1 },
+            fingerprint: 'fp-x',
           },
         ],
       }),

@@ -178,6 +178,18 @@ export class ColonyDb {
     return fingerprints;
   }
 
+  /**
+   * Feromonas cuyo `payload.fingerprint` coincide con `fingerprint`,
+   * cualquiera sea su tipo. Habilita marcar y consultar falsos positivos
+   * por hallazgo (comando `mark-fp`).
+   */
+  getPheromonesByFingerprint(fingerprint: string): Pheromone[] {
+    return this.#db
+      .prepare("SELECT * FROM pheromones WHERE json_extract(payload, '$.fingerprint') = ?")
+      .all(fingerprint)
+      .map(rowToPheromone);
+  }
+
   /** Feromonas asociadas a un archivo, opcionalmente filtradas por tipo. */
   getPheromonesByTarget(targetPath: string, type?: PheromoneType): Pheromone[] {
     const rows =

@@ -21,6 +21,8 @@ const ExtensionFindingSchema = z.object({
   title: z.string().min(1),
   message: z.string().min(1),
   location: FindingLocationSchema,
+  /** Huella estable: identifica el hallazgo para marcarlo como falso positivo. */
+  fingerprint: z.string().min(1),
   lifecycleState: z.string().min(1).default('new'),
 });
 

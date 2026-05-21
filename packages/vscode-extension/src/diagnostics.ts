@@ -1,3 +1,4 @@
+import { join } from 'node:path';
 import type { ExtensionFinding } from './tomo.js';
 
 /** Nivel de diagnostico, agnostico de la API de VSCode. */
@@ -17,6 +18,7 @@ export interface DiagnosticInput {
   readonly message: string;
   readonly level: DiagnosticLevel;
   readonly ruleId: string;
+  readonly fingerprint: string;
 }
 
 /** Mapea la severidad de Sentinel al nivel de diagnostico de VSCode. */
@@ -47,6 +49,7 @@ export function findingToDiagnosticInput(finding: ExtensionFinding): DiagnosticI
     message: `${finding.title}${lifecycle}: ${finding.message}`,
     level: diagnosticLevelForSeverity(finding.severity),
     ruleId: finding.ruleId,
+    fingerprint: finding.fingerprint,
   };
 }
 
@@ -61,4 +64,25 @@ export function groupDiagnosticsByPath(
     else byPath.set(input.path, [input]);
   }
   return byPath;
+}
+
+/**
+ * Devuelve los hallazgos que caen en `documentFsPath` dentro del rango de
+ * lineas `[startLine0, endLine0]` (0-based, como `vscode.Range`).
+ *
+ * Alimenta el Code Action "marcar falso positivo": dado el cursor/seleccion
+ * del usuario, encuentra los hallazgos de Sentinel en esa(s) linea(s).
+ */
+export function findingsInRange(
+  findings: readonly ExtensionFinding[],
+  workspacePath: string,
+  documentFsPath: string,
+  startLine0: number,
+  endLine0: number,
+): ExtensionFinding[] {
+  return findings.filter((finding) => {
+    if (join(workspacePath, finding.location.path) !== documentFsPath) return false;
+    const line0 = finding.location.startLine - 1;
+    return line0 >= startLine0 && line0 <= endLine0;
+  });
 }

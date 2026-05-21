@@ -135,6 +135,24 @@ describe('ColonyDb.getKnownFingerprints', () => {
   });
 });
 
+describe('ColonyDb.getPheromonesByFingerprint', () => {
+  it('devuelve las feromonas de cualquier tipo con ese fingerprint', () => {
+    const db = ColonyDb.open(':memory:');
+    const scan = makeScan();
+    db.insertScan(scan);
+    const scanId = String(scan['id']);
+    db.insertPheromone(makePheromone(scanId, { payload: { fingerprint: 'fp-1' } }));
+    db.insertPheromone(makePheromone(scanId, { payload: { fingerprint: 'fp-2' } }));
+    db.insertPheromone(buildFpKnownPheromone({ scanId, agentId: 't', fingerprint: 'fp-1' }));
+
+    const forFp1 = db.getPheromonesByFingerprint('fp-1');
+    expect(forFp1.map((pheromone) => pheromone.type).sort()).toEqual(['finding', 'fp_known']);
+    expect(db.getPheromonesByFingerprint('fp-2')).toHaveLength(1);
+    expect(db.getPheromonesByFingerprint('fp-ausente')).toHaveLength(0);
+    db.close();
+  });
+});
+
 describe('ColonyDb (base en disco)', () => {
   const dbPath = join(tmpdir(), `colony-test-${randomUUID()}.db`);
 

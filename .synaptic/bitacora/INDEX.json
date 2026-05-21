@@ -2,7 +2,7 @@
   "version": "1.0",
   "projectId": "sentinel-1779304140796",
   "projectName": "SENTINEL",
-  "totalCycles": 14,
+  "totalCycles": 15,
   "currentTomeId": 1,
   "cyclesPerTome": 50,
   "tomes": [
@@ -16,10 +16,10 @@
         "from": "2026-05-20T19:09:00.852Z",
         "to": ""
       },
-      "summary": "Cycles 1-14: discovery, scaffolding, PASO 4 (Scout/OpenGrep), colony.db, Coordinator (stages 1 y 2), CLI, reporters (tomo JSON), install-scanners con comprimidos, GitleaksScout y extension VSCode MVP (arquitectura spawn-CLI).",
-      "keyDecisions": ["DG-001", "DG-002", "DG-003", "DG-004", "DG-005", "DG-006", "DG-007", "DG-008", "DG-009", "DG-010", "DG-011", "DG-012", "DG-013", "DG-014", "DG-015", "DG-016", "DG-017", "DG-018", "DG-019", "DG-020", "DG-021", "Q1"],
-      "cycleCount": 14,
-      "successCount": 14,
+      "summary": "Cycles 1-15: discovery, scaffolding, PASO 4 (Scout/OpenGrep), colony.db, Coordinator (stages 1 y 2), CLI, reporters, install-scanners, GitleaksScout, extension VSCode MVP (spawn-CLI) y cierre del lazo Inline UX (mark-fp + Code Action).",
+      "keyDecisions": ["DG-001", "DG-002", "DG-003", "DG-004", "DG-005", "DG-006", "DG-007", "DG-008", "DG-009", "DG-010", "DG-011", "DG-012", "DG-013", "DG-014", "DG-015", "DG-016", "DG-017", "DG-018", "DG-019", "DG-020", "DG-021", "DG-022", "Q1"],
+      "cycleCount": 15,
+      "successCount": 15,
       "failureCount": 0,
       "jsonPath": "tomes/tome-001.json",
       "mdPath": "tomes/tome-001.md",
@@ -48,13 +48,14 @@
     { "id": "DG-019", "title": "Proximo paso del roadmap (Coordinator stage 2)", "selected": "A", "cycle": 13, "date": "2026-05-21" },
     { "id": "DG-020", "title": "Proximo paso del roadmap (extension VSCode)", "selected": "B", "cycle": 14, "date": "2026-05-21" },
     { "id": "DG-021", "title": "Arquitectura de la extension VSCode MVP", "selected": "A", "cycle": 14, "date": "2026-05-21" },
+    { "id": "DG-022", "title": "Proximo paso del roadmap (cierre del lazo Inline UX)", "selected": "B", "cycle": 15, "date": "2026-05-21" },
     { "id": "Q1", "title": "Package manager", "selected": "pnpm", "cycle": 1, "date": "2026-05-20" }
   ],
   "metrics": {
-    "totalDecisions": 22,
+    "totalDecisions": 23,
     "optionDistribution": {
       "A": 14,
-      "B": 8,
+      "B": 9,
       "C": 0
     },
     "overallSuccessRate": 100,
@@ -65,8 +66,8 @@
       "3": 4,
       "4": 3,
       "5": 5,
-      "6": 2
+      "6": 3
     }
   },
-  "lastUpdated": "2026-05-21T14:00:00.000Z"
+  "lastUpdated": "2026-05-21T14:30:00.000Z"
 }
