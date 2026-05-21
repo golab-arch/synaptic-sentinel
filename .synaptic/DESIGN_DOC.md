@@ -18,6 +18,7 @@
 | DG-012 | Próximo paso del roadmap | **Option B** — Coordinator stage 1 + persistencia en `colony.db` | 2026-05-21 | La columna vertebral: scan → dedup → persiste; activa el schema de feromonas inerte |
 | DG-013 | Driver SQLite para `colony.db` | **Option A** — `node:sqlite` (módulo integrado de Node) | 2026-05-21 | Cero dependencias y cero ABI nativa (elimina la fricción del módulo nativo en la extensión VSCode); síncrono + WAL. Desviación informada del v0.4 §9.4, que dijo "validar" |
 | DG-014 | Alcance del Coordinator stage 1 | **Option A** — Coordinator stage 1 estricto + refactor `ScoutAgent`→`core` | 2026-05-21 | Alcance literal de DG-012 B; el refactor del contrato a `core` evita la dependencia circular `core`↔`scouts` |
+| DG-015 | Próximo paso del roadmap | **Option A** — CLI `synaptic-sentinel scan` | 2026-05-21 | Convierte el pipeline interno en algo invocable por una persona; integra core+scouts+colony en un punto de entrada real |
 | Q1 | Package manager / tooling de monorepo | **pnpm workspaces** (v10.33.0) | 2026-05-20 | Ya instalado; preferencia v0.4 §9.5; sin overhead |
 
 **Discovery cerrado. Scaffolding generado, verificado y commiteado** (`f0b5202`, 54 archivos). **Cycle 2 CERRADO.** Siguiente: PASO 4 — Scout Layer.
@@ -50,6 +51,7 @@
 - 2026-05-21 — Cycle 6: PASO 4 Increment 4 — ruleset baseline + fixtures vulnerables + tests de integración con OpenGrep real. **PASO 4 COMPLETO.** 51 tests verdes.
 - 2026-05-21 — Cycle 7: capa `colony.db` (clase `ColonyDb` sobre `node:sqlite`) — DG-012 B.1. 59 tests verdes.
 - 2026-05-21 — Cycle 8: contrato `ScoutAgent` movido a `core`; `Coordinator` stage 1 (orquesta scouts → feromonas en `colony.db`) — DG-012 B.2. **DG-012 B COMPLETO.** 63 tests verdes.
+- 2026-05-21 — Cycle 9: CLI `synaptic-sentinel scan` (DG-015 A) — primer comando ejecutable; scan end-to-end desde terminal. 67 tests verdes.
 
 ---
 
@@ -62,6 +64,7 @@ Items identificados para mejorar más adelante. No bloquean el MVP.
 | FI-001 | Driver SQLite | `node:sqlite` es un módulo `experimental` de Node. Si su estatus genera fricción (cambios de API en un Node mayor futuro, o un extension host de VSCode con Node < 22.5), migrar a `better-sqlite3`. La persistencia ya está aislada detrás de la clase `ColonyDb`, así que el cambio sería local. |
 | FI-002 | Suite de tests | Los tests de integración de OpenGrep suman ~46s a `pnpm test`. Separar en `test:unit` (rápido) y `test:integration`. |
 | FI-003 | Catálogo de reglas | `sentinel-baseline.yaml` tiene 4 reglas pattern-based. Ampliar el catálogo SAST (taint analysis, más CWEs, cobertura por lenguaje). |
+| FI-005 | `ruleId` de OpenGrep | Cuando `--config` es la ruta de un archivo, OpenGrep prefija el `check_id` con los segmentos de esa ruta; el `Finding.ruleId` lo hereda. El CLI muestra `title` (segmento final, limpio). Evaluar normalizar `ruleId` a un id canónico en el normalizer. |
 
 ---
 
@@ -85,10 +88,10 @@ Items identificados para mejorar más adelante. No bloquean el MVP.
 
 - **Name**: SENTINEL (Synaptic Sentinel)
 - **Description**: Toolkit OSS de auditoría agéntica de seguridad + capa premium LLM, vibe-coding-native.
-- **Phase**: Cycle 9 / Phase 4 — DG-012 B completo (scan end-to-end con persistencia); siguiente paso a definir (DG-015)
+- **Phase**: Cycle 10 / Phase 5 — CLI `scan` operativa; siguiente paso del roadmap a definir (DG-016)
 
 ---
 
 *Created: 2026-05-20T19:09:00.816Z*
-*Last Updated: 2026-05-21T11:05:00.000Z*
+*Last Updated: 2026-05-21T11:30:00.000Z*
 *SYNAPTIC Protocol v3.0*

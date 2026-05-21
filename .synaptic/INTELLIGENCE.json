@@ -3,8 +3,8 @@
     "name": "SENTINEL",
     "fullName": "Synaptic Sentinel",
     "description": "Toolkit OSS de auditoria agentica de seguridad + capa premium LLM, vibe-coding-native, para la era del codigo generado por IA. Tercer producto de la familia Synaptic.",
-    "currentPhase": "coordinator",
-    "overallProgress": "Cycles 1-8 CERRADOS. PASO 4 + colony.db + Coordinator stage 1 (DG-012 B completo): scan end-to-end con persistencia de feromonas. 63 tests verdes. Cycle 9 abierto: proximo paso (DG-015)."
+    "currentPhase": "cli",
+    "overallProgress": "Cycles 1-9 CERRADOS. PASO 4 + colony.db + Coordinator stage 1 + CLI synaptic-sentinel scan. Scan end-to-end operativo desde terminal. 67 tests verdes. Cycle 10 abierto: proximo paso (DG-016)."
   },
   "decisions": [
     { "id": "DG-001", "title": "Estructura fisica del monorepo OSS/Pro", "selected": "B", "date": "2026-05-20", "summary": "Monorepo unico con workspaces marcados OSS/Pro + publish-oss.ts allowlist", "rationale": "Velocidad solo founder; refactors triviales; anti-filtracion en un script auditable" },
@@ -21,6 +21,7 @@
     { "id": "DG-012", "title": "Proximo paso del roadmap", "selected": "B", "date": "2026-05-21", "summary": "Coordinator stage 1 + persistencia en colony.db", "rationale": "La columna vertebral: scan -> dedup -> persiste; activa el schema de feromonas inerte" },
     { "id": "DG-013", "title": "Driver SQLite para colony.db", "selected": "A", "date": "2026-05-21", "summary": "node:sqlite - modulo integrado de Node, sin dependencias nativas", "rationale": "Cero ABI nativa (elimina friccion del modulo nativo en la extension VSCode); sincrono + WAL. Desviacion informada del v0.4 9.4" },
     { "id": "DG-014", "title": "Alcance del Coordinator stage 1", "selected": "A", "date": "2026-05-21", "summary": "Coordinator stage 1 estricto + refactor ScoutAgent->core", "rationale": "Alcance literal de DG-012 B; el refactor del contrato a core evita la dependencia circular core<->scouts" },
+    { "id": "DG-015", "title": "Proximo paso del roadmap (CLI)", "selected": "A", "date": "2026-05-21", "summary": "CLI synaptic-sentinel scan", "rationale": "Convierte el pipeline interno en algo invocable por una persona; integra core+scouts+colony" },
     { "id": "Q1", "title": "Package manager", "selected": "pnpm workspaces", "date": "2026-05-20", "summary": "pnpm v10.33.0", "rationale": "Ya instalado; preferencia v0.4 9.5; simple sin overhead" }
   ],
   "roadmap": [
@@ -34,7 +35,9 @@
   "futureImprovements": [
     { "id": "FI-001", "topic": "Driver SQLite", "detail": "node:sqlite es experimental; si genera friccion (API en un Node mayor futuro, o extension host de VSCode con Node < 22.5), migrar a better-sqlite3 detras de la clase ColonyDb." },
     { "id": "FI-002", "topic": "Suite de tests", "detail": "Los tests de integracion de OpenGrep suman ~46s a pnpm test. Separar en test:unit y test:integration." },
-    { "id": "FI-003", "topic": "Catalogo de reglas", "detail": "sentinel-baseline.yaml tiene 4 reglas pattern-based. Ampliar el catalogo SAST (taint analysis, mas CWEs)." }
+    { "id": "FI-003", "topic": "Catalogo de reglas", "detail": "sentinel-baseline.yaml tiene 4 reglas pattern-based. Ampliar el catalogo SAST (taint analysis, mas CWEs)." },
+    { "id": "FI-004", "topic": "Cache de scanners del producto", "detail": "El CLI resuelve OpenGrep desde .scanners/ relativo al cwd. El producto enviado necesita una cache de scanners propia (global por usuario) y auto-instalacion." },
+    { "id": "FI-005", "topic": "ruleId de OpenGrep", "detail": "El check_id de OpenGrep trae el prefijo de ruta cuando --config es un archivo; Finding.ruleId lo hereda. El CLI muestra title (limpio). Evaluar normalizar ruleId a un id canonico en el normalizer." }
   ],
   "learnings": [
     {
@@ -51,11 +54,11 @@
     }
   ],
   "implementationState": {
-    "lastCompletedTask": "Cycle 8 CERRADO: DG-014 A - refactor ScoutAgent->core + Coordinator stage 1. DG-012 B completo: scan end-to-end con persistencia. 63 tests verdes; commiteado.",
-    "currentTask": "Cycle 9 - proximo paso del roadmap. DG-015 abierto.",
+    "lastCompletedTask": "Cycle 9 CERRADO: DG-015 A - CLI synaptic-sentinel scan. Scan end-to-end operativo desde terminal; 4 hallazgos detectados sobre las fixtures. 67 tests verdes; commiteado.",
+    "currentTask": "Cycle 10 - proximo paso del roadmap. DG-016 abierto.",
     "pendingTasks": [
-      "Resolver DG-015 - proximo paso (CLI scan; o mas scouts; o reporters/tomo)",
-      "Roadmap restante MVP: 4 scouts, Coordinator stage 2 (dedup), BYOK, findings inline (VSCode), tomo JSON/HTML"
+      "Resolver DG-016 - proximo paso (mas scouts: Gitleaks/Trivy/Checkov; Coordinator stage 2 dedup; reporters/tomo; o VSCode extension)",
+      "Roadmap restante MVP: 4 scouts, stage 2 (dedup), BYOK, findings inline (VSCode), tomo JSON/HTML"
     ],
     "blockers": []
   },
@@ -70,5 +73,5 @@
     "git commit es 100% local y NO requiere token de GitHub; el push futuro (diferido por DG-002 A) usara gh ya autenticado como golab-arch",
     "Observacion: Python 3.14 vs Checkov; better-sqlite3 ABI con Electron; exactOptionalPropertyTypes estricto"
   ],
-  "lastUpdated": "2026-05-21T11:05:00.000Z"
+  "lastUpdated": "2026-05-21T11:30:00.000Z"
 }

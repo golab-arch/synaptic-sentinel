@@ -1,9 +1,9 @@
 /**
  * @synaptic-sentinel/scouts
  *
- * Capa Scout (determinista, sin LLM): la interfaz `ScoutAgent` comun y los
- * wrappers de scanners OSS, ejecutados como child processes dentro del
- * perimetro del cliente.
+ * Capa Scout (determinista, sin LLM): wrappers de scanners OSS ejecutados
+ * como child processes dentro del perimetro del cliente. El contrato comun
+ * `ScoutAgent` vive en `@synaptic-sentinel/core`.
  *
  * Licencia: Apache-2.0 (OSS).
  */
@@ -11,3 +11,4 @@
 export const PACKAGE_NAME = '@synaptic-sentinel/scouts';
 
 export * from './opengrep/opengrep-scout.js';
+export * from './opengrep/rules.js';

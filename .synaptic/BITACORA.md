@@ -439,7 +439,33 @@ Each entry follows this structure:
 }
 ```
 
+### Entry #16 - DG-015 (A): CLI synaptic-sentinel scan
+```json
+{
+  "timestamp": "2026-05-21T11:30:00.000Z",
+  "cycle": 9,
+  "phase": 4,
+  "action": "FEATURE_IMPLEMENTED",
+  "details": {
+    "DG-015": {
+      "title": "Proximo paso del roadmap",
+      "selected": "Option A",
+      "effect": "CLI synaptic-sentinel scan"
+    },
+    "files": "packages/cli/src/index.ts (entry point con parseArgs de node:util, comando scan), packages/cli/src/commands/scan.ts (runScanCommand + resolveOpenGrepBinary + formatOutcome), bin synaptic-sentinel. packages/scouts/src/opengrep/rules.ts exporta BASELINE_RULESET_PATH.",
+    "verification_real": "synaptic-sentinel scan sobre las fixtures vulnerables: 4 hallazgos detectados (eval JS [HIGH], exec Python [HIGH], subprocess shell=True Python [HIGH], new Function TS [MEDIUM]); colony.db persistida; exit 0. --help OK.",
+    "tests": "4 nuevos (CLI) - total 67 verdes",
+    "checks": "build / typecheck / lint / test - todos en verde",
+    "futureImprovement": "FI-005 registrado: el check_id de OpenGrep trae el prefijo de ruta cuando --config es un archivo; ruleId lo hereda. El CLI muestra title (nombre limpio de regla); evaluar normalizar ruleId en el normalizer.",
+    "commit": "commit atomico feat(cli) incluye codigo, tests y este registro"
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 14,
+  "complianceScore": 100
+}
+```
+
 ---
 
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-21T11:05:00.000Z*
+*Last Updated: 2026-05-21T11:30:00.000Z*
