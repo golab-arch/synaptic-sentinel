@@ -87,13 +87,14 @@ describe('findScannersRoot', () => {
 });
 
 describe('buildScouts', () => {
-  it('construye OpenGrep y Gitleaks cuando se dan ambas rutas explicitas', () => {
+  it('construye un scout por cada ruta de binario explicita', () => {
     const scouts = buildScouts({
       path: '.',
       opengrepBin: '/x/opengrep',
       gitleaksBin: '/x/gitleaks',
+      trivyBin: '/x/trivy',
     });
-    expect(scouts.map((scout) => scout.id).sort()).toEqual(['gitleaks', 'opengrep']);
+    expect(scouts.map((scout) => scout.id).sort()).toEqual(['gitleaks', 'opengrep', 'trivy']);
   });
 });
 

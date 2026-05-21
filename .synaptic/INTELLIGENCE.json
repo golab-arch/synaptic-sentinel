@@ -4,7 +4,7 @@
     "fullName": "Synaptic Sentinel",
     "description": "Toolkit OSS de auditoria agentica de seguridad + capa premium LLM, vibe-coding-native, para la era del codigo generado por IA. Tercer producto de la familia Synaptic.",
     "currentPhase": "brain-layer",
-    "overallProgress": "Cycles 1-22 CERRADOS. Mitad OSS determinista completa + extension VSCode. Brain Layer con 2 agentes wired (Triage + Context): el comando triage corre triage + contexto sobre los TP; veredictos y explicaciones se persisten (colony.db schema v3) y se surfacean en el tomo (JSON+HTML). 187 tests verdes + 2 skipped."
+    "overallProgress": "Cycles 1-23 CERRADOS. 3 scouts (OpenGrep SAST, Gitleaks Secrets, Trivy SCA) + Coordinator stages 1-2 + CLI + reporters JSON+HTML + extension VSCode + Brain Layer con 2 agentes wired (Triage + Context). 197 tests verdes + 2 skipped."
   },
   "decisions": [
     { "id": "DG-001", "title": "Estructura fisica del monorepo OSS/Pro", "selected": "B", "date": "2026-05-20", "summary": "Monorepo unico con workspaces marcados OSS/Pro + publish-oss.ts allowlist", "rationale": "Velocidad solo founder; refactors triviales; anti-filtracion en un script auditable" },
@@ -36,6 +36,7 @@
     { "id": "DG-027", "title": "Proximo paso del roadmap (triage en la extension VSCode)", "selected": "B", "date": "2026-05-21", "summary": "Comando de triage en la extension + BYOK via vscode.SecretStorage + veredictos anotados en los diagnostics del IDE", "rationale": "El producto es VSCode-primary y el triage solo era alcanzable por CLI; el v0.4 §487 incluye BYOK via SecretStorage en la definicion de Done del MVP" },
     { "id": "DG-028", "title": "Proximo paso del roadmap (Context Agent)", "selected": "B", "date": "2026-05-21", "summary": "2.o agente del Brain Layer: explica la cadena de explotabilidad (entrada -> sink -> exposicion) de un hallazgo confirmado", "rationale": "El Brain Layer con un solo agente era delgado; el Context Agent reusa el contrato BrainAgent ya de-riskeado y profundiza el diferenciador premium" },
     { "id": "DG-029", "title": "Proximo paso del roadmap (wire del Context Agent)", "selected": "A", "date": "2026-05-21", "summary": "El comando triage corre el Context Agent sobre los TP; las explicaciones se persisten (schema v3) y se surfacean en el tomo; buildTomo refactorizado a un objeto enrichment", "rationale": "El Context Agent estaba construido sin consumidor; el wiring completa DG-028 reusando los patrones probados de DG-025 (persistencia) y DG-026 (surface)" },
+    { "id": "DG-030", "title": "Proximo paso del roadmap (TrivyScout / SCA)", "selected": "A", "date": "2026-05-21", "summary": "Cuarto scout: Trivy (SCA - dependencias vulnerables). Manifest v0.70.0, normalizer Trivy->Finding, wiring en el CLI; fix de install-scanners (extraccion .zip en Windows)", "rationale": "El Scout Layer cubria SAST+Secrets pero no SCA; Trivy es bajo riesgo (patron probado) y el Brain Layer aplica gratis a sus hallazgos" },
     { "id": "Q1", "title": "Package manager", "selected": "pnpm workspaces", "date": "2026-05-20", "summary": "pnpm v10.33.0", "rationale": "Ya instalado; preferencia v0.4 9.5; simple sin overhead" }
   ],
   "roadmap": [
@@ -74,12 +75,12 @@
     }
   ],
   "implementationState": {
-    "lastCompletedTask": "Cycle 22 CERRADO: DG-029 A - wire del Context Agent. El comando triage corre el Context Agent sobre los true positives; las explicaciones se persisten (colony.db schema v3, tabla context_explanations) y se surfacean en el tomo (JSON+HTML). buildTomo refactorizado a un objeto TomoEnrichment (extensible). Verificado end-to-end. 187 tests verdes + 2 skipped; commiteado.",
-    "currentTask": "Cycle 23 abierto. DG-030 a presentar: proximo paso del roadmap.",
+    "lastCompletedTask": "Cycle 23 CERRADO: DG-030 A - TrivyScout (cuarto scout, cobertura SCA). Paquete scouts/trivy (output schema, normalizer Trivy->Finding SCA, TrivyScout); manifest Trivy v0.70.0; wiring en el CLI (3 scouts). Fix de install-scanners: extraccion de .zip en Windows via PowerShell (el tar de Windows fallaba con paths D:\\). Verificado: Trivy instalado, integracion real detecta lodash vulnerable, scan end-to-end con 3 scouts. 197 tests verdes + 2 skipped; commiteado.",
+    "currentTask": "Cycle 24 abierto. DG-031 a presentar: proximo paso del roadmap.",
     "pendingTasks": [
-      "Resolver DG-030 - proximo paso del roadmap",
+      "Resolver DG-031 - proximo paso del roadmap",
       "Verificacion de la llamada LLM real (requiere ANTHROPIC_API_KEY) y de la extension en vivo (F5) - no automatizables aqui",
-      "FI-002 (separar test:unit/test:integration), FI-008 (.vsix), FI-009 (migracion a @anthropic-ai/sdk), roadmap: Trivy/Checkov (SCA/IaC), Remediation Agent"
+      "FI-002 (separar test:unit/test:integration), FI-008 (.vsix), FI-009 (migracion a @anthropic-ai/sdk), roadmap: Checkov (IaC), Remediation Agent"
     ],
     "blockers": []
   },
@@ -94,5 +95,5 @@
     "git commit es 100% local y NO requiere token de GitHub; el push futuro (diferido por DG-002 A) usara gh ya autenticado como golab-arch",
     "Observacion: Python 3.14 vs Checkov; better-sqlite3 ABI con Electron; exactOptionalPropertyTypes estricto"
   ],
-  "lastUpdated": "2026-05-21T18:00:00.000Z"
+  "lastUpdated": "2026-05-21T18:30:00.000Z"
 }

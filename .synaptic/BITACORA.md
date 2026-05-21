@@ -838,7 +838,34 @@ Each entry follows this structure:
 }
 ```
 
+### Entry #31 - DG-030 (A): TrivyScout (cuarto scout, cobertura SCA)
+```json
+{
+  "timestamp": "2026-05-21T18:30:00.000Z",
+  "cycle": 23,
+  "phase": 7,
+  "action": "FEATURE_IMPLEMENTED",
+  "details": {
+    "DG-030": {
+      "title": "Proximo paso del roadmap",
+      "selected": "Option A",
+      "effect": "Cuarto scout: Trivy (SCA - dependencias vulnerables). El Coordinator corre 3 scouts; el Brain Layer (Triage/Context) aplica gratis a los hallazgos SCA."
+    },
+    "files": "scouts/src/trivy: trivy-output.ts (schema zod de la salida JSON de Trivy), normalizer.ts (Trivy -> Finding categoria SCA; severidad mapeada, complianceRefs con CVE + CWE), trivy-scout.ts (TrivyScout implements ScoutAgent). scouts/index.ts. scanners.manifest.json (Trivy v0.70.0, 5 plataformas, checksums SHA-256 oficiales de GitHub Releases). cli/scan.ts (buildScouts agrega TrivyScout; ScanCommandOptions.trivyBin) + index.ts (flag --trivy-bin).",
+    "fix_colateral": "install-scanners.ts: extractArchive corregido. El `tar` de Windows resuelve de forma inconsistente (GNU tar de Git interpreta `D:\\...` como un host remoto -> 'Cannot connect to D:'). Ahora la extraccion de .zip en Windows usa PowerShell Expand-Archive; .tar.gz (Unix) sigue con tar. Surgido al instalar Trivy - no optimismo ilusorio.",
+    "design": "Trivy gestiona su propia base de datos de vulnerabilidades: la descarga en la primera corrida y la cachea (~/.cache/trivy). Bajo Norton 360, la descarga de la DB funciono (el cliente HTTP de Go usa el almacen de certificados de Windows nativamente).",
+    "verification_real": "Trivy v0.70.0 instalado (extraccion corregida verificada). Test de integracion con Trivy real: detecta lodash 4.17.20 vulnerable en un package-lock.json. End-to-end: synaptic-sentinel scan corre 3 scout(s) -> opengrep 1, gitleaks 0, trivy 5 hallazgos SCA (CVEs reales de lodash). 10 tests nuevos.",
+    "tests": "10 nuevos (trivy normalizer 3, trivy-scout 6, integracion 1) - total 197 verdes + 2 skipped",
+    "checks": "build / typecheck / lint / test - todos en verde",
+    "commit": "commit atomico feat(scouts,cli,scripts) incluye codigo, tests y este registro"
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 28,
+  "complianceScore": 100
+}
+```
+
 ---
 
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-21T18:00:00.000Z*
+*Last Updated: 2026-05-21T18:30:00.000Z*

@@ -9,7 +9,12 @@ import {
   type ScanOutcome,
   type ScoutAgent,
 } from '@synaptic-sentinel/core';
-import { BASELINE_RULESET_PATH, GitleaksScout, OpenGrepScout } from '@synaptic-sentinel/scouts';
+import {
+  BASELINE_RULESET_PATH,
+  GitleaksScout,
+  OpenGrepScout,
+  TrivyScout,
+} from '@synaptic-sentinel/scouts';
 import { buildTomo, renderTomoHtml, renderTomoJson } from '@synaptic-sentinel/reporters';
 
 /** Version reportada en los tomos exportados. */
@@ -23,6 +28,8 @@ export interface ScanCommandOptions {
   readonly opengrepBin?: string;
   /** Ruta explicita al binario de Gitleaks, si se provee. */
   readonly gitleaksBin?: string;
+  /** Ruta explicita al binario de Trivy, si se provee. */
+  readonly trivyBin?: string;
   /** Ruta donde exportar el tomo en JSON, si se provee. */
   readonly exportPath?: string;
   /** Ruta donde exportar el tomo en HTML, si se provee. */
@@ -158,6 +165,17 @@ export function buildScouts(options: ScanCommandOptions): ScoutAgent[] {
   );
   if (gitleaksBin !== undefined) {
     scouts.push(new GitleaksScout({ binaryPath: gitleaksBin }));
+  }
+
+  const trivyBin = resolveScannerBinary(
+    'trivy',
+    platformBinary('trivy'),
+    'SENTINEL_TRIVY_BIN',
+    options.trivyBin,
+    searchRoot,
+  );
+  if (trivyBin !== undefined) {
+    scouts.push(new TrivyScout({ binaryPath: trivyBin }));
   }
 
   return scouts;

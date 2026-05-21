@@ -119,10 +119,10 @@ async function downloadVerified(url: string, expectedSha256: string): Promise<Bu
   return data;
 }
 
-/** Extrae un archivo comprimido (.zip / .tar.gz) con `tar` (cross-platform). */
-function extractArchive(archivePath: string, destDir: string): Promise<void> {
+/** Lanza un proceso de extraccion y espera; rechaza con su stderr si falla. */
+function spawnExtract(command: string, args: readonly string[]): Promise<void> {
   return new Promise<void>((resolve, reject) => {
-    const child = spawn('tar', ['-xf', archivePath, '-C', destDir]);
+    const child = spawn(command, [...args]);
     let stderr = '';
     child.stderr?.on('data', (chunk: Buffer) => {
       stderr += chunk.toString('utf8');
@@ -130,9 +130,32 @@ function extractArchive(archivePath: string, destDir: string): Promise<void> {
     child.on('error', reject);
     child.on('close', (code) => {
       if (code === 0) resolve();
-      else reject(new Error(`tar fallo (exit ${String(code)}): ${stderr.trim()}`));
+      else reject(new Error(`${command} fallo (exit ${String(code)}): ${stderr.trim()}`));
     });
   });
+}
+
+/**
+ * Extrae un archivo comprimido a `destDir`.
+ *
+ * Para `.zip` en Windows usa `Expand-Archive` de PowerShell: el `tar` de
+ * Windows resuelve de forma inconsistente (GNU tar interpreta `D:\...` como
+ * un host remoto). Para `.tar.gz` (macOS/Linux) usa `tar`, fiable alli.
+ */
+function extractArchive(
+  archivePath: string,
+  destDir: string,
+  format: 'zip' | 'tar.gz',
+): Promise<void> {
+  if (format === 'zip' && process.platform === 'win32') {
+    return spawnExtract('powershell', [
+      '-NoProfile',
+      '-NonInteractive',
+      '-Command',
+      `Expand-Archive -LiteralPath '${archivePath}' -DestinationPath '${destDir}' -Force`,
+    ]);
+  }
+  return spawnExtract('tar', ['-xf', archivePath, '-C', destDir]);
 }
 
 /** Instala (o verifica desde cache) un scanner segun su especificacion. */
@@ -168,7 +191,7 @@ export async function installScanner(
     await mkdir(destDir, { recursive: true });
     const archivePath = join(destDir, target.asset);
     await writeFile(archivePath, data);
-    await extractArchive(archivePath, destDir);
+    await extractArchive(archivePath, destDir, target.archive);
     await rm(archivePath, { force: true });
     if (!(await exists(destPath))) {
       throw new Error(

@@ -1,0 +1,36 @@
+{
+  "SchemaVersion": 2,
+  "ArtifactName": ".",
+  "ArtifactType": "filesystem",
+  "Results": [
+    {
+      "Target": "package-lock.json",
+      "Class": "lang-pkgs",
+      "Type": "npm",
+      "Vulnerabilities": [
+        {
+          "VulnerabilityID": "CVE-2021-23337",
+          "PkgName": "lodash",
+          "InstalledVersion": "4.17.20",
+          "FixedVersion": "4.17.21",
+          "Severity": "HIGH",
+          "Title": "nodejs-lodash: command injection via template",
+          "Description": "lodash versions prior to 4.17.21 are vulnerable to command injection via the template function.",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2021-23337",
+          "CweIDs": ["CWE-94"]
+        },
+        {
+          "VulnerabilityID": "CVE-2020-28500",
+          "PkgName": "lodash",
+          "InstalledVersion": "4.17.20",
+          "FixedVersion": "4.17.21",
+          "Severity": "MEDIUM",
+          "Title": "nodejs-lodash: ReDoS via the toNumber, trim and trimEnd functions",
+          "Description": "lodash is vulnerable to a regular expression denial of service (ReDoS).",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2020-28500",
+          "CweIDs": ["CWE-400", "CWE-1333"]
+        }
+      ]
+    }
+  ]
+}

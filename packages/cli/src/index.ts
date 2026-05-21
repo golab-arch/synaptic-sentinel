@@ -13,8 +13,8 @@ const USAGE = `Synaptic Sentinel — CLI
 
 Uso:
   synaptic-sentinel scan [--path <dir>] [--opengrep-bin <ruta>]
-                         [--gitleaks-bin <ruta>] [--export <archivo>]
-                         [--export-html <archivo>]
+                         [--gitleaks-bin <ruta>] [--trivy-bin <ruta>]
+                         [--export <archivo>] [--export-html <archivo>]
   synaptic-sentinel mark-fp --fingerprint <fp> [--path <dir>] [--reason <texto>]
   synaptic-sentinel triage [--path <dir>] [--limit <n>]
 
@@ -27,6 +27,7 @@ Opciones:
   --path <dir>           Directorio del proyecto (por defecto: el directorio actual)
   --opengrep-bin <ruta>  Ruta explicita al binario de OpenGrep
   --gitleaks-bin <ruta>  Ruta explicita al binario de Gitleaks
+  --trivy-bin <ruta>     Ruta explicita al binario de Trivy
   --export <archivo>     Exporta el tomo del scan en JSON al archivo indicado
   --export-html <arch.>  Exporta el tomo del scan en HTML al archivo indicado
   --fingerprint <fp>     Huella del hallazgo a marcar (comando mark-fp)
@@ -44,6 +45,7 @@ async function main(): Promise<void> {
       path: { type: 'string' },
       'opengrep-bin': { type: 'string' },
       'gitleaks-bin': { type: 'string' },
+      'trivy-bin': { type: 'string' },
       export: { type: 'string' },
       'export-html': { type: 'string' },
       fingerprint: { type: 'string' },
@@ -64,6 +66,7 @@ async function main(): Promise<void> {
       path: values.path ?? process.cwd(),
       ...(values['opengrep-bin'] !== undefined ? { opengrepBin: values['opengrep-bin'] } : {}),
       ...(values['gitleaks-bin'] !== undefined ? { gitleaksBin: values['gitleaks-bin'] } : {}),
+      ...(values['trivy-bin'] !== undefined ? { trivyBin: values['trivy-bin'] } : {}),
       ...(values.export !== undefined ? { exportPath: values.export } : {}),
       ...(values['export-html'] !== undefined ? { exportHtmlPath: values['export-html'] } : {}),
     });
