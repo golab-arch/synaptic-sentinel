@@ -74,6 +74,10 @@ integrationSuite('runCliScan - integracion con la CLI real', () => {
       expect(input.path).toContain('eval-vuln.js');
       expect(input.level).toBe('error');
     },
-    60_000,
+    // La CLI arranca en frio 4 binarios externos (Checkov, onefile de
+    // PyInstaller, es el mas lento); bajo la concurrencia de la suite completa
+    // 60s no alcanzan. 120s da margen, en linea con FI-002 (separar
+    // test:unit / test:integration).
+    120_000,
   );
 });

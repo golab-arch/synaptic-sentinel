@@ -15,6 +15,7 @@ import {
   GitleaksScout,
   OpenGrepScout,
   TrivyScout,
+  VibeDetectScout,
 } from '@synaptic-sentinel/scouts';
 import { buildTomo, renderTomoHtml, renderTomoJson } from '@synaptic-sentinel/reporters';
 
@@ -192,24 +193,30 @@ export function buildScouts(options: ScanCommandOptions): ScoutAgent[] {
     scouts.push(new CheckovScout({ binaryPath: checkovBin }));
   }
 
+  // Vibe-Detect es un scout nativo (sin binario externo): siempre se incluye.
+  scouts.push(new VibeDetectScout());
+
   return scouts;
 }
 
 /**
  * Ejecuta el comando `scan`: corre el Coordinator sobre `path` con todos los
- * scouts disponibles (OpenGrep, Gitleaks, Trivy, Checkov), persiste los
- * hallazgos en `colony.db`, imprime el resultado y -si se pidio- exporta el
- * tomo en JSON/HTML. Devuelve el codigo de salida del proceso.
+ * scouts disponibles (OpenGrep, Gitleaks, Trivy, Checkov y Vibe-Detect),
+ * persiste los hallazgos en `colony.db`, imprime el resultado y -si se pidio-
+ * exporta el tomo en JSON/HTML. Devuelve el codigo de salida del proceso.
  */
 export async function runScanCommand(options: ScanCommandOptions): Promise<number> {
   const projectRoot = resolve(options.path);
   const scouts = buildScouts(options);
-  if (scouts.length === 0) {
-    console.error(
-      'No se encontro ningun scanner. Instala los scanners con "pnpm scanners:install" ' +
-        'o indica las rutas con --opengrep-bin / --gitleaks-bin / --trivy-bin / --checkov-bin.',
+  // Vibe-Detect siempre esta presente; si es el unico scout, los scanners
+  // externos no se resolvieron: el scan corre igual pero degradado.
+  if (scouts.every((scout) => scout.id === 'vibe-detect')) {
+    console.warn(
+      'Aviso: no se encontro ningun scanner externo (OpenGrep / Gitleaks / Trivy / ' +
+        'Checkov). Solo correra Vibe-Detect. Instala los scanners con ' +
+        '"pnpm scanners:install" o indica las rutas con --opengrep-bin / ' +
+        '--gitleaks-bin / --trivy-bin / --checkov-bin.',
     );
-    return 1;
   }
 
   const dbDir = join(projectRoot, '.synaptic-sentinel');

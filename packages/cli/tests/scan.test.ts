@@ -87,7 +87,7 @@ describe('findScannersRoot', () => {
 });
 
 describe('buildScouts', () => {
-  it('construye un scout por cada ruta de binario explicita', () => {
+  it('construye un scout por cada ruta de binario explicita + Vibe-Detect', () => {
     const scouts = buildScouts({
       path: '.',
       opengrepBin: '/x/opengrep',
@@ -100,7 +100,13 @@ describe('buildScouts', () => {
       'gitleaks',
       'opengrep',
       'trivy',
+      'vibe-detect',
     ]);
+  });
+
+  it('siempre incluye el Vibe-Detect Scout (no depende de ningun binario)', () => {
+    const scouts = buildScouts({ path: '.' });
+    expect(scouts.map((scout) => scout.id)).toContain('vibe-detect');
   });
 });
 
