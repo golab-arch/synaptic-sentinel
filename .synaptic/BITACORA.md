@@ -783,7 +783,34 @@ Each entry follows this structure:
 }
 ```
 
+### Entry #29 - DG-028 (B): Context Agent (2.o agente del Brain Layer)
+```json
+{
+  "timestamp": "2026-05-21T17:30:00.000Z",
+  "cycle": 21,
+  "phase": 7,
+  "action": "FEATURE_IMPLEMENTED",
+  "details": {
+    "DG-028": {
+      "title": "Proximo paso del roadmap",
+      "selected": "Option B",
+      "effect": "Context Agent: 2.o agente del Brain Layer - explica la cadena de explotabilidad (entrada -> sink -> exposicion) de un hallazgo confirmado (v0.4 §3.6)."
+    },
+    "files": "core/types/context.ts (NUEVO - ContextExplanationSchema, junto a TriageVerdict). agents/brain-agent.ts (extractJsonObject movido aqui - util compartido por los agentes). agents/triage-agent.ts (usa el extractJsonObject compartido). agents/context-agent.ts (NUEVO - ContextAgent implements BrainAgent<Finding,ContextExplanation>). agents/index.ts (export).",
+    "design": "2.o agente reusando el contrato BrainAgent/LlmClient/runAgent ya de-riskeado en DG-024. La salida del LLM se valida con zod (anti Memory Poisoning). Sin wiring al pipeline todavia (mismo patron que DG-024 increment 1: el agente primero, el wiring despues).",
+    "verification_real": "9 tests nuevos con LlmClient falso (buildPrompt, parseResponse, runAgent; ContextExplanationSchema). Demo del artefacto: el system prompt generado y una explicacion de punta a punta con un LLM simulado (4 campos: summary/entryPoint/sink/exposure parseados + validados).",
+    "verification_gap": "La llamada REAL a la API de Anthropic no se verifica aqui - no hay ANTHROPIC_API_KEY. Test de integracion gated, omitido (2 skipped en total con el de triage). El wiring del Context Agent al pipeline queda pendiente.",
+    "tests": "9 nuevos (core context 3, agents context-agent 6; extractJsonObject reubicado de triage a brain-agent) - total 180 verdes + 2 skipped",
+    "checks": "build / typecheck / lint / test - todos en verde",
+    "commit": "commit atomico feat(agents,core) incluye codigo, tests y este registro"
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 26,
+  "complianceScore": 100
+}
+```
+
 ---
 
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-21T17:00:00.000Z*
+*Last Updated: 2026-05-21T17:30:00.000Z*

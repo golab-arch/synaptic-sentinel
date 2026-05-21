@@ -6,7 +6,7 @@ import {
   type TriageClassification,
   type TriageVerdict,
 } from '@synaptic-sentinel/core';
-import type { AgentPrompt, BrainAgent } from './brain-agent.js';
+import { extractJsonObject, type AgentPrompt, type BrainAgent } from './brain-agent.js';
 
 // Los tipos de triage viven en core (se persisten en la colony DB); se
 // reexportan para mantener estable el API de @synaptic-sentinel/agents.
@@ -27,23 +27,6 @@ Criterios:
 Responde UNICAMENTE con un objeto JSON valido, sin markdown ni texto adicional,
 con esta forma exacta:
 {"classification":"true_positive"|"false_positive"|"inconclusive","confidence":<numero entre 0 y 1>,"rationale":"<explicacion breve en espanol, maximo 2 frases>"}`;
-
-/**
- * Extrae el primer objeto JSON de un texto.
- *
- * Tolera que el LLM envuelva el JSON en un bloque de codigo markdown o
- * agregue prosa alrededor. Lanza si no hay ningun objeto.
- */
-export function extractJsonObject(raw: string): string {
-  const fenced = raw.match(/```(?:json)?\s*([\s\S]*?)```/i);
-  const candidate = fenced?.[1] ?? raw;
-  const start = candidate.indexOf('{');
-  const end = candidate.lastIndexOf('}');
-  if (start === -1 || end === -1 || end <= start) {
-    throw new Error('La respuesta del LLM no contiene un objeto JSON.');
-  }
-  return candidate.slice(start, end + 1);
-}
 
 /**
  * Triage Agent — reduce falsos positivos clasificando cada hallazgo crudo

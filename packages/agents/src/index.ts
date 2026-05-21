@@ -14,3 +14,4 @@ export * from './llm-client.js';
 export * from './anthropic-client.js';
 export * from './brain-agent.js';
 export * from './triage-agent.js';
+export * from './context-agent.js';

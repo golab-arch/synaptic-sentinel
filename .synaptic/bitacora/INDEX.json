@@ -2,7 +2,7 @@
   "version": "1.0",
   "projectId": "sentinel-1779304140796",
   "projectName": "SENTINEL",
-  "totalCycles": 20,
+  "totalCycles": 21,
   "currentTomeId": 1,
   "cyclesPerTome": 50,
   "tomes": [
@@ -16,10 +16,10 @@
         "from": "2026-05-20T19:09:00.852Z",
         "to": ""
       },
-      "summary": "Cycles 1-20: motor determinista completo, extension VSCode (scan + Code Action + triage), y Brain Layer (paquete agents + comando triage; veredictos surfaceados en el tomo y en los diagnostics del IDE con BYOK via SecretStorage).",
-      "keyDecisions": ["DG-001", "DG-002", "DG-003", "DG-004", "DG-005", "DG-006", "DG-007", "DG-008", "DG-009", "DG-010", "DG-011", "DG-012", "DG-013", "DG-014", "DG-015", "DG-016", "DG-017", "DG-018", "DG-019", "DG-020", "DG-021", "DG-022", "DG-023", "DG-024", "DG-025", "DG-026", "DG-027", "Q1"],
-      "cycleCount": 20,
-      "successCount": 20,
+      "summary": "Cycles 1-21: motor determinista completo, extension VSCode (scan + Code Action + triage), y Brain Layer (paquete agents con Triage Agent y Context Agent; comando triage; veredictos surfaceados en tomo e IDE con BYOK via SecretStorage).",
+      "keyDecisions": ["DG-001", "DG-002", "DG-003", "DG-004", "DG-005", "DG-006", "DG-007", "DG-008", "DG-009", "DG-010", "DG-011", "DG-012", "DG-013", "DG-014", "DG-015", "DG-016", "DG-017", "DG-018", "DG-019", "DG-020", "DG-021", "DG-022", "DG-023", "DG-024", "DG-025", "DG-026", "DG-027", "DG-028", "Q1"],
+      "cycleCount": 21,
+      "successCount": 21,
       "failureCount": 0,
       "jsonPath": "tomes/tome-001.json",
       "mdPath": "tomes/tome-001.md",
@@ -54,13 +54,14 @@
     { "id": "DG-025", "title": "Proximo paso del roadmap (Brain Layer increment 2 - comando triage)", "selected": "A", "cycle": 18, "date": "2026-05-21" },
     { "id": "DG-026", "title": "Proximo paso del roadmap (surface del triage en el tomo)", "selected": "A", "cycle": 19, "date": "2026-05-21" },
     { "id": "DG-027", "title": "Proximo paso del roadmap (triage en la extension VSCode)", "selected": "B", "cycle": 20, "date": "2026-05-21" },
+    { "id": "DG-028", "title": "Proximo paso del roadmap (Context Agent)", "selected": "B", "cycle": 21, "date": "2026-05-21" },
     { "id": "Q1", "title": "Package manager", "selected": "pnpm", "cycle": 1, "date": "2026-05-20" }
   ],
   "metrics": {
-    "totalDecisions": 28,
+    "totalDecisions": 29,
     "optionDistribution": {
       "A": 17,
-      "B": 11,
+      "B": 12,
       "C": 0
     },
     "overallSuccessRate": 100,
@@ -72,8 +73,8 @@
       "4": 3,
       "5": 5,
       "6": 4,
-      "7": 4
+      "7": 5
     }
   },
-  "lastUpdated": "2026-05-21T17:00:00.000Z"
+  "lastUpdated": "2026-05-21T17:30:00.000Z"
 }

@@ -4,7 +4,7 @@
     "fullName": "Synaptic Sentinel",
     "description": "Toolkit OSS de auditoria agentica de seguridad + capa premium LLM, vibe-coding-native, para la era del codigo generado por IA. Tercer producto de la familia Synaptic.",
     "currentPhase": "brain-layer",
-    "overallProgress": "Cycles 1-20 CERRADOS. Mitad OSS determinista completa + extension VSCode. Brain Layer operativo en CLI y en el IDE (DG-027 B): la extension tiene comando de triage con BYOK via SecretStorage; los veredictos se surfacean en el tomo (JSON+HTML) y en los diagnostics. 171 tests verdes + 1 skipped."
+    "overallProgress": "Cycles 1-21 CERRADOS. Mitad OSS determinista completa + extension VSCode. Brain Layer con 2 agentes (Triage + Context); triage operativo en CLI y en el IDE (BYOK via SecretStorage), veredictos surfaceados en tomo y diagnostics. Context Agent (DG-028 B) explica la cadena de explotabilidad; pendiente su wiring al pipeline. 180 tests verdes + 2 skipped."
   },
   "decisions": [
     { "id": "DG-001", "title": "Estructura fisica del monorepo OSS/Pro", "selected": "B", "date": "2026-05-20", "summary": "Monorepo unico con workspaces marcados OSS/Pro + publish-oss.ts allowlist", "rationale": "Velocidad solo founder; refactors triviales; anti-filtracion en un script auditable" },
@@ -34,6 +34,7 @@
     { "id": "DG-025", "title": "Proximo paso del roadmap (Brain Layer increment 2 - comando triage)", "selected": "A", "date": "2026-05-21", "summary": "Comando CLI triage: corre el Triage Agent sobre los hallazgos del ultimo scan (BYOK), pheromone-aware, persiste veredictos en una tabla triage_verdicts (schema v2 aditivo)", "rationale": "El paquete agents era una libreria sin consumidor; el wiring lo vuelve usable end-to-end. Tabla dedicada en vez de tipo de feromona: cambio aditivo, cero riesgo de migracion" },
     { "id": "DG-026", "title": "Proximo paso del roadmap (surface del triage en el tomo)", "selected": "A", "date": "2026-05-21", "summary": "Cada hallazgo del tomo (JSON+HTML) lleva su veredicto de triage + conteo byTriage; buildTomo hace join por fingerprint", "rationale": "Los veredictos se persistian pero eran invisibles fuera de la consola; surfacearlos en el deliverable completa el valor del Brain Layer con bajo riesgo" },
     { "id": "DG-027", "title": "Proximo paso del roadmap (triage en la extension VSCode)", "selected": "B", "date": "2026-05-21", "summary": "Comando de triage en la extension + BYOK via vscode.SecretStorage + veredictos anotados en los diagnostics del IDE", "rationale": "El producto es VSCode-primary y el triage solo era alcanzable por CLI; el v0.4 §487 incluye BYOK via SecretStorage en la definicion de Done del MVP" },
+    { "id": "DG-028", "title": "Proximo paso del roadmap (Context Agent)", "selected": "B", "date": "2026-05-21", "summary": "2.o agente del Brain Layer: explica la cadena de explotabilidad (entrada -> sink -> exposicion) de un hallazgo confirmado", "rationale": "El Brain Layer con un solo agente era delgado; el Context Agent reusa el contrato BrainAgent ya de-riskeado y profundiza el diferenciador premium" },
     { "id": "Q1", "title": "Package manager", "selected": "pnpm workspaces", "date": "2026-05-20", "summary": "pnpm v10.33.0", "rationale": "Ya instalado; preferencia v0.4 9.5; simple sin overhead" }
   ],
   "roadmap": [
@@ -72,12 +73,13 @@
     }
   ],
   "implementationState": {
-    "lastCompletedTask": "Cycle 20 CERRADO: DG-027 B - triage en la extension VSCode. Comandos 'Triage Findings' y 'Set Anthropic API Key'; BYOK via vscode.SecretStorage (key cifrada por el SO, pasada al child por entorno nunca por args); los veredictos se anotan en los diagnostics del IDE. runCliTriage; spawnCli gana soporte de env. Verificado: bundle correcto, contrato BYOK por entorno end-to-end. 171 tests verdes + 1 skipped; commiteado.",
-    "currentTask": "Cycle 21 abierto. DG-028 a presentar: proximo paso del roadmap.",
+    "lastCompletedTask": "Cycle 21 CERRADO: DG-028 B - Context Agent (2.o agente del Brain Layer). Explica la cadena de explotabilidad (entrada -> sink -> exposicion) de un hallazgo confirmado. core/types/context.ts (ContextExplanationSchema); agents/context-agent.ts (ContextAgent implements BrainAgent); extractJsonObject reubicado a brain-agent.ts (compartido). 9 tests con LlmClient falso. Sin wiring al pipeline aun. 180 tests verdes + 2 skipped; commiteado.",
+    "currentTask": "Cycle 22 abierto. DG-029 a presentar: proximo paso del roadmap.",
     "pendingTasks": [
-      "Resolver DG-028 - proximo paso del roadmap",
+      "Resolver DG-029 - proximo paso del roadmap",
+      "Wiring del Context Agent al pipeline (correrlo sobre los TP del triage; persistir y surfacear la explicacion)",
       "Verificacion de la llamada LLM real (requiere ANTHROPIC_API_KEY) y de la extension en vivo (F5) - no automatizables aqui",
-      "FI-002 (separar test:unit/test:integration), FI-008 (.vsix), FI-009 (migracion a @anthropic-ai/sdk), roadmap: Trivy/Checkov (SCA/IaC), mas agentes del Brain Layer (Context, Remediation)"
+      "FI-002 (separar test:unit/test:integration), FI-008 (.vsix), FI-009 (migracion a @anthropic-ai/sdk), roadmap: Trivy/Checkov (SCA/IaC), mas agentes del Brain Layer (Remediation)"
     ],
     "blockers": []
   },
@@ -92,5 +94,5 @@
     "git commit es 100% local y NO requiere token de GitHub; el push futuro (diferido por DG-002 A) usara gh ya autenticado como golab-arch",
     "Observacion: Python 3.14 vs Checkov; better-sqlite3 ABI con Electron; exactOptionalPropertyTypes estricto"
   ],
-  "lastUpdated": "2026-05-21T17:00:00.000Z"
+  "lastUpdated": "2026-05-21T17:30:00.000Z"
 }

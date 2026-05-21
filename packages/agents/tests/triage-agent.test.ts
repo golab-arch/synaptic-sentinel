@@ -1,11 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { runAgent } from '../src/brain-agent.js';
 import type { LlmClient } from '../src/llm-client.js';
-import {
-  TRIAGE_CLASSIFICATIONS,
-  TriageAgent,
-  extractJsonObject,
-} from '../src/triage-agent.js';
+import { TRIAGE_CLASSIFICATIONS, TriageAgent } from '../src/triage-agent.js';
 
 /** Construye un Finding valido para alimentar al Triage Agent. */
 function makeFinding(overrides: Record<string, unknown> = {}): Record<string, unknown> {
@@ -26,24 +22,6 @@ function makeFinding(overrides: Record<string, unknown> = {}): Record<string, un
     ...overrides,
   };
 }
-
-describe('extractJsonObject', () => {
-  it('extrae un objeto JSON plano', () => {
-    expect(extractJsonObject('{"a":1}')).toBe('{"a":1}');
-  });
-
-  it('tolera un bloque de codigo markdown', () => {
-    expect(extractJsonObject('```json\n{"a":1}\n```')).toBe('{"a":1}');
-  });
-
-  it('tolera prosa alrededor del objeto', () => {
-    expect(extractJsonObject('Aqui esta el veredicto: {"a":1} listo.')).toBe('{"a":1}');
-  });
-
-  it('lanza si no hay ningun objeto JSON', () => {
-    expect(() => extractJsonObject('sin json aqui')).toThrow();
-  });
-});
 
 describe('TriageAgent.buildPrompt', () => {
   it('incluye los datos del hallazgo y pide una respuesta JSON', () => {

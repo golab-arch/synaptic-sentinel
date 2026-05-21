@@ -47,3 +47,21 @@ export async function runAgent<TInput, TOutput>(
   });
   return agent.parseResponse(raw);
 }
+
+/**
+ * Extrae el primer objeto JSON de un texto.
+ *
+ * Tolera que el LLM envuelva el JSON en un bloque de codigo markdown o
+ * agregue prosa alrededor. Lanza si no hay ningun objeto. Lo usan los
+ * `parseResponse` de los agentes para leer respuestas estructuradas.
+ */
+export function extractJsonObject(raw: string): string {
+  const fenced = raw.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  const candidate = fenced?.[1] ?? raw;
+  const start = candidate.indexOf('{');
+  const end = candidate.lastIndexOf('}');
+  if (start === -1 || end === -1 || end <= start) {
+    throw new Error('La respuesta del LLM no contiene un objeto JSON.');
+  }
+  return candidate.slice(start, end + 1);
+}
