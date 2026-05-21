@@ -308,7 +308,34 @@ Each entry follows this structure:
 }
 ```
 
+### Entry #11 - PASO 4 Increment 3: OpenGrepScout + normalizer
+```json
+{
+  "timestamp": "2026-05-21T00:15:00.000Z",
+  "cycle": 5,
+  "phase": 3,
+  "action": "FEATURE_IMPLEMENTED",
+  "details": {
+    "DG-010": {
+      "title": "Alcance del tercer increment de PASO 4",
+      "selected": "Option A",
+      "effect": "OpenGrepScout + normalizer, testeados unitariamente contra salida JSON real capturada de OpenGrep"
+    },
+    "discovery": "Capturada la CLI y el schema JSON real de OpenGrep ejecutando el binario sobre un snippet vulnerable con una regla minima",
+    "files": "packages/scouts/src/opengrep/: opengrep-output.ts (schema zod de la salida de OpenGrep), normalizer.ts (normalizeOpenGrepOutput + mapSeverity/extractComplianceRefs/relativizePath/deriveTitle), opengrep-scout.ts (OpenGrepScout implements ScoutAgent: isAvailable + scan via child process con soporte de AbortSignal). Fixture: tests/opengrep/fixtures/opengrep-output.sample.json (salida real capturada).",
+    "tests": "16 nuevos (normalizer 10, opengrep-scout 6) - total 48 verdes",
+    "type_fix": "tsc -b atrapo un error real de exactOptionalPropertyTypes en el tipo de extractComplianceRefs; corregido usando el tipo OpenGrepMetadata inferido por zod",
+    "checks": "build / typecheck / lint / test - todos en verde",
+    "scope_note": "scan() esta implementado; su test de integracion en vivo (OpenGrep sobre fixtures curadas) es el Increment 4 segun DG-010 A",
+    "commit": "commit atomico feat(scouts) incluye codigo, tests y este registro"
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 10,
+  "complianceScore": 100
+}
+```
+
 ---
 
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-20T23:55:00.000Z*
+*Last Updated: 2026-05-21T00:15:00.000Z*

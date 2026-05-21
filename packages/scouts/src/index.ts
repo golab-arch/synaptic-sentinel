@@ -11,3 +11,4 @@
 export const PACKAGE_NAME = '@synaptic-sentinel/scouts';
 
 export * from './scout-agent.js';
+export * from './opengrep/opengrep-scout.js';

@@ -1,0 +1,32 @@
+{
+  "version": "1.22.0",
+  "results": [
+    {
+      "check_id": "d.tmp.opengrep-probe.js-eval-usage",
+      "path": "d:\\tmp\\opengrep-probe\\vuln.js",
+      "start": { "line": 2, "col": 10, "offset": 38 },
+      "end": { "line": 2, "col": 25, "offset": 53 },
+      "extra": {
+        "metavars": {},
+        "message": "Uso de eval() con entrada potencialmente no confiable.",
+        "metadata": {
+          "cwe": [
+            "CWE-95: Improper Neutralization of Directives in Dynamically Evaluated Code"
+          ],
+          "owasp": ["A03:2021 - Injection"],
+          "category": "security"
+        },
+        "severity": "ERROR",
+        "fingerprint": "6cb1659b0877fc6907df49f0000b835babb45ee4f121c2b678f7447e1a1e13f2d6566210720d0fd6646d0de48ded75311cadc0ce36cef429ea57bfebc41e99c3_0",
+        "lines": "  return eval(userInput);",
+        "is_ignored": false,
+        "validation_state": "NO_VALIDATOR",
+        "engine_kind": "OSS"
+      }
+    }
+  ],
+  "errors": [],
+  "paths": { "scanned": ["d:\\tmp\\opengrep-probe\\vuln.js"] },
+  "interfile_languages_used": [],
+  "skipped_rules": []
+}
