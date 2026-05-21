@@ -34,6 +34,7 @@
 | DG-028 | Próximo paso del roadmap | **Option B** — Context Agent: 2.º agente del Brain Layer (explicación contextualizada de los true positives) | 2026-05-21 | El Brain Layer con un solo agente era delgado; el Context Agent reutiliza el contrato `BrainAgent` ya de-riskeado (DG-024) y profundiza el diferenciador premium |
 | DG-029 | Próximo paso del roadmap | **Option A** — wire del Context Agent: el comando `triage` lo corre sobre los TP; explicaciones persistidas (schema v3) y surfaceadas en el tomo | 2026-05-21 | El Context Agent estaba construido sin consumidor; el wiring completa DG-028 reutilizando los patrones probados de DG-025 y DG-026 |
 | DG-030 | Próximo paso del roadmap | **Option A** — `TrivyScout` (cuarto scout, cobertura SCA — dependencias vulnerables) | 2026-05-21 | El Scout Layer cubría SAST y Secrets pero no SCA; Trivy es bajo riesgo (patrón de scout probado ×2) y el Brain Layer aplica gratis a sus hallazgos |
+| DG-031 | Próximo paso del roadmap | **Option A** — `CheckovScout` (quinto scout, cobertura IaC — misconfiguraciones en Dockerfile/Terraform/k8s) | 2026-05-21 | El Scout Layer cubría SAST, Secrets y SCA pero no IaC; patrón de scout probado ×4 y el binario standalone de Checkov sortea la observación "Python 3.14" |
 | Q1 | Package manager / tooling de monorepo | **pnpm workspaces** (v10.33.0) | 2026-05-20 | Ya instalado; preferencia v0.4 §9.5; sin overhead |
 
 **Discovery cerrado. Scaffolding generado, verificado y commiteado** (`f0b5202`, 54 archivos). **Cycle 2 CERRADO.** Siguiente: PASO 4 — Scout Layer.
@@ -50,7 +51,7 @@
   - **L-001 — Inspección TLS**: `pnpm install` falla con `UNABLE_TO_VERIFY_LEAF_SIGNATURE`. Workaround permanente: `NODE_OPTIONS=--use-system-ca`.
   - **L-002 — Bloqueo de escritura git**: `git add`/`commit` fallan con `Permission denied` en `.git/objects/` (Auto-Protect de Norton). Fix raíz (DG-007 A): excluir `D:\GoLAB\PROYECTOS\SENTINEL` de Auto-Protect/SONAR en Norton 360.
   - Impacto futuro: `scripts/install-scanners.ts` (DG-003 A) sufriría lo mismo — la exclusión lo previene.
-- ⚠️ Observación: Python 3.14 vs Checkov — se resuelve cuando toque el wrapper Checkov.
+- ✅ Observación resuelta (DG-031 A): Python 3.14 vs Checkov — Checkov se integró vía su binario standalone (PyInstaller onefile); no requiere un intérprete de Python en el cliente.
 - ⚠️ Observación: `better-sqlite3` es módulo nativo — evaluar `node:sqlite` por ABI con Electron de VSCode.
 - ⚠️ Observación: `exactOptionalPropertyTypes` (tsconfig) es muy estricto — relajable puntualmente si genera fricción.
 
@@ -81,6 +82,7 @@
 - 2026-05-21 — Cycle 21: Context Agent (DG-028 B) — 2.º agente del Brain Layer: `ContextAgent` (`BrainAgent<Finding, ContextExplanation>`) explica la cadena de explotabilidad (entrada → sink → exposición) de un hallazgo confirmado. `ContextExplanation` en `core`; `extractJsonObject` reubicado a `brain-agent.ts` (util compartido). Sin wiring al pipeline aún. 180 tests verdes + 2 skipped.
 - 2026-05-21 — Cycle 22: wire del Context Agent (DG-029 A) — el comando `triage` corre el Context Agent sobre los true positives; las explicaciones se persisten (**schema v3**, tabla `context_explanations`) y se surfacean en el tomo (JSON + HTML). `buildTomo` refactorizado a un objeto `TomoEnrichment` (extensible para futuros agentes). 187 tests verdes + 2 skipped.
 - 2026-05-21 — Cycle 23: `TrivyScout` (DG-030 A) — cuarto scout: **Trivy v0.70.0** (SCA, dependencias vulnerables). `scouts/trivy/` (output schema + normalizer Trivy→`Finding` categoría `SCA` + `TrivyScout`); el CLI corre 3 scouts. Fix de `install-scanners`: extracción de `.zip` en Windows vía PowerShell `Expand-Archive` (el `tar` de Windows interpretaba `D:\...` como host remoto). 197 tests verdes + 2 skipped.
+- 2026-05-21 — Cycle 24: `CheckovScout` (DG-031 A) — quinto scout: **Checkov 3.2.529** (IaC, misconfiguraciones en Dockerfile/Terraform/k8s). `scouts/checkov/` (output schema unión objeto|array + normalizer Checkov→`Finding` categoría `IaC`, severidad `null` de Checkov OSS → `medium` + `CheckovScout`); el CLI corre 4 scouts. Fix de `install-scanners`: extracción de `.zip` en Unix vía `unzip` + campo `archiveDir` que aplana el binario empaquetado bajo `dist/`. Checkov se integra como binario standalone (sin intérprete Python). 208 tests verdes + 2 skipped.
 
 ---
 
@@ -122,10 +124,10 @@ Items identificados para mejorar más adelante. No bloquean el MVP.
 
 - **Name**: SENTINEL (Synaptic Sentinel)
 - **Description**: Toolkit OSS de auditoría agéntica de seguridad + capa premium LLM, vibe-coding-native.
-- **Phase**: Cycle 12 / Phase 5 — Gitleaks instalable (A.1); siguiente: `GitleaksScout` (A.2)
+- **Phase**: Cycle 25 / Phase 7 — Brain Layer; 5 scouts (SAST/Secrets/SCA/IaC) + Coordinator stages 1-2 + 2 agentes (Triage + Context) wired; siguiente: DG-032
 
 ---
 
 *Created: 2026-05-20T19:09:00.816Z*
-*Last Updated: 2026-05-21T12:25:00.000Z*
+*Last Updated: 2026-05-21T19:00:00.000Z*
 *SYNAPTIC Protocol v3.0*

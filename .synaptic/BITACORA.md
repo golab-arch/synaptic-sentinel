@@ -865,7 +865,34 @@ Each entry follows this structure:
 }
 ```
 
+### Entry #32 - DG-031 (A): CheckovScout (quinto scout, cobertura IaC)
+```json
+{
+  "timestamp": "2026-05-21T19:00:00.000Z",
+  "cycle": 24,
+  "phase": 7,
+  "action": "FEATURE_IMPLEMENTED",
+  "details": {
+    "DG-031": {
+      "title": "Proximo paso del roadmap",
+      "selected": "Option A",
+      "effect": "Quinto scout: Checkov (IaC - misconfiguraciones en Dockerfile / Terraform / Kubernetes). El Coordinator corre 4 scouts; el Brain Layer (Triage/Context) aplica gratis a los hallazgos IaC."
+    },
+    "files": "scouts/src/checkov: checkov-output.ts (schema zod de la salida JSON de Checkov - union objeto|array de reportes por framework), normalizer.ts (normalizeCheckovOutput -> Finding categoria IaC; la severidad null de Checkov OSS se asume medium), checkov-scout.ts (CheckovScout implements ScoutAgent; `checkov -d -o json --compact --quiet --soft-fail`). scouts/index.ts (export). cli/scan.ts (buildScouts agrega CheckovScout; ScanCommandOptions.checkovBin) + index.ts (flag --checkov-bin). scanners.manifest.json (Checkov 3.2.529, 4 plataformas, checksums SHA-256 oficiales de GitHub Releases, archiveDir 'dist').",
+    "fix_colateral": "install-scanners.ts: extractArchive ampliado - extraccion de .zip en Unix con `unzip` (GNU tar no extrae .zip); nuevo campo ScannerSpec.archiveDir que aplana el binario empaquetado bajo un subdirectorio (Checkov empaqueta checkov.exe bajo dist/). Surgido al instalar Checkov - no optimismo ilusorio.",
+    "design": "Checkov OSS no asigna severidad (emite severity:null): el normalizer asume `medium` como criticidad por defecto de una misconfiguracion de IaC; el Brain Layer la afina. `--soft-fail` fuerza exit 0 aun con checks fallidos (un scan con hallazgos no es un fallo del scout). El binario standalone (PyInstaller onefile) sortea la observacion 'Python 3.14 vs Checkov' del contextNotes: no requiere un interprete de Python en el cliente.",
+    "verification_real": "Checkov 3.2.529 instalado (extraccion .zip + aplanado de dist/ verificados). Fixture Dockerfile vulnerable + captura JSON real del binario. Test de integracion con Checkov real: detecta CKV_DOCKER_2 (sin HEALTHCHECK) y CKV_DOCKER_3 (corre como root). End-to-end: synaptic-sentinel scan corre 4 scout(s) -> opengrep 0, gitleaks 0, trivy 0, checkov 2 hallazgos IaC (MEDIUM).",
+    "tests": "11 nuevos (checkov normalizer 4, checkov-scout 6, integracion 1; scan.test buildScouts actualizado a 4 scouts) - total 208 verdes + 2 skipped",
+    "checks": "build / typecheck / lint / test - todos en verde",
+    "commit": "codigo + tests en el commit 883c7ee feat(scouts,cli,scripts); el registro SYNAPTIC de cierre del Cycle 24 se asienta en el commit docs siguiente"
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 29,
+  "complianceScore": 100
+}
+```
+
 ---
 
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-21T18:30:00.000Z*
+*Last Updated: 2026-05-21T19:00:00.000Z*

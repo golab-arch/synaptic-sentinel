@@ -4,7 +4,7 @@
     "fullName": "Synaptic Sentinel",
     "description": "Toolkit OSS de auditoria agentica de seguridad + capa premium LLM, vibe-coding-native, para la era del codigo generado por IA. Tercer producto de la familia Synaptic.",
     "currentPhase": "brain-layer",
-    "overallProgress": "Cycles 1-23 CERRADOS. 3 scouts (OpenGrep SAST, Gitleaks Secrets, Trivy SCA) + Coordinator stages 1-2 + CLI + reporters JSON+HTML + extension VSCode + Brain Layer con 2 agentes wired (Triage + Context). 197 tests verdes + 2 skipped."
+    "overallProgress": "Cycles 1-24 CERRADOS. 4 scouts (OpenGrep SAST, Gitleaks Secrets, Trivy SCA, Checkov IaC) + Coordinator stages 1-2 + CLI + reporters JSON+HTML + extension VSCode + Brain Layer con 2 agentes wired (Triage + Context). 208 tests verdes + 2 skipped."
   },
   "decisions": [
     { "id": "DG-001", "title": "Estructura fisica del monorepo OSS/Pro", "selected": "B", "date": "2026-05-20", "summary": "Monorepo unico con workspaces marcados OSS/Pro + publish-oss.ts allowlist", "rationale": "Velocidad solo founder; refactors triviales; anti-filtracion en un script auditable" },
@@ -37,6 +37,7 @@
     { "id": "DG-028", "title": "Proximo paso del roadmap (Context Agent)", "selected": "B", "date": "2026-05-21", "summary": "2.o agente del Brain Layer: explica la cadena de explotabilidad (entrada -> sink -> exposicion) de un hallazgo confirmado", "rationale": "El Brain Layer con un solo agente era delgado; el Context Agent reusa el contrato BrainAgent ya de-riskeado y profundiza el diferenciador premium" },
     { "id": "DG-029", "title": "Proximo paso del roadmap (wire del Context Agent)", "selected": "A", "date": "2026-05-21", "summary": "El comando triage corre el Context Agent sobre los TP; las explicaciones se persisten (schema v3) y se surfacean en el tomo; buildTomo refactorizado a un objeto enrichment", "rationale": "El Context Agent estaba construido sin consumidor; el wiring completa DG-028 reusando los patrones probados de DG-025 (persistencia) y DG-026 (surface)" },
     { "id": "DG-030", "title": "Proximo paso del roadmap (TrivyScout / SCA)", "selected": "A", "date": "2026-05-21", "summary": "Cuarto scout: Trivy (SCA - dependencias vulnerables). Manifest v0.70.0, normalizer Trivy->Finding, wiring en el CLI; fix de install-scanners (extraccion .zip en Windows)", "rationale": "El Scout Layer cubria SAST+Secrets pero no SCA; Trivy es bajo riesgo (patron probado) y el Brain Layer aplica gratis a sus hallazgos" },
+    { "id": "DG-031", "title": "Proximo paso del roadmap (CheckovScout / IaC)", "selected": "A", "date": "2026-05-21", "summary": "Quinto scout: Checkov (IaC - misconfiguraciones en Dockerfile/Terraform/k8s). Manifest 3.2.529 (binario standalone), normalizer Checkov->Finding IaC, wiring en el CLI (4 scouts); install-scanners gana archiveDir + extraccion .zip en Unix", "rationale": "El Scout Layer cubria SAST+Secrets+SCA pero no IaC; patron de scout probado x4 y el binario standalone de Checkov sortea la observacion 'Python 3.14'" },
     { "id": "Q1", "title": "Package manager", "selected": "pnpm workspaces", "date": "2026-05-20", "summary": "pnpm v10.33.0", "rationale": "Ya instalado; preferencia v0.4 9.5; simple sin overhead" }
   ],
   "roadmap": [
@@ -75,12 +76,12 @@
     }
   ],
   "implementationState": {
-    "lastCompletedTask": "Cycle 23 CERRADO: DG-030 A - TrivyScout (cuarto scout, cobertura SCA). Paquete scouts/trivy (output schema, normalizer Trivy->Finding SCA, TrivyScout); manifest Trivy v0.70.0; wiring en el CLI (3 scouts). Fix de install-scanners: extraccion de .zip en Windows via PowerShell (el tar de Windows fallaba con paths D:\\). Verificado: Trivy instalado, integracion real detecta lodash vulnerable, scan end-to-end con 3 scouts. 197 tests verdes + 2 skipped; commiteado.",
-    "currentTask": "Cycle 24 abierto. DG-031 a presentar: proximo paso del roadmap.",
+    "lastCompletedTask": "Cycle 24 CERRADO: DG-031 A - CheckovScout (quinto scout, cobertura IaC). Paquete scouts/checkov (output schema union objeto|array, normalizer Checkov->Finding IaC con severidad null->medium, CheckovScout); manifest Checkov 3.2.529 (binario standalone); wiring en el CLI (4 scouts). Fix de install-scanners: extraccion .zip en Unix via unzip + campo archiveDir que aplana el binario empaquetado bajo dist/. Verificado: Checkov instalado, integracion real detecta CKV_DOCKER_2/3, scan end-to-end con 4 scouts. 208 tests verdes + 2 skipped; commiteado 883c7ee.",
+    "currentTask": "Cycle 25 abierto. DG-032 a presentar: proximo paso del roadmap.",
     "pendingTasks": [
-      "Resolver DG-031 - proximo paso del roadmap",
+      "Resolver DG-032 - proximo paso del roadmap",
       "Verificacion de la llamada LLM real (requiere ANTHROPIC_API_KEY) y de la extension en vivo (F5) - no automatizables aqui",
-      "FI-002 (separar test:unit/test:integration), FI-008 (.vsix), FI-009 (migracion a @anthropic-ai/sdk), roadmap: Checkov (IaC), Remediation Agent"
+      "FI-002 (separar test:unit/test:integration), FI-008 (.vsix), FI-009 (migracion a @anthropic-ai/sdk), roadmap: Remediation Agent, Vibe-Detect Agent"
     ],
     "blockers": []
   },
@@ -93,7 +94,8 @@
     "Primer commit atomico f0b5202 en branch main (54 archivos); repo remoto GitHub aun diferido (DG-002 A)",
     "ENTORNO: antivirus activo Norton 360. Requiere NODE_OPTIONS=--use-system-ca para red (L-001) y exclusion de carpeta para git (L-002)",
     "git commit es 100% local y NO requiere token de GitHub; el push futuro (diferido por DG-002 A) usara gh ya autenticado como golab-arch",
-    "Observacion: Python 3.14 vs Checkov; better-sqlite3 ABI con Electron; exactOptionalPropertyTypes estricto"
+    "Checkov se integro via su binario standalone (PyInstaller onefile): sin interprete Python en el cliente, sorteando la observacion 'Python 3.14 vs Checkov'",
+    "Observacion: better-sqlite3 ABI con Electron; exactOptionalPropertyTypes estricto"
   ],
-  "lastUpdated": "2026-05-21T18:30:00.000Z"
+  "lastUpdated": "2026-05-21T19:00:00.000Z"
 }

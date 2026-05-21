@@ -2,7 +2,7 @@
   "version": "1.0",
   "projectId": "sentinel-1779304140796",
   "projectName": "SENTINEL",
-  "totalCycles": 23,
+  "totalCycles": 24,
   "currentTomeId": 1,
   "cyclesPerTome": 50,
   "tomes": [
@@ -16,10 +16,10 @@
         "from": "2026-05-20T19:09:00.852Z",
         "to": ""
       },
-      "summary": "Cycles 1-23: 3 scouts (OpenGrep SAST, Gitleaks Secrets, Trivy SCA), Coordinator stages 1-2, colony.db, CLI, reporters JSON+HTML, extension VSCode, y Brain Layer con 2 agentes wired (Triage + Context).",
-      "keyDecisions": ["DG-001", "DG-002", "DG-003", "DG-004", "DG-005", "DG-006", "DG-007", "DG-008", "DG-009", "DG-010", "DG-011", "DG-012", "DG-013", "DG-014", "DG-015", "DG-016", "DG-017", "DG-018", "DG-019", "DG-020", "DG-021", "DG-022", "DG-023", "DG-024", "DG-025", "DG-026", "DG-027", "DG-028", "DG-029", "DG-030", "Q1"],
-      "cycleCount": 23,
-      "successCount": 23,
+      "summary": "Cycles 1-24: 4 scouts (OpenGrep SAST, Gitleaks Secrets, Trivy SCA, Checkov IaC), Coordinator stages 1-2, colony.db, CLI, reporters JSON+HTML, extension VSCode, y Brain Layer con 2 agentes wired (Triage + Context).",
+      "keyDecisions": ["DG-001", "DG-002", "DG-003", "DG-004", "DG-005", "DG-006", "DG-007", "DG-008", "DG-009", "DG-010", "DG-011", "DG-012", "DG-013", "DG-014", "DG-015", "DG-016", "DG-017", "DG-018", "DG-019", "DG-020", "DG-021", "DG-022", "DG-023", "DG-024", "DG-025", "DG-026", "DG-027", "DG-028", "DG-029", "DG-030", "DG-031", "Q1"],
+      "cycleCount": 24,
+      "successCount": 24,
       "failureCount": 0,
       "jsonPath": "tomes/tome-001.json",
       "mdPath": "tomes/tome-001.md",
@@ -57,12 +57,13 @@
     { "id": "DG-028", "title": "Proximo paso del roadmap (Context Agent)", "selected": "B", "cycle": 21, "date": "2026-05-21" },
     { "id": "DG-029", "title": "Proximo paso del roadmap (wire del Context Agent)", "selected": "A", "cycle": 22, "date": "2026-05-21" },
     { "id": "DG-030", "title": "Proximo paso del roadmap (TrivyScout / SCA)", "selected": "A", "cycle": 23, "date": "2026-05-21" },
+    { "id": "DG-031", "title": "Proximo paso del roadmap (CheckovScout / IaC)", "selected": "A", "cycle": 24, "date": "2026-05-21" },
     { "id": "Q1", "title": "Package manager", "selected": "pnpm", "cycle": 1, "date": "2026-05-20" }
   ],
   "metrics": {
-    "totalDecisions": 31,
+    "totalDecisions": 32,
     "optionDistribution": {
-      "A": 19,
+      "A": 20,
       "B": 12,
       "C": 0
     },
@@ -75,8 +76,8 @@
       "4": 3,
       "5": 5,
       "6": 4,
-      "7": 7
+      "7": 8
     }
   },
-  "lastUpdated": "2026-05-21T18:30:00.000Z"
+  "lastUpdated": "2026-05-21T19:00:00.000Z"
 }
