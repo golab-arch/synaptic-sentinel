@@ -6,11 +6,11 @@
 
 ## Current Cycle
 
-- **Cycle:** 25 — pendiente DG-032 (próximo paso del roadmap)
+- **Cycle:** 26 — pendiente DG-033 (próximo paso del roadmap)
 - **Phase:** 7 — Brain Layer
-- **Status:** Cycle 24 CERRADO; awaiting DG-032
+- **Status:** Cycle 25 CERRADO; awaiting DG-033
 - **Compliance:** 100%
-- **Synaptic Strength:** 29
+- **Synaptic Strength:** 30
 
 ## Cycles cerrados
 
@@ -25,24 +25,25 @@
 - **Cycle 20** — triage en la extensión VSCode: BYOK + SecretStorage (DG-027 B) — `47e3a10` ✅
 - **Cycle 21** — Context Agent: 2.º agente del Brain Layer (DG-028 B) — `762ad26` ✅
 - **Cycle 22** — wire del Context Agent al pipeline (DG-029 A) — `8ff3288` ✅
-- **Cycle 23** — `TrivyScout`: cuarto scout, cobertura SCA (DG-030 A) ✅
+- **Cycle 23** — `TrivyScout`: cuarto scout, cobertura SCA (DG-030 A) — `e843b7c` ✅
 - **Cycle 24** — `CheckovScout`: quinto scout, cobertura IaC (DG-031 A) — `883c7ee` ✅
+- **Cycle 25** — `VibeDetectScout`: detección de código vibe-coded + cierre del gap LLM real (DG-032 B) — `b346142` ✅
 
 ## Estado del repo
 
-- 25 commits en `main` · 7 paquetes pnpm
-- **4 scouts**: OpenGrep (SAST) + Gitleaks (Secrets) + Trivy (SCA) + Checkov (IaC) + `colony.db` (schema v3) + `Coordinator` (stages 1 y 2) + `reporters`
+- 27 commits en `main` · 7 paquetes pnpm
+- **5 scouts**: OpenGrep (SAST) + Gitleaks (Secrets) + Trivy (SCA) + Checkov (IaC) + Vibe-Detect (VibeCoded) + `colony.db` (schema v3) + `Coordinator` (stages 1 y 2) + `reporters`
 - CLI: `synaptic-sentinel scan` (`--export` / `--export-html`), `mark-fp` y `triage` (Brain Layer, BYOK)
 - Extensión VSCode: `Scan Workspace`, `Triage Findings`, `Set Anthropic API Key`, Code Action, status bar
-- **Brain Layer (Pro)**: `agents` con Triage Agent y Context Agent wired
-- `build` (tsc -b + esbuild) / `typecheck` / `lint` / `test` (208/208 + 2 skipped) verdes
+- **Brain Layer (Pro)**: `agents` con Triage Agent y Context Agent wired — llamada LLM real verificada contra la API de Anthropic (Entry #34)
+- `build` (tsc -b + esbuild) / `typecheck` / `lint` / `test` (221/221 + 2 gated) verdes
 
 ## Decision Gate abierto
 
-- DG-032 — próximo paso del roadmap (a presentar)
+- DG-033 — próximo paso del roadmap (a presentar)
 
 ## Last Entry
 
-Entry #32 — FEATURE_IMPLEMENTED (DG-031 A) — 2026-05-21 — SUCCESS
+Entry #34 — VERIFICATION (cierre del gap LLM real) — 2026-05-21 — SUCCESS
 
 ---

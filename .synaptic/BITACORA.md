@@ -892,7 +892,55 @@ Each entry follows this structure:
 }
 ```
 
+### Entry #33 - DG-032 (B): VibeDetectScout (quinto scout, deteccion de codigo vibe-coded)
+```json
+{
+  "timestamp": "2026-05-21T19:45:00.000Z",
+  "cycle": 25,
+  "phase": 7,
+  "action": "FEATURE_IMPLEMENTED",
+  "details": {
+    "DG-032": {
+      "title": "Proximo paso del roadmap",
+      "selected": "Option B",
+      "effect": "Quinto scout: Vibe-Detect (categoria VibeCoded - anti-patrones de codigo generado por IA aceptado sin revision). Es el scout firma del producto vibe-coding-native. El Coordinator corre 5 scouts."
+    },
+    "files": "scouts/src/vibe-detect: detectors.ts (catalogo curado de 6 detectores heuristicos regex), detect.ts (runVibeDetectors -> Finding[] categoria VibeCoded, funcion pura testeable contra strings), vibe-detect-scout.ts (VibeDetectScout implements ScoutAgent + recorrido propio del arbol de archivos). scouts/index.ts (export). cli/scan.ts (buildScouts incluye SIEMPRE VibeDetectScout; un aviso de 'sin scanner externo' reemplaza al antiguo error 'sin scanner', ahora inalcanzable). cli/tests/scan.test.ts (buildScouts -> 5 scouts).",
+    "design": "A diferencia de los 4 scouts previos, Vibe-Detect NO envuelve un binario OSS: es deteccion nativa en TypeScript (regex linea a linea sobre un walker propio). Desviacion informada del doc del paquete ('wrappers de scanners OSS'): el contrato ScoutAgent no obliga a spawnear un proceso. Ventaja: siempre disponible, 100% determinista y verificable sin dependencias externas ni API key. Catalogo deliberadamente conservador (6 detectores de alta confianza: secreto placeholder, control de seguridad suprimido, TODO de seguridad, CORS abierto, verificacion TLS deshabilitada, modo debug fijo) para minimizar falsos positivos. La categoria VibeCoded ya existia en el schema sin uso.",
+    "verification_real": "End-to-end: synaptic-sentinel scan corre 5 scout(s) sobre el fixture vibe-coded -> vibe-detect detecta los 7 anti-patrones esperados con sus lineas exactas (config.py:6,7,11,12 y server.js:9,13,15); los otros 4 scouts 0. 12 tests nuevos (deteccion pura + scan sobre un arbol real de archivos).",
+    "fix_colateral": "cli-runner.test.ts: el test de integracion arranca en frio 4 binarios externos via la CLI; con Checkov (onefile de PyInstaller) la corrida llega a ~45-58s y bajo la suite completa excedia el timeout de 60s. Subido a 120s (en linea con FI-002: separar test:unit/test:integration). No optimismo ilusorio: se verifico en aislamiento que el test pasa (45s) antes de atribuirlo a contencion de CPU.",
+    "tests": "12 nuevos (vibe-detect detect 8, vibe-detect-scout 4; +1 buildScouts) - total 221 verdes + 2 gated",
+    "checks": "build / typecheck / lint / test - todos en verde",
+    "commit": "codigo + tests en el commit b346142 feat(scouts,cli); el registro SYNAPTIC de cierre del Cycle 25 se asienta en el commit docs siguiente"
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 30,
+  "complianceScore": 100
+}
+```
+
+### Entry #34 - VERIFICATION: cierre del gap historico de la llamada LLM real
+```json
+{
+  "timestamp": "2026-05-21T19:50:00.000Z",
+  "cycle": 25,
+  "phase": 7,
+  "action": "VERIFICATION",
+  "details": {
+    "subject": "Cierre del gap historico: llamada REAL a la API de Anthropic (Brain Layer)",
+    "context": "Desde DG-024 (Entry #25) cada entrada del Brain Layer declaro honestamente el mismo gap: las llamadas reales a Anthropic no se verificaban por falta de ANTHROPIC_API_KEY; los 2 tests de integracion quedaban gated/skipped. El usuario proporciono una API key (BYOK) para cerrarlo.",
+    "procedure": "La key se uso de forma transitoria como variable de entorno ANTHROPIC_API_KEY: nunca en un archivo, nunca commiteada, no persistida en memoria. Se corrieron los 2 tests gated (triage-agent.integration, context-agent.integration). La llamada de red requirio deshabilitar el sandbox de red del entorno de ejecucion: el primer intento fallo con UND_ERR_CONNECT_TIMEOUT (timeout de conexion TCP, no un error de auth ni de credito).",
+    "result": "AMBOS tests PASARON contra la API real de Anthropic (modelo Haiku 4.5): TriageAgent devolvio un veredicto valido (1716ms), ContextAgent una explicacion valida (2539ms). El round-trip completo (AnthropicLlmClient -> Messages API -> parseo -> validacion zod) queda verificado. Costo aproximado USD 0.01 (2 llamadas Haiku).",
+    "recomendacion": "La API key quedo expuesta en el historial del chat; se recomendo al usuario revocarla/rotarla al cerrar la sesion.",
+    "gap_status": "CERRADO. El gap de 'llamada LLM real' deja de declararse en las entradas del Brain Layer. Persiste el gap de la extension VSCode en vivo (F5)."
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 30,
+  "complianceScore": 100
+}
+```
+
 ---
 
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-21T19:00:00.000Z*
+*Last Updated: 2026-05-21T19:50:00.000Z*

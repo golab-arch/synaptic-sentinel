@@ -4,7 +4,7 @@
     "fullName": "Synaptic Sentinel",
     "description": "Toolkit OSS de auditoria agentica de seguridad + capa premium LLM, vibe-coding-native, para la era del codigo generado por IA. Tercer producto de la familia Synaptic.",
     "currentPhase": "brain-layer",
-    "overallProgress": "Cycles 1-24 CERRADOS. 4 scouts (OpenGrep SAST, Gitleaks Secrets, Trivy SCA, Checkov IaC) + Coordinator stages 1-2 + CLI + reporters JSON+HTML + extension VSCode + Brain Layer con 2 agentes wired (Triage + Context). 208 tests verdes + 2 skipped."
+    "overallProgress": "Cycles 1-25 CERRADOS. 5 scouts (OpenGrep SAST, Gitleaks Secrets, Trivy SCA, Checkov IaC, Vibe-Detect VibeCoded) + Coordinator stages 1-2 + CLI + reporters JSON+HTML + extension VSCode + Brain Layer con 2 agentes wired (Triage + Context, llamada LLM real verificada contra la API de Anthropic). 221 tests verdes + 2 gated."
   },
   "decisions": [
     { "id": "DG-001", "title": "Estructura fisica del monorepo OSS/Pro", "selected": "B", "date": "2026-05-20", "summary": "Monorepo unico con workspaces marcados OSS/Pro + publish-oss.ts allowlist", "rationale": "Velocidad solo founder; refactors triviales; anti-filtracion en un script auditable" },
@@ -38,6 +38,7 @@
     { "id": "DG-029", "title": "Proximo paso del roadmap (wire del Context Agent)", "selected": "A", "date": "2026-05-21", "summary": "El comando triage corre el Context Agent sobre los TP; las explicaciones se persisten (schema v3) y se surfacean en el tomo; buildTomo refactorizado a un objeto enrichment", "rationale": "El Context Agent estaba construido sin consumidor; el wiring completa DG-028 reusando los patrones probados de DG-025 (persistencia) y DG-026 (surface)" },
     { "id": "DG-030", "title": "Proximo paso del roadmap (TrivyScout / SCA)", "selected": "A", "date": "2026-05-21", "summary": "Cuarto scout: Trivy (SCA - dependencias vulnerables). Manifest v0.70.0, normalizer Trivy->Finding, wiring en el CLI; fix de install-scanners (extraccion .zip en Windows)", "rationale": "El Scout Layer cubria SAST+Secrets pero no SCA; Trivy es bajo riesgo (patron probado) y el Brain Layer aplica gratis a sus hallazgos" },
     { "id": "DG-031", "title": "Proximo paso del roadmap (CheckovScout / IaC)", "selected": "A", "date": "2026-05-21", "summary": "Quinto scout: Checkov (IaC - misconfiguraciones en Dockerfile/Terraform/k8s). Manifest 3.2.529 (binario standalone), normalizer Checkov->Finding IaC, wiring en el CLI (4 scouts); install-scanners gana archiveDir + extraccion .zip en Unix", "rationale": "El Scout Layer cubria SAST+Secrets+SCA pero no IaC; patron de scout probado x4 y el binario standalone de Checkov sortea la observacion 'Python 3.14'" },
+    { "id": "DG-032", "title": "Proximo paso del roadmap (VibeDetectScout / VibeCoded)", "selected": "B", "date": "2026-05-21", "summary": "Quinto/sexto scout: Vibe-Detect (VibeCoded - anti-patrones de codigo generado por IA). Deteccion nativa en TypeScript sin binario OSS: 6 detectores heuristicos regex, walker propio; el scout firma del producto vibe-coding-native. Wiring en el CLI (5 scouts). Gap LLM real cerrado con API key del usuario", "rationale": "El Scout Layer cubria SAST/Secrets/SCA/IaC pero no el diferenciador del producto; deteccion determinista = 100% verificable sin API key; la categoria VibeCoded ya existia en el schema sin uso" },
     { "id": "Q1", "title": "Package manager", "selected": "pnpm workspaces", "date": "2026-05-20", "summary": "pnpm v10.33.0", "rationale": "Ya instalado; preferencia v0.4 9.5; simple sin overhead" }
   ],
   "roadmap": [
@@ -50,7 +51,7 @@
   ],
   "futureImprovements": [
     { "id": "FI-001", "topic": "Driver SQLite", "detail": "node:sqlite es experimental; si genera friccion (API en un Node mayor futuro, o extension host de VSCode con Node < 22.5), migrar a better-sqlite3 detras de la clase ColonyDb." },
-    { "id": "FI-002", "topic": "Suite de tests", "detail": "Los tests de integracion de OpenGrep suman ~46s a pnpm test. Separar en test:unit y test:integration." },
+    { "id": "FI-002", "topic": "Suite de tests", "detail": "Los tests de integracion (OpenGrep, Trivy, Checkov, cli-runner) dominan el tiempo de pnpm test y rozan sus timeouts bajo contencion de CPU (cli-runner subido a 120s en DG-032). Separar en test:unit (rapido) y test:integration." },
     { "id": "FI-003", "topic": "Catalogo de reglas", "detail": "sentinel-baseline.yaml tiene 4 reglas pattern-based. Ampliar el catalogo SAST (taint analysis, mas CWEs)." },
     { "id": "FI-004", "topic": "Cache de scanners del producto", "detail": "El CLI resuelve OpenGrep desde .scanners/ relativo al cwd. El producto enviado necesita una cache de scanners propia (global por usuario) y auto-instalacion." },
     { "id": "FI-005", "topic": "ruleId de OpenGrep", "detail": "El check_id de OpenGrep trae el prefijo de ruta cuando --config es un archivo; Finding.ruleId lo hereda. El CLI muestra title (limpio). Evaluar normalizar ruleId a un id canonico en el normalizer." },
@@ -76,12 +77,12 @@
     }
   ],
   "implementationState": {
-    "lastCompletedTask": "Cycle 24 CERRADO: DG-031 A - CheckovScout (quinto scout, cobertura IaC). Paquete scouts/checkov (output schema union objeto|array, normalizer Checkov->Finding IaC con severidad null->medium, CheckovScout); manifest Checkov 3.2.529 (binario standalone); wiring en el CLI (4 scouts). Fix de install-scanners: extraccion .zip en Unix via unzip + campo archiveDir que aplana el binario empaquetado bajo dist/. Verificado: Checkov instalado, integracion real detecta CKV_DOCKER_2/3, scan end-to-end con 4 scouts. 208 tests verdes + 2 skipped; commiteado 883c7ee.",
-    "currentTask": "Cycle 25 abierto. DG-032 a presentar: proximo paso del roadmap.",
+    "lastCompletedTask": "Cycle 25 CERRADO: DG-032 B - VibeDetectScout (deteccion de codigo vibe-coded, categoria VibeCoded). Paquete scouts/vibe-detect (detectors.ts catalogo de 6 detectores heuristicos, detect.ts funcion pura, vibe-detect-scout.ts con walker propio); deteccion nativa en TypeScript, sin binario OSS, siempre disponible. Wiring en el CLI (5 scouts, Vibe-Detect siempre incluido). Ademas, gap historico CERRADO: los 2 tests de integracion del Brain Layer (Triage/Context) se corrieron con una API key BYOK provista por el usuario y PASARON contra la API real de Anthropic (Haiku 4.5). Verificado: scan end-to-end con 5 scouts detecta los 7 anti-patrones del fixture vibe-coded. 221 tests verdes + 2 gated; commiteado b346142.",
+    "currentTask": "Cycle 26 abierto. DG-033 a presentar: proximo paso del roadmap.",
     "pendingTasks": [
-      "Resolver DG-032 - proximo paso del roadmap",
-      "Verificacion de la llamada LLM real (requiere ANTHROPIC_API_KEY) y de la extension en vivo (F5) - no automatizables aqui",
-      "FI-002 (separar test:unit/test:integration), FI-008 (.vsix), FI-009 (migracion a @anthropic-ai/sdk), roadmap: Remediation Agent, Vibe-Detect Agent"
+      "Resolver DG-033 - proximo paso del roadmap",
+      "Verificacion de la extension VSCode en vivo (F5 Extension Development Host) - no automatizable aqui",
+      "FI-002 (separar test:unit/test:integration - los tests de integracion ya rozan timeouts), FI-008 (.vsix), FI-009 (migracion a @anthropic-ai/sdk), roadmap: Remediation Agent"
     ],
     "blockers": []
   },
@@ -95,7 +96,9 @@
     "ENTORNO: antivirus activo Norton 360. Requiere NODE_OPTIONS=--use-system-ca para red (L-001) y exclusion de carpeta para git (L-002)",
     "git commit es 100% local y NO requiere token de GitHub; el push futuro (diferido por DG-002 A) usara gh ya autenticado como golab-arch",
     "Checkov se integro via su binario standalone (PyInstaller onefile): sin interprete Python en el cliente, sorteando la observacion 'Python 3.14 vs Checkov'",
+    "Vibe-Detect es un scout nativo (TypeScript puro, sin binario OSS): el contrato ScoutAgent no obliga a spawnear un proceso",
+    "La llamada LLM real a Anthropic quedo verificada (Entry #34): los 2 tests de integracion del Brain Layer pasaron con una API key BYOK del usuario (Haiku 4.5)",
     "Observacion: better-sqlite3 ABI con Electron; exactOptionalPropertyTypes estricto"
   ],
-  "lastUpdated": "2026-05-21T19:00:00.000Z"
+  "lastUpdated": "2026-05-21T19:50:00.000Z"
 }
