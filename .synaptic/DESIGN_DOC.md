@@ -21,6 +21,7 @@
 | DG-015 | Próximo paso del roadmap | **Option A** — CLI `synaptic-sentinel scan` | 2026-05-21 | Convierte el pipeline interno en algo invocable por una persona; integra core+scouts+colony en un punto de entrada real |
 | DG-016 | Próximo paso del roadmap | **Option B** — reporters: modelo del tomo + export JSON | 2026-05-21 | Cierra el ciclo scan → artefacto entregable; en el camino crítico de la definición de "Done" del MVP (§8.1) |
 | DG-017 | Próximo paso del roadmap | **Option A** — `GitleaksScout` (en 2 increments: A.1 install-scanners + comprimidos, A.2 el scout) | 2026-05-21 | Cobertura de secrets, riesgo bajo (patrón probado); Gitleaks ships archivos → A.1 agrega extracción a `install-scanners` |
+| DG-018 | Enfoque del `GitleaksScout` (DG-017 A.2) | **Option B** — scout completo de punta a punta + fixture con un secreto + test de integración (Gitleaks real) + wiring en el CLI | 2026-05-21 | Cierra la cobertura de secrets dejándola operativa: el `Coordinator` corre OpenGrep **y** Gitleaks, validado contra el binario real |
 | Q1 | Package manager / tooling de monorepo | **pnpm workspaces** (v10.33.0) | 2026-05-20 | Ya instalado; preferencia v0.4 §9.5; sin overhead |
 
 **Discovery cerrado. Scaffolding generado, verificado y commiteado** (`f0b5202`, 54 archivos). **Cycle 2 CERRADO.** Siguiente: PASO 4 — Scout Layer.
@@ -56,6 +57,7 @@
 - 2026-05-21 — Cycle 9: CLI `synaptic-sentinel scan` (DG-015 A) — primer comando ejecutable; scan end-to-end desde terminal. 67 tests verdes.
 - 2026-05-21 — Cycle 10: paquete `reporters` — modelo del tomo + export JSON con firma SHA-256 (DG-016 B); `scan --export`. 73 tests verdes.
 - 2026-05-21 — Cycle 11: `install-scanners` soporta assets comprimidos (extracción via `tar`); Gitleaks v8.30.1 instalable (DG-017 A.1).
+- 2026-05-21 — Cycle 12: `GitleaksScout` de punta a punta (DG-018 B) — wrapper de Gitleaks (categoría Secrets, `--redact`) + normalizer + integración real; `runProcess` extraído a módulo compartido; el CLI `scan` corre OpenGrep **y** Gitleaks. 86 tests verdes. **Cobertura de secrets operativa.**
 
 ---
 

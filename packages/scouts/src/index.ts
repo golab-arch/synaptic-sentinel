@@ -10,5 +10,7 @@
 
 export const PACKAGE_NAME = '@synaptic-sentinel/scouts';
 
+export * from './run-process.js';
 export * from './opengrep/opengrep-scout.js';
 export * from './opengrep/rules.js';
+export * from './gitleaks/gitleaks-scout.js';

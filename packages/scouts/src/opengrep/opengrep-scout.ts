@@ -1,4 +1,3 @@
-import { spawn } from 'node:child_process';
 import { access } from 'node:fs/promises';
 import type {
   FindingCategory,
@@ -6,6 +5,7 @@ import type {
   ScoutAgent,
   ScoutResult,
 } from '@synaptic-sentinel/core';
+import { runProcess } from '../run-process.js';
 import { OpenGrepOutputSchema } from './opengrep-output.js';
 import { normalizeOpenGrepOutput } from './normalizer.js';
 
@@ -15,37 +15,6 @@ export interface OpenGrepScoutOptions {
   readonly binaryPath: string;
   /** Argumentos de configuracion de reglas (ej. `['--config', 'auto']`). */
   readonly configArgs: readonly string[];
-}
-
-/** Resultado crudo de ejecutar un proceso. */
-interface ProcessResult {
-  readonly stdout: string;
-  readonly stderr: string;
-  readonly exitCode: number | null;
-}
-
-/** Ejecuta un proceso, recolecta stdout/stderr y respeta la senal de aborto. */
-function runProcess(
-  command: string,
-  args: readonly string[],
-  cwd: string,
-  signal: AbortSignal | undefined,
-): Promise<ProcessResult> {
-  return new Promise<ProcessResult>((resolve, reject) => {
-    const child = spawn(command, [...args], { cwd, ...(signal ? { signal } : {}) });
-    let stdout = '';
-    let stderr = '';
-    child.stdout?.on('data', (chunk: Buffer) => {
-      stdout += chunk.toString('utf8');
-    });
-    child.stderr?.on('data', (chunk: Buffer) => {
-      stderr += chunk.toString('utf8');
-    });
-    child.on('error', reject);
-    child.on('close', (exitCode) => {
-      resolve({ stdout, stderr, exitCode });
-    });
-  });
 }
 
 /** Construye los argumentos de `opengrep scan` para una peticion de escaneo. */

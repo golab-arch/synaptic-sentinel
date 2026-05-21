@@ -517,7 +517,33 @@ Each entry follows this structure:
 }
 ```
 
+### Entry #19 - DG-018 (B) + A.2: GitleaksScout de punta a punta
+```json
+{
+  "timestamp": "2026-05-21T12:40:00.000Z",
+  "cycle": 12,
+  "phase": 5,
+  "action": "FEATURE_IMPLEMENTED",
+  "details": {
+    "DG-018": {
+      "title": "Enfoque del GitleaksScout (DG-017 A.2)",
+      "selected": "Option B",
+      "effect": "GitleaksScout completo de punta a punta: scout + normalizer + fixture con un secreto real + test de integracion con Gitleaks real + wiring en el CLI (el Coordinator corre OpenGrep Y Gitleaks)"
+    },
+    "files": "packages/scouts/src/run-process.ts (NUEVO - runProcess compartido, extraido del scout de OpenGrep para evitar duplicacion). gitleaks/gitleaks-output.ts (schema zod de la salida JSON real de Gitleaks). gitleaks/normalizer.ts (Gitleaks -> Finding: severity high, category Secrets, complianceRefs CWE-798). gitleaks/gitleaks-scout.ts (GitleaksScout implements ScoutAgent, corre 'gitleaks dir' con --redact). opengrep-scout.ts (reutiliza runProcess compartido). cli/commands/scan.ts (resolveOpenGrepBinary -> resolveScannerBinary generico + buildScouts; el Coordinator recibe [OpenGrep, Gitleaks]). cli/index.ts (flag --gitleaks-bin).",
+    "security": "Gitleaks se ejecuta con --redact: el valor del secreto NUNCA se persiste en colony.db ni en el tomo. Verificado en el tomo exportado: el snippet muestra 'awsAccessKey: REDACTED' y el valor real (AKIA...) no aparece en el archivo.",
+    "verification_real": "synaptic-sentinel scan sobre un probe dir con vuln.js (eval()) + secrets.js (AWS key): 2 scout(s) corrieron - opengrep ok 1 hallazgo [HIGH] sentinel-js-eval-usage vuln.js:1, gitleaks ok 1 hallazgo [HIGH] generic-api-key secrets.js:2. Tomo exportado (5 keys); verifyTomoIntegrity => true; secreto filtrado en el tomo => false.",
+    "tests": "12 nuevos (gitleaks normalizer 2, gitleaks-scout 6, integracion Gitleaks real 1, CLI resolveScannerBinary/buildScouts/platformBinary 3) - total 86 verdes (74 -> 86)",
+    "checks": "build / typecheck / lint / test - todos en verde",
+    "commit": "commit atomico feat(scouts,cli) incluye codigo, tests y este registro"
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 17,
+  "complianceScore": 100
+}
+```
+
 ---
 
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-21T12:25:00.000Z*
+*Last Updated: 2026-05-21T12:40:00.000Z*

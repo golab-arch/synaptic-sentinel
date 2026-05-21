@@ -6,8 +6,9 @@ import {
   FindingSchema,
   type Finding,
   type ScanOutcome,
+  type ScoutAgent,
 } from '@synaptic-sentinel/core';
-import { BASELINE_RULESET_PATH, OpenGrepScout } from '@synaptic-sentinel/scouts';
+import { BASELINE_RULESET_PATH, GitleaksScout, OpenGrepScout } from '@synaptic-sentinel/scouts';
 import { buildTomo, renderTomoJson } from '@synaptic-sentinel/reporters';
 
 /** Version reportada en los tomos exportados. */
@@ -19,30 +20,40 @@ export interface ScanCommandOptions {
   readonly path: string;
   /** Ruta explicita al binario de OpenGrep, si se provee. */
   readonly opengrepBin?: string;
+  /** Ruta explicita al binario de Gitleaks, si se provee. */
+  readonly gitleaksBin?: string;
   /** Ruta donde exportar el tomo en JSON, si se provee. */
   readonly exportPath?: string;
 }
 
+/** Nombre del ejecutable de un scanner segun la plataforma actual. */
+export function platformBinary(base: string): string {
+  return process.platform === 'win32' ? `${base}.exe` : base;
+}
+
 /**
- * Resuelve la ruta del binario de OpenGrep.
+ * Resuelve la ruta del binario de un scanner.
  *
- * Orden de resolucion: ruta explicita -> variable de entorno
- * `SENTINEL_OPENGREP_BIN` -> cache `.scanners/opengrep/<version>/` bajo
- * `searchRoot`. Devuelve `undefined` si no se encuentra.
+ * Orden de resolucion: ruta explicita -> variable de entorno `envVar` ->
+ * cache `.scanners/<scanner>/<version>/<binaryName>` bajo `searchRoot`
+ * (se elige la version mas alta lexicograficamente). Devuelve `undefined`
+ * si no se encuentra.
  */
-export function resolveOpenGrepBinary(
+export function resolveScannerBinary(
+  scanner: string,
+  binaryName: string,
+  envVar: string,
   explicit?: string,
   searchRoot: string = process.cwd(),
 ): string | undefined {
   if (explicit !== undefined && explicit.length > 0) return explicit;
-  const fromEnv = process.env['SENTINEL_OPENGREP_BIN'];
+  const fromEnv = process.env[envVar];
   if (fromEnv !== undefined && fromEnv.length > 0) return fromEnv;
 
-  const opengrepDir = join(searchRoot, '.scanners', 'opengrep');
-  if (!existsSync(opengrepDir)) return undefined;
-  const binaryName = process.platform === 'win32' ? 'opengrep.exe' : 'opengrep';
-  for (const version of readdirSync(opengrepDir).sort().reverse()) {
-    const candidate = join(opengrepDir, version, binaryName);
+  const scannerDir = join(searchRoot, '.scanners', scanner);
+  if (!existsSync(scannerDir)) return undefined;
+  for (const version of readdirSync(scannerDir).sort().reverse()) {
+    const candidate = join(scannerDir, version, binaryName);
     if (existsSync(candidate)) return candidate;
   }
   return undefined;
@@ -72,17 +83,55 @@ export function formatOutcome(outcome: ScanOutcome, findings: readonly Finding[]
 }
 
 /**
- * Ejecuta el comando `scan`: corre el Coordinator sobre `path`, persiste los
- * hallazgos en `colony.db`, imprime el resultado y -si se pidio- exporta el
- * tomo en JSON. Devuelve el codigo de salida del proceso.
+ * Construye los scouts disponibles para una corrida de `scan`.
+ *
+ * Solo se incluye un scout si su binario se resuelve: un scanner ausente se
+ * omite en silencio para que la CLI siga siendo util con instalacion parcial.
+ */
+export function buildScouts(options: ScanCommandOptions): ScoutAgent[] {
+  const scouts: ScoutAgent[] = [];
+
+  const opengrepBin = resolveScannerBinary(
+    'opengrep',
+    platformBinary('opengrep'),
+    'SENTINEL_OPENGREP_BIN',
+    options.opengrepBin,
+  );
+  if (opengrepBin !== undefined) {
+    scouts.push(
+      new OpenGrepScout({
+        binaryPath: opengrepBin,
+        configArgs: ['--config', BASELINE_RULESET_PATH],
+      }),
+    );
+  }
+
+  const gitleaksBin = resolveScannerBinary(
+    'gitleaks',
+    platformBinary('gitleaks'),
+    'SENTINEL_GITLEAKS_BIN',
+    options.gitleaksBin,
+  );
+  if (gitleaksBin !== undefined) {
+    scouts.push(new GitleaksScout({ binaryPath: gitleaksBin }));
+  }
+
+  return scouts;
+}
+
+/**
+ * Ejecuta el comando `scan`: corre el Coordinator sobre `path` con todos los
+ * scouts disponibles (OpenGrep + Gitleaks), persiste los hallazgos en
+ * `colony.db`, imprime el resultado y -si se pidio- exporta el tomo en JSON.
+ * Devuelve el codigo de salida del proceso.
  */
 export async function runScanCommand(options: ScanCommandOptions): Promise<number> {
   const projectRoot = resolve(options.path);
-  const binaryPath = resolveOpenGrepBinary(options.opengrepBin);
-  if (binaryPath === undefined) {
+  const scouts = buildScouts(options);
+  if (scouts.length === 0) {
     console.error(
-      'OpenGrep no encontrado. Instala los scanners con "pnpm scanners:install" ' +
-        'o indica la ruta con --opengrep-bin.',
+      'No se encontro ningun scanner. Instala los scanners con "pnpm scanners:install" ' +
+        'o indica las rutas con --opengrep-bin / --gitleaks-bin.',
     );
     return 1;
   }
@@ -91,12 +140,11 @@ export async function runScanCommand(options: ScanCommandOptions): Promise<numbe
   mkdirSync(dbDir, { recursive: true });
   const db = ColonyDb.open(join(dbDir, 'colony.db'));
   try {
-    const scout = new OpenGrepScout({
-      binaryPath,
-      configArgs: ['--config', BASELINE_RULESET_PATH],
-    });
-    const coordinator = new Coordinator(db, [scout]);
-    console.log(`Escaneando ${projectRoot} ...`);
+    const coordinator = new Coordinator(db, scouts);
+    console.log(
+      `Escaneando ${projectRoot} con ${String(scouts.length)} scout(s): ` +
+        `${scouts.map((scout) => scout.id).join(', ')} ...`,
+    );
     const outcome = await coordinator.runScan({ rootPath: projectRoot, mode: 'full' });
     const findings = db
       .getPheromonesByScan(outcome.scanId)

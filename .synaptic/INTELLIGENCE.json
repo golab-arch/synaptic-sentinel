@@ -4,7 +4,7 @@
     "fullName": "Synaptic Sentinel",
     "description": "Toolkit OSS de auditoria agentica de seguridad + capa premium LLM, vibe-coding-native, para la era del codigo generado por IA. Tercer producto de la familia Synaptic.",
     "currentPhase": "scout-layer",
-    "overallProgress": "Cycles 1-11 CERRADOS. PASO 4 + colony.db + Coordinator + CLI + reporters. install-scanners ahora soporta comprimidos; Gitleaks v8.30.1 instalable (DG-017 A.1). 74 tests verdes. Cycle 12 abierto: GitleaksScout (A.2)."
+    "overallProgress": "Cycles 1-12 CERRADOS. PASO 4 + colony.db + Coordinator + CLI + reporters + install-scanners con comprimidos. GitleaksScout operativo de punta a punta (DG-018 B): el CLI scan corre OpenGrep Y Gitleaks; cobertura de secrets validada con el binario real. 86 tests verdes."
   },
   "decisions": [
     { "id": "DG-001", "title": "Estructura fisica del monorepo OSS/Pro", "selected": "B", "date": "2026-05-20", "summary": "Monorepo unico con workspaces marcados OSS/Pro + publish-oss.ts allowlist", "rationale": "Velocidad solo founder; refactors triviales; anti-filtracion en un script auditable" },
@@ -24,6 +24,7 @@
     { "id": "DG-015", "title": "Proximo paso del roadmap (CLI)", "selected": "A", "date": "2026-05-21", "summary": "CLI synaptic-sentinel scan", "rationale": "Convierte el pipeline interno en algo invocable por una persona; integra core+scouts+colony" },
     { "id": "DG-016", "title": "Proximo paso del roadmap (reporters)", "selected": "B", "date": "2026-05-21", "summary": "Paquete reporters - modelo del tomo + export JSON con firma SHA-256", "rationale": "Cierra scan -> artefacto entregable; en el camino critico de la definicion de Done del MVP (8.1)" },
     { "id": "DG-017", "title": "Proximo paso del roadmap (GitleaksScout)", "selected": "A", "date": "2026-05-21", "summary": "GitleaksScout en 2 increments: A.1 install-scanners + comprimidos, A.2 el scout", "rationale": "Cobertura de secrets, riesgo bajo; Gitleaks ships archivos -> A.1 agrega extraccion" },
+    { "id": "DG-018", "title": "Enfoque del GitleaksScout (DG-017 A.2)", "selected": "B", "date": "2026-05-21", "summary": "GitleaksScout completo de punta a punta + fixture con secreto + test de integracion + wiring en el CLI", "rationale": "Deja la cobertura de secrets operativa y validada contra el binario real; runProcess extraido a modulo compartido evita duplicacion" },
     { "id": "Q1", "title": "Package manager", "selected": "pnpm workspaces", "date": "2026-05-20", "summary": "pnpm v10.33.0", "rationale": "Ya instalado; preferencia v0.4 9.5; simple sin overhead" }
   ],
   "roadmap": [
@@ -56,12 +57,11 @@
     }
   ],
   "implementationState": {
-    "lastCompletedTask": "Cycle 11 CERRADO: DG-017 A.1 - install-scanners soporta assets comprimidos (extraccion via tar); Gitleaks v8.30.1 instalable y verificado. 74 tests verdes; commiteado.",
-    "currentTask": "Cycle 12 / DG-017 A.2 - GitleaksScout. DG-018 abierto: enfoque del increment.",
+    "lastCompletedTask": "Cycle 12 CERRADO: DG-018 B - GitleaksScout de punta a punta (scout categoria Secrets con --redact + normalizer + fixture con secreto + test de integracion con Gitleaks real + wiring en el CLI). runProcess extraido a modulo compartido. El CLI scan corre OpenGrep Y Gitleaks; verificado contra binarios reales. 86 tests verdes; commiteado.",
+    "currentTask": "Cycle 13 abierto. DG-019 a presentar: proximo paso del roadmap.",
     "pendingTasks": [
-      "Resolver DG-018 - enfoque del GitleaksScout",
-      "A.2 - GitleaksScout: implementa ScoutAgent (categoria Secrets) + normalizer Gitleaks->Finding + fixtures + tests + wiring en el CLI",
-      "Roadmap restante MVP: Trivy/Checkov, stage 2 (dedup), BYOK, findings inline (VSCode), tomo HTML"
+      "Resolver DG-019 - proximo paso del roadmap",
+      "Roadmap restante MVP: Coordinator stage 2 (dedup + fp_known), wrappers Trivy/Checkov, brain layer (Triage Agent), findings inline en la extension VSCode, tomo HTML, BYOK + SecretStorage"
     ],
     "blockers": []
   },
@@ -76,5 +76,5 @@
     "git commit es 100% local y NO requiere token de GitHub; el push futuro (diferido por DG-002 A) usara gh ya autenticado como golab-arch",
     "Observacion: Python 3.14 vs Checkov; better-sqlite3 ABI con Electron; exactOptionalPropertyTypes estricto"
   ],
-  "lastUpdated": "2026-05-21T12:25:00.000Z"
+  "lastUpdated": "2026-05-21T12:40:00.000Z"
 }

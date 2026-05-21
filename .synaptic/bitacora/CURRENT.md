@@ -6,11 +6,11 @@
 
 ## Current Cycle
 
-- **Cycle:** 12 — DG-017 A.2 (`GitleaksScout`)
+- **Cycle:** 13 — pendiente DG-019 (próximo paso del roadmap)
 - **Phase:** 5
-- **Status:** Gitleaks instalable (A.1); awaiting DG-018 (enfoque de A.2)
+- **Status:** Cycle 12 CERRADO; awaiting DG-019
 - **Compliance:** 100%
-- **Synaptic Strength:** 16
+- **Synaptic Strength:** 17
 
 ## Cycles cerrados
 
@@ -24,21 +24,23 @@
 - **Cycle 8** — `Coordinator` stage 1 + refactor — `ed0e427` ✅ → **DG-012 B COMPLETO**
 - **Cycle 9** — CLI `synaptic-sentinel scan` — `8d957a2` ✅
 - **Cycle 10** — `reporters`: tomo + export JSON — `004a41e` ✅
-- **Cycle 11** — `install-scanners` + comprimidos; Gitleaks instalable (DG-017 A.1) ✅
+- **Cycle 11** — `install-scanners` + comprimidos; Gitleaks instalable (DG-017 A.1) — `6d7cf71` ✅
+- **Cycle 12** — `GitleaksScout` de punta a punta (DG-018 B) ✅ → **cobertura de secrets operativa**
 
 ## Estado del repo
 
-- 11 commits en `main` · 7 paquetes pnpm
-- Scout (OpenGrep) + `colony.db` + `Coordinator` + CLI + `reporters` (tomo JSON)
+- 12 commits en `main` · 7 paquetes pnpm
+- Scouts (OpenGrep SAST + Gitleaks Secrets) + `colony.db` + `Coordinator` + CLI + `reporters` (tomo JSON)
+- El CLI `scan` corre OpenGrep **y** Gitleaks; Gitleaks con `--redact` (el secreto no se persiste)
 - OpenGrep v1.22.0 y Gitleaks v8.30.1 instalables vía `install-scanners`
-- `build` / `typecheck` / `lint` / `test` (74/74) verdes
+- `build` / `typecheck` / `lint` / `test` (86/86) verdes
 
 ## Decision Gate abierto
 
-- DG-018 — enfoque del `GitleaksScout` (DG-017 A.2)
+- DG-019 — próximo paso del roadmap (a presentar)
 
 ## Last Entry
 
-Entry #18 — FEATURE_IMPLEMENTED (DG-017 A.1) — 2026-05-21 — SUCCESS
+Entry #19 — FEATURE_IMPLEMENTED (DG-018 B) — 2026-05-21 — SUCCESS
 
 ---

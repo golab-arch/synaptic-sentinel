@@ -3,16 +3,37 @@ import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
-import { resolveOpenGrepBinary, formatOutcome } from '../src/commands/scan.js';
+import {
+  buildScouts,
+  formatOutcome,
+  platformBinary,
+  resolveScannerBinary,
+} from '../src/commands/scan.js';
 
-describe('resolveOpenGrepBinary', () => {
+describe('platformBinary', () => {
+  it('agrega .exe en win32 y deja el nombre crudo en el resto', () => {
+    const expected = process.platform === 'win32' ? 'gitleaks.exe' : 'gitleaks';
+    expect(platformBinary('gitleaks')).toBe(expected);
+  });
+});
+
+describe('resolveScannerBinary', () => {
   it('devuelve la ruta explicita cuando se provee', () => {
-    expect(resolveOpenGrepBinary('/ruta/explicita/opengrep')).toBe('/ruta/explicita/opengrep');
+    expect(
+      resolveScannerBinary(
+        'opengrep',
+        'opengrep',
+        'SENTINEL_OPENGREP_BIN',
+        '/ruta/explicita/opengrep',
+      ),
+    ).toBe('/ruta/explicita/opengrep');
   });
 
   it('devuelve undefined si no existe una cache .scanners/', () => {
     const root = join(tmpdir(), `cli-noscan-${randomUUID()}`);
-    expect(resolveOpenGrepBinary(undefined, root)).toBeUndefined();
+    expect(
+      resolveScannerBinary('gitleaks', 'gitleaks', 'SENTINEL_GITLEAKS_BIN', undefined, root),
+    ).toBeUndefined();
   });
 
   describe('busqueda en la cache .scanners/', () => {
@@ -21,13 +42,37 @@ describe('resolveOpenGrepBinary', () => {
       rmSync(root, { recursive: true, force: true });
     });
 
-    it('encuentra el binario instalado bajo .scanners/opengrep/<version>/', () => {
-      const binaryName = process.platform === 'win32' ? 'opengrep.exe' : 'opengrep';
-      const versionDir = join(root, '.scanners', 'opengrep', 'v1.22.0');
+    it('encuentra el binario instalado bajo .scanners/<scanner>/<version>/', () => {
+      const versionDir = join(root, '.scanners', 'gitleaks', 'v8.30.1');
       mkdirSync(versionDir, { recursive: true });
-      writeFileSync(join(versionDir, binaryName), 'binario falso');
-      expect(resolveOpenGrepBinary(undefined, root)).toBe(join(versionDir, binaryName));
+      writeFileSync(join(versionDir, 'gitleaks'), 'binario falso');
+      expect(
+        resolveScannerBinary('gitleaks', 'gitleaks', 'SENTINEL_GITLEAKS_BIN', undefined, root),
+      ).toBe(join(versionDir, 'gitleaks'));
     });
+
+    it('elige la version mas alta cuando hay varias instaladas', () => {
+      const binaryName = 'opengrep';
+      for (const version of ['v1.20.0', 'v1.22.0', 'v1.21.0']) {
+        const versionDir = join(root, '.scanners', 'opengrep', version);
+        mkdirSync(versionDir, { recursive: true });
+        writeFileSync(join(versionDir, binaryName), 'binario falso');
+      }
+      expect(
+        resolveScannerBinary('opengrep', binaryName, 'SENTINEL_OPENGREP_BIN', undefined, root),
+      ).toBe(join(root, '.scanners', 'opengrep', 'v1.22.0', binaryName));
+    });
+  });
+});
+
+describe('buildScouts', () => {
+  it('construye OpenGrep y Gitleaks cuando se dan ambas rutas explicitas', () => {
+    const scouts = buildScouts({
+      path: '.',
+      opengrepBin: '/x/opengrep',
+      gitleaksBin: '/x/gitleaks',
+    });
+    expect(scouts.map((scout) => scout.id).sort()).toEqual(['gitleaks', 'opengrep']);
   });
 });
 

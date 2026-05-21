@@ -1,0 +1,18 @@
+[
+  {
+    "RuleID": "generic-api-key",
+    "Description": "Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+    "StartLine": 1,
+    "EndLine": 1,
+    "StartColumn": 10,
+    "EndColumn": 40,
+    "Match": "awsKey = \"REDACTED\"",
+    "Secret": "REDACTED",
+    "File": "d:/tmp/gitleaks-probe/config.js",
+    "SymlinkFile": "",
+    "Commit": "",
+    "Entropy": 4.121928,
+    "Tags": [],
+    "Fingerprint": "d:/tmp/gitleaks-probe/config.js:generic-api-key:1"
+  }
+]
