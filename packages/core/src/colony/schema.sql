@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS meta (
   key   TEXT PRIMARY KEY,
   value TEXT NOT NULL
 );
-INSERT OR IGNORE INTO meta (key, value) VALUES ('schema_version', '2');
+INSERT OR IGNORE INTO meta (key, value) VALUES ('schema_version', '3');
 
 CREATE TABLE IF NOT EXISTS scans (
   id            TEXT PRIMARY KEY,
@@ -63,3 +63,18 @@ CREATE TABLE IF NOT EXISTS triage_verdicts (
 );
 CREATE INDEX IF NOT EXISTS idx_triage_fingerprint ON triage_verdicts(fingerprint);
 CREATE INDEX IF NOT EXISTS idx_triage_scan        ON triage_verdicts(scan_id);
+
+-- Explicaciones de contexto del Brain Layer (schema v3 — tabla aditiva).
+CREATE TABLE IF NOT EXISTS context_explanations (
+  id          TEXT PRIMARY KEY,
+  scan_id     TEXT NOT NULL REFERENCES scans(id),
+  fingerprint TEXT NOT NULL,               -- Finding.fingerprint
+  summary     TEXT NOT NULL,
+  entry_point TEXT NOT NULL,
+  sink        TEXT NOT NULL,
+  exposure    TEXT NOT NULL,
+  agent_id    TEXT NOT NULL,               -- trazabilidad (OWASP ASI 2026)
+  created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_context_fingerprint ON context_explanations(fingerprint);
+CREATE INDEX IF NOT EXISTS idx_context_scan        ON context_explanations(scan_id);

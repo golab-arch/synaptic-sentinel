@@ -30,7 +30,7 @@ function makePheromone(
 describe('ColonyDb (base en memoria)', () => {
   it('aplica el schema y expone la version', () => {
     const db = ColonyDb.open(':memory:');
-    expect(db.getSchemaVersion()).toBe('2');
+    expect(db.getSchemaVersion()).toBe('3');
     db.close();
   });
 
@@ -205,6 +205,57 @@ describe('ColonyDb - triage verdicts (schema v2)', () => {
     expect(verdicts).toHaveLength(1);
     expect(verdicts[0]?.fingerprint).toBe('fp-a');
     expect(verdicts[0]?.rationale).toBe('motivo a');
+    db.close();
+  });
+});
+
+describe('ColonyDb - context explanations (schema v3)', () => {
+  /** Construye una explicacion de contexto valida de base. */
+  function makeExplanation(
+    scanId: string,
+    overrides: Record<string, unknown> = {},
+  ): Record<string, unknown> {
+    return {
+      id: randomUUID(),
+      scanId,
+      fingerprint: 'fp-1',
+      summary: 'eval sobre entrada del usuario',
+      entryPoint: 'req.query.expr',
+      sink: 'eval()',
+      exposure: 'ejecucion de codigo arbitrario',
+      agentId: 'context',
+      createdAt: new Date().toISOString(),
+      ...overrides,
+    };
+  }
+
+  it('inserta explicaciones de contexto y las recupera', () => {
+    const db = ColonyDb.open(':memory:');
+    const scan = makeScan();
+    db.insertScan(scan);
+    db.insertContextExplanations([
+      makeExplanation(String(scan['id']), { fingerprint: 'fp-a', sink: 'exec()' }),
+    ]);
+    const explanations = db.getContextExplanations();
+    expect(explanations).toHaveLength(1);
+    expect(explanations[0]?.fingerprint).toBe('fp-a');
+    expect(explanations[0]?.sink).toBe('exec()');
+    db.close();
+  });
+
+  it('getContextExplanations es vacio sin explicaciones', () => {
+    const db = ColonyDb.open(':memory:');
+    expect(db.getContextExplanations()).toHaveLength(0);
+    db.close();
+  });
+
+  it('rechaza una explicacion con un campo vacio (validacion zod)', () => {
+    const db = ColonyDb.open(':memory:');
+    const scan = makeScan();
+    db.insertScan(scan);
+    expect(() =>
+      db.insertContextExplanations([makeExplanation(String(scan['id']), { sink: '' })]),
+    ).toThrow();
     db.close();
   });
 });

@@ -53,6 +53,9 @@ const STYLE = `
   .triage-tp { background: #7c1d1d; }
   .triage-fp { background: #1f7a3d; }
   .triage-inc { background: #6b7280; }
+  .context { margin: 0.45rem 0 0; font-size: 0.82rem; color: #3a3f4a;
+    background: #eef0f3; border-radius: 4px; padding: 0.5rem 0.7rem; }
+  .context ul { margin: 0.3rem 0 0; padding-left: 1.1rem; }
   table { border-collapse: collapse; width: 100%; font-size: 0.88rem; }
   th, td { text-align: left; padding: 0.4rem 0.6rem; border-bottom: 1px solid #e0e2e6; }
   th { color: #5a5f6a; font-weight: 600; }
@@ -99,6 +102,20 @@ function renderTriage(finding: TomoFinding): string {
   );
 }
 
+/** Renderiza la explicacion de contexto de un hallazgo, si fue explicado. */
+function renderContext(finding: TomoFinding): string {
+  const context = finding.context;
+  if (context === undefined) return '';
+  return `<div class="context">
+      <strong>Contexto:</strong> ${escapeHtml(context.summary)}
+      <ul>
+        <li><strong>Entrada:</strong> ${escapeHtml(context.entryPoint)}</li>
+        <li><strong>Sink:</strong> ${escapeHtml(context.sink)}</li>
+        <li><strong>Exposicion:</strong> ${escapeHtml(context.exposure)}</li>
+      </ul>
+    </div>`;
+}
+
 /** Renderiza un hallazgo como una tarjeta. */
 function renderFinding(finding: TomoFinding): string {
   const loc = `${finding.location.path}:${String(finding.location.startLine)}`;
@@ -121,6 +138,7 @@ function renderFinding(finding: TomoFinding): string {
       <div class="finding-loc">${escapeHtml(loc)} · ${escapeHtml(finding.scoutId)}</div>
       <p class="finding-msg">${escapeHtml(finding.message)}</p>
       ${renderTriage(finding)}
+      ${renderContext(finding)}
       ${refs}
     </article>`;
 }

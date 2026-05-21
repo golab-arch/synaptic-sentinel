@@ -810,7 +810,35 @@ Each entry follows this structure:
 }
 ```
 
+### Entry #30 - DG-029 (A): wire del Context Agent al pipeline
+```json
+{
+  "timestamp": "2026-05-21T18:00:00.000Z",
+  "cycle": 22,
+  "phase": 7,
+  "action": "FEATURE_IMPLEMENTED",
+  "details": {
+    "DG-029": {
+      "title": "Proximo paso del roadmap",
+      "selected": "Option A",
+      "effect": "Wire del Context Agent: el comando triage corre el Context Agent sobre los true positives; las explicaciones se persisten (schema v3) y se surfacean en el tomo (JSON + HTML)."
+    },
+    "files": "core/types/context.ts (ContextExplanationRecordSchema). schema.sql (tabla context_explanations, schema v3 - cambio aditivo). colony-db.ts (insertContextExplanations, getContextExplanations; open() sincroniza v3). cli/commands/triage.ts (corre el Context Agent sobre los TP del triage, persiste). reporters/tomo.ts (buildTomo refactorizado: el 4.o parametro pasa de un array a un objeto TomoEnrichment {triageVerdicts?, contextExplanations?}; TomoFinding gana context; join por fingerprint). reporters/html-reporter.ts (renderContext). cli/scan.ts (pasa contextExplanations a buildTomo).",
+    "design": "El Context Agent corre solo sobre los verdaderos positivos del triage (v0.4 §3.6 stage 4). Un fallo de contexto no descarta el veredicto de triage (catch interno). buildTomo pasa a un objeto enrichment - extensible para futuros agentes sin mas parametros posicionales. Schema v3: tabla dedicada, cambio aditivo (cero riesgo de migracion, igual que v2).",
+    "verification_real": "7 tests nuevos. End-to-end: scan -> triage corre triage+context (1 veredicto, 1 explicacion persistidos) -> scan --export: el tomo JSON lleva findings[].context (sink + exposure) y findings[].triage; el HTML muestra 'Contexto:' y la cadena entrada/sink/exposicion.",
+    "verification_gap": "La llamada REAL a Anthropic (triage+context con API key) no se verifica aqui. Tests de integracion gated, omitidos (2 skipped).",
+    "tests": "7 nuevos (colony-db context 3, core ContextExplanationRecord 2, tomo context 1, html-reporter context 1) - total 187 verdes + 2 skipped",
+    "checks": "build / typecheck / lint / test - todos en verde",
+    "housekeeping": ".claude/ (directorio de la herramienta) agregado a .gitignore.",
+    "commit": "commit atomico feat(core,cli,reporters) incluye codigo, tests y este registro"
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 27,
+  "complianceScore": 100
+}
+```
+
 ---
 
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-21T17:30:00.000Z*
+*Last Updated: 2026-05-21T18:00:00.000Z*

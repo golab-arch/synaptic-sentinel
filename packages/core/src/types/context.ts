@@ -24,3 +24,20 @@ export const ContextExplanationSchema = z.object({
 
 /** Explicacion contextualizada de un hallazgo. */
 export type ContextExplanation = z.infer<typeof ContextExplanationSchema>;
+
+/** Explicacion de contexto persistida en la colony DB, con su trazabilidad. */
+export const ContextExplanationRecordSchema = ContextExplanationSchema.extend({
+  /** Identificador unico del registro (UUID). */
+  id: z.string().uuid(),
+  /** Scan al que pertenece el hallazgo explicado. */
+  scanId: z.string().min(1),
+  /** Huella estable del hallazgo explicado (`Finding.fingerprint`). */
+  fingerprint: z.string().min(1),
+  /** Agente que emitio la explicacion — trazabilidad (OWASP ASI 2026). */
+  agentId: z.string().min(1),
+  /** Marca temporal de creacion (ISO-8601). */
+  createdAt: z.string().datetime(),
+});
+
+/** Explicacion de contexto persistida. */
+export type ContextExplanationRecord = z.infer<typeof ContextExplanationRecordSchema>;

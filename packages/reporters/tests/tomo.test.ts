@@ -78,11 +78,36 @@ describe('buildTomo', () => {
       makeOutcome('scan-1'),
       [finding],
       { rootPath: '/p', sentinelVersion: '0.0.0' },
-      [verdict],
+      { triageVerdicts: [verdict] },
     );
     expect(tomo.findings[0]?.triage?.classification).toBe('false_positive');
     expect(tomo.findings[0]?.triage?.rationale).toContain('no hay riesgo real');
     expect(tomo.summary.byTriage['false_positive']).toBe(1);
+  });
+
+  it('adjunta la explicacion de contexto al hallazgo con fingerprint coincidente', () => {
+    const finding = makeFinding('high', 'SAST');
+    finding['fingerprint'] = 'fp-ctx';
+    const explanation = {
+      id: randomUUID(),
+      scanId: 'scan-1',
+      fingerprint: 'fp-ctx',
+      summary: 'eval sobre entrada del usuario',
+      entryPoint: 'req.query.expr',
+      sink: 'eval()',
+      exposure: 'ejecucion de codigo arbitrario',
+      agentId: 'context',
+      createdAt: '2026-05-21T00:00:00.000Z',
+    };
+    const tomo = buildTomo(
+      makeOutcome('scan-1'),
+      [finding],
+      { rootPath: '/p', sentinelVersion: '0.0.0' },
+      { contextExplanations: [explanation] },
+    );
+    expect(tomo.findings[0]?.context?.sink).toBe('eval()');
+    expect(tomo.findings[0]?.context?.exposure).toContain('codigo arbitrario');
+    expect(tomo.findings[0]?.triage).toBeUndefined();
   });
 
   it('deja sin triage los hallazgos sin veredicto', () => {

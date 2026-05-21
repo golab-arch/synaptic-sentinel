@@ -1,9 +1,11 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import {
+  ContextExplanationSchema,
   FindingSchema,
   ScoutStatusSchema,
   TriageVerdictSchema,
+  type ContextExplanationRecord,
   type Finding,
   type ScanOutcome,
   type TriageVerdictRecord,
@@ -51,11 +53,13 @@ const TomoMethodologySchema = z.object({
 });
 
 /**
- * Hallazgo del tomo: el `Finding` determinista mas el veredicto de triage
- * del Brain Layer, presente solo si el hallazgo fue triado.
+ * Hallazgo del tomo: el `Finding` determinista mas el enriquecimiento del
+ * Brain Layer — el veredicto de triage y la explicacion de contexto, cada
+ * uno presente solo si el agente correspondiente proceso el hallazgo.
  */
 export const TomoFindingSchema = FindingSchema.extend({
   triage: TriageVerdictSchema.optional(),
+  context: ContextExplanationSchema.optional(),
 });
 
 /** Hallazgo del tomo (Finding + triage opcional). */
@@ -110,24 +114,36 @@ export interface TomoMetadataInput {
   readonly gitSha?: string;
 }
 
+/** Enriquecimiento del Brain Layer con que se construye el tomo. */
+export interface TomoEnrichment {
+  /** Veredictos de triage a unir con los hallazgos por `fingerprint`. */
+  readonly triageVerdicts?: readonly TriageVerdictRecord[];
+  /** Explicaciones de contexto a unir con los hallazgos por `fingerprint`. */
+  readonly contextExplanations?: readonly ContextExplanationRecord[];
+}
+
 /**
  * Construye un tomo a partir del resultado de un scan y sus hallazgos.
  *
- * Si se pasan `triageVerdicts`, cada hallazgo se enriquece con su veredicto
- * de triage (join por `fingerprint`; el veredicto mas reciente gana). El
- * resumen es determinista (conteos); incluye una firma SHA-256 sobre la
- * forma canonica del cuerpo, como evidencia de no-manipulacion.
+ * Si se pasa `enrichment`, cada hallazgo se une por `fingerprint` con su
+ * veredicto de triage y su explicacion de contexto (el registro mas reciente
+ * gana). El resumen es determinista (conteos); incluye una firma SHA-256
+ * sobre la forma canonica del cuerpo, como evidencia de no-manipulacion.
  */
 export function buildTomo(
   outcome: ScanOutcome,
   findings: readonly Finding[],
   meta: TomoMetadataInput,
-  triageVerdicts: readonly TriageVerdictRecord[] = [],
+  enrichment: TomoEnrichment = {},
 ): Tomo {
-  // Join por fingerprint: el veredicto mas reciente gana (orden de entrada).
+  // Join por fingerprint (el registro mas reciente gana, orden de entrada).
   const triageByFingerprint = new Map<string, TriageVerdictRecord>();
-  for (const verdict of triageVerdicts) {
+  for (const verdict of enrichment.triageVerdicts ?? []) {
     triageByFingerprint.set(verdict.fingerprint, verdict);
+  }
+  const contextByFingerprint = new Map<string, ContextExplanationRecord>();
+  for (const explanation of enrichment.contextExplanations ?? []) {
+    contextByFingerprint.set(explanation.fingerprint, explanation);
   }
 
   const bySeverity: Record<string, number> = {};
@@ -137,15 +153,31 @@ export function buildTomo(
     bySeverity[finding.severity] = (bySeverity[finding.severity] ?? 0) + 1;
     byCategory[finding.category] = (byCategory[finding.category] ?? 0) + 1;
     const verdict = triageByFingerprint.get(finding.fingerprint);
-    if (verdict === undefined) return { ...finding };
-    byTriage[verdict.classification] = (byTriage[verdict.classification] ?? 0) + 1;
+    const explanation = contextByFingerprint.get(finding.fingerprint);
+    if (verdict !== undefined) {
+      byTriage[verdict.classification] = (byTriage[verdict.classification] ?? 0) + 1;
+    }
     return {
       ...finding,
-      triage: {
-        classification: verdict.classification,
-        confidence: verdict.confidence,
-        rationale: verdict.rationale,
-      },
+      ...(verdict !== undefined
+        ? {
+            triage: {
+              classification: verdict.classification,
+              confidence: verdict.confidence,
+              rationale: verdict.rationale,
+            },
+          }
+        : {}),
+      ...(explanation !== undefined
+        ? {
+            context: {
+              summary: explanation.summary,
+              entryPoint: explanation.entryPoint,
+              sink: explanation.sink,
+              exposure: explanation.exposure,
+            },
+          }
+        : {}),
     };
   });
 

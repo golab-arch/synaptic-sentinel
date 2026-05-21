@@ -32,6 +32,7 @@
 | DG-026 | Próximo paso del roadmap | **Option A** — surface del triage en el tomo (cada hallazgo lleva su veredicto; `byTriage` en el resumen) | 2026-05-21 | Los veredictos se persistían pero eran invisibles fuera de la consola; surfacearlos en el deliverable (tomo JSON+HTML) completa el valor del Brain Layer |
 | DG-027 | Próximo paso del roadmap | **Option B** — triage en la extensión VSCode: BYOK vía `SecretStorage` + comando de triage + veredictos en los diagnostics | 2026-05-21 | El producto es VSCode-primary y el triage solo era alcanzable por CLI; el v0.4 §487 incluye "BYOK configurable vía VSCode SecretStorage" en la definición de "Done" del MVP |
 | DG-028 | Próximo paso del roadmap | **Option B** — Context Agent: 2.º agente del Brain Layer (explicación contextualizada de los true positives) | 2026-05-21 | El Brain Layer con un solo agente era delgado; el Context Agent reutiliza el contrato `BrainAgent` ya de-riskeado (DG-024) y profundiza el diferenciador premium |
+| DG-029 | Próximo paso del roadmap | **Option A** — wire del Context Agent: el comando `triage` lo corre sobre los TP; explicaciones persistidas (schema v3) y surfaceadas en el tomo | 2026-05-21 | El Context Agent estaba construido sin consumidor; el wiring completa DG-028 reutilizando los patrones probados de DG-025 y DG-026 |
 | Q1 | Package manager / tooling de monorepo | **pnpm workspaces** (v10.33.0) | 2026-05-20 | Ya instalado; preferencia v0.4 §9.5; sin overhead |
 
 **Discovery cerrado. Scaffolding generado, verificado y commiteado** (`f0b5202`, 54 archivos). **Cycle 2 CERRADO.** Siguiente: PASO 4 — Scout Layer.
@@ -77,6 +78,7 @@
 - 2026-05-21 — Cycle 19: surface del triage en el tomo (DG-026 A) — `TomoFinding` = `Finding` + `triage` opcional; `buildTomo` hace join por `fingerprint` con los veredictos de `colony.db`; el resumen gana `byTriage` y el HTML muestra el veredicto por hallazgo. El tomo pasa de "hallazgos crudos" a "hallazgos triados". 165 tests verdes + 1 skipped.
 - 2026-05-21 — Cycle 20: triage en la extensión VSCode (DG-027 B) — comandos `Triage Findings` y `Set Anthropic API Key`; **BYOK vía `vscode.SecretStorage`** (key cifrada por el SO, pasada al child process por entorno, nunca por argumentos); los veredictos se anotan en los diagnostics del IDE. El Brain Layer es alcanzable desde la superficie primaria. 171 tests verdes + 1 skipped.
 - 2026-05-21 — Cycle 21: Context Agent (DG-028 B) — 2.º agente del Brain Layer: `ContextAgent` (`BrainAgent<Finding, ContextExplanation>`) explica la cadena de explotabilidad (entrada → sink → exposición) de un hallazgo confirmado. `ContextExplanation` en `core`; `extractJsonObject` reubicado a `brain-agent.ts` (util compartido). Sin wiring al pipeline aún. 180 tests verdes + 2 skipped.
+- 2026-05-21 — Cycle 22: wire del Context Agent (DG-029 A) — el comando `triage` corre el Context Agent sobre los true positives; las explicaciones se persisten (**schema v3**, tabla `context_explanations`) y se surfacean en el tomo (JSON + HTML). `buildTomo` refactorizado a un objeto `TomoEnrichment` (extensible para futuros agentes). 187 tests verdes + 2 skipped.
 
 ---
 

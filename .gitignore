@@ -27,3 +27,6 @@ coverage/
 # Sistema operativo / editor
 .DS_Store
 Thumbs.db
+
+# Directorio de herramienta (Claude Code) — no es del proyecto
+.claude/

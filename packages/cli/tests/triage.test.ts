@@ -7,12 +7,17 @@ import { ColonyDb, buildFpKnownPheromone } from '@synaptic-sentinel/core';
 import type { LlmClient } from '@synaptic-sentinel/agents';
 import { runTriageCommand } from '../src/commands/triage.js';
 
-/** LlmClient falso: devuelve siempre un veredicto JSON valido. */
+/**
+ * LlmClient falso: responde segun el agente que pregunta. El Context Agent
+ * pide la "cadena de explotabilidad" en su system prompt; el Triage no.
+ */
 function fakeLlm(): LlmClient {
   return {
-    complete: () =>
+    complete: (request) =>
       Promise.resolve(
-        '{"classification":"true_positive","confidence":0.8,"rationale":"motivo de prueba"}',
+        request.system.includes('cadena de explotabilidad')
+          ? '{"summary":"s","entryPoint":"e","sink":"k","exposure":"x"}'
+          : '{"classification":"true_positive","confidence":0.8,"rationale":"motivo de prueba"}',
       ),
   };
 }
@@ -70,6 +75,8 @@ describe('runTriageCommand', () => {
 
     const db = openDb(root);
     expect([...db.getTriagedFingerprints()].sort()).toEqual(['fp-1', 'fp-2']);
+    // Ambos hallazgos clasificados true_positive => el Context Agent corrio.
+    expect(db.getContextExplanations()).toHaveLength(2);
     db.close();
   });
 
@@ -86,8 +93,10 @@ describe('runTriageCommand', () => {
     const countingLlm: LlmClient = {
       complete: () => {
         calls += 1;
+        // Veredicto false_positive: no dispara el Context Agent, asi el
+        // contador refleja solo las llamadas de triage.
         return Promise.resolve(
-          '{"classification":"true_positive","confidence":0.5,"rationale":"r"}',
+          '{"classification":"false_positive","confidence":0.5,"rationale":"r"}',
         );
       },
     };
@@ -108,8 +117,10 @@ describe('runTriageCommand', () => {
     const countingLlm: LlmClient = {
       complete: () => {
         calls += 1;
+        // Veredicto false_positive: no dispara el Context Agent, asi el
+        // contador refleja solo las llamadas de triage.
         return Promise.resolve(
-          '{"classification":"true_positive","confidence":0.5,"rationale":"r"}',
+          '{"classification":"false_positive","confidence":0.5,"rationale":"r"}',
         );
       },
     };

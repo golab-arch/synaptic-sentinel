@@ -2,9 +2,11 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { DatabaseSync } from 'node:sqlite';
 import {
+  ContextExplanationRecordSchema,
   PheromoneSchema,
   ScanSchema,
   TriageVerdictRecordSchema,
+  type ContextExplanationRecord,
   type Pheromone,
   type PheromoneType,
   type Scan,
@@ -63,6 +65,22 @@ function rowToTriageVerdict(row: unknown): TriageVerdictRecord {
   });
 }
 
+/** Convierte una fila de `context_explanations` en un registro validado. */
+function rowToContextExplanation(row: unknown): ContextExplanationRecord {
+  const r = row as Record<string, unknown>;
+  return ContextExplanationRecordSchema.parse({
+    id: r['id'],
+    scanId: r['scan_id'],
+    fingerprint: r['fingerprint'],
+    summary: r['summary'],
+    entryPoint: r['entry_point'],
+    sink: r['sink'],
+    exposure: r['exposure'],
+    agentId: r['agent_id'],
+    createdAt: r['created_at'],
+  });
+}
+
 /**
  * Memoria compartida del enjambre — wrapper de la colony DB (SQLite local).
  *
@@ -88,10 +106,10 @@ export class ColonyDb {
   static open(path: string): ColonyDb {
     const db = new DatabaseSync(path);
     db.exec(readFileSync(SCHEMA_PATH, 'utf8'));
-    // Migracion aditiva a schema v2: la tabla `triage_verdicts` se crea via
-    // CREATE TABLE IF NOT EXISTS (en el schema, sin reconstruir tablas); aqui
-    // se sincroniza la version registrada para una base v1 preexistente.
-    db.exec("UPDATE meta SET value = '2' WHERE key = 'schema_version'");
+    // Migraciones aditivas (v2: triage_verdicts, v3: context_explanations):
+    // las tablas se crean via CREATE TABLE IF NOT EXISTS en el schema, sin
+    // reconstruir nada; aqui se sincroniza la version de una base preexistente.
+    db.exec("UPDATE meta SET value = '3' WHERE key = 'schema_version'");
     return new ColonyDb(db);
   }
 
@@ -284,6 +302,45 @@ export class ColonyDb {
       .prepare('SELECT * FROM triage_verdicts ORDER BY created_at')
       .all()
       .map(rowToTriageVerdict);
+  }
+
+  /** Inserta un lote de explicaciones de contexto en una unica transaccion. */
+  insertContextExplanations(records: readonly ContextExplanationRecord[]): void {
+    if (records.length === 0) return;
+    const stmt = this.#db.prepare(
+      'INSERT INTO context_explanations ' +
+        '(id, scan_id, fingerprint, summary, entry_point, sink, exposure, agent_id, created_at) ' +
+        'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    );
+    this.#db.exec('BEGIN');
+    try {
+      for (const raw of records) {
+        const r = ContextExplanationRecordSchema.parse(raw);
+        stmt.run(
+          r.id,
+          r.scanId,
+          r.fingerprint,
+          r.summary,
+          r.entryPoint,
+          r.sink,
+          r.exposure,
+          r.agentId,
+          r.createdAt,
+        );
+      }
+      this.#db.exec('COMMIT');
+    } catch (err) {
+      this.#db.exec('ROLLBACK');
+      throw err;
+    }
+  }
+
+  /** Todas las explicaciones de contexto, ordenadas por fecha de creacion. */
+  getContextExplanations(): ContextExplanationRecord[] {
+    return this.#db
+      .prepare('SELECT * FROM context_explanations ORDER BY created_at')
+      .all()
+      .map(rowToContextExplanation);
   }
 
   /** Cierra la conexion con la base de datos. */

@@ -1,9 +1,15 @@
 import { existsSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
 import { join, resolve } from 'node:path';
-import { ColonyDb, FindingSchema, type TriageVerdictRecord } from '@synaptic-sentinel/core';
+import {
+  ColonyDb,
+  FindingSchema,
+  type ContextExplanationRecord,
+  type TriageVerdictRecord,
+} from '@synaptic-sentinel/core';
 import {
   AnthropicLlmClient,
+  ContextAgent,
   runAgent,
   TriageAgent,
   type LlmClient,
@@ -26,8 +32,10 @@ export interface TriageCommandOptions {
 }
 
 /**
- * Ejecuta el comando `triage`: corre el Triage Agent sobre los hallazgos del
- * ultimo scan y persiste los veredictos en `colony.db`.
+ * Ejecuta el comando `triage`: corre el Brain Layer sobre los hallazgos del
+ * ultimo scan. El Triage Agent clasifica cada hallazgo; el Context Agent
+ * explica la cadena de explotabilidad de los verdaderos positivos. Veredictos
+ * y explicaciones se persisten en `colony.db`.
  *
  * Economia de tokens (v0.4 §187): salta los hallazgos ya descartados como
  * falso positivo (`fp_known`) y los ya triados. BYOK: la API key la provee
@@ -88,19 +96,21 @@ export async function runTriageCommand(options: TriageCommandOptions): Promise<n
       console.log(`  (limitado a ${String(limit)}; usa --limit para ampliar)`);
     }
 
-    const agent = new TriageAgent();
-    const records: TriageVerdictRecord[] = [];
+    const triageAgent = new TriageAgent();
+    const contextAgent = new ContextAgent();
+    const verdicts: TriageVerdictRecord[] = [];
+    const explanations: ContextExplanationRecord[] = [];
     for (const finding of toTriage) {
       try {
-        const verdict = await runAgent(agent, finding, llm);
-        records.push({
+        const verdict = await runAgent(triageAgent, finding, llm);
+        verdicts.push({
           id: randomUUID(),
           scanId,
           fingerprint: finding.fingerprint,
           classification: verdict.classification,
           confidence: verdict.confidence,
           rationale: verdict.rationale,
-          agentId: agent.id,
+          agentId: triageAgent.id,
           createdAt: new Date().toISOString(),
         });
         console.log(
@@ -108,6 +118,28 @@ export async function runTriageCommand(options: TriageCommandOptions): Promise<n
             `— ${finding.location.path}:${String(finding.location.startLine)} ` +
             `(confianza ${verdict.confidence.toFixed(2)})`,
         );
+        // Stage 4 — Context: solo sobre los verdaderos positivos (v0.4 §3.6).
+        if (verdict.classification === 'true_positive') {
+          try {
+            const explanation = await runAgent(contextAgent, finding, llm);
+            explanations.push({
+              id: randomUUID(),
+              scanId,
+              fingerprint: finding.fingerprint,
+              summary: explanation.summary,
+              entryPoint: explanation.entryPoint,
+              sink: explanation.sink,
+              exposure: explanation.exposure,
+              agentId: contextAgent.id,
+              createdAt: new Date().toISOString(),
+            });
+            console.log(`      contexto: ${explanation.summary}`);
+          } catch (err) {
+            // Un fallo de contexto no descarta el veredicto de triage.
+            const message = err instanceof Error ? err.message : String(err);
+            console.error(`      ! fallo el contexto de "${finding.title}": ${message}`);
+          }
+        }
       } catch (err) {
         // Un fallo de triage no aborta la corrida (degraded > failed).
         const message = err instanceof Error ? err.message : String(err);
@@ -115,8 +147,12 @@ export async function runTriageCommand(options: TriageCommandOptions): Promise<n
       }
     }
 
-    db.insertTriageVerdicts(records);
-    console.log(`Veredictos de triage persistidos: ${String(records.length)}.`);
+    db.insertTriageVerdicts(verdicts);
+    db.insertContextExplanations(explanations);
+    console.log(
+      `Veredictos de triage persistidos: ${String(verdicts.length)}; ` +
+        `explicaciones de contexto: ${String(explanations.length)}.`,
+    );
     return 0;
   } finally {
     db.close();

@@ -90,9 +90,32 @@ describe('renderTomoHtml', () => {
       agentId: 'triage',
       createdAt: '2026-05-21T00:00:00.000Z',
     };
-    const html = renderTomoHtml(buildTomo(makeOutcome(), [finding], meta, [verdict]));
+    const html = renderTomoHtml(
+      buildTomo(makeOutcome(), [finding], meta, { triageVerdicts: [verdict] }),
+    );
     expect(html).toContain('Triage: falso positivo');
     expect(html).toContain('no es explotable en este contexto');
     expect(html).toContain('Por triage');
+  });
+
+  it('renderiza la explicacion de contexto cuando el hallazgo fue explicado', () => {
+    const finding = makeFinding({ fingerprint: 'fp-c' });
+    const explanation = {
+      id: randomUUID(),
+      scanId: 'scan-1',
+      fingerprint: 'fp-c',
+      summary: 'eval sobre entrada del usuario',
+      entryPoint: 'el parametro req.query.expr',
+      sink: 'la llamada a eval()',
+      exposure: 'ejecucion de codigo arbitrario',
+      agentId: 'context',
+      createdAt: '2026-05-21T00:00:00.000Z',
+    };
+    const html = renderTomoHtml(
+      buildTomo(makeOutcome(), [finding], meta, { contextExplanations: [explanation] }),
+    );
+    expect(html).toContain('Contexto:');
+    expect(html).toContain('el parametro req.query.expr');
+    expect(html).toContain('ejecucion de codigo arbitrario');
   });
 });
