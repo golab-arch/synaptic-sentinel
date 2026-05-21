@@ -1,34 +1,17 @@
-import { z } from 'zod';
-import type { Finding } from '@synaptic-sentinel/core';
+import {
+  TRIAGE_CLASSIFICATIONS,
+  TriageClassificationSchema,
+  TriageVerdictSchema,
+  type Finding,
+  type TriageClassification,
+  type TriageVerdict,
+} from '@synaptic-sentinel/core';
 import type { AgentPrompt, BrainAgent } from './brain-agent.js';
 
-/** Clasificaciones de triage de un hallazgo (v0.4 §3.6: TP / FP / inconcluso). */
-export const TRIAGE_CLASSIFICATIONS = [
-  'true_positive',
-  'false_positive',
-  'inconclusive',
-] as const;
-
-/** Schema de validacion de la clasificacion. */
-export const TriageClassificationSchema = z.enum(TRIAGE_CLASSIFICATIONS);
-
-/** Clasificacion de triage de un hallazgo. */
-export type TriageClassification = z.infer<typeof TriageClassificationSchema>;
-
-/**
- * Veredicto del Triage Agent sobre un hallazgo.
- *
- * La respuesta del LLM es entrada no confiable: se valida con este schema
- * antes de usarse (defensa en profundidad contra Memory Poisoning, v0.4 §9.6).
- */
-export const TriageVerdictSchema = z.object({
-  classification: TriageClassificationSchema,
-  confidence: z.number().min(0).max(1),
-  rationale: z.string().min(1),
-});
-
-/** Veredicto del Triage Agent. */
-export type TriageVerdict = z.infer<typeof TriageVerdictSchema>;
+// Los tipos de triage viven en core (se persisten en la colony DB); se
+// reexportan para mantener estable el API de @synaptic-sentinel/agents.
+export { TRIAGE_CLASSIFICATIONS, TriageClassificationSchema, TriageVerdictSchema };
+export type { TriageClassification, TriageVerdict };
 
 /** Instruccion de sistema del Triage Agent. */
 const SYSTEM_PROMPT = `Eres un analista senior de seguridad de aplicaciones (AppSec).

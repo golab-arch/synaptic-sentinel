@@ -700,7 +700,35 @@ Each entry follows this structure:
 }
 ```
 
+### Entry #26 - DG-025 (A): Brain Layer increment 2 (comando CLI triage)
+```json
+{
+  "timestamp": "2026-05-21T16:00:00.000Z",
+  "cycle": 18,
+  "phase": 7,
+  "action": "FEATURE_IMPLEMENTED",
+  "details": {
+    "DG-025": {
+      "title": "Proximo paso del roadmap",
+      "selected": "Option A",
+      "effect": "Brain Layer increment 2: comando CLI triage - corre el Triage Agent sobre los hallazgos del ultimo scan (BYOK), pheromone-aware, y persiste los veredictos en colony.db."
+    },
+    "design_decision": "Persistencia de veredictos en una tabla dedicada triage_verdicts (schema v2). Cambio ADITIVO via CREATE TABLE IF NOT EXISTS - cero riesgo de migracion. Se descarto agregar un tipo de feromona 'triage' porque exigiria reconstruir el CHECK de la tabla pheromones (SQLite no permite ALTER de un CHECK). Pequena desviacion informada del v0.4 linea 215 (pheromone[triage_result]).",
+    "files": "core/types/triage.ts (NUEVO - TriageVerdict/TriageVerdictRecord schemas; movidos desde agents porque se persisten en colony.db). schema.sql (tabla triage_verdicts + indices, schema_version 2). colony-db.ts (open() sincroniza la version; insertTriageVerdicts, getTriagedFingerprints, getLatestScanId). agents/triage-agent.ts (importa los tipos de triage desde core y los reexporta; zod removido de agents). cli/commands/triage.ts (NUEVO - runTriageCommand con LlmClient inyectable). cli/index.ts (dispatch triage + --limit). El paquete cli ahora depende de agents (Pro); el split OSS/Pro en publish lo maneja publish-oss.ts (DG-001).",
+    "token_economy": "Pheromone-aware (v0.4 §187): salta los hallazgos con fp_known y los ya triados. Limite por defecto de 25 hallazgos por corrida (proteccion de costo/tokens), ampliable con --limit.",
+    "verification_real": "16 tests con un LlmClient falso (flujo completo: lee findings, salta fp_known/ya-triados, corre el agente, persiste). End-to-end: scan crea colony.db v2; migracion v1->v2 verificada (base degradada a v1 y reabierta -> v2 + tabla recreada); triage sin ANTHROPIC_API_KEY -> error limpio + exit 1.",
+    "verification_gap": "La llamada REAL a la API de Anthropic (triage con una API key valida) no se verifica aqui - no hay ANTHROPIC_API_KEY en el entorno.",
+    "tests": "16 nuevos (core/types/triage 7, colony-db triage 4, cli/triage 5) - total 161 verdes + 1 skipped",
+    "checks": "build / typecheck / lint / test - todos en verde",
+    "commit": "commit atomico feat(cli,core,agents) incluye codigo, tests y este registro"
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 23,
+  "complianceScore": 100
+}
+```
+
 ---
 
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-21T15:30:00.000Z*
+*Last Updated: 2026-05-21T16:00:00.000Z*

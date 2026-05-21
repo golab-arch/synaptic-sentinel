@@ -13,6 +13,7 @@ export default defineConfig({
       '@synaptic-sentinel/scouts': workspaceSrc('scouts'),
       '@synaptic-sentinel/reporters': workspaceSrc('reporters'),
       '@synaptic-sentinel/shared': workspaceSrc('shared'),
+      '@synaptic-sentinel/agents': workspaceSrc('agents'),
     },
   },
   test: {

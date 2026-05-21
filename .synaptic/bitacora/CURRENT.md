@@ -6,11 +6,11 @@
 
 ## Current Cycle
 
-- **Cycle:** 18 — pendiente DG-025 (próximo paso del roadmap)
+- **Cycle:** 19 — pendiente DG-026 (próximo paso del roadmap)
 - **Phase:** 7 — Brain Layer
-- **Status:** Cycle 17 CERRADO; awaiting DG-025
+- **Status:** Cycle 18 CERRADO; awaiting DG-026
 - **Compliance:** 100%
-- **Synaptic Strength:** 22
+- **Synaptic Strength:** 23
 
 ## Cycles cerrados
 
@@ -23,23 +23,24 @@
 - **Cycle 14** — extensión VSCode MVP, spawn-CLI (DG-020 B / DG-021 A) — `d84dbdf` ✅
 - **Cycle 15** — cierre del lazo Inline UX: `mark-fp` + Code Action (DG-022 B) — `da9d923` ✅
 - **Cycle 16** — reporter HTML del tomo + `suppressedCount` (DG-023 A) — `535d718` ✅
-- **Cycle 17** — Brain Layer increment 1: paquete `agents` + Triage Agent (DG-024 B) ✅
+- **Cycle 17** — Brain Layer increment 1: paquete `agents` + Triage Agent (DG-024 B) — `77f420a` ✅
+- **Cycle 18** — Brain Layer increment 2: comando CLI `triage` (DG-025 A) ✅
 
 ## Estado del repo
 
-- 17 commits en `main` · 7 paquetes pnpm
-- Motor determinista: scouts (OpenGrep SAST + Gitleaks Secrets) + `colony.db` + `Coordinator` (stages 1 y 2) + CLI + `reporters`
-- CLI: `synaptic-sentinel scan` (`--export` JSON, `--export-html` HTML) y `mark-fp`
+- 18 commits en `main` · 7 paquetes pnpm
+- Motor determinista: scouts (OpenGrep SAST + Gitleaks Secrets) + `colony.db` (schema v2) + `Coordinator` (stages 1 y 2) + `reporters`
+- CLI: `synaptic-sentinel scan` (`--export` / `--export-html`), `mark-fp` y `triage` (Brain Layer, BYOK)
 - Extensión VSCode: comando `Scan Workspace` → diagnostics inline + Code Action "marcar falso positivo" + status bar
-- **Brain Layer (Pro)**: paquete `agents` — contrato `BrainAgent`, `LlmClient`, `AnthropicLlmClient` (BYOK), Triage Agent
-- `build` (tsc -b + esbuild) / `typecheck` / `lint` / `test` (145/145 + 1 skipped) verdes
+- **Brain Layer (Pro)**: paquete `agents` + comando `triage` operativo end-to-end (corre el Triage Agent, persiste veredictos en `triage_verdicts`)
+- `build` (tsc -b + esbuild) / `typecheck` / `lint` / `test` (161/161 + 1 skipped) verdes
 
 ## Decision Gate abierto
 
-- DG-025 — próximo paso del roadmap (a presentar)
+- DG-026 — próximo paso del roadmap (a presentar)
 
 ## Last Entry
 
-Entry #25 — FEATURE_IMPLEMENTED (DG-024 B) — 2026-05-21 — SUCCESS
+Entry #26 — FEATURE_IMPLEMENTED (DG-025 A) — 2026-05-21 — SUCCESS
 
 ---

@@ -12,6 +12,7 @@
   },
   "files": ["dist"],
   "dependencies": {
+    "@synaptic-sentinel/agents": "workspace:*",
     "@synaptic-sentinel/core": "workspace:*",
     "@synaptic-sentinel/reporters": "workspace:*",
     "@synaptic-sentinel/scouts": "workspace:*",

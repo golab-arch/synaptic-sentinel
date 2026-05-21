@@ -4,9 +4,11 @@ import { DatabaseSync } from 'node:sqlite';
 import {
   PheromoneSchema,
   ScanSchema,
+  TriageVerdictRecordSchema,
   type Pheromone,
   type PheromoneType,
   type Scan,
+  type TriageVerdictRecord,
 } from '../types/index.js';
 
 /**
@@ -71,6 +73,10 @@ export class ColonyDb {
   static open(path: string): ColonyDb {
     const db = new DatabaseSync(path);
     db.exec(readFileSync(SCHEMA_PATH, 'utf8'));
+    // Migracion aditiva a schema v2: la tabla `triage_verdicts` se crea via
+    // CREATE TABLE IF NOT EXISTS (en el schema, sin reconstruir tablas); aqui
+    // se sincroniza la version registrada para una base v1 preexistente.
+    db.exec("UPDATE meta SET value = '2' WHERE key = 'schema_version'");
     return new ColonyDb(db);
   }
 
@@ -199,6 +205,62 @@ export class ColonyDb {
             .prepare('SELECT * FROM pheromones WHERE target_path = ? AND type = ?')
             .all(targetPath, type);
     return rows.map(rowToPheromone);
+  }
+
+  /** Id del scan mas reciente, o `undefined` si no hay ninguno. */
+  getLatestScanId(): string | undefined {
+    const row = this.#db
+      .prepare('SELECT id FROM scans ORDER BY started_at DESC LIMIT 1')
+      .get();
+    return row ? String((row as { id: unknown }).id) : undefined;
+  }
+
+  /** Inserta un lote de veredictos de triage en una unica transaccion. */
+  insertTriageVerdicts(records: readonly TriageVerdictRecord[]): void {
+    if (records.length === 0) return;
+    const stmt = this.#db.prepare(
+      'INSERT INTO triage_verdicts ' +
+        '(id, scan_id, fingerprint, classification, confidence, rationale, agent_id, created_at) ' +
+        'VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+    );
+    this.#db.exec('BEGIN');
+    try {
+      for (const raw of records) {
+        const r = TriageVerdictRecordSchema.parse(raw);
+        stmt.run(
+          r.id,
+          r.scanId,
+          r.fingerprint,
+          r.classification,
+          r.confidence,
+          r.rationale,
+          r.agentId,
+          r.createdAt,
+        );
+      }
+      this.#db.exec('COMMIT');
+    } catch (err) {
+      this.#db.exec('ROLLBACK');
+      throw err;
+    }
+  }
+
+  /**
+   * Fingerprints de los hallazgos que ya tienen un veredicto de triage.
+   *
+   * Habilita la economia de tokens (v0.4 §187): el comando `triage` no
+   * vuelve a gastar tokens en hallazgos ya triados.
+   */
+  getTriagedFingerprints(): Set<string> {
+    const rows = this.#db
+      .prepare('SELECT DISTINCT fingerprint FROM triage_verdicts')
+      .all();
+    const fingerprints = new Set<string>();
+    for (const row of rows) {
+      const value = (row as { fingerprint: unknown }).fingerprint;
+      if (typeof value === 'string' && value.length > 0) fingerprints.add(value);
+    }
+    return fingerprints;
   }
 
   /** Cierra la conexion con la base de datos. */

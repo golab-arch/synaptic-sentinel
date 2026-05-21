@@ -30,7 +30,7 @@ function makePheromone(
 describe('ColonyDb (base en memoria)', () => {
   it('aplica el schema y expone la version', () => {
     const db = ColonyDb.open(':memory:');
-    expect(db.getSchemaVersion()).toBe('1');
+    expect(db.getSchemaVersion()).toBe('2');
     db.close();
   });
 
@@ -131,6 +131,66 @@ describe('ColonyDb.getKnownFingerprints', () => {
     // payload sin `fingerprint` (forma valida de un Pheromone, payload libre).
     db.insertPheromone(makePheromone(String(scan['id']), { payload: { findingId: 'f-1' } }));
     expect(db.getKnownFingerprints('finding').size).toBe(0);
+    db.close();
+  });
+});
+
+describe('ColonyDb - triage verdicts (schema v2)', () => {
+  /** Construye un veredicto de triage valido de base. */
+  function makeVerdict(
+    scanId: string,
+    overrides: Record<string, unknown> = {},
+  ): Record<string, unknown> {
+    return {
+      id: randomUUID(),
+      scanId,
+      fingerprint: 'fp-1',
+      classification: 'true_positive',
+      confidence: 0.9,
+      rationale: 'riesgo real',
+      agentId: 'triage',
+      createdAt: new Date().toISOString(),
+      ...overrides,
+    };
+  }
+
+  it('inserta veredictos de triage y expone sus fingerprints', () => {
+    const db = ColonyDb.open(':memory:');
+    const scan = makeScan();
+    db.insertScan(scan);
+    const scanId = String(scan['id']);
+    db.insertTriageVerdicts([
+      makeVerdict(scanId, { fingerprint: 'fp-a' }),
+      makeVerdict(scanId, { fingerprint: 'fp-b', classification: 'false_positive' }),
+    ]);
+    expect([...db.getTriagedFingerprints()].sort()).toEqual(['fp-a', 'fp-b']);
+    db.close();
+  });
+
+  it('getTriagedFingerprints es vacio sin veredictos', () => {
+    const db = ColonyDb.open(':memory:');
+    expect(db.getTriagedFingerprints().size).toBe(0);
+    db.close();
+  });
+
+  it('getLatestScanId devuelve el scan mas reciente', () => {
+    const db = ColonyDb.open(':memory:');
+    expect(db.getLatestScanId()).toBeUndefined();
+    const older = randomUUID();
+    const newer = randomUUID();
+    db.insertScan(makeScan({ id: older, startedAt: '2026-05-21T10:00:00.000Z' }));
+    db.insertScan(makeScan({ id: newer, startedAt: '2026-05-21T12:00:00.000Z' }));
+    expect(db.getLatestScanId()).toBe(newer);
+    db.close();
+  });
+
+  it('rechaza un veredicto con confianza fuera de rango (validacion zod)', () => {
+    const db = ColonyDb.open(':memory:');
+    const scan = makeScan();
+    db.insertScan(scan);
+    expect(() =>
+      db.insertTriageVerdicts([makeVerdict(String(scan['id']), { confidence: 5 })]),
+    ).toThrow();
     db.close();
   });
 });

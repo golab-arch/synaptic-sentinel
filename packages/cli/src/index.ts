@@ -7,6 +7,7 @@
 import { parseArgs } from 'node:util';
 import { runScanCommand } from './commands/scan.js';
 import { runMarkFpCommand } from './commands/mark-fp.js';
+import { runTriageCommand } from './commands/triage.js';
 
 const USAGE = `Synaptic Sentinel — CLI
 
@@ -15,10 +16,12 @@ Uso:
                          [--gitleaks-bin <ruta>] [--export <archivo>]
                          [--export-html <archivo>]
   synaptic-sentinel mark-fp --fingerprint <fp> [--path <dir>] [--reason <texto>]
+  synaptic-sentinel triage [--path <dir>] [--limit <n>]
 
 Comandos:
   scan       Escanea un proyecto y persiste los hallazgos en colony.db
   mark-fp    Marca un hallazgo como falso positivo (lo suprime en scans futuros)
+  triage     Tria los hallazgos del ultimo scan con el Brain Layer (BYOK)
 
 Opciones:
   --path <dir>           Directorio del proyecto (por defecto: el directorio actual)
@@ -28,7 +31,10 @@ Opciones:
   --export-html <arch.>  Exporta el tomo del scan en HTML al archivo indicado
   --fingerprint <fp>     Huella del hallazgo a marcar (comando mark-fp)
   --reason <texto>       Motivo del descarte (comando mark-fp)
+  --limit <n>            Tope de hallazgos a triar (comando triage; por defecto 25)
   -h, --help             Muestra esta ayuda
+
+El comando triage requiere la variable de entorno ANTHROPIC_API_KEY (BYOK).
 `;
 
 async function main(): Promise<void> {
@@ -42,6 +48,7 @@ async function main(): Promise<void> {
       'export-html': { type: 'string' },
       fingerprint: { type: 'string' },
       reason: { type: 'string' },
+      limit: { type: 'string' },
       help: { type: 'boolean', short: 'h' },
     },
   });
@@ -75,6 +82,23 @@ async function main(): Promise<void> {
       path: values.path ?? process.cwd(),
       fingerprint,
       ...(values.reason !== undefined ? { reason: values.reason } : {}),
+    });
+    return;
+  }
+
+  if (command === 'triage') {
+    let limit: number | undefined;
+    if (values.limit !== undefined) {
+      limit = Number.parseInt(values.limit, 10);
+      if (!Number.isInteger(limit) || limit < 0) {
+        console.error('--limit debe ser un entero no negativo.\n');
+        process.exitCode = 1;
+        return;
+      }
+    }
+    process.exitCode = await runTriageCommand({
+      path: values.path ?? process.cwd(),
+      ...(limit !== undefined ? { limit } : {}),
     });
     return;
   }

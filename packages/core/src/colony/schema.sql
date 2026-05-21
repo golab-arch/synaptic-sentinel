@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS meta (
   key   TEXT PRIMARY KEY,
   value TEXT NOT NULL
 );
-INSERT OR IGNORE INTO meta (key, value) VALUES ('schema_version', '1');
+INSERT OR IGNORE INTO meta (key, value) VALUES ('schema_version', '2');
 
 CREATE TABLE IF NOT EXISTS scans (
   id            TEXT PRIMARY KEY,
@@ -46,3 +46,20 @@ CREATE TABLE IF NOT EXISTS learning_records (
   evidence_count    INTEGER NOT NULL DEFAULT 1 CHECK (evidence_count >= 0),
   last_seen_scan    TEXT REFERENCES scans(id)
 );
+
+-- Veredictos de triage del Brain Layer (schema v2 — tabla aditiva).
+-- Cada veredicto es un registro estructurado, no una feromona del enjambre.
+CREATE TABLE IF NOT EXISTS triage_verdicts (
+  id             TEXT PRIMARY KEY,
+  scan_id        TEXT NOT NULL REFERENCES scans(id),
+  fingerprint    TEXT NOT NULL,               -- Finding.fingerprint
+  -- CHECK enum: defensa en profundidad anti Memory Poisoning (v0.4 9.6).
+  classification TEXT NOT NULL CHECK (classification IN
+                   ('true_positive', 'false_positive', 'inconclusive')),
+  confidence     REAL NOT NULL CHECK (confidence BETWEEN 0.0 AND 1.0),
+  rationale      TEXT NOT NULL,
+  agent_id       TEXT NOT NULL,               -- trazabilidad (OWASP ASI 2026)
+  created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_triage_fingerprint ON triage_verdicts(fingerprint);
+CREATE INDEX IF NOT EXISTS idx_triage_scan        ON triage_verdicts(scan_id);

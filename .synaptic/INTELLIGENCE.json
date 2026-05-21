@@ -4,7 +4,7 @@
     "fullName": "Synaptic Sentinel",
     "description": "Toolkit OSS de auditoria agentica de seguridad + capa premium LLM, vibe-coding-native, para la era del codigo generado por IA. Tercer producto de la familia Synaptic.",
     "currentPhase": "brain-layer",
-    "overallProgress": "Cycles 1-17 CERRADOS. Mitad OSS determinista completa (scouts, Coordinator stages 1-2, CLI, reporters JSON+HTML, extension VSCode). Brain Layer increment 1 (DG-024 B): paquete agents - contrato BrainAgent (prompt + parser), frontera LlmClient, AnthropicLlmClient (BYOK) y un Triage Agent minimo. 145 tests verdes + 1 skipped."
+    "overallProgress": "Cycles 1-18 CERRADOS. Mitad OSS determinista completa (scouts, Coordinator stages 1-2, CLI, reporters JSON+HTML, extension VSCode). Brain Layer operativo end-to-end (DG-024 B + DG-025 A): paquete agents + comando CLI triage que corre el Triage Agent sobre los hallazgos (BYOK), salta fp_known/ya-triados y persiste los veredictos en colony.db (schema v2). 161 tests verdes + 1 skipped."
   },
   "decisions": [
     { "id": "DG-001", "title": "Estructura fisica del monorepo OSS/Pro", "selected": "B", "date": "2026-05-20", "summary": "Monorepo unico con workspaces marcados OSS/Pro + publish-oss.ts allowlist", "rationale": "Velocidad solo founder; refactors triviales; anti-filtracion en un script auditable" },
@@ -31,6 +31,7 @@
     { "id": "DG-022", "title": "Proximo paso del roadmap (cierre del lazo Inline UX)", "selected": "B", "date": "2026-05-21", "summary": "Comando CLI mark-fp + Code Action 'marcar falso positivo' en la extension + status bar", "rationale": "DG-019 dejo el consumo de fp_known sin via de creacion; B cierra ese lazo end-to-end (cierra FI-007) y redondea la experiencia en el IDE" },
     { "id": "DG-023", "title": "Proximo paso del roadmap (tomo HTML)", "selected": "A", "date": "2026-05-21", "summary": "Reporter HTML del tomo (auditoria legible y compartible) + suppressedCount en el resumen (FI-006)", "rationale": "El tomo es el deliverable del producto pero solo existia en JSON; HTML lo vuelve un informe real, cerrando la mitad OSS antes del Brain Layer" },
     { "id": "DG-024", "title": "Proximo paso del roadmap (Brain Layer increment 1)", "selected": "B", "date": "2026-05-21", "summary": "Paquete agents: contrato BrainAgent + frontera LlmClient + AnthropicLlmClient (BYOK) + Triage Agent minimo", "rationale": "El Brain Layer es el diferenciador premium; el increment 1 lo arranca con cimientos verificables (logica pura testeada, llamada LLM real gated por API key) - de-riskea el wiring posterior" },
+    { "id": "DG-025", "title": "Proximo paso del roadmap (Brain Layer increment 2 - comando triage)", "selected": "A", "date": "2026-05-21", "summary": "Comando CLI triage: corre el Triage Agent sobre los hallazgos del ultimo scan (BYOK), pheromone-aware, persiste veredictos en una tabla triage_verdicts (schema v2 aditivo)", "rationale": "El paquete agents era una libreria sin consumidor; el wiring lo vuelve usable end-to-end. Tabla dedicada en vez de tipo de feromona: cambio aditivo, cero riesgo de migracion" },
     { "id": "Q1", "title": "Package manager", "selected": "pnpm workspaces", "date": "2026-05-20", "summary": "pnpm v10.33.0", "rationale": "Ya instalado; preferencia v0.4 9.5; simple sin overhead" }
   ],
   "roadmap": [
@@ -69,12 +70,12 @@
     }
   ],
   "implementationState": {
-    "lastCompletedTask": "Cycle 17 CERRADO: DG-024 B - Brain Layer increment 1. Paquete agents: contrato BrainAgent (prompt + parser, no microservicio) + runAgent, frontera LlmClient, AnthropicLlmClient (BYOK, cliente fetch propio), Triage Agent minimo (Finding -> TriageVerdict, validado con zod). 22 tests con LLM/fetch falsos. La llamada real a Anthropic es gated por ANTHROPIC_API_KEY (omitida aqui). 145 tests verdes + 1 skipped; commiteado.",
-    "currentTask": "Cycle 18 abierto. DG-025 a presentar: proximo paso del roadmap.",
+    "lastCompletedTask": "Cycle 18 CERRADO: DG-025 A - Brain Layer increment 2. Comando CLI triage: corre el Triage Agent sobre los hallazgos del ultimo scan (BYOK via ANTHROPIC_API_KEY), salta fp_known y ya-triados (economia de tokens), persiste los veredictos en la tabla triage_verdicts (schema v2 aditivo). Los tipos de triage se movieron a core (se persisten en colony.db). 16 tests con LlmClient falso; migracion v1->v2 verificada. 161 tests verdes + 1 skipped; commiteado.",
+    "currentTask": "Cycle 19 abierto. DG-026 a presentar: proximo paso del roadmap.",
     "pendingTasks": [
-      "Resolver DG-025 - proximo paso del roadmap",
-      "Brain Layer increment 2: wiring del Triage Agent al CLI/Coordinator (stage 3) + BYOK desde env var / SecretStorage en la extension",
+      "Resolver DG-026 - proximo paso del roadmap",
       "Verificacion de la llamada LLM real (requiere ANTHROPIC_API_KEY) y de la extension en vivo (F5) - no automatizables aqui",
+      "Surfacing del triage: veredictos en el tomo (JSON/HTML) y en la extension; BYOK via SecretStorage en la extension",
       "FI-008 (.vsix), FI-009 (migracion a @anthropic-ai/sdk), roadmap: Trivy/Checkov, mas agentes del Brain Layer"
     ],
     "blockers": []
@@ -90,5 +91,5 @@
     "git commit es 100% local y NO requiere token de GitHub; el push futuro (diferido por DG-002 A) usara gh ya autenticado como golab-arch",
     "Observacion: Python 3.14 vs Checkov; better-sqlite3 ABI con Electron; exactOptionalPropertyTypes estricto"
   ],
-  "lastUpdated": "2026-05-21T15:30:00.000Z"
+  "lastUpdated": "2026-05-21T16:00:00.000Z"
 }

@@ -44,12 +44,12 @@ importers:
       '@synaptic-sentinel/shared':
         specifier: workspace:*
         version: link:../shared
-      zod:
-        specifier: ^3.24.0
-        version: 3.25.76
 
   packages/cli:
     dependencies:
+      '@synaptic-sentinel/agents':
+        specifier: workspace:*
+        version: link:../agents
       '@synaptic-sentinel/core':
         specifier: workspace:*
         version: link:../core
