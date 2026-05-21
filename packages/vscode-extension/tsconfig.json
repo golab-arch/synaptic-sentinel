@@ -4,11 +4,5 @@
     "outDir": "./dist",
     "rootDir": "./src"
   },
-  "include": ["src/**/*"],
-  "references": [
-    { "path": "../core" },
-    { "path": "../scouts" },
-    { "path": "../reporters" },
-    { "path": "../shared" }
-  ]
+  "include": ["src/**/*"]
 }

@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import {
   buildScouts,
+  findScannersRoot,
   formatOutcome,
   platformBinary,
   resolveScannerBinary,
@@ -62,6 +63,26 @@ describe('resolveScannerBinary', () => {
         resolveScannerBinary('opengrep', binaryName, 'SENTINEL_OPENGREP_BIN', undefined, root),
       ).toBe(join(root, '.scanners', 'opengrep', 'v1.22.0', binaryName));
     });
+  });
+});
+
+describe('findScannersRoot', () => {
+  const root = join(tmpdir(), `cli-scanroot-${randomUUID()}`);
+  afterEach(() => {
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it('encuentra el ancestro que contiene una carpeta .scanners/', () => {
+    const nested = join(root, 'a', 'b', 'c');
+    mkdirSync(join(root, '.scanners'), { recursive: true });
+    mkdirSync(nested, { recursive: true });
+    expect(findScannersRoot(nested)).toBe(root);
+  });
+
+  it('devuelve undefined si ningun ancestro tiene .scanners/', () => {
+    const nested = join(root, 'x', 'y');
+    mkdirSync(nested, { recursive: true });
+    expect(findScannersRoot(nested)).toBeUndefined();
   });
 });
 

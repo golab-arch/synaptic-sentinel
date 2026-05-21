@@ -569,7 +569,54 @@ Each entry follows this structure:
 }
 ```
 
+### Entry #21 - DG-020 (B): descubrimiento tecnico de la extension VSCode
+```json
+{
+  "timestamp": "2026-05-21T13:30:00.000Z",
+  "cycle": 14,
+  "phase": 6,
+  "action": "TECHNICAL_DISCOVERY",
+  "details": {
+    "context": "DG-020 B (extension VSCode MVP) elegido. Descubrimiento tecnico antes de implementar, para no asumir el riesgo node:sqlite del extension host (FI-001) - no optimismo ilusorio.",
+    "findings": "1. Node del sistema v24.11.1 => node:sqlite disponible; la CLI corre standalone sin friccion. 2. packages/vscode-extension es solo scaffolding: src/index.ts es un stub de una linea; package.json con contributes vacio, sin @types/vscode ni bundler. 3. La CLI ya expone 'synaptic-sentinel scan --export <tomo.json>' - un camino de ejecucion completo y reutilizable. 4. La version de Node del extension host NO se pudo confirmar de forma fiable; engines.vscode ^1.95.0 admite hosts con Node 20.x (sin node:sqlite).",
+    "conclusion": "La arquitectura de la extension no debe depender del Node del extension host. Se abre DG-021 - arquitectura de la extension MVP (spawn-CLI vs in-process vs in-process reactivo).",
+    "phase_transition": "Phase 5 -> 6 (Inline UX)."
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 18,
+  "complianceScore": 100
+}
+```
+
+### Entry #22 - DG-021 (A): extension VSCode MVP (arquitectura spawn-CLI)
+```json
+{
+  "timestamp": "2026-05-21T14:00:00.000Z",
+  "cycle": 14,
+  "phase": 6,
+  "action": "FEATURE_IMPLEMENTED",
+  "details": {
+    "DG-021": {
+      "title": "Arquitectura de la extension VSCode MVP",
+      "selected": "Option A",
+      "effect": "Extension VSCode MVP con arquitectura spawn-CLI: la extension lanza la CLI como child process, lee el tomo exportado y pinta los hallazgos como diagnostics inline. Completa el objetivo de DG-020 B."
+    },
+    "files": "packages/vscode-extension: package.json (manifest real - comando synaptic-sentinel.scanWorkspace, setting cliPath, script de bundle esbuild). src/index.ts (activate + comando + render de vscode.Diagnostic; unica capa que toca la API vscode). src/tomo.ts (schema zod minimo del tomo). src/cli-runner.ts (spawn de la CLI, kill-switch via AbortSignal). src/diagnostics.ts (mapeo puro Finding->DiagnosticInput). esbuild bundlea a dist/extension.cjs (CJS, vscode external). Root package.json: build = tsc -b && bundle.",
+    "cli_fix": "Bug real hallado por el test de integracion (no optimismo ilusorio): la CLI resolvia .scanners/ relativo a process.cwd(), asi que al lanzarla con cwd en el proyecto escaneado no encontraba los scanners. Fix en cli/commands/scan.ts: findScannersRoot + resolveScannersSearchRoot suben desde el cwd y desde la propia ubicacion de la CLI.",
+    "decoupling": "Verificado en el bundle: NO contiene node:sqlite ni @synaptic-sentinel/* - la extension es una capa UX delgada; el motor corre en el proceso de la CLI (Node del sistema). Esto neutraliza el riesgo FI-001 del extension host.",
+    "verification_real": "build + lint + 110 tests verdes (94 -> 110, +16). Test de integracion: runCliScan lanza la CLI real contra un probe vulnerable y devuelve findings parseados -> DiagnosticInput. Bundle: 130KB, CJS valido, require('vscode') external.",
+    "verification_gap": "La conducta en vivo del extension host (activate/comando/render de diagnostics) NO se verifica de forma automatizada: requiere ejecutar la extension en un Extension Development Host (F5). El codigo glue se valida por compilacion + bundle.",
+    "tests": "16 nuevos (vscode-extension: tomo 4, diagnostics 7, cli-runner 2 + 1 integracion; cli findScannersRoot 2) - total 110 verdes",
+    "checks": "build / typecheck / lint / test - todos en verde",
+    "commit": "commit atomico feat(vscode-extension,cli) incluye codigo, tests y este registro"
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 19,
+  "complianceScore": 100
+}
+```
+
 ---
 
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-21T13:05:00.000Z*
+*Last Updated: 2026-05-21T14:00:00.000Z*

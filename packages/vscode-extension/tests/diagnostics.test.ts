@@ -1,0 +1,83 @@
+import { describe, it, expect } from 'vitest';
+import {
+  diagnosticLevelForSeverity,
+  findingToDiagnosticInput,
+  groupDiagnosticsByPath,
+} from '../src/diagnostics.js';
+import type { ExtensionFinding } from '../src/tomo.js';
+
+/** Construye un ExtensionFinding valido de base. */
+function makeFinding(overrides: Partial<ExtensionFinding> = {}): ExtensionFinding {
+  return {
+    severity: 'high',
+    category: 'SAST',
+    ruleId: 'rule-x',
+    title: 'rule-x',
+    message: 'Hallazgo de prueba',
+    location: { path: 'src/a.js', startLine: 4 },
+    lifecycleState: 'new',
+    ...overrides,
+  };
+}
+
+describe('diagnosticLevelForSeverity', () => {
+  it('mapea critical/high a error, medium a warning, low/info a info', () => {
+    expect(diagnosticLevelForSeverity('critical')).toBe('error');
+    expect(diagnosticLevelForSeverity('high')).toBe('error');
+    expect(diagnosticLevelForSeverity('medium')).toBe('warning');
+    expect(diagnosticLevelForSeverity('low')).toBe('info');
+    expect(diagnosticLevelForSeverity('info')).toBe('info');
+  });
+
+  it('usa warning para una severidad desconocida', () => {
+    expect(diagnosticLevelForSeverity('xyz')).toBe('warning');
+  });
+});
+
+describe('findingToDiagnosticInput', () => {
+  it('mapea un finding y rellena columnas/lineas ausentes', () => {
+    const input = findingToDiagnosticInput(makeFinding());
+    expect(input.path).toBe('src/a.js');
+    expect(input.startLine).toBe(4);
+    expect(input.startColumn).toBe(1); // default
+    expect(input.endLine).toBe(4); // = startLine
+    expect(input.endColumn).toBe(1); // = startColumn
+    expect(input.level).toBe('error');
+    expect(input.message).toBe('rule-x: Hallazgo de prueba');
+  });
+
+  it('respeta las columnas/lineas explicitas del finding', () => {
+    const input = findingToDiagnosticInput(
+      makeFinding({
+        location: { path: 'b.ts', startLine: 2, endLine: 5, startColumn: 3, endColumn: 9 },
+      }),
+    );
+    expect(input.startLine).toBe(2);
+    expect(input.endLine).toBe(5);
+    expect(input.startColumn).toBe(3);
+    expect(input.endColumn).toBe(9);
+  });
+
+  it('anota el ciclo de vida no-new en el mensaje', () => {
+    const input = findingToDiagnosticInput(makeFinding({ lifecycleState: 'known' }));
+    expect(input.message).toBe('rule-x (known): Hallazgo de prueba');
+  });
+});
+
+describe('groupDiagnosticsByPath', () => {
+  it('agrupa los inputs por ruta de archivo', () => {
+    const inputs = [
+      findingToDiagnosticInput(makeFinding({ location: { path: 'a.js', startLine: 1 } })),
+      findingToDiagnosticInput(makeFinding({ location: { path: 'a.js', startLine: 9 } })),
+      findingToDiagnosticInput(makeFinding({ location: { path: 'b.js', startLine: 2 } })),
+    ];
+    const grouped = groupDiagnosticsByPath(inputs);
+    expect(grouped.size).toBe(2);
+    expect(grouped.get('a.js')).toHaveLength(2);
+    expect(grouped.get('b.js')).toHaveLength(1);
+  });
+
+  it('devuelve un mapa vacio para una lista vacia', () => {
+    expect(groupDiagnosticsByPath([]).size).toBe(0);
+  });
+});

@@ -12,12 +12,34 @@
     "node": ">=20"
   },
   "categories": ["Linters", "Other"],
-  "main": "./dist/index.js",
-  "contributes": {},
+  "main": "./dist/extension.cjs",
+  "contributes": {
+    "commands": [
+      {
+        "command": "synaptic-sentinel.scanWorkspace",
+        "title": "Scan Workspace",
+        "category": "Synaptic Sentinel"
+      }
+    ],
+    "configuration": {
+      "title": "Synaptic Sentinel",
+      "properties": {
+        "synaptic-sentinel.cliPath": {
+          "type": "string",
+          "default": "",
+          "description": "Ruta al entry de la CLI (cli/dist/index.js). Vacio = se resuelve junto a la extension."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "bundle": "esbuild src/index.ts --bundle --platform=node --format=cjs --target=node20 --external:vscode --outfile=dist/extension.cjs --sourcemap"
+  },
   "dependencies": {
-    "@synaptic-sentinel/core": "workspace:*",
-    "@synaptic-sentinel/scouts": "workspace:*",
-    "@synaptic-sentinel/reporters": "workspace:*",
-    "@synaptic-sentinel/shared": "workspace:*"
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.95.0",
+    "esbuild": "^0.25.0"
   }
 }

@@ -23,6 +23,8 @@
 | DG-017 | Próximo paso del roadmap | **Option A** — `GitleaksScout` (en 2 increments: A.1 install-scanners + comprimidos, A.2 el scout) | 2026-05-21 | Cobertura de secrets, riesgo bajo (patrón probado); Gitleaks ships archivos → A.1 agrega extracción a `install-scanners` |
 | DG-018 | Enfoque del `GitleaksScout` (DG-017 A.2) | **Option B** — scout completo de punta a punta + fixture con un secreto + test de integración (Gitleaks real) + wiring en el CLI | 2026-05-21 | Cierra la cobertura de secrets dejándola operativa: el `Coordinator` corre OpenGrep **y** Gitleaks, validado contra el binario real |
 | DG-019 | Próximo paso del roadmap | **Option A** — `Coordinator` stage 2: dedup + `fp_known` + `lifecycleState` en re-scans | 2026-05-21 | Endurece el pipeline antes de sumar scouts o brain layer; un re-scan ya no duplica feromonas y respeta los falsos positivos confirmados |
+| DG-020 | Próximo paso del roadmap | **Option B** — extensión VSCode MVP (comando Scan + diagnostics inline) | 2026-05-21 | El producto es VSCode-primary y solo existía como CLI; surfacea el pipeline determinista donde el dev trabaja |
+| DG-021 | Arquitectura de la extensión VSCode MVP | **Option A** — spawn-CLI: la extensión lanza la CLI como child process, lee el tomo y pinta diagnostics | 2026-05-21 | Vuelve irrelevante el Node del extension host (FI-001); la CLI es la única fuente de verdad de ejecución; extensión delgada |
 | Q1 | Package manager / tooling de monorepo | **pnpm workspaces** (v10.33.0) | 2026-05-20 | Ya instalado; preferencia v0.4 §9.5; sin overhead |
 
 **Discovery cerrado. Scaffolding generado, verificado y commiteado** (`f0b5202`, 54 archivos). **Cycle 2 CERRADO.** Siguiente: PASO 4 — Scout Layer.
@@ -60,6 +62,7 @@
 - 2026-05-21 — Cycle 11: `install-scanners` soporta assets comprimidos (extracción via `tar`); Gitleaks v8.30.1 instalable (DG-017 A.1).
 - 2026-05-21 — Cycle 12: `GitleaksScout` de punta a punta (DG-018 B) — wrapper de Gitleaks (categoría Secrets, `--redact`) + normalizer + integración real; `runProcess` extraído a módulo compartido; el CLI `scan` corre OpenGrep **y** Gitleaks. 86 tests verdes. **Cobertura de secrets operativa.**
 - 2026-05-21 — Cycle 13: `Coordinator` stage 2 (DG-019 A) — dedup por `fingerprint`, supresión de falsos positivos confirmados (`fp_known`) y clasificación de ciclo de vida (`new`/`known`) en re-scans. Nuevo contrato `FpKnownPayload` + `buildFpKnownPheromone`; `ColonyDb.getKnownFingerprints`; `ScanOutcome.suppressedCount`. 94 tests verdes.
+- 2026-05-21 — Cycle 14: extensión VSCode MVP (DG-020 B / DG-021 A) — **arquitectura spawn-CLI**: la extensión lanza la CLI como child process, lee el tomo exportado y pinta los hallazgos como diagnostics inline. Capa UX delgada (módulos puros desacoplados de la API `vscode`); bundle `esbuild` → `dist/extension.cjs`, **sin `node:sqlite`** en el extension host. Fix de la CLI: `findScannersRoot` resuelve `.scanners/` sin depender del `cwd`. **Inicio de la fase Inline UX.** 110 tests verdes.
 
 ---
 
@@ -76,6 +79,7 @@ Items identificados para mejorar más adelante. No bloquean el MVP.
 | FI-005 | `ruleId` de OpenGrep | Cuando `--config` es la ruta de un archivo, OpenGrep prefija el `check_id` con los segmentos de esa ruta; el `Finding.ruleId` lo hereda. El CLI muestra `title` (segmento final, limpio). Evaluar normalizar `ruleId` a un id canónico en el normalizer. |
 | FI-006 | `suppressedCount` en el tomo | El `Coordinator` stage 2 reporta `suppressedCount` (dedup + `fp_known`), pero el tomo no lo declara. Un artefacto de auditoría debería incluir `suppressedCount` en `summary` para transparencia. |
 | FI-007 | Creación de `fp_known` | El `Coordinator` ya **consume** feromonas `fp_known`; falta la vía de **creación** para el usuario (comando CLI `mark-fp` y/o acción del Brain Triage Agent). Hoy solo se crean vía `buildFpKnownPheromone` (API). |
+| FI-008 | Empaquetado de la extensión (`.vsix`) | El MVP de la extensión asume el layout del monorepo en dev: la CLI en el paquete hermano (`cli/dist`) y `node` en el `PATH`. Empaquetar como `.vsix` requiere bundlear/instalar la CLI y resolver un runtime de Node y la cache de scanners (ver FI-004). |
 
 ---
 

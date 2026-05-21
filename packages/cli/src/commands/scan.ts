@@ -1,5 +1,6 @@
 import { existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import {
   ColonyDb,
   Coordinator,
@@ -92,6 +93,35 @@ export function formatOutcome(outcome: ScanOutcome, findings: readonly Finding[]
 }
 
 /**
+ * Encuentra el directorio que contiene una carpeta `.scanners/`, subiendo
+ * desde `start`. Devuelve `undefined` si no hay ninguno hasta la raiz.
+ */
+export function findScannersRoot(start: string): string | undefined {
+  let dir = start;
+  for (;;) {
+    if (existsSync(join(dir, '.scanners'))) return dir;
+    const parent = dirname(dir);
+    if (parent === dir) return undefined;
+    dir = parent;
+  }
+}
+
+/**
+ * Resuelve el directorio raiz donde buscar la cache `.scanners/`.
+ *
+ * Sube primero desde el `cwd` (CLI invocada dentro del repo) y, si ahi no
+ * hay nada, desde la propia ubicacion de la CLI (caso en que se la invoca
+ * desde otro proyecto, p.ej. la extension VSCode con `cwd` en el workspace
+ * del cliente). Cae al `cwd` si ninguna ruta da resultado.
+ */
+export function resolveScannersSearchRoot(): string {
+  const fromCwd = findScannersRoot(process.cwd());
+  if (fromCwd !== undefined) return fromCwd;
+  const moduleDir = dirname(fileURLToPath(import.meta.url));
+  return findScannersRoot(moduleDir) ?? process.cwd();
+}
+
+/**
  * Construye los scouts disponibles para una corrida de `scan`.
  *
  * Solo se incluye un scout si su binario se resuelve: un scanner ausente se
@@ -99,12 +129,14 @@ export function formatOutcome(outcome: ScanOutcome, findings: readonly Finding[]
  */
 export function buildScouts(options: ScanCommandOptions): ScoutAgent[] {
   const scouts: ScoutAgent[] = [];
+  const searchRoot = resolveScannersSearchRoot();
 
   const opengrepBin = resolveScannerBinary(
     'opengrep',
     platformBinary('opengrep'),
     'SENTINEL_OPENGREP_BIN',
     options.opengrepBin,
+    searchRoot,
   );
   if (opengrepBin !== undefined) {
     scouts.push(
@@ -120,6 +152,7 @@ export function buildScouts(options: ScanCommandOptions): ScoutAgent[] {
     platformBinary('gitleaks'),
     'SENTINEL_GITLEAKS_BIN',
     options.gitleaksBin,
+    searchRoot,
   );
   if (gitleaksBin !== undefined) {
     scouts.push(new GitleaksScout({ binaryPath: gitleaksBin }));
