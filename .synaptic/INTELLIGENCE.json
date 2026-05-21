@@ -3,8 +3,8 @@
     "name": "SENTINEL",
     "fullName": "Synaptic Sentinel",
     "description": "Toolkit OSS de auditoria agentica de seguridad + capa premium LLM, vibe-coding-native, para la era del codigo generado por IA. Tercer producto de la familia Synaptic.",
-    "currentPhase": "inline-ux",
-    "overallProgress": "Cycles 1-16 CERRADOS. Motor determinista completo y surfaceado en el IDE (scan + diagnostics + Code Action mark-fp + status bar). Tomo exportable a JSON y HTML (DG-023 A) - el deliverable OSS queda redondo. 123 tests verdes."
+    "currentPhase": "brain-layer",
+    "overallProgress": "Cycles 1-17 CERRADOS. Mitad OSS determinista completa (scouts, Coordinator stages 1-2, CLI, reporters JSON+HTML, extension VSCode). Brain Layer increment 1 (DG-024 B): paquete agents - contrato BrainAgent (prompt + parser), frontera LlmClient, AnthropicLlmClient (BYOK) y un Triage Agent minimo. 145 tests verdes + 1 skipped."
   },
   "decisions": [
     { "id": "DG-001", "title": "Estructura fisica del monorepo OSS/Pro", "selected": "B", "date": "2026-05-20", "summary": "Monorepo unico con workspaces marcados OSS/Pro + publish-oss.ts allowlist", "rationale": "Velocidad solo founder; refactors triviales; anti-filtracion en un script auditable" },
@@ -30,6 +30,7 @@
     { "id": "DG-021", "title": "Arquitectura de la extension VSCode MVP", "selected": "A", "date": "2026-05-21", "summary": "Arquitectura spawn-CLI: la extension lanza la CLI como child process, lee el tomo exportado y pinta diagnostics; no importa el motor", "rationale": "Vuelve irrelevante el Node del extension host (FI-001); la CLI es la unica fuente de verdad de ejecucion; extension delgada y facil de bundlear" },
     { "id": "DG-022", "title": "Proximo paso del roadmap (cierre del lazo Inline UX)", "selected": "B", "date": "2026-05-21", "summary": "Comando CLI mark-fp + Code Action 'marcar falso positivo' en la extension + status bar", "rationale": "DG-019 dejo el consumo de fp_known sin via de creacion; B cierra ese lazo end-to-end (cierra FI-007) y redondea la experiencia en el IDE" },
     { "id": "DG-023", "title": "Proximo paso del roadmap (tomo HTML)", "selected": "A", "date": "2026-05-21", "summary": "Reporter HTML del tomo (auditoria legible y compartible) + suppressedCount en el resumen (FI-006)", "rationale": "El tomo es el deliverable del producto pero solo existia en JSON; HTML lo vuelve un informe real, cerrando la mitad OSS antes del Brain Layer" },
+    { "id": "DG-024", "title": "Proximo paso del roadmap (Brain Layer increment 1)", "selected": "B", "date": "2026-05-21", "summary": "Paquete agents: contrato BrainAgent + frontera LlmClient + AnthropicLlmClient (BYOK) + Triage Agent minimo", "rationale": "El Brain Layer es el diferenciador premium; el increment 1 lo arranca con cimientos verificables (logica pura testeada, llamada LLM real gated por API key) - de-riskea el wiring posterior" },
     { "id": "Q1", "title": "Package manager", "selected": "pnpm workspaces", "date": "2026-05-20", "summary": "pnpm v10.33.0", "rationale": "Ya instalado; preferencia v0.4 9.5; simple sin overhead" }
   ],
   "roadmap": [
@@ -46,7 +47,8 @@
     { "id": "FI-003", "topic": "Catalogo de reglas", "detail": "sentinel-baseline.yaml tiene 4 reglas pattern-based. Ampliar el catalogo SAST (taint analysis, mas CWEs)." },
     { "id": "FI-004", "topic": "Cache de scanners del producto", "detail": "El CLI resuelve OpenGrep desde .scanners/ relativo al cwd. El producto enviado necesita una cache de scanners propia (global por usuario) y auto-instalacion." },
     { "id": "FI-005", "topic": "ruleId de OpenGrep", "detail": "El check_id de OpenGrep trae el prefijo de ruta cuando --config es un archivo; Finding.ruleId lo hereda. El CLI muestra title (limpio). Evaluar normalizar ruleId a un id canonico en el normalizer." },
-    { "id": "FI-008", "topic": "Empaquetado de la extension (.vsix)", "detail": "El MVP de la extension asume el layout del monorepo en dev: la CLI en el paquete hermano (cli/dist) y node en el PATH. Empaquetar como .vsix requiere bundlear/instalar la CLI y resolver un runtime de Node y la cache de scanners (ver FI-004)." }
+    { "id": "FI-008", "topic": "Empaquetado de la extension (.vsix)", "detail": "El MVP de la extension asume el layout del monorepo en dev: la CLI en el paquete hermano (cli/dist) y node en el PATH. Empaquetar como .vsix requiere bundlear/instalar la CLI y resolver un runtime de Node y la cache de scanners (ver FI-004)." },
+    { "id": "FI-009", "topic": "Cliente LLM", "detail": "AnthropicLlmClient es un cliente minimo via fetch (desviacion informada del v0.4 linea 695). Cuando se necesiten retries, streaming o rate-limiting (v0.4 §rate-limiting LLM), evaluar migrar a @anthropic-ai/sdk detras del contrato LlmClient." }
   ],
   "resolvedImprovements": [
     { "id": "FI-007", "topic": "Creacion de fp_known", "resolvedBy": "DG-022 B", "detail": "Cerrado: el comando CLI mark-fp y el Code Action 'marcar falso positivo' de la extension crean feromonas fp_known." },
@@ -67,13 +69,13 @@
     }
   ],
   "implementationState": {
-    "lastCompletedTask": "Cycle 16 CERRADO: DG-023 A - reporter HTML del tomo (renderTomoHtml, HTML autocontenido y con todo el contenido dinamico escapado) + suppressedCount en TomoSummary (FI-006). CLI gana --export-html. Verificado end-to-end: scan --export-html produce un HTML autocontenido con los hallazgos + integridad, sin filtrar el secreto. Cierra FI-006. 123 tests verdes; commiteado.",
-    "currentTask": "Cycle 17 abierto. DG-024 a presentar: proximo paso del roadmap.",
+    "lastCompletedTask": "Cycle 17 CERRADO: DG-024 B - Brain Layer increment 1. Paquete agents: contrato BrainAgent (prompt + parser, no microservicio) + runAgent, frontera LlmClient, AnthropicLlmClient (BYOK, cliente fetch propio), Triage Agent minimo (Finding -> TriageVerdict, validado con zod). 22 tests con LLM/fetch falsos. La llamada real a Anthropic es gated por ANTHROPIC_API_KEY (omitida aqui). 145 tests verdes + 1 skipped; commiteado.",
+    "currentTask": "Cycle 18 abierto. DG-025 a presentar: proximo paso del roadmap.",
     "pendingTasks": [
-      "Resolver DG-024 - proximo paso del roadmap",
-      "Verificacion en vivo de la extension en un Extension Development Host (F5) - no automatizable aqui",
-      "FI-008 (empaquetado .vsix de la extension)",
-      "Roadmap restante MVP: wrappers Trivy/Checkov (SCA/IaC), brain layer (Triage Agent + BYOK), HTML elaborado/PDF (Pro)"
+      "Resolver DG-025 - proximo paso del roadmap",
+      "Brain Layer increment 2: wiring del Triage Agent al CLI/Coordinator (stage 3) + BYOK desde env var / SecretStorage en la extension",
+      "Verificacion de la llamada LLM real (requiere ANTHROPIC_API_KEY) y de la extension en vivo (F5) - no automatizables aqui",
+      "FI-008 (.vsix), FI-009 (migracion a @anthropic-ai/sdk), roadmap: Trivy/Checkov, mas agentes del Brain Layer"
     ],
     "blockers": []
   },
@@ -88,5 +90,5 @@
     "git commit es 100% local y NO requiere token de GitHub; el push futuro (diferido por DG-002 A) usara gh ya autenticado como golab-arch",
     "Observacion: Python 3.14 vs Checkov; better-sqlite3 ABI con Electron; exactOptionalPropertyTypes estricto"
   ],
-  "lastUpdated": "2026-05-21T15:00:00.000Z"
+  "lastUpdated": "2026-05-21T15:30:00.000Z"
 }

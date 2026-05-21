@@ -672,7 +672,35 @@ Each entry follows this structure:
 }
 ```
 
+### Entry #25 - DG-024 (B): Brain Layer increment 1 (paquete agents + Triage Agent)
+```json
+{
+  "timestamp": "2026-05-21T15:30:00.000Z",
+  "cycle": 17,
+  "phase": 7,
+  "action": "FEATURE_IMPLEMENTED",
+  "details": {
+    "DG-024": {
+      "title": "Proximo paso del roadmap",
+      "selected": "Option B",
+      "effect": "Brain Layer increment 1: paquete agents (capa Cerebro) - contrato BrainAgent + frontera LlmClient + AnthropicLlmClient (BYOK) + un Triage Agent minimo."
+    },
+    "files": "packages/agents/src: llm-client.ts (interfaz LlmClient - frontera no-determinista). anthropic-client.ts (AnthropicLlmClient via fetch; buildAnthropicRequest + parseAnthropicResponse son funciones puras). brain-agent.ts (contrato BrainAgent = prompt + parser, NO microservicio; runAgent es la unica funcion que cruza la frontera). triage-agent.ts (TriageAgent implements BrainAgent<Finding,TriageVerdict>; TriageVerdictSchema zod; extractJsonObject tolerante a fences/prosa). package.json (+zod).",
+    "design": "Agentes = prompts especializados + parser, no microservicios (v0.4 §137). La respuesta del LLM es entrada no confiable: se valida con zod antes de usarse (Memory Poisoning, OWASP ASI 2026). BYOK: la API key la provee el cliente y va directo a Anthropic, sin backend de Synaptic - respeta el invariante de perimetro.",
+    "deviation": "DESVIACION INFORMADA del v0.4 (linea 695, @anthropic-ai/sdk): cliente Anthropic propio via fetch. Razon: testabilidad total (request/response como funciones puras) + cero dependencias de red, consistente con DG-013. El contrato LlmClient aisla un cambio futuro al SDK -> FI-009.",
+    "verification_real": "22 tests con LlmClient/fetch falsos (deterministas, sin red): buildAnthropicRequest, parseAnthropicResponse, AnthropicLlmClient.complete, runAgent, extractJsonObject, TriageAgent buildPrompt/parseResponse. Demo manual: el USER PROMPT generado y un triage de punta a punta con un LLM simulado (veredicto parseado + validado).",
+    "verification_gap": "La llamada REAL a la API de Anthropic NO se verifica aqui: no hay ANTHROPIC_API_KEY en el entorno. Test de integracion gated, omitido (1 skipped). El wiring a CLI/Coordinator (stage 3 de triage) queda como increment 2.",
+    "tests": "22 nuevos (anthropic-client 8, brain-agent 2, triage-agent 12) - total 145 verdes + 1 skipped",
+    "checks": "build / typecheck / lint / test - todos en verde",
+    "commit": "commit atomico feat(agents) incluye codigo, tests y este registro"
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 22,
+  "complianceScore": 100
+}
+```
+
 ---
 
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-21T15:00:00.000Z*
+*Last Updated: 2026-05-21T15:30:00.000Z*

@@ -27,6 +27,7 @@
 | DG-021 | Arquitectura de la extensión VSCode MVP | **Option A** — spawn-CLI: la extensión lanza la CLI como child process, lee el tomo y pinta diagnostics | 2026-05-21 | Vuelve irrelevante el Node del extension host (FI-001); la CLI es la única fuente de verdad de ejecución; extensión delgada |
 | DG-022 | Próximo paso del roadmap | **Option B** — cierre del lazo Inline UX: comando CLI `mark-fp` + Code Action "marcar falso positivo" + status bar | 2026-05-21 | DG-019 dejó el consumo de `fp_known` sin vía de creación; B cierra ese lazo end-to-end (cierra FI-007) |
 | DG-023 | Próximo paso del roadmap | **Option A** — reporter HTML del tomo + `suppressedCount` en el resumen | 2026-05-21 | El tomo es el deliverable del producto pero solo existía en JSON; HTML lo vuelve un informe real (cierra FI-006) |
+| DG-024 | Próximo paso del roadmap | **Option B** — Brain Layer increment 1: paquete `agents` (contrato `BrainAgent` + `LlmClient` + `AnthropicLlmClient` BYOK + Triage Agent mínimo) | 2026-05-21 | El Brain Layer es el diferenciador premium; el increment 1 lo arranca con cimientos verificables. Desviación informada del v0.4 línea 695: cliente Anthropic propio vía `fetch` por testabilidad total (ver FI-009) |
 | Q1 | Package manager / tooling de monorepo | **pnpm workspaces** (v10.33.0) | 2026-05-20 | Ya instalado; preferencia v0.4 §9.5; sin overhead |
 
 **Discovery cerrado. Scaffolding generado, verificado y commiteado** (`f0b5202`, 54 archivos). **Cycle 2 CERRADO.** Siguiente: PASO 4 — Scout Layer.
@@ -67,6 +68,7 @@
 - 2026-05-21 — Cycle 14: extensión VSCode MVP (DG-020 B / DG-021 A) — **arquitectura spawn-CLI**: la extensión lanza la CLI como child process, lee el tomo exportado y pinta los hallazgos como diagnostics inline. Capa UX delgada (módulos puros desacoplados de la API `vscode`); bundle `esbuild` → `dist/extension.cjs`, **sin `node:sqlite`** en el extension host. Fix de la CLI: `findScannersRoot` resuelve `.scanners/` sin depender del `cwd`. **Inicio de la fase Inline UX.** 110 tests verdes.
 - 2026-05-21 — Cycle 15: cierre del lazo Inline UX (DG-022 B) — comando CLI `mark-fp` (registra una feromona `fp_known`, idempotente) + Code Action "marcar falso positivo" en la extensión + status bar. El Code Action dispara `mark-fp` → `fp_known` → el `Coordinator` stage 2 lo suprime en el próximo scan. Cierra FI-007. 119 tests verdes.
 - 2026-05-21 — Cycle 16: reporter HTML del tomo (DG-023 A) — `renderTomoHtml` produce un informe HTML autocontenido (todo el contenido dinámico escapado); `TomoSummary` gana `suppressedCount` (FI-006); el CLI gana `--export-html`. El tomo es exportable a JSON **y** HTML. Cierra FI-006. 123 tests verdes.
+- 2026-05-21 — Cycle 17: Brain Layer increment 1 (DG-024 B) — paquete `agents` (capa Cerebro, Pro): contrato `BrainAgent` (prompt + parser, **no microservicio**), frontera `LlmClient`, `AnthropicLlmClient` (BYOK, cliente `fetch` propio) y un **Triage Agent** mínimo (`Finding` → `TriageVerdict`, validado con zod). La respuesta del LLM se valida como entrada no confiable (Memory Poisoning). **Inicio de la fase Brain Layer.** 145 tests verdes + 1 skipped.
 
 ---
 
@@ -84,6 +86,7 @@ Items identificados para mejorar más adelante. No bloquean el MVP.
 | FI-006 | `suppressedCount` en el tomo | ✅ **Resuelto (DG-023 A)** — `TomoSummary` incluye `suppressedCount`, tomado de `outcome.suppressedCount`. |
 | FI-007 | Creación de `fp_known` | ✅ **Resuelto (DG-022 B)** — el comando CLI `mark-fp` y el Code Action "marcar falso positivo" de la extensión crean feromonas `fp_known`. |
 | FI-008 | Empaquetado de la extensión (`.vsix`) | El MVP de la extensión asume el layout del monorepo en dev: la CLI en el paquete hermano (`cli/dist`) y `node` en el `PATH`. Empaquetar como `.vsix` requiere bundlear/instalar la CLI y resolver un runtime de Node y la cache de scanners (ver FI-004). |
+| FI-009 | Cliente LLM | `AnthropicLlmClient` es un cliente mínimo vía `fetch` (desviación informada del v0.4 línea 695). Cuando se necesiten retries, streaming o rate-limiting (v0.4 §rate-limiting LLM), evaluar migrar a `@anthropic-ai/sdk` detrás del contrato `LlmClient`. |
 
 ---
 

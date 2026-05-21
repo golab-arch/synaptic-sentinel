@@ -2,7 +2,7 @@
   "version": "1.0",
   "projectId": "sentinel-1779304140796",
   "projectName": "SENTINEL",
-  "totalCycles": 16,
+  "totalCycles": 17,
   "currentTomeId": 1,
   "cyclesPerTome": 50,
   "tomes": [
@@ -16,10 +16,10 @@
         "from": "2026-05-20T19:09:00.852Z",
         "to": ""
       },
-      "summary": "Cycles 1-16: discovery, scaffolding, PASO 4 (Scout/OpenGrep), colony.db, Coordinator (stages 1 y 2), CLI, reporters (tomo JSON + HTML), install-scanners, GitleaksScout, extension VSCode (scan + Code Action mark-fp + status bar).",
-      "keyDecisions": ["DG-001", "DG-002", "DG-003", "DG-004", "DG-005", "DG-006", "DG-007", "DG-008", "DG-009", "DG-010", "DG-011", "DG-012", "DG-013", "DG-014", "DG-015", "DG-016", "DG-017", "DG-018", "DG-019", "DG-020", "DG-021", "DG-022", "DG-023", "Q1"],
-      "cycleCount": 16,
-      "successCount": 16,
+      "summary": "Cycles 1-17: motor determinista completo (scouts, Coordinator stages 1-2, colony.db, CLI, reporters JSON+HTML), extension VSCode (scan + Code Action + status bar), y Brain Layer increment 1 (paquete agents: contrato BrainAgent + AnthropicLlmClient BYOK + Triage Agent).",
+      "keyDecisions": ["DG-001", "DG-002", "DG-003", "DG-004", "DG-005", "DG-006", "DG-007", "DG-008", "DG-009", "DG-010", "DG-011", "DG-012", "DG-013", "DG-014", "DG-015", "DG-016", "DG-017", "DG-018", "DG-019", "DG-020", "DG-021", "DG-022", "DG-023", "DG-024", "Q1"],
+      "cycleCount": 17,
+      "successCount": 17,
       "failureCount": 0,
       "jsonPath": "tomes/tome-001.json",
       "mdPath": "tomes/tome-001.md",
@@ -50,13 +50,14 @@
     { "id": "DG-021", "title": "Arquitectura de la extension VSCode MVP", "selected": "A", "cycle": 14, "date": "2026-05-21" },
     { "id": "DG-022", "title": "Proximo paso del roadmap (cierre del lazo Inline UX)", "selected": "B", "cycle": 15, "date": "2026-05-21" },
     { "id": "DG-023", "title": "Proximo paso del roadmap (tomo HTML)", "selected": "A", "cycle": 16, "date": "2026-05-21" },
+    { "id": "DG-024", "title": "Proximo paso del roadmap (Brain Layer increment 1)", "selected": "B", "cycle": 17, "date": "2026-05-21" },
     { "id": "Q1", "title": "Package manager", "selected": "pnpm", "cycle": 1, "date": "2026-05-20" }
   ],
   "metrics": {
-    "totalDecisions": 24,
+    "totalDecisions": 25,
     "optionDistribution": {
       "A": 15,
-      "B": 9,
+      "B": 10,
       "C": 0
     },
     "overallSuccessRate": 100,
@@ -67,8 +68,9 @@
       "3": 4,
       "4": 3,
       "5": 5,
-      "6": 4
+      "6": 4,
+      "7": 1
     }
   },
-  "lastUpdated": "2026-05-21T15:00:00.000Z"
+  "lastUpdated": "2026-05-21T15:30:00.000Z"
 }
