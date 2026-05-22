@@ -1468,7 +1468,34 @@ Each entry follows this structure:
 }
 ```
 
+### Entry #55 - DG-052 (A): prompts del Brain Layer en ingles (FI-011 etapa 5, cierra FI-011)
+```json
+{
+  "timestamp": "2026-05-22T19:00:00.000Z",
+  "cycle": 45,
+  "phase": 7,
+  "action": "FEATURE_IMPLEMENTED",
+  "details": {
+    "DG-052": {
+      "title": "Proximo paso del roadmap (FI-011 etapa 5 - prompts del Brain Layer en ingles)",
+      "selected": "Option A",
+      "effect": "Quinto y ultimo increment de FI-011: los prompts de los 3 agentes del Brain Layer migran a ingles, de modo que el LLM responda en ingles. CIERRA FI-011: el producto habla ingles de punta a punta."
+    },
+    "files": "agents/triage-agent.ts, context-agent.ts, remediation-agent.ts (SYSTEM_PROMPT, labels del user prompt, '(not available)', errores de parseResponse). agents/brain-agent.ts (error de extractJsonObject). cli/triage.test.ts (fakeLlm: discriminador 'exploitability chain'). agents/triage-agent.test.ts (asercion '(not available)').",
+    "design": "Etapa 5 (final) de FI-011. La forma JSON pedida en los prompts NO cambia (field names identicos): el parser y los schemas zod no se ven afectados, solo el idioma de las respuestas del LLM. El fakeLlm del test de triage discriminaba el Context Agent por una frase del system prompt; reanclado a 'exploitability chain'.",
+    "verification_real": "pnpm verify verde (test:unit 301; cubre los unit tests de los 3 agentes con la forma JSON intacta). Los tests de integracion gated del LLM real verifican estructura -no idioma- y no se re-corrieron para no gastar tokens; la traduccion no toca la forma JSON ni los schemas.",
+    "tests": "sin tests nuevos (2 aserciones actualizadas) — total 310 verdes + 3 gated",
+    "checks": "format:check / lint / build / test:unit — todos en verde",
+    "fi_011_cerrado": "FI-011 COMPLETO: las 5 etapas (CLI, mensajes de scouts, reporter HTML, extension VSCode, prompts del Brain Layer) estan migradas. Toda la salida del producto al usuario final esta en ingles.",
+    "commit": "codigo + tests en el commit 7aadf13 feat(agents); el registro SYNAPTIC de cierre del Cycle 45 se asienta en el commit docs siguiente"
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 50,
+  "complianceScore": 100
+}
+```
+
 ---
 
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-22T18:15:00.000Z*
+*Last Updated: 2026-05-22T19:00:00.000Z*
