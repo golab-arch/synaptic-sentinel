@@ -1,0 +1,7 @@
+# The .vsix ships only the bundled extension (dist/) — not the source,
+# the tests, the dev config or node_modules (everything is in the bundle).
+src/**
+tests/**
+node_modules/**
+tsconfig.json
+**/*.map

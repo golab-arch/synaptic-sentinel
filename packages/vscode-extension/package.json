@@ -15,6 +15,23 @@
     "Linters",
     "Other"
   ],
+  "keywords": [
+    "security",
+    "sast",
+    "sarif",
+    "code-scanning",
+    "vibe-coding",
+    "appsec"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/golab-arch/synaptic-sentinel.git",
+    "directory": "packages/vscode-extension"
+  },
+  "homepage": "https://github.com/golab-arch/synaptic-sentinel#readme",
+  "bugs": {
+    "url": "https://github.com/golab-arch/synaptic-sentinel/issues"
+  },
   "main": "./dist/extension.cjs",
   "contributes": {
     "commands": [
