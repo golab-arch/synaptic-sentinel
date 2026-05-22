@@ -1,5 +1,5 @@
 {
-  "name": "@synaptic-sentinel/vscode-extension",
+  "name": "synaptic-sentinel",
   "displayName": "Synaptic Sentinel",
   "version": "0.0.0",
   "description": "VSCode extension for Synaptic Sentinel — agentic security auditing in the IDE.",
@@ -72,13 +72,16 @@
     }
   },
   "scripts": {
-    "bundle": "esbuild src/index.ts --bundle --platform=node --format=cjs --target=node20 --external:vscode --outfile=dist/extension.cjs --sourcemap && esbuild ../cli/src/index.ts --bundle --platform=node --format=esm --target=node20 --outfile=dist/cli.mjs --sourcemap && node scripts/copy-cli-assets.mjs"
+    "bundle": "esbuild src/index.ts --bundle --platform=node --format=cjs --target=node20 --external:vscode --outfile=dist/extension.cjs --sourcemap && esbuild ../cli/src/index.ts --bundle --platform=node --format=esm --target=node20 --outfile=dist/cli.mjs --sourcemap && node scripts/copy-cli-assets.mjs",
+    "vscode:prepublish": "pnpm -w run build",
+    "package": "vsce package --no-dependencies"
   },
   "dependencies": {
     "zod": "^3.24.0"
   },
   "devDependencies": {
     "@types/vscode": "^1.95.0",
+    "@vscode/vsce": "^3.0.0",
     "esbuild": "^0.25.0"
   }
 }

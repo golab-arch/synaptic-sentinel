@@ -1,8 +1,22 @@
-# The .vsix ships only the bundled extension (dist/) — not the source,
-# the tests, the dev config or node_modules (everything is in the bundle).
+# The .vsix ships only the bundled extension — not the source, the tests,
+# the dev config or node_modules (everything the extension needs at runtime
+# is in the esbuild bundle: dist/extension.cjs, dist/cli.mjs and the two
+# CLI runtime assets dist/schema.sql + dist/sentinel-baseline.yaml).
 src/**
 tests/**
 scripts/**
 node_modules/**
 tsconfig.json
+tsconfig.tsbuildinfo
 **/*.map
+*.vsix
+
+# Dev / tooling directories that exist on disk but are not part of the product.
+.vscode/**
+.synaptic/**
+context/**
+
+# tsc -b also emits loose .js/.d.ts into dist/; the bundle is self-contained,
+# so those are not shipped (only the .cjs/.mjs bundles and the assets are).
+dist/*.js
+dist/*.d.ts

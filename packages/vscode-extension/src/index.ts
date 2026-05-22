@@ -1,5 +1,5 @@
 /**
- * @synaptic-sentinel/vscode-extension
+ * synaptic-sentinel — extension VSCode
  *
  * Extension VSCode (capa UX delgada). Arquitectura spawn-CLI (DG-021 A): la
  * extension lanza la CLI como child process, lee el tomo exportado y pinta
@@ -20,6 +20,7 @@ import {
   type DiagnosticInput,
   type DiagnosticLevel,
 } from './diagnostics.js';
+import { checkExtensionHostRuntime } from './runtime-check.js';
 import type { ExtensionFinding } from './tomo.js';
 import { SentinelTerminal } from './terminal.js';
 import { SentinelTomoViewProvider } from './tomo-view.js';
@@ -53,6 +54,14 @@ let tomoView: SentinelTomoViewProvider | undefined;
 
 /** Punto de entrada de la extension; lo invoca el extension host. */
 export function activate(context: vscode.ExtensionContext): void {
+  // FI-001/FI-008: la CLI bundleada corre con el Node del extension host y
+  // usa node:sqlite (Node >= 22.5). Si el host es mas viejo, avisamos de una
+  // vez con un mensaje accionable en vez de fallar opaco al primer scan.
+  const runtime = checkExtensionHostRuntime(process.versions.node);
+  if (!runtime.ok && runtime.message !== undefined) {
+    void vscode.window.showWarningMessage(runtime.message);
+  }
+
   const diagnostics = vscode.languages.createDiagnosticCollection('synaptic-sentinel');
   const statusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 0);
   statusBar.command = COMMAND_SCAN;
