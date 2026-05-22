@@ -49,6 +49,7 @@ suite('OpenGrepScout - integracion con el binario real de OpenGrep', () => {
     expect(result.findings.length).toBeGreaterThan(0);
     const finding = result.findings.find((f) => f.ruleId.includes('eval'));
     expect(finding).toBeDefined();
+    expect(finding?.ruleId).toBe('sentinel-js-eval-usage'); // ruleId canonico (FI-005)
     expect(finding?.category).toBe('SAST');
     expect(finding?.severity).toBe('high');
     expect(finding?.location.path).toContain('eval-injection.js');

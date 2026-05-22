@@ -7,7 +7,7 @@ import {
   mapSeverity,
   extractComplianceRefs,
   relativizePath,
-  deriveTitle,
+  canonicalRuleId,
 } from '../../src/opengrep/normalizer.js';
 
 /** Carga la salida JSON real de OpenGrep capturada como fixture. */
@@ -35,7 +35,7 @@ describe('normalizeOpenGrepOutput', () => {
     expect(finding.scanId).toBe('scan-1');
     expect(finding.severity).toBe('high'); // ERROR -> high
     expect(finding.category).toBe('SAST');
-    expect(finding.ruleId).toBe('d.tmp.opengrep-probe.js-eval-usage');
+    expect(finding.ruleId).toBe('js-eval-usage'); // ruleId canonico (FI-005)
     expect(finding.title).toBe('js-eval-usage');
     expect(finding.location.path).toBe('vuln.js'); // ruta relativizada
     expect(finding.location.startLine).toBe(2);
@@ -94,8 +94,12 @@ describe('relativizePath', () => {
   });
 });
 
-describe('deriveTitle', () => {
-  it('toma el ultimo segmento del check_id', () => {
-    expect(deriveTitle('d.tmp.probe.js-eval-usage')).toBe('js-eval-usage');
+describe('canonicalRuleId', () => {
+  it('toma el ultimo segmento del check_id (descarta el prefijo de ruta)', () => {
+    expect(canonicalRuleId('d.tmp.probe.js-eval-usage')).toBe('js-eval-usage');
+  });
+
+  it('es idempotente sobre un id ya canonico', () => {
+    expect(canonicalRuleId('sentinel-js-eval-usage')).toBe('sentinel-js-eval-usage');
   });
 });

@@ -58,8 +58,17 @@ export function relativizePath(absolutePath: string, rootPath: string): string {
   return file;
 }
 
-/** Deriva un titulo corto desde el `check_id` de una regla. */
-export function deriveTitle(checkId: string): string {
+/**
+ * Id canonico de una regla: el ultimo segmento del `check_id`.
+ *
+ * Cuando se corre OpenGrep con `--config <archivo>`, el `check_id` viene
+ * prefijado con los segmentos de la ruta de ese archivo (p. ej.
+ * `d.tmp.probe.js-eval-usage`). El id real de la regla — el campo `id` del
+ * ruleset, en kebab-case plano — es el ultimo segmento. Normalizarlo da un
+ * `ruleId` estable, independiente de donde viva el archivo de reglas, y un
+ * `patternSignature` consistente para la memoria del enjambre (FI-005).
+ */
+export function canonicalRuleId(checkId: string): string {
   const segments = checkId.split('.');
   return segments[segments.length - 1] ?? checkId;
 }
@@ -85,14 +94,17 @@ export function normalizeOpenGrepOutput(output: OpenGrepOutput, ctx: NormalizeCo
 
   return output.results.map((result): Finding => {
     const snippet = result.extra.lines?.trim();
+    // FI-005: el ruleId canonico (ultimo segmento del check_id) es estable
+    // independientemente de la ruta del archivo de reglas.
+    const ruleId = canonicalRuleId(result.check_id);
     const finding = {
       id: newId(),
       scanId: ctx.scanId,
       scoutId: ctx.scoutId,
       severity: mapSeverity(result.extra.severity),
       category: 'SAST',
-      ruleId: result.check_id,
-      title: deriveTitle(result.check_id),
+      ruleId,
+      title: ruleId,
       message: result.extra.message,
       location: {
         path: relativizePath(result.path, ctx.rootPath),
