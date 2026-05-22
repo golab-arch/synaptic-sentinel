@@ -5,6 +5,7 @@ import {
   renderBanner,
   renderScanReveal,
   renderScoutLine,
+  renderTriageTag,
   SPINNER_FRAMES,
 } from '../src/console-reporter.js';
 
@@ -118,5 +119,18 @@ describe('renderScanReveal', () => {
 
   it('emite ANSI cuando color es true', () => {
     expect(renderScanReveal(makeOutcome(), [makeFinding('high')], true)).toContain('\x1b[');
+  });
+});
+
+describe('renderTriageTag', () => {
+  it('distingue verdadero positivo, falso positivo e inconcluso', () => {
+    expect(renderTriageTag('true_positive', false)).toContain('TP');
+    expect(renderTriageTag('false_positive', false)).toContain('FP');
+    expect(renderTriageTag('inconclusive', false)).toContain('INC');
+  });
+
+  it('emite ANSI con color y texto plano sin color', () => {
+    expect(renderTriageTag('true_positive', true)).toContain('\x1b[');
+    expect(renderTriageTag('true_positive', false)).not.toContain('\x1b[');
   });
 });

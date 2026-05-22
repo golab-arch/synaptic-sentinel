@@ -124,3 +124,18 @@ export function renderScanReveal(
   }
   return lines.join('\n');
 }
+
+/**
+ * Tag coloreado de una clasificacion de triage, para la salida del comando
+ * `triage`: verdadero positivo en rojo, falso positivo en verde, inconcluso
+ * en gris.
+ */
+export function renderTriageTag(classification: string, color: boolean): string {
+  if (classification === 'true_positive') {
+    return paint('● TP', SEVERITY_COLOR.critical + BOLD, color);
+  }
+  if (classification === 'false_positive') {
+    return paint('✓ FP', OK_COLOR + BOLD, color);
+  }
+  return paint('◯ INC', SEVERITY_COLOR.info + BOLD, color);
+}

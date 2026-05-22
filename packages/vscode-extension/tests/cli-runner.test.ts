@@ -63,10 +63,19 @@ integrationSuite('runCliScan - integracion con la CLI real', () => {
   });
 
   it(
-    'escanea un probe vulnerable y devuelve findings parseados',
+    'escanea un probe vulnerable, transmite la salida y devuelve findings parseados',
     async () => {
-      const tomo = await runCliScan({ cliEntry, workspacePath: probeDir });
+      let streamed = '';
+      const tomo = await runCliScan({
+        cliEntry,
+        workspacePath: probeDir,
+        onOutput: (chunk) => {
+          streamed += chunk;
+        },
+      });
       expect(tomo.findings.length).toBeGreaterThan(0);
+      // El stream de la CLI llego al callback (banner verbose, DG-038 B).
+      expect(streamed).toContain('SYNAPTIC SENTINEL');
 
       const finding = tomo.findings[0];
       if (!finding) throw new Error('se esperaba un finding');

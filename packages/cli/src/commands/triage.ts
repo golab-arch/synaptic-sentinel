@@ -16,6 +16,8 @@ import {
   TriageAgent,
   type LlmClient,
 } from '@synaptic-sentinel/agents';
+import { renderBanner, renderTriageTag } from '@synaptic-sentinel/reporters';
+import { shouldUseColor } from './scan.js';
 
 /** Tope por defecto de hallazgos a triar (proteccion de costo/tokens). */
 const DEFAULT_TRIAGE_LIMIT = 25;
@@ -31,6 +33,8 @@ export interface TriageCommandOptions {
    * de `ANTHROPIC_API_KEY` (BYOK). Inyectable para tests.
    */
   readonly llmClient?: LlmClient;
+  /** Desactiva el color ANSI (tambien lo desactivan `NO_COLOR` y un stdout no-TTY). */
+  readonly noColor?: boolean;
 }
 
 /**
@@ -45,6 +49,8 @@ export interface TriageCommandOptions {
  * el cliente y va directo a Anthropic, sin backend de Synaptic.
  */
 export async function runTriageCommand(options: TriageCommandOptions): Promise<number> {
+  const color = shouldUseColor(options.noColor === true);
+  console.log(renderBanner(color));
   const projectRoot = resolve(options.path);
   const dbPath = join(projectRoot, '.synaptic-sentinel', 'colony.db');
   if (!existsSync(dbPath)) {
@@ -119,7 +125,7 @@ export async function runTriageCommand(options: TriageCommandOptions): Promise<n
           createdAt: new Date().toISOString(),
         });
         console.log(
-          `  [${verdict.classification}] ${finding.title} ` +
+          `  ${renderTriageTag(verdict.classification, color)}  ${finding.title} ` +
             `— ${finding.location.path}:${String(finding.location.startLine)} ` +
             `(confianza ${verdict.confidence.toFixed(2)})`,
         );

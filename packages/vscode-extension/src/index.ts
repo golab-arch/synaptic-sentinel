@@ -21,6 +21,7 @@ import {
   type DiagnosticLevel,
 } from './diagnostics.js';
 import type { ExtensionFinding } from './tomo.js';
+import { SentinelTerminal } from './terminal.js';
 
 /** Id del comando de escaneo contribuido en package.json. */
 const COMMAND_SCAN = 'synaptic-sentinel.scanWorkspace';
@@ -56,12 +57,15 @@ export function activate(context: vscode.ExtensionContext): void {
 
   const extensionRoot = context.extensionPath;
   const secrets = context.secrets;
+  // Terminal de solo-lectura para la salida verbose de la CLI (DG-038 B).
+  const terminal = new SentinelTerminal();
 
   context.subscriptions.push(
     diagnostics,
     statusBar,
+    terminal,
     vscode.commands.registerCommand(COMMAND_SCAN, () => {
-      void runScanCommand(diagnostics, statusBar, extensionRoot);
+      void runScanCommand(diagnostics, statusBar, extensionRoot, terminal);
     }),
     vscode.commands.registerCommand(COMMAND_MARK_FP, (fingerprint: unknown) => {
       if (typeof fingerprint === 'string') {
@@ -72,7 +76,7 @@ export function activate(context: vscode.ExtensionContext): void {
       if (typeof fingerprint === 'string') copyRemediation(fingerprint);
     }),
     vscode.commands.registerCommand(COMMAND_TRIAGE, () => {
-      void triageWorkspace(diagnostics, statusBar, extensionRoot, secrets);
+      void triageWorkspace(diagnostics, statusBar, extensionRoot, secrets, terminal);
     }),
     vscode.commands.registerCommand(COMMAND_SET_API_KEY, () => {
       void setApiKey(secrets);
@@ -240,6 +244,7 @@ async function runScanCommand(
   diagnostics: vscode.DiagnosticCollection,
   statusBar: vscode.StatusBarItem,
   extensionRoot: string,
+  terminal: SentinelTerminal,
 ): Promise<void> {
   const folder = vscode.workspace.workspaceFolders?.[0];
   if (folder === undefined) {
@@ -250,6 +255,8 @@ async function runScanCommand(
   }
   const workspacePath = folder.uri.fsPath;
   const cliEntry = resolveCliEntry(extensionRoot);
+  // Trae la terminal verbose al frente: la salida de la CLI se transmite ahi.
+  terminal.show();
 
   await vscode.window.withProgress(
     {
@@ -264,7 +271,14 @@ async function runScanCommand(
       });
       setStatusScanning(statusBar);
       try {
-        const tomo = await runCliScan({ cliEntry, workspacePath, signal: controller.signal });
+        const tomo = await runCliScan({
+          cliEntry,
+          workspacePath,
+          signal: controller.signal,
+          onOutput: (chunk) => {
+            terminal.write(chunk);
+          },
+        });
         lastScan = { workspacePath, findings: tomo.findings };
         renderDiagnostics(diagnostics, workspacePath, tomo.findings);
         setStatusResult(statusBar, tomo.findings.length);
@@ -336,6 +350,7 @@ async function triageWorkspace(
   statusBar: vscode.StatusBarItem,
   extensionRoot: string,
   secrets: vscode.SecretStorage,
+  terminal: SentinelTerminal,
 ): Promise<void> {
   const folder = vscode.workspace.workspaceFolders?.[0];
   if (folder === undefined) {
@@ -363,6 +378,8 @@ async function triageWorkspace(
   const workspacePath = folder.uri.fsPath;
   const cliEntry = resolveCliEntry(extensionRoot);
   const previousCount = lastScan.findings.length;
+  // Trae la terminal verbose al frente: el show del triage se transmite ahi.
+  terminal.show();
 
   await vscode.window.withProgress(
     {
@@ -377,8 +394,17 @@ async function triageWorkspace(
       });
       setStatusTriaging(statusBar);
       try {
-        await runCliTriage({ cliEntry, workspacePath, apiKey, signal: controller.signal });
-        // Re-escanear: el tomo ahora incluye los veredictos de triage (DG-026).
+        await runCliTriage({
+          cliEntry,
+          workspacePath,
+          apiKey,
+          signal: controller.signal,
+          onOutput: (chunk) => {
+            terminal.write(chunk);
+          },
+        });
+        // Re-escaneo silencioso: refresca el tomo con el triage (sin onOutput,
+        // para no duplicar un "show" de scan justo despues del de triage).
         const tomo = await runCliScan({ cliEntry, workspacePath, signal: controller.signal });
         lastScan = { workspacePath, findings: tomo.findings };
         renderDiagnostics(diagnostics, workspacePath, tomo.findings);

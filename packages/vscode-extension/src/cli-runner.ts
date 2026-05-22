@@ -30,6 +30,8 @@ interface SpawnCliOptions {
   readonly env?: Readonly<Record<string, string>>;
   readonly nodePath?: string;
   readonly signal?: AbortSignal;
+  /** Callback de streaming: recibe cada chunk de stdout/stderr del child. */
+  readonly onOutput?: (chunk: string) => void;
 }
 
 /** Lanza la CLI como child process y espera a que termine. */
@@ -41,8 +43,13 @@ function spawnCli(options: SpawnCliOptions): Promise<CliProcessResult> {
       ...(options.signal !== undefined ? { signal: options.signal } : {}),
     });
     let stderr = '';
+    child.stdout.on('data', (chunk: Buffer) => {
+      options.onOutput?.(chunk.toString('utf8'));
+    });
     child.stderr.on('data', (chunk: Buffer) => {
-      stderr += chunk.toString();
+      const text = chunk.toString('utf8');
+      stderr += text;
+      options.onOutput?.(text);
     });
     child.on('error', reject);
     child.on('close', (code) => {
@@ -71,6 +78,11 @@ export interface RunCliScanOptions {
   readonly nodePath?: string;
   /** Senal de cancelacion (kill-switch, v0.4 §9.6). */
   readonly signal?: AbortSignal;
+  /**
+   * Callback de streaming de la salida de la CLI. Si se provee, la CLI corre
+   * con `FORCE_COLOR=1` para que emita ANSI hacia el pseudoterminal (DG-038 B).
+   */
+  readonly onOutput?: (chunk: string) => void;
 }
 
 /**
@@ -89,6 +101,9 @@ export async function runCliScan(options: RunCliScanOptions): Promise<ExtensionT
       cliEntry: options.cliEntry,
       cwd: options.workspacePath,
       args: ['scan', '--path', options.workspacePath, '--export', tomoPath],
+      ...(options.onOutput !== undefined
+        ? { onOutput: options.onOutput, env: { FORCE_COLOR: '1' } }
+        : {}),
       ...(options.nodePath !== undefined ? { nodePath: options.nodePath } : {}),
       ...(options.signal !== undefined ? { signal: options.signal } : {}),
     });
@@ -150,6 +165,11 @@ export interface RunCliTriageOptions {
   readonly nodePath?: string;
   /** Senal de cancelacion. */
   readonly signal?: AbortSignal;
+  /**
+   * Callback de streaming de la salida de la CLI. Si se provee, la CLI corre
+   * con `FORCE_COLOR=1` para que emita ANSI hacia el pseudoterminal (DG-038 B).
+   */
+  readonly onOutput?: (chunk: string) => void;
 }
 
 /**
@@ -163,7 +183,11 @@ export async function runCliTriage(options: RunCliTriageOptions): Promise<void> 
     cliEntry: options.cliEntry,
     cwd: options.workspacePath,
     args: ['triage', '--path', options.workspacePath],
-    env: { ANTHROPIC_API_KEY: options.apiKey },
+    env: {
+      ANTHROPIC_API_KEY: options.apiKey,
+      ...(options.onOutput !== undefined ? { FORCE_COLOR: '1' } : {}),
+    },
+    ...(options.onOutput !== undefined ? { onOutput: options.onOutput } : {}),
     ...(options.nodePath !== undefined ? { nodePath: options.nodePath } : {}),
     ...(options.signal !== undefined ? { signal: options.signal } : {}),
   });

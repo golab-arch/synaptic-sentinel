@@ -109,6 +109,7 @@ async function main(): Promise<void> {
     process.exitCode = await runTriageCommand({
       path: values.path ?? process.cwd(),
       ...(limit !== undefined ? { limit } : {}),
+      ...(values['no-color'] === true ? { noColor: true } : {}),
     });
     return;
   }
