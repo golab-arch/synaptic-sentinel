@@ -1,11 +1,19 @@
 # Synaptic Sentinel - ruleset baseline de OpenGrep.
 #
-# Conjunto curado y minimo de reglas SAST para los lenguajes LOCKED del MVP
-# (JS/TS + Python). Reglas basadas en patrones sintacticos simples y
-# deterministas; el catalogo se amplia en fases posteriores.
+# Catalogo curado de reglas SAST para los lenguajes LOCKED del MVP
+# (JS/TS + Python). Reglas basadas en patrones sintacticos deterministas y de
+# alta confianza; el analisis con taint queda para una fase posterior (FI-003).
+#
+# Cobertura (11 reglas): ejecucion dinamica de codigo (CWE-95), inyeccion de
+# comandos del SO (CWE-78), Cross-Site Scripting (CWE-79), deserializacion
+# insegura (CWE-502) y criptografia debil (CWE-327).
+#
+# Ampliado en DG-043 (Cycle 36): 4 -> 11 reglas.
 #
 # Licencia: Apache-2.0 (OSS).
 rules:
+  # --- JavaScript / TypeScript -------------------------------------------------
+
   - id: sentinel-js-eval-usage
     languages:
       - javascript
@@ -36,6 +44,63 @@ rules:
       category: security
     pattern: new Function(...)
 
+  - id: sentinel-js-settimeout-string
+    languages:
+      - javascript
+      - typescript
+    severity: ERROR
+    message: >-
+      Un string como primer argumento de setTimeout()/setInterval() se ejecuta
+      como codigo en runtime, equivalente a eval(). Pasar una funcion.
+    metadata:
+      cwe:
+        - "CWE-95: Improper Neutralization of Directives in Dynamically Evaluated Code"
+      owasp:
+        - "A03:2021 - Injection"
+      category: security
+    pattern-either:
+      - pattern: setTimeout("...", ...)
+      - pattern: setInterval("...", ...)
+
+  - id: sentinel-js-document-write
+    languages:
+      - javascript
+      - typescript
+    severity: WARNING
+    message: >-
+      document.write()/writeln(): si el contenido proviene de una fuente no
+      confiable habilita Cross-Site Scripting (XSS).
+    metadata:
+      cwe:
+        - "CWE-79: Improper Neutralization of Input During Web Page Generation"
+      owasp:
+        - "A03:2021 - Injection"
+      category: security
+    pattern-either:
+      - pattern: document.write(...)
+      - pattern: document.writeln(...)
+
+  - id: sentinel-js-innerhtml-assignment
+    languages:
+      - javascript
+      - typescript
+    severity: WARNING
+    message: >-
+      Asignacion a innerHTML con un valor dinamico: si proviene de entrada no
+      confiable habilita Cross-Site Scripting (XSS). Usar textContent o
+      sanitizar el HTML.
+    metadata:
+      cwe:
+        - "CWE-79: Improper Neutralization of Input During Web Page Generation"
+      owasp:
+        - "A03:2021 - Injection"
+      category: security
+    patterns:
+      - pattern: $EL.innerHTML = $VAL
+      - pattern-not: $EL.innerHTML = "..."
+
+  # --- Python ------------------------------------------------------------------
+
   - id: sentinel-py-exec-usage
     languages:
       - python
@@ -63,3 +128,68 @@ rules:
         - "A03:2021 - Injection"
       category: security
     pattern: subprocess.$FUNC(..., shell=True, ...)
+
+  - id: sentinel-py-os-system
+    languages:
+      - python
+    severity: ERROR
+    message: >-
+      os.system() ejecuta su argumento en un shell del sistema: si proviene de
+      entrada no confiable habilita inyeccion de comandos del sistema operativo.
+    metadata:
+      cwe:
+        - "CWE-78: Improper Neutralization of Special Elements used in an OS Command"
+      owasp:
+        - "A03:2021 - Injection"
+      category: security
+    pattern: os.system(...)
+
+  - id: sentinel-py-yaml-load
+    languages:
+      - python
+    severity: ERROR
+    message: >-
+      yaml.load() sin un SafeLoader puede instanciar objetos arbitrarios desde
+      el documento YAML: deserializacion insegura. Usar yaml.safe_load().
+    metadata:
+      cwe:
+        - "CWE-502: Deserialization of Untrusted Data"
+      owasp:
+        - "A08:2021 - Software and Data Integrity Failures"
+      category: security
+    patterns:
+      - pattern: yaml.load(...)
+      - pattern-not: yaml.load(..., Loader=yaml.SafeLoader)
+      - pattern-not: yaml.load(..., Loader=yaml.CSafeLoader)
+
+  - id: sentinel-py-pickle-load
+    languages:
+      - python
+    severity: ERROR
+    message: >-
+      pickle.load()/loads() puede ejecutar codigo arbitrario durante la
+      deserializacion: no usar sobre datos que no sean de plena confianza.
+    metadata:
+      cwe:
+        - "CWE-502: Deserialization of Untrusted Data"
+      owasp:
+        - "A08:2021 - Software and Data Integrity Failures"
+      category: security
+    pattern-either:
+      - pattern: pickle.load(...)
+      - pattern: pickle.loads(...)
+
+  - id: sentinel-py-md5-usage
+    languages:
+      - python
+    severity: WARNING
+    message: >-
+      hashlib.md5() es un algoritmo de hash criptograficamente debil: no usar
+      para contrasenas, firmas ni control de integridad. Preferir SHA-256.
+    metadata:
+      cwe:
+        - "CWE-327: Use of a Broken or Risky Cryptographic Algorithm"
+      owasp:
+        - "A02:2021 - Cryptographic Failures"
+      category: security
+    pattern: hashlib.md5(...)

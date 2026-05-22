@@ -77,4 +77,36 @@ suite('OpenGrepScout - integracion con el binario real de OpenGrep', () => {
     expect(ruleIds.some((r) => r.includes('exec'))).toBe(true);
     expect(ruleIds.some((r) => r.includes('subprocess'))).toBe(true);
   }, 60_000);
+
+  it('detecta XSS e inyeccion de codigo en una fixture JavaScript', async () => {
+    const result = await scout.scan({
+      scanId: 'it-js-xss',
+      rootPath: fixturesRoot,
+      targetPaths: ['javascript'],
+      mode: 'full',
+    });
+    expect(result.status).toBe('ok');
+    const ruleIds = result.findings.map((f) => f.ruleId);
+    expect(ruleIds.some((r) => r.includes('document-write'))).toBe(true);
+    expect(ruleIds.some((r) => r.includes('innerhtml'))).toBe(true);
+    expect(ruleIds.some((r) => r.includes('settimeout-string'))).toBe(true);
+  }, 60_000);
+
+  it('detecta APIs inseguras (comandos, deserializacion, MD5) en Python', async () => {
+    const result = await scout.scan({
+      scanId: 'it-py-unsafe',
+      rootPath: fixturesRoot,
+      targetPaths: ['python'],
+      mode: 'full',
+    });
+    expect(result.status).toBe('ok');
+    const ruleIds = result.findings.map((f) => f.ruleId);
+    expect(ruleIds.some((r) => r.includes('os-system'))).toBe(true);
+    expect(ruleIds.some((r) => r.includes('yaml-load'))).toBe(true);
+    expect(ruleIds.some((r) => r.includes('pickle-load'))).toBe(true);
+    expect(ruleIds.some((r) => r.includes('md5'))).toBe(true);
+    // os.system() es ERROR -> high; hashlib.md5() es WARNING -> medium.
+    expect(result.findings.find((f) => f.ruleId.includes('os-system'))?.severity).toBe('high');
+    expect(result.findings.find((f) => f.ruleId.includes('md5'))?.severity).toBe('medium');
+  }, 60_000);
 });
