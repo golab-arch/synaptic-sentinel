@@ -11,16 +11,16 @@ export { RemediationSuggestionSchema };
 export type { RemediationSuggestion };
 
 /** Instruccion de sistema del Remediation Agent. */
-const SYSTEM_PROMPT = `Eres un ingeniero senior de seguridad de aplicaciones (AppSec).
-Recibes un hallazgo de seguridad ya confirmado como verdadero positivo y debes
-proponer una remediacion concreta, segura y accionable para un desarrollador.
+const SYSTEM_PROMPT = `You are a senior application security (AppSec) engineer.
+You receive a security finding already confirmed as a true positive and must
+propose a concrete, safe and actionable remediation for a developer.
 
-Responde UNICAMENTE con un objeto JSON valido, sin markdown ni texto adicional,
-con esta forma exacta:
-{"summary":"<resumen en una frase>","recommendation":"<pasos concretos para remediar>","fixedSnippet":"<fragmento de codigo corregido>"}
-El campo "fixedSnippet" es OPCIONAL: incluyelo solo si la remediacion es un
-cambio de codigo puntual; si es una remediacion de configuracion o de proceso,
-omite la clave por completo. Escribe en espanol, claro y conciso.`;
+Respond ONLY with a valid JSON object, no markdown and no extra text, with this
+exact shape:
+{"summary":"<one-sentence summary>","recommendation":"<concrete steps to remediate>","fixedSnippet":"<corrected code fragment>"}
+The "fixedSnippet" field is OPTIONAL: include it only if the remediation is a
+specific code change; if it is a configuration or process remediation, omit the
+key entirely. Write in English, clear and concise.`;
 
 /**
  * Normaliza el objeto parseado: si el LLM devolvio `"fixedSnippet":""` (cadena
@@ -50,16 +50,16 @@ export class RemediationAgent implements BrainAgent<Finding, RemediationSuggesti
   readonly maxTokens = 1024;
 
   buildPrompt(finding: Finding): AgentPrompt {
-    const snippet = finding.location.snippet ?? '(no disponible)';
+    const snippet = finding.location.snippet ?? '(not available)';
     const user = [
-      'Hallazgo confirmado a remediar:',
-      `- Regla: ${finding.ruleId}`,
-      `- Categoria: ${finding.category}`,
-      `- Severidad: ${finding.severity}`,
-      `- Titulo: ${finding.title}`,
-      `- Mensaje: ${finding.message}`,
-      `- Ubicacion: ${finding.location.path}:${String(finding.location.startLine)}`,
-      `- Codigo:\n${snippet}`,
+      'Confirmed finding to remediate:',
+      `- Rule: ${finding.ruleId}`,
+      `- Category: ${finding.category}`,
+      `- Severity: ${finding.severity}`,
+      `- Title: ${finding.title}`,
+      `- Message: ${finding.message}`,
+      `- Location: ${finding.location.path}:${String(finding.location.startLine)}`,
+      `- Code:\n${snippet}`,
     ].join('\n');
     return { system: SYSTEM_PROMPT, user };
   }
@@ -70,7 +70,7 @@ export class RemediationAgent implements BrainAgent<Finding, RemediationSuggesti
       parsed = JSON.parse(extractJsonObject(raw));
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      throw new Error(`No se pudo parsear la sugerencia de remediacion: ${message}`);
+      throw new Error(`Could not parse the remediation suggestion: ${message}`);
     }
     return RemediationSuggestionSchema.parse(dropEmptySnippet(parsed));
   }

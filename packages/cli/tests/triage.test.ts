@@ -9,13 +9,13 @@ import { runTriageCommand } from '../src/commands/triage.js';
 
 /**
  * LlmClient falso: responde segun el agente que pregunta. El Context Agent
- * pide la "cadena de explotabilidad" en su system prompt; el Triage no.
+ * pide la "exploitability chain" en su system prompt; el Triage no.
  */
 function fakeLlm(): LlmClient {
   return {
     complete: (request) =>
       Promise.resolve(
-        request.system.includes('cadena de explotabilidad')
+        request.system.includes('exploitability chain')
           ? '{"summary":"s","entryPoint":"e","sink":"k","exposure":"x"}'
           : '{"classification":"true_positive","confidence":0.8,"rationale":"motivo de prueba"}',
       ),

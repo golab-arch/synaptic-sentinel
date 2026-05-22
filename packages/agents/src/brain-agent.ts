@@ -61,7 +61,7 @@ export function extractJsonObject(raw: string): string {
   const start = candidate.indexOf('{');
   const end = candidate.lastIndexOf('}');
   if (start === -1 || end === -1 || end <= start) {
-    throw new Error('La respuesta del LLM no contiene un objeto JSON.');
+    throw new Error('The LLM response does not contain a JSON object.');
   }
   return candidate.slice(start, end + 1);
 }

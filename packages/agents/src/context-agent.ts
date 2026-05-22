@@ -11,16 +11,16 @@ export { ContextExplanationSchema };
 export type { ContextExplanation };
 
 /** Instruccion de sistema del Context Agent. */
-const SYSTEM_PROMPT = `Eres un analista senior de seguridad de aplicaciones (AppSec).
-Recibes un hallazgo de seguridad ya confirmado como verdadero positivo y debes
-explicar su cadena de explotabilidad para un desarrollador: de donde viene la
-entrada no confiable, en que operacion peligrosa termina, y que se expone o se
-logra si se explota.
+const SYSTEM_PROMPT = `You are a senior application security (AppSec) analyst.
+You receive a security finding already confirmed as a true positive and must
+explain its exploitability chain for a developer: where the untrusted input
+comes from, which dangerous operation it ends in, and what is exposed or
+achieved if it is exploited.
 
-Responde UNICAMENTE con un objeto JSON valido, sin markdown ni texto adicional,
-con esta forma exacta:
-{"summary":"<resumen en una frase>","entryPoint":"<de donde viene la entrada no confiable>","sink":"<la operacion peligrosa donde termina>","exposure":"<que se expone o se logra si se explota>"}
-Escribe en espanol, claro y conciso (1 a 2 frases por campo).`;
+Respond ONLY with a valid JSON object, no markdown and no extra text, with this
+exact shape:
+{"summary":"<one-sentence summary>","entryPoint":"<where the untrusted input comes from>","sink":"<the dangerous operation where it ends>","exposure":"<what is exposed or achieved if exploited>"}
+Write in English, clear and concise (1 to 2 sentences per field).`;
 
 /**
  * Context Agent — explica la cadena de explotabilidad de un hallazgo
@@ -34,16 +34,16 @@ export class ContextAgent implements BrainAgent<Finding, ContextExplanation> {
   readonly maxTokens = 1024;
 
   buildPrompt(finding: Finding): AgentPrompt {
-    const snippet = finding.location.snippet ?? '(no disponible)';
+    const snippet = finding.location.snippet ?? '(not available)';
     const user = [
-      'Hallazgo confirmado a explicar:',
-      `- Regla: ${finding.ruleId}`,
-      `- Categoria: ${finding.category}`,
-      `- Severidad: ${finding.severity}`,
-      `- Titulo: ${finding.title}`,
-      `- Mensaje: ${finding.message}`,
-      `- Ubicacion: ${finding.location.path}:${String(finding.location.startLine)}`,
-      `- Codigo:\n${snippet}`,
+      'Confirmed finding to explain:',
+      `- Rule: ${finding.ruleId}`,
+      `- Category: ${finding.category}`,
+      `- Severity: ${finding.severity}`,
+      `- Title: ${finding.title}`,
+      `- Message: ${finding.message}`,
+      `- Location: ${finding.location.path}:${String(finding.location.startLine)}`,
+      `- Code:\n${snippet}`,
     ].join('\n');
     return { system: SYSTEM_PROMPT, user };
   }
@@ -54,7 +54,7 @@ export class ContextAgent implements BrainAgent<Finding, ContextExplanation> {
       parsed = JSON.parse(extractJsonObject(raw));
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      throw new Error(`No se pudo parsear la explicacion de contexto: ${message}`);
+      throw new Error(`Could not parse the context explanation: ${message}`);
     }
     return ContextExplanationSchema.parse(parsed);
   }

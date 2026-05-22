@@ -36,7 +36,7 @@ describe('TriageAgent.buildPrompt', () => {
     const prompt = new TriageAgent().buildPrompt(
       makeFinding({ location: { path: 'a.js', startLine: 1 } }) as never,
     );
-    expect(prompt.user).toContain('(no disponible)');
+    expect(prompt.user).toContain('(not available)');
   });
 });
 

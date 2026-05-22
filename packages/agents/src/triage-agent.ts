@@ -14,19 +14,19 @@ export { TRIAGE_CLASSIFICATIONS, TriageClassificationSchema, TriageVerdictSchema
 export type { TriageClassification, TriageVerdict };
 
 /** Instruccion de sistema del Triage Agent. */
-const SYSTEM_PROMPT = `Eres un analista senior de seguridad de aplicaciones (AppSec).
-Recibes un hallazgo producido por un scanner estatico (SAST o secrets) y debes
-TRIARLO: decidir si es un verdadero positivo explotable, un falso positivo, o si
-no hay informacion suficiente para decidir.
+const SYSTEM_PROMPT = `You are a senior application security (AppSec) analyst.
+You receive a finding produced by a static scanner (SAST or secrets) and must
+TRIAGE it: decide whether it is an exploitable true positive, a false positive,
+or whether there is not enough information to decide.
 
-Criterios:
-- true_positive: representa un riesgo real y explotable.
-- false_positive: el patron se disparo pero NO hay riesgo real en este contexto.
-- inconclusive: falta contexto (codigo circundante, flujo de datos) para decidir.
+Criteria:
+- true_positive: represents a real, exploitable risk.
+- false_positive: the pattern matched but there is NO real risk in this context.
+- inconclusive: missing context (surrounding code, data flow) to decide.
 
-Responde UNICAMENTE con un objeto JSON valido, sin markdown ni texto adicional,
-con esta forma exacta:
-{"classification":"true_positive"|"false_positive"|"inconclusive","confidence":<numero entre 0 y 1>,"rationale":"<explicacion breve en espanol, maximo 2 frases>"}`;
+Respond ONLY with a valid JSON object, no markdown and no extra text, with this
+exact shape:
+{"classification":"true_positive"|"false_positive"|"inconclusive","confidence":<number between 0 and 1>,"rationale":"<brief explanation in English, at most 2 sentences>"}`;
 
 /**
  * Triage Agent — reduce falsos positivos clasificando cada hallazgo crudo
@@ -38,16 +38,16 @@ export class TriageAgent implements BrainAgent<Finding, TriageVerdict> {
   readonly maxTokens = 512;
 
   buildPrompt(finding: Finding): AgentPrompt {
-    const snippet = finding.location.snippet ?? '(no disponible)';
+    const snippet = finding.location.snippet ?? '(not available)';
     const user = [
-      'Hallazgo a triar:',
-      `- Regla: ${finding.ruleId}`,
-      `- Categoria: ${finding.category}`,
-      `- Severidad: ${finding.severity}`,
-      `- Titulo: ${finding.title}`,
-      `- Mensaje: ${finding.message}`,
-      `- Ubicacion: ${finding.location.path}:${String(finding.location.startLine)}`,
-      `- Codigo:\n${snippet}`,
+      'Finding to triage:',
+      `- Rule: ${finding.ruleId}`,
+      `- Category: ${finding.category}`,
+      `- Severity: ${finding.severity}`,
+      `- Title: ${finding.title}`,
+      `- Message: ${finding.message}`,
+      `- Location: ${finding.location.path}:${String(finding.location.startLine)}`,
+      `- Code:\n${snippet}`,
     ].join('\n');
     return { system: SYSTEM_PROMPT, user };
   }
@@ -58,7 +58,7 @@ export class TriageAgent implements BrainAgent<Finding, TriageVerdict> {
       parsed = JSON.parse(extractJsonObject(raw));
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      throw new Error(`No se pudo parsear el veredicto de triage: ${message}`);
+      throw new Error(`Could not parse the triage verdict: ${message}`);
     }
     return TriageVerdictSchema.parse(parsed);
   }
