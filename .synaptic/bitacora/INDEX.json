@@ -2,7 +2,7 @@
   "version": "1.0",
   "projectId": "sentinel-1779304140796",
   "projectName": "SENTINEL",
-  "totalCycles": 36,
+  "totalCycles": 37,
   "currentTomeId": 1,
   "cyclesPerTome": 50,
   "tomes": [
@@ -16,10 +16,10 @@
         "from": "2026-05-20T19:09:00.852Z",
         "to": ""
       },
-      "summary": "Cycles 1-36: 5 scouts (OpenGrep SAST con 11 reglas pattern-based, Gitleaks Secrets, Trivy SCA, Checkov IaC, Vibe-Detect VibeCoded), Coordinator stages 1-2 con kill-switch por scout, colony.db (schema v4) con learning_records activo (escritura + lectura), CLI con salida verbose/dinamica, reporters JSON+HTML+consola, extension VSCode con el Brain Layer surfaceado, pseudoterminal verbose y webview 'tomo vivo', Brain Layer COMPLETO con 3 agentes wired (Triage + Context + Remediation, llamada LLM real verificada), memoria del enjambre completa, ONBOARDING.md, y repo sin drift de Prettier con el gate por ciclo codificado en el script 'verify'.",
-      "keyDecisions": ["DG-001", "DG-002", "DG-003", "DG-004", "DG-005", "DG-006", "DG-007", "DG-008", "DG-009", "DG-010", "DG-011", "DG-012", "DG-013", "DG-014", "DG-015", "DG-016", "DG-017", "DG-018", "DG-019", "DG-020", "DG-021", "DG-022", "DG-023", "DG-024", "DG-025", "DG-026", "DG-027", "DG-028", "DG-029", "DG-030", "DG-031", "DG-032", "DG-033", "DG-034", "DG-035", "DG-036", "DG-037", "DG-038", "DG-039", "DG-040", "DG-041", "DG-042", "DG-043", "Q1"],
-      "cycleCount": 36,
-      "successCount": 36,
+      "summary": "Cycles 1-37: 5 scouts (OpenGrep SAST con 11 reglas pattern-based, Gitleaks Secrets, Trivy SCA, Checkov IaC, Vibe-Detect VibeCoded), Coordinator stages 1-2 con kill-switch por scout, colony.db (schema v4) con learning_records activo (escritura + lectura), CLI con salida verbose/dinamica, reporters JSON+HTML+SARIF+consola (tomo CI-native), extension VSCode con el Brain Layer surfaceado, pseudoterminal verbose y webview 'tomo vivo', Brain Layer COMPLETO con 3 agentes wired (Triage + Context + Remediation, llamada LLM real verificada), memoria del enjambre completa, ONBOARDING.md, y repo sin drift de Prettier con el gate por ciclo codificado en el script 'verify'.",
+      "keyDecisions": ["DG-001", "DG-002", "DG-003", "DG-004", "DG-005", "DG-006", "DG-007", "DG-008", "DG-009", "DG-010", "DG-011", "DG-012", "DG-013", "DG-014", "DG-015", "DG-016", "DG-017", "DG-018", "DG-019", "DG-020", "DG-021", "DG-022", "DG-023", "DG-024", "DG-025", "DG-026", "DG-027", "DG-028", "DG-029", "DG-030", "DG-031", "DG-032", "DG-033", "DG-034", "DG-035", "DG-036", "DG-037", "DG-038", "DG-039", "DG-040", "DG-041", "DG-042", "DG-043", "DG-044", "Q1"],
+      "cycleCount": 37,
+      "successCount": 37,
       "failureCount": 0,
       "jsonPath": "tomes/tome-001.json",
       "mdPath": "tomes/tome-001.md",
@@ -70,13 +70,14 @@
     { "id": "DG-041", "title": "La colonia aprende - lado lectura (increment 2)", "selected": "B", "cycle": 34, "date": "2026-05-21" },
     { "id": "DG-042", "title": "Proximo paso del roadmap (higiene del repo)", "selected": "A", "cycle": 35, "date": "2026-05-21" },
     { "id": "DG-043", "title": "Proximo paso del roadmap (ampliar el catalogo SAST)", "selected": "B", "cycle": 36, "date": "2026-05-22" },
+    { "id": "DG-044", "title": "Proximo paso del roadmap (reporter SARIF)", "selected": "B", "cycle": 37, "date": "2026-05-22" },
     { "id": "Q1", "title": "Package manager", "selected": "pnpm", "cycle": 1, "date": "2026-05-20" }
   ],
   "metrics": {
-    "totalDecisions": 44,
+    "totalDecisions": 45,
     "optionDistribution": {
       "A": 23,
-      "B": 21,
+      "B": 22,
       "C": 0
     },
     "overallSuccessRate": 100,
@@ -88,8 +89,8 @@
       "4": 3,
       "5": 5,
       "6": 4,
-      "7": 20
+      "7": 21
     }
   },
-  "lastUpdated": "2026-05-22T12:30:00.000Z"
+  "lastUpdated": "2026-05-22T13:00:00.000Z"
 }

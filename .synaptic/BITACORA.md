@@ -1256,7 +1256,34 @@ Each entry follows this structure:
 }
 ```
 
+### Entry #47 - DG-044 (B): exportador SARIF 2.1.0 del tomo
+```json
+{
+  "timestamp": "2026-05-22T13:00:00.000Z",
+  "cycle": 37,
+  "phase": 7,
+  "action": "FEATURE_IMPLEMENTED",
+  "details": {
+    "DG-044": {
+      "title": "Proximo paso del roadmap (reporter SARIF)",
+      "selected": "Option B",
+      "effect": "Reporter SARIF 2.1.0 del tomo: la salida de Sentinel es ahora consumible por GitHub Code Scanning, Azure DevOps y otras herramientas de CI. SARIF ya estaba previsto como formato OSS en el index.ts del paquete reporters."
+    },
+    "files": "reporters/src/sarif-reporter.ts (NUEVO, renderTomoSarif - reporter puro y determinista). reporters/src/index.ts (export). reporters/tests/sarif-reporter.test.ts (NUEVO, 8 tests). cli/src/commands/scan.ts y cli/src/index.ts (flag --export-sarif).",
+    "design": "Reglas (reportingDescriptor) deduplicadas por ruleId; cada result las referencia por ruleIndex. Severidad -> level SARIF (critical/high=error, medium=warning, low/info=note) y -> security-severity (0-10) que GitHub lee de la regla. El fingerprint estable de cada hallazgo se publica como partialFingerprints, para que el consumidor rastree el mismo hallazgo entre corridas. La region omite los campos ausentes (endLine/columns/snippet opcionales).",
+    "verification_real": "8 tests unitarios que parsean la salida y verifican el esqueleto SARIF 2.1.0, el mapeo severidad->level, la deduplicacion de reglas, la region, security-severity, partialFingerprints y el caso sin hallazgos. pnpm verify completo en verde.",
+    "tests": "8 nuevos — total 304 verdes + 3 gated",
+    "checks": "format:check / lint / build / test — todos en verde via 'verify'",
+    "observacion": "pnpm verify tardo ~152s, dominado por los tests de integracion: FI-002 (separar test:unit/test:integration) sigue creciendo en relevancia.",
+    "commit": "codigo + tests en el commit f12e2b6 feat(reporters,cli); el registro SYNAPTIC de cierre del Cycle 37 se asienta en el commit docs siguiente"
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 42,
+  "complianceScore": 100
+}
+```
+
 ---
 
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-22T12:30:00.000Z*
+*Last Updated: 2026-05-22T13:00:00.000Z*
