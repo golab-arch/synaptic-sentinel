@@ -1522,7 +1522,33 @@ Each entry follows this structure:
 }
 ```
 
+### Entry #57 - DG-054 (A): modo --global de install-scanners (FI-004 sub-increment 2)
+```json
+{
+  "timestamp": "2026-05-22T20:30:00.000Z",
+  "cycle": 47,
+  "phase": 8,
+  "action": "FEATURE_IMPLEMENTED",
+  "details": {
+    "DG-054": {
+      "title": "Proximo paso del roadmap (modo --global de install-scanners)",
+      "selected": "Option A",
+      "effect": "Sub-increment 2 de FI-004: install-scanners.ts gana el modo --global que instala los binarios en la cache global por usuario (~/.synaptic-sentinel/scanners). Cierra el lazo de FI-004: resolver (DG-053) + instalar (esto) -> cache global operativa."
+    },
+    "files": "scripts/install-scanners.ts (globalScannerCacheDir; main() elige el destino segun --global; salida del script migrada a ingles). scripts/install-scanners.test.ts (asercion del error de plataforma).",
+    "design": "installScanner no cambia: ya parametrizaba installDir. Solo main() elige el destino. globalScannerCacheDir espeja la definicion canonica de cli/scan.ts (duplicacion de un join estable, deliberada: el script es standalone). El disparo on-demand del install (cuando falta un scanner) es parte del empaquetado .vsix (FI-008). Ademas se tradujo la salida del script a ingles (consistencia con el producto; el script no era parte de las 5 etapas de FI-011 pero se alinea con la directiva).",
+    "verification_real": "pnpm verify verde (test:unit 304). E2E real del modo --global sin red: poblando ~/.synaptic-sentinel/scanners con una copia de .scanners/, 'install-scanners --global' resuelve el destino global y reporta los 4 scanners 'cache OK' (opengrep re-verifica su sha256). Cache de prueba eliminada tras el e2e.",
+    "tests": "sin tests nuevos (1 asercion actualizada) — total 313 verdes + 3 gated",
+    "checks": "format:check / lint / build / test:unit — todos en verde",
+    "commit": "codigo + test en el commit fe04667 feat(scripts); el registro SYNAPTIC de cierre del Cycle 47 se asienta en el commit docs siguiente"
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 52,
+  "complianceScore": 100
+}
+```
+
 ---
 
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-22T19:45:00.000Z*
+*Last Updated: 2026-05-22T20:30:00.000Z*
