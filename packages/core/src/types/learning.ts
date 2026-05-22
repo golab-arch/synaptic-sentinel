@@ -67,3 +67,65 @@ export function triageClassificationToLearning(
   if (classification === 'true_positive') return 'real_pattern';
   return undefined;
 }
+
+/**
+ * Umbral de evidencia para que la colonia pre-clasifique un hallazgo sin
+ * gastar una llamada LLM: el patron necesita al menos esta cantidad de
+ * observaciones consistentes. Conservador por diseno (v0.4 §187).
+ */
+export const LEARNING_CONFIDENCE_THRESHOLD = 3;
+
+/** Veredicto derivado de la memoria del enjambre, sin llamada LLM. */
+export interface LearnedVerdict {
+  /** Clasificacion derivada (siempre decisiva: TP o FP). */
+  readonly classification: TriageClassification;
+  /** Confianza, creciente con la evidencia (tope 0.95). */
+  readonly confidence: number;
+  /** Cantidad de observaciones previas que respaldan el veredicto. */
+  readonly evidenceCount: number;
+}
+
+/** Confianza de un veredicto derivado: crece con la evidencia, tope 0.95. */
+function learnedConfidence(evidenceCount: number): number {
+  return Math.min(0.95, 0.6 + 0.05 * evidenceCount);
+}
+
+/**
+ * Decide si la memoria del enjambre puede pre-clasificar un hallazgo sin
+ * gastar una llamada LLM (economia de tokens, v0.4 §187).
+ *
+ * Devuelve un veredicto derivado solo si el patron tiene evidencia FUERTE y
+ * CONSISTENTE: al menos `threshold` observaciones en una unica direccion
+ * (`fp_pattern` o `real_pattern`, no ambas). Si hay evidencia en ambas
+ * direcciones el patron es dependiente del contexto y devuelve `undefined`:
+ * el LLM debe decidir. Un veredicto derivado NUNCA se realimenta a
+ * `learning_records` — el llamante solo aprende de las decisiones del LLM.
+ */
+export function deriveFromLearning(
+  signature: string,
+  records: readonly LearningRecord[],
+  threshold: number = LEARNING_CONFIDENCE_THRESHOLD,
+): LearnedVerdict | undefined {
+  const forSignature = records.filter((r) => r.patternSignature === signature);
+  const fpCount =
+    forSignature.find((r) => r.classification === 'fp_pattern')?.evidenceCount ?? 0;
+  const realCount =
+    forSignature.find((r) => r.classification === 'real_pattern')?.evidenceCount ?? 0;
+  // Evidencia contradictoria: el patron es ambiguo, debe decidir el LLM.
+  if (fpCount > 0 && realCount > 0) return undefined;
+  if (fpCount >= threshold) {
+    return {
+      classification: 'false_positive',
+      confidence: learnedConfidence(fpCount),
+      evidenceCount: fpCount,
+    };
+  }
+  if (realCount >= threshold) {
+    return {
+      classification: 'true_positive',
+      confidence: learnedConfidence(realCount),
+      evidenceCount: realCount,
+    };
+  }
+  return undefined;
+}

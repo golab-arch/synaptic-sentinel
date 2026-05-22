@@ -3,12 +3,14 @@ import { randomUUID } from 'node:crypto';
 import { join, resolve } from 'node:path';
 import {
   ColonyDb,
+  deriveFromLearning,
   FindingSchema,
   patternSignature,
   triageClassificationToLearning,
   type ContextExplanationRecord,
   type LearningClassification,
   type RemediationSuggestionRecord,
+  type TriageVerdict,
   type TriageVerdictRecord,
 } from '@synaptic-sentinel/core';
 import {
@@ -117,9 +119,28 @@ export async function runTriageCommand(options: TriageCommandOptions): Promise<n
     // Aprendizaje del enjambre: patrones generalizados de los hallazgos
     // clasificados, para alimentar `learning_records` (v0.4 §3.5).
     const learningEntries: { signature: string; classification: LearningClassification }[] = [];
+    // Lado lectura: la memoria del enjambre pre-clasifica patrones conocidos
+    // sin gastar una llamada LLM (economia de tokens, v0.4 §187).
+    const learningRecords = db.getLearningRecords();
+    let learnedCount = 0;
     for (const finding of toTriage) {
       try {
-        const verdict = await runAgent(triageAgent, finding, llm);
+        const signature = patternSignature(finding);
+        const learned = deriveFromLearning(signature, learningRecords);
+        let verdict: TriageVerdict;
+        if (learned !== undefined) {
+          // La colonia ya conoce este patron: se evita la llamada LLM.
+          verdict = {
+            classification: learned.classification,
+            confidence: learned.confidence,
+            rationale:
+              `Pre-clasificado por la memoria del enjambre: el patron "${signature}" fue ` +
+              `${learned.classification} en ${String(learned.evidenceCount)} hallazgo(s) previo(s).`,
+          };
+          learnedCount += 1;
+        } else {
+          verdict = await runAgent(triageAgent, finding, llm);
+        }
         verdicts.push({
           id: randomUUID(),
           scanId,
@@ -127,22 +148,23 @@ export async function runTriageCommand(options: TriageCommandOptions): Promise<n
           classification: verdict.classification,
           confidence: verdict.confidence,
           rationale: verdict.rationale,
-          agentId: triageAgent.id,
+          agentId: learned !== undefined ? 'colony-learning' : triageAgent.id,
           createdAt: new Date().toISOString(),
         });
+        const source = learned !== undefined ? ' (memoria del enjambre)' : '';
         console.log(
           `  ${renderTriageTag(verdict.classification, color)}  ${finding.title} ` +
             `— ${finding.location.path}:${String(finding.location.startLine)} ` +
-            `(confianza ${verdict.confidence.toFixed(2)})`,
+            `(confianza ${verdict.confidence.toFixed(2)})${source}`,
         );
-        // Aprendizaje del enjambre: solo las clasificaciones decisivas
-        // (un veredicto inconclusive no produce patron).
-        const learning = triageClassificationToLearning(verdict.classification);
-        if (learning !== undefined) {
-          learningEntries.push({
-            signature: patternSignature(finding),
-            classification: learning,
-          });
+        // Aprendizaje: solo de las decisiones del LLM, nunca de un veredicto
+        // derivado de la propia memoria (evita un bucle de realimentacion).
+        // Y solo las clasificaciones decisivas (inconclusive no es patron).
+        if (learned === undefined) {
+          const learning = triageClassificationToLearning(verdict.classification);
+          if (learning !== undefined) {
+            learningEntries.push({ signature, classification: learning });
+          }
         }
         // Stage 4 — Context: solo sobre los verdaderos positivos (v0.4 §3.6).
         if (verdict.classification === 'true_positive') {
@@ -202,7 +224,8 @@ export async function runTriageCommand(options: TriageCommandOptions): Promise<n
       `Veredictos de triage persistidos: ${String(verdicts.length)}; ` +
         `explicaciones de contexto: ${String(explanations.length)}; ` +
         `sugerencias de remediacion: ${String(remediations.length)}; ` +
-        `patrones aprendidos: ${String(learningEntries.length)}.`,
+        `patrones aprendidos: ${String(learningEntries.length)}; ` +
+        `pre-clasificados por la memoria: ${String(learnedCount)}.`,
     );
     return 0;
   } finally {

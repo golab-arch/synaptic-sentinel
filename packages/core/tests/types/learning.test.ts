@@ -1,10 +1,27 @@
 import { describe, it, expect } from 'vitest';
 import {
+  deriveFromLearning,
   LearningClassificationSchema,
   LearningRecordSchema,
   patternSignature,
   triageClassificationToLearning,
+  type LearningRecord,
 } from '../../src/types/learning.js';
+
+/** Construye un LearningRecord para un patron, clasificacion y evidencia. */
+function record(
+  signature: string,
+  classification: LearningRecord['classification'],
+  evidenceCount: number,
+): LearningRecord {
+  return {
+    id: '00000000-0000-4000-8000-000000000001',
+    patternSignature: signature,
+    classification,
+    evidenceCount,
+    lastSeenScan: 'scan-1',
+  };
+}
 
 describe('LearningClassificationSchema', () => {
   it('acepta las clasificaciones validas y rechaza el resto', () => {
@@ -55,5 +72,36 @@ describe('triageClassificationToLearning', () => {
 
   it('no aprende de un veredicto inconclusive', () => {
     expect(triageClassificationToLearning('inconclusive')).toBeUndefined();
+  });
+});
+
+describe('deriveFromLearning', () => {
+  it('pre-clasifica como true_positive un patron real con evidencia fuerte', () => {
+    const verdict = deriveFromLearning('SAST:eval', [record('SAST:eval', 'real_pattern', 5)]);
+    expect(verdict?.classification).toBe('true_positive');
+    expect(verdict?.evidenceCount).toBe(5);
+    expect(verdict?.confidence).toBeGreaterThan(0.5);
+    expect(verdict?.confidence).toBeLessThanOrEqual(0.95);
+  });
+
+  it('pre-clasifica como false_positive un patron fp con evidencia fuerte', () => {
+    const verdict = deriveFromLearning('IaC:x', [record('IaC:x', 'fp_pattern', 4)]);
+    expect(verdict?.classification).toBe('false_positive');
+  });
+
+  it('no pre-clasifica por debajo del umbral de evidencia', () => {
+    expect(deriveFromLearning('IaC:x', [record('IaC:x', 'fp_pattern', 2)])).toBeUndefined();
+  });
+
+  it('no pre-clasifica un patron con evidencia contradictoria', () => {
+    const verdict = deriveFromLearning('IaC:x', [
+      record('IaC:x', 'fp_pattern', 5),
+      record('IaC:x', 'real_pattern', 5),
+    ]);
+    expect(verdict).toBeUndefined();
+  });
+
+  it('no pre-clasifica un patron sin registros', () => {
+    expect(deriveFromLearning('IaC:nada', [])).toBeUndefined();
   });
 });
