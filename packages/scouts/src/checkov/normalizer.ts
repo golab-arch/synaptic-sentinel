@@ -71,7 +71,7 @@ export function normalizeCheckovOutput(
       const title = check.check_name.length > 0 ? check.check_name : check.check_id;
       const guideline =
         check.guideline !== null && check.guideline !== undefined && check.guideline !== ''
-          ? ` Guia: ${check.guideline}`
+          ? ` Guideline: ${check.guideline}`
           : '';
       const finding = {
         id: newId(),

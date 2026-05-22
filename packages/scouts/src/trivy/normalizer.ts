@@ -43,8 +43,8 @@ export function normalizeTrivyOutput(output: TrivyOutput, ctx: TrivyNormalizeCon
     for (const vuln of result.Vulnerabilities ?? []) {
       const fixed =
         vuln.FixedVersion !== undefined && vuln.FixedVersion !== ''
-          ? `; corregido en ${vuln.FixedVersion}`
-          : '; sin version corregida disponible';
+          ? `; fixed in ${vuln.FixedVersion}`
+          : '; no fixed version available';
       // El VulnerabilityID (CVE/GHSA) y los CWE son referencias de cumplimiento.
       const complianceRefs = [...new Set([vuln.VulnerabilityID, ...(vuln.CweIDs ?? [])])];
       const finding = {
@@ -56,7 +56,7 @@ export function normalizeTrivyOutput(output: TrivyOutput, ctx: TrivyNormalizeCon
         ruleId: vuln.VulnerabilityID,
         title: vuln.Title ?? `${vuln.PkgName}: ${vuln.VulnerabilityID}`,
         message:
-          `${vuln.PkgName} ${vuln.InstalledVersion} es vulnerable ` +
+          `${vuln.PkgName} ${vuln.InstalledVersion} is vulnerable ` +
           `(${vuln.VulnerabilityID})${fixed}.`,
         location: { path: target, startLine: 1 },
         complianceRefs,

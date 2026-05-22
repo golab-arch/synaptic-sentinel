@@ -9,6 +9,7 @@
 # insegura (CWE-502) y criptografia debil (CWE-327).
 #
 # Ampliado en DG-043 (Cycle 36): 4 -> 11 reglas.
+# Mensajes en ingles desde DG-049 (Cycle 42, FI-011 etapa 2).
 #
 # Licencia: Apache-2.0 (OSS).
 rules:
@@ -20,8 +21,8 @@ rules:
       - typescript
     severity: ERROR
     message: >-
-      Uso de eval(): ejecuta codigo arbitrario en runtime. Si el argumento
-      proviene de una fuente no confiable es una inyeccion de codigo.
+      Use of eval(): executes arbitrary code at runtime. If the argument comes
+      from an untrusted source this is a code injection.
     metadata:
       cwe:
         - "CWE-95: Improper Neutralization of Directives in Dynamically Evaluated Code"
@@ -36,8 +37,8 @@ rules:
       - typescript
     severity: WARNING
     message: >-
-      Uso de "new Function()": construye codigo a partir de strings en runtime,
-      equivalente a eval().
+      Use of "new Function()": builds code from strings at runtime, equivalent
+      to eval().
     metadata:
       cwe:
         - "CWE-95: Improper Neutralization of Directives in Dynamically Evaluated Code"
@@ -50,8 +51,8 @@ rules:
       - typescript
     severity: ERROR
     message: >-
-      Un string como primer argumento de setTimeout()/setInterval() se ejecuta
-      como codigo en runtime, equivalente a eval(). Pasar una funcion.
+      A string as the first argument to setTimeout()/setInterval() is executed
+      as code at runtime, equivalent to eval(). Pass a function instead.
     metadata:
       cwe:
         - "CWE-95: Improper Neutralization of Directives in Dynamically Evaluated Code"
@@ -68,8 +69,8 @@ rules:
       - typescript
     severity: WARNING
     message: >-
-      document.write()/writeln(): si el contenido proviene de una fuente no
-      confiable habilita Cross-Site Scripting (XSS).
+      document.write()/writeln(): if the content comes from an untrusted source
+      this enables Cross-Site Scripting (XSS).
     metadata:
       cwe:
         - "CWE-79: Improper Neutralization of Input During Web Page Generation"
@@ -86,9 +87,9 @@ rules:
       - typescript
     severity: WARNING
     message: >-
-      Asignacion a innerHTML con un valor dinamico: si proviene de entrada no
-      confiable habilita Cross-Site Scripting (XSS). Usar textContent o
-      sanitizar el HTML.
+      Assignment to innerHTML with a dynamic value: if it comes from untrusted
+      input this enables Cross-Site Scripting (XSS). Use textContent or
+      sanitize the HTML.
     metadata:
       cwe:
         - "CWE-79: Improper Neutralization of Input During Web Page Generation"
@@ -105,7 +106,7 @@ rules:
     languages:
       - python
     severity: ERROR
-    message: "Uso de exec(): ejecuta codigo Python arbitrario en runtime."
+    message: "Use of exec(): executes arbitrary Python code at runtime."
     metadata:
       cwe:
         - "CWE-95: Improper Neutralization of Directives in Dynamically Evaluated Code"
@@ -119,8 +120,8 @@ rules:
       - python
     severity: ERROR
     message: >-
-      subprocess con shell=True: si algun argumento proviene de entrada no
-      confiable, habilita inyeccion de comandos del sistema operativo.
+      subprocess with shell=True: if any argument comes from untrusted input
+      this enables OS command injection.
     metadata:
       cwe:
         - "CWE-78: Improper Neutralization of Special Elements used in an OS Command"
@@ -134,8 +135,8 @@ rules:
       - python
     severity: ERROR
     message: >-
-      os.system() ejecuta su argumento en un shell del sistema: si proviene de
-      entrada no confiable habilita inyeccion de comandos del sistema operativo.
+      os.system() runs its argument in a system shell: if it comes from
+      untrusted input this enables OS command injection.
     metadata:
       cwe:
         - "CWE-78: Improper Neutralization of Special Elements used in an OS Command"
@@ -149,8 +150,8 @@ rules:
       - python
     severity: ERROR
     message: >-
-      yaml.load() sin un SafeLoader puede instanciar objetos arbitrarios desde
-      el documento YAML: deserializacion insegura. Usar yaml.safe_load().
+      yaml.load() without a SafeLoader can instantiate arbitrary objects from
+      the YAML document: unsafe deserialization. Use yaml.safe_load().
     metadata:
       cwe:
         - "CWE-502: Deserialization of Untrusted Data"
@@ -167,8 +168,8 @@ rules:
       - python
     severity: ERROR
     message: >-
-      pickle.load()/loads() puede ejecutar codigo arbitrario durante la
-      deserializacion: no usar sobre datos que no sean de plena confianza.
+      pickle.load()/loads() can execute arbitrary code during deserialization:
+      do not use it on data that is not fully trusted.
     metadata:
       cwe:
         - "CWE-502: Deserialization of Untrusted Data"
@@ -184,8 +185,8 @@ rules:
       - python
     severity: WARNING
     message: >-
-      hashlib.md5() es un algoritmo de hash criptograficamente debil: no usar
-      para contrasenas, firmas ni control de integridad. Preferir SHA-256.
+      hashlib.md5() is a cryptographically weak hash algorithm: do not use it
+      for passwords, signatures or integrity checks. Prefer SHA-256.
     metadata:
       cwe:
         - "CWE-327: Use of a Broken or Risky Cryptographic Algorithm"

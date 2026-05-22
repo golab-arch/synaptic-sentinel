@@ -32,7 +32,7 @@ describe('normalizeCheckovOutput', () => {
     expect(healthcheck.location.endLine).toBe(7);
     expect(healthcheck.title).toContain('HEALTHCHECK');
     expect(healthcheck.message).toContain('CKV_DOCKER_2');
-    expect(healthcheck.message).toContain('Guia:');
+    expect(healthcheck.message).toContain('Guideline:');
     expect(healthcheck.fingerprint).toBe('Dockerfile:CKV_DOCKER_2:/Dockerfile.:1');
     expect(healthcheck.createdAt).toBe('2026-05-21T12:00:00.000Z');
   });

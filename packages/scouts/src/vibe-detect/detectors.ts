@@ -34,69 +34,68 @@ export interface VibeDetector {
 export const VIBE_DETECTORS: readonly VibeDetector[] = [
   {
     id: 'vibe-placeholder-secret',
-    title: 'Secreto placeholder dejado en el codigo',
+    title: 'Placeholder secret left in the code',
     severity: 'high',
     message:
-      'Una credencial fue asignada a un valor de marcador de posicion sin ' +
-      'reemplazar. Tipico de codigo generado por IA: el marcador quedo sin ' +
-      'completar, o un valor real se commiteo bajo un nombre de ejemplo.',
+      'A credential was assigned an unreplaced placeholder value. Typical of ' +
+      'AI-generated code: the placeholder was left unfilled, or a real value ' +
+      'was committed under an example name.',
     pattern:
       /\b(?:api[-_]?key|secret|password|passwd|access[-_]?key|client[-_]?secret|auth[-_]?token|token)\b["'`\s]*[:=]\s*["'`]\s*(?:your[-_ ]|<[a-z]|x{4,}|changeme|change[-_ ]me|placeholder|replace[-_ ]me|todo|example|dummy|sample|insert[-_ ]|paste[-_ ])/i,
     complianceRefs: ['CWE-798'],
   },
   {
     id: 'vibe-suppressed-security-check',
-    title: 'Control de seguridad suprimido en linea',
+    title: 'Security check suppressed inline',
     severity: 'medium',
     message:
-      'Una regla de seguridad fue silenciada con un comentario de supresion ' +
-      'en linea. Suele aparecer cuando se acalla al linter en vez de corregir ' +
-      'el hallazgo de fondo.',
+      'A security rule was silenced with an inline suppression comment. Often ' +
+      'appears when the linter is muted instead of fixing the underlying finding.',
     pattern:
       /(?:eslint-disable[a-z-]*[^\n]*\bsecurity\b|#\s*nosec\b|checkov:skip|gitleaks:allow|trivy:ignore|bandit:\s*skip)/i,
     complianceRefs: [],
   },
   {
     id: 'vibe-security-todo-stub',
-    title: 'Trabajo de seguridad pendiente (TODO/FIXME)',
+    title: 'Pending security work (TODO/FIXME)',
     severity: 'medium',
     message:
-      'Un comentario TODO/FIXME/HACK senala trabajo de seguridad pendiente ' +
-      '(autenticacion, validacion, control de acceso). El codigo generado por ' +
-      'IA suele dejar la parte de seguridad como ejercicio para el desarrollador.',
+      'A TODO/FIXME/HACK comment flags pending security work (authentication, ' +
+      'validation, access control). AI-generated code often leaves the security ' +
+      'part as an exercise for the developer.',
     pattern:
       /(?:\/\/|#|\/\*|\*|<!--)\s*(?:TODO|FIXME|HACK|XXX)\b[^\n]*\b(?:auth|authenticat|authoriz|secur|validat|sanitiz|encrypt|permission|csrf|injection)/i,
     complianceRefs: ['CWE-546'],
   },
   {
     id: 'vibe-permissive-cors',
-    title: 'CORS abierto a cualquier origen',
+    title: 'CORS open to any origin',
     severity: 'high',
     message:
-      'La politica CORS permite cualquier origen. Un default comodo y muy ' +
-      'frecuente en codigo generado por IA que expone la API a sitios de terceros.',
+      'The CORS policy allows any origin. A convenient default, very common in ' +
+      'AI-generated code, that exposes the API to third-party sites.',
     pattern: /(?:access-control-allow-origin\b[^\n]*\*|\borigin\s*:\s*(?:["'`]\*["'`]|true)\b)/i,
     complianceRefs: ['CWE-942'],
   },
   {
     id: 'vibe-disabled-tls-verification',
-    title: 'Verificacion de certificado TLS deshabilitada',
+    title: 'TLS certificate verification disabled',
     severity: 'high',
     message:
-      'La validacion del certificado TLS fue desactivada. Saltarse la ' +
-      'verificacion del certificado abre la puerta a ataques man-in-the-middle.',
+      'TLS certificate validation was turned off. Skipping certificate ' +
+      'verification opens the door to man-in-the-middle attacks.',
     pattern:
       /(?:\bverify\s*=\s*False\b|rejectUnauthorized\s*:\s*false|NODE_TLS_REJECT_UNAUTHORIZED\s*[:=]\s*["'`]?0|InsecureSkipVerify\s*:\s*true|ssl\._create_unverified_context)/i,
     complianceRefs: ['CWE-295'],
   },
   {
     id: 'vibe-debug-mode-enabled',
-    title: 'Modo debug activado de forma fija',
+    title: 'Debug mode hard-enabled',
     severity: 'medium',
     message:
-      'El modo debug quedo activado de forma fija. En produccion expone trazas ' +
-      'de pila y, en frameworks como Flask, puede habilitar ejecucion remota de ' +
-      'codigo via la consola de depuracion.',
+      'Debug mode was left hard-enabled. In production it exposes stack traces ' +
+      'and, in frameworks like Flask, can enable remote code execution via the ' +
+      'debug console.',
     pattern:
       /(?:\bdebug\s*=\s*True\b|app\.run\([^)\n]*\bdebug\s*=\s*True|\bFLASK_DEBUG\s*[:=]\s*["'`]?1\b)/i,
     complianceRefs: ['CWE-489'],
