@@ -1202,7 +1202,34 @@ Each entry follows this structure:
 }
 ```
 
+### Entry #45 - DG-042 (A): higiene del repo — Prettier + format:check en el gate
+```json
+{
+  "timestamp": "2026-05-21T23:15:00.000Z",
+  "cycle": 35,
+  "phase": 7,
+  "action": "FEATURE_IMPLEMENTED",
+  "details": {
+    "DG-042": {
+      "title": "Proximo paso del roadmap (higiene del repo)",
+      "selected": "Option A",
+      "effect": "Cierra FI-010: drift de formato de Prettier acumulado porque format:check nunca estuvo en el gate de verificacion por ciclo."
+    },
+    "files": "package.json (nuevo script raiz 'verify': format:check && lint && build && test — codifica el gate por ciclo como un unico comando). 44 archivos reformateados por 'pnpm format' (cambios puramente de estilo). packages/vscode-extension/tests/cli-runner.test.ts (correccion de fondo de un comentario inestable).",
+    "design": "El gate por ciclo era build+lint+test; se le suma format:check y se materializa en el script 'verify' para que el drift no vuelva a acumularse en silencio. Orden de 'verify': falla barato primero — format:check, lint, build, test.",
+    "inestabilidad": "Un comentario de cli-runner.test.ts habia quedado colapsado en una sola linea con '//' embebidos y en posicion colgante entre los argumentos de it(...). Prettier no podia estabilizarlo: prettier(input) !== prettier(prettier(input)) verificado con --debug-check. Se reescribio como un bloque de lineas de comentario independientes movido ANTES de la llamada it(...); el timeout 120_000 queda como argumento simple. --debug-check ahora estable.",
+    "verification_real": "pnpm verify completo en verde: format:check ('All matched files use Prettier code style!'), lint, build, test.",
+    "tests": "sin tests nuevos (ciclo de higiene) — total 294 verdes + 3 gated",
+    "checks": "format:check / lint / build / test — todos en verde via el nuevo script 'verify'",
+    "commit": "codigo en el commit 09fe0ab style(repo); el registro SYNAPTIC de cierre del Cycle 35 se asienta en el commit docs siguiente"
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 40,
+  "complianceScore": 100
+}
+```
+
 ---
 
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-21T22:45:00.000Z*
+*Last Updated: 2026-05-21T23:15:00.000Z*

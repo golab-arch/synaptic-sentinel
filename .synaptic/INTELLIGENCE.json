@@ -4,7 +4,7 @@
     "fullName": "Synaptic Sentinel",
     "description": "Toolkit OSS de auditoria agentica de seguridad + capa premium LLM, vibe-coding-native, para la era del codigo generado por IA. Tercer producto de la familia Synaptic.",
     "currentPhase": "brain-layer",
-    "overallProgress": "Cycles 1-34 CERRADOS. 5 scouts (OpenGrep SAST, Gitleaks Secrets, Trivy SCA, Checkov IaC, Vibe-Detect VibeCoded) + Coordinator stages 1-2 con kill-switch por scout + CLI con salida verbose/dinamica + reporters JSON+HTML+consola + extension VSCode (Brain Layer surfaceado, pseudoterminal verbose y webview 'tomo vivo') + Brain Layer con 3 agentes wired (Triage + Context + Remediation, LLM real verificada) + memoria del enjambre COMPLETA (learning_records: escritura + lectura/economia de tokens) + ONBOARDING.md. UX verbose COMPLETA. 294 tests verdes + 3 gated."
+    "overallProgress": "Cycles 1-35 CERRADOS. 5 scouts (OpenGrep SAST, Gitleaks Secrets, Trivy SCA, Checkov IaC, Vibe-Detect VibeCoded) + Coordinator stages 1-2 con kill-switch por scout + CLI con salida verbose/dinamica + reporters JSON+HTML+consola + extension VSCode (Brain Layer surfaceado, pseudoterminal verbose y webview 'tomo vivo') + Brain Layer con 3 agentes wired (Triage + Context + Remediation, LLM real verificada) + memoria del enjambre COMPLETA (learning_records: escritura + lectura/economia de tokens) + ONBOARDING.md. UX verbose COMPLETA. Repo sin drift de Prettier; gate por ciclo codificado en el script 'verify' (format:check+lint+build+test). 294 tests verdes + 3 gated."
   },
   "decisions": [
     { "id": "DG-001", "title": "Estructura fisica del monorepo OSS/Pro", "selected": "B", "date": "2026-05-20", "summary": "Monorepo unico con workspaces marcados OSS/Pro + publish-oss.ts allowlist", "rationale": "Velocidad solo founder; refactors triviales; anti-filtracion en un script auditable" },
@@ -48,6 +48,7 @@
     { "id": "DG-039", "title": "UX verbose increment 3: webview 'tomo vivo'", "selected": "B", "date": "2026-05-21", "summary": "Increment 3 de 3 (cierra DG-037 B): panel lateral webview con los hallazgos agrupados por severidad y clickeables para saltar al codigo (v0.4 §4.3). webview-content.ts (render puro, CSP+nonce, escapeHtml) + SentinelTomoViewProvider; contributes.views en package.json", "rationale": "Cierra la trilogia de UX verbose con la superficie de exploracion de resultados que pedia v0.4 §4.3; webview sancionado por §4.3 pese a la preferencia general por APIs nativas (Decision #23)" },
     { "id": "DG-040", "title": "La colonia aprende - learning_records (increment 1)", "selected": "B", "date": "2026-05-21", "summary": "Increment 1 (lado escritura) de la memoria del enjambre (v0.4 §3.5): el triage alimenta learning_records (tabla inerte desde v1). patternSignature ${category}:${ruleId}; recordLearningBatch (upsert por (signature, classification)). Lado lectura = increment 2", "rationale": "Activa el corazon conceptual del producto (la colonia que aprende), dormido desde el inicio; increment de escritura acotado y verificado e2e, de-riskea el lado lectura" },
     { "id": "DG-041", "title": "La colonia aprende - lado lectura (increment 2)", "selected": "B", "date": "2026-05-21", "summary": "Increment 2 (lado lectura): deriveFromLearning - el triage pre-clasifica los patrones conocidos (evidencia fuerte y consistente, umbral 3) sin gastar llamada LLM (economia de tokens, v0.4 §187). Un veredicto derivado se persiste con agentId 'colony-learning' y no se realimenta. Cierra 'la colonia aprende'", "rationale": "Sin el lado lectura el aprendizaje queda registrado pero inerte; con el, cada scan se beneficia de los anteriores y se ahorran tokens en patrones ya conocidos" },
+    { "id": "DG-042", "title": "Proximo paso del roadmap (higiene del repo)", "selected": "A", "date": "2026-05-21", "summary": "Cierra FI-010: 'pnpm format' sobre 44 archivos con drift + nuevo script raiz 'verify' (format:check && lint && build && test) que codifica el gate por ciclo. Se corrigio de fondo un comentario inestable de cli-runner.test.ts que Prettier no podia estabilizar (prettier(input) !== prettier(prettier(input)))", "rationale": "El drift se acumulo porque format:check nunca estuvo en el gate; el ciclo de higiene lo cierra y materializa el gate como un comando para que no reaparezca. Riesgo bajo, cambios puramente de estilo, base limpia antes de empujar el beta" },
     { "id": "Q1", "title": "Package manager", "selected": "pnpm workspaces", "date": "2026-05-20", "summary": "pnpm v10.33.0", "rationale": "Ya instalado; preferencia v0.4 9.5; simple sin overhead" }
   ],
   "roadmap": [
@@ -65,12 +66,12 @@
     { "id": "FI-004", "topic": "Cache de scanners del producto", "detail": "El CLI resuelve OpenGrep desde .scanners/ relativo al cwd. El producto enviado necesita una cache de scanners propia (global por usuario) y auto-instalacion." },
     { "id": "FI-005", "topic": "ruleId de OpenGrep", "detail": "El check_id de OpenGrep trae el prefijo de ruta cuando --config es un archivo; Finding.ruleId lo hereda. El CLI muestra title (limpio). Evaluar normalizar ruleId a un id canonico en el normalizer." },
     { "id": "FI-008", "topic": "Empaquetado de la extension (.vsix)", "detail": "El MVP de la extension asume el layout del monorepo en dev: la CLI en el paquete hermano (cli/dist) y node en el PATH. Empaquetar como .vsix requiere bundlear/instalar la CLI y resolver un runtime de Node y la cache de scanners (ver FI-004)." },
-    { "id": "FI-009", "topic": "Cliente LLM", "detail": "AnthropicLlmClient es un cliente minimo via fetch (desviacion informada del v0.4 linea 695). Cuando se necesiten retries, streaming o rate-limiting (v0.4 §rate-limiting LLM), evaluar migrar a @anthropic-ai/sdk detras del contrato LlmClient." },
-    { "id": "FI-010", "topic": "Drift de Prettier", "detail": "pnpm format:check falla en ~41 archivos: drift de formato acumulado en ciclos previos porque format:check no estaba en el gate de verificacion (el gate era build+lint+test). Correr pnpm format en un ciclo dedicado y agregar format:check al gate por ciclo. Detectado en DG-035." }
+    { "id": "FI-009", "topic": "Cliente LLM", "detail": "AnthropicLlmClient es un cliente minimo via fetch (desviacion informada del v0.4 linea 695). Cuando se necesiten retries, streaming o rate-limiting (v0.4 §rate-limiting LLM), evaluar migrar a @anthropic-ai/sdk detras del contrato LlmClient." }
   ],
   "resolvedImprovements": [
     { "id": "FI-007", "topic": "Creacion de fp_known", "resolvedBy": "DG-022 B", "detail": "Cerrado: el comando CLI mark-fp y el Code Action 'marcar falso positivo' de la extension crean feromonas fp_known." },
-    { "id": "FI-006", "topic": "suppressedCount en el tomo", "resolvedBy": "DG-023 A", "detail": "Cerrado: TomoSummary incluye suppressedCount, tomado de outcome.suppressedCount." }
+    { "id": "FI-006", "topic": "suppressedCount en el tomo", "resolvedBy": "DG-023 A", "detail": "Cerrado: TomoSummary incluye suppressedCount, tomado de outcome.suppressedCount." },
+    { "id": "FI-010", "topic": "Drift de Prettier", "resolvedBy": "DG-042 A", "detail": "Cerrado: 'pnpm format' sobre 44 archivos con drift; format:check incorporado al gate por ciclo via el nuevo script raiz 'verify'. Se corrigio ademas un comentario inestable de cli-runner.test.ts." }
   ],
   "learnings": [
     {
@@ -87,12 +88,12 @@
     }
   ],
   "implementationState": {
-    "lastCompletedTask": "Cycle 34 CERRADO: DG-041 B - 'la colonia aprende', increment 2 (lado lectura). core/types/learning.ts (deriveFromLearning, LEARNING_CONFIDENCE_THRESHOLD); cli/triage.ts consulta learning_records y pre-clasifica los patrones conocidos sin llamada LLM (agentId 'colony-learning'; sin realimentacion). Cierra 'la colonia aprende'. E2E sin costo de API: 7 hallazgos pre-clasificados desde la memoria, 0 llamadas LLM. 294 verdes + 3 gated; commiteado 6f28445.",
-    "currentTask": "Cycle 35 abierto. DG-042 a presentar: proximo paso del roadmap.",
+    "lastCompletedTask": "Cycle 35 CERRADO: DG-042 A - higiene del repo. 'pnpm format' sobre 44 archivos con drift; nuevo script raiz 'verify' (format:check && lint && build && test) que codifica el gate por ciclo. Se corrigio de fondo un comentario inestable de cli-runner.test.ts (Prettier no podia estabilizarlo: prettier(input) !== prettier(prettier(input))). Cierra FI-010. pnpm verify completo en verde; 294 verdes + 3 gated; commiteado 09fe0ab.",
+    "currentTask": "Cycle 36 abierto. DG-043 a presentar: proximo paso del roadmap.",
     "pendingTasks": [
-      "Resolver DG-042 - proximo paso del roadmap (candidatos: FI-010 higiene; FI-008 .vsix hacia el beta; FI-003 ampliar el catalogo SAST)",
+      "Resolver DG-043 - proximo paso del roadmap (candidatos: FI-003 ampliar el catalogo SAST; FI-002 separar test:unit/test:integration; FI-008 .vsix + FI-004 cache de scanners hacia el beta)",
       "Los directorios extranos de packages/vscode-extension/ quedan gitignoreados (DG-038); siguen en disco - el usuario puede eliminarlos",
-      "FI-002 (separar test:unit/test:integration), FI-008 (.vsix), FI-009 (migracion a @anthropic-ai/sdk), FI-010 (drift de Prettier + agregar format:check al gate)"
+      "FI-002 (separar test:unit/test:integration), FI-003 (ampliar el catalogo SAST), FI-004 (cache de scanners del producto), FI-008 (.vsix), FI-009 (migracion a @anthropic-ai/sdk)"
     ],
     "blockers": []
   },
@@ -110,12 +111,12 @@
     "La llamada LLM real a Anthropic quedo verificada (Entry #34): los 3 agentes del Brain Layer (Triage/Context/Remediation) tienen test de integracion gated que paso con una API key BYOK del usuario (Haiku 4.5)",
     "Brain Layer COMPLETO: 3 agentes (Triage, Context, Remediation) wired al comando triage, surfaceados en el tomo JSON/HTML y en la extension VSCode (hover + Code Actions)",
     "La extension VSCode ya es F5-testeable: .vscode/launch.json (DG-034) lanza el Extension Development Host; requiere pnpm build previo",
-    "ONBOARDING.md (DG-035) documenta instalacion y uso; el gate de verificacion por ciclo deberia incluir format:check (ver FI-010)",
+    "ONBOARDING.md (DG-035) documenta instalacion y uso; el gate de verificacion por ciclo esta codificado en el script raiz 'verify' (format:check && lint && build && test) desde DG-042 A — cierra FI-010",
     "El Coordinator aplica un kill-switch por scout (DG-036): presupuesto de tiempo + AbortSignal propia; un scout colgado degrada el scan, no lo cuelga",
     "UX verbose (DG-037 B) COMPLETA: el 'show' rico vive en la CLI (console-reporter); la extension lo pipea a un Pseudoterminal nativo (DG-038); el webview 'tomo vivo' explora los resultados (DG-039)",
     "Gap F5 de la extension CERRADO: el usuario la probo en vivo (Entry #39); funciona, pero el feedback del proceso era pobre — motivo de DG-037/DG-038",
     "Memoria del enjambre COMPLETA (DG-040 escritura + DG-041 lectura): el triage alimenta learning_records y pre-clasifica patrones conocidos sin LLM (economia de tokens, umbral de evidencia 3, sin realimentacion)",
     "Observacion: better-sqlite3 ABI con Electron; exactOptionalPropertyTypes estricto"
   ],
-  "lastUpdated": "2026-05-21T22:45:00.000Z"
+  "lastUpdated": "2026-05-21T23:15:00.000Z"
 }

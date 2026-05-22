@@ -45,6 +45,7 @@
 | DG-039 | UX verbose increment 3/3 | **Option B** — webview "tomo vivo": panel lateral con los hallazgos agrupados por severidad, clickeables para saltar al código (v0.4 §4.3) | 2026-05-21 | Cierra DG-037 B con la superficie de exploración de resultados que pedía v0.4 §4.3; el webview está sancionado por §4.3 pese a la preferencia general por APIs nativas |
 | DG-040 | Próximo paso del roadmap (la colonia aprende) | **Option B** — `learning_records` increment 1 (lado escritura): el triage registra el patrón generalizado de cada veredicto decisivo | 2026-05-21 | Activa el corazón conceptual del producto (la memoria del enjambre, v0.4 §3.5), dormido desde el inicio; increment de escritura acotado y verificable de-riskea el lado lectura |
 | DG-041 | Próximo paso del roadmap (la colonia aprende — lado lectura) | **Option B** — `learning_records` increment 2 (lado lectura): el triage pre-clasifica los patrones conocidos sin llamada LLM (economía de tokens, v0.4 §187) | 2026-05-21 | Sin el lado lectura el aprendizaje quedaba registrado pero inerte; con él cada scan se beneficia de los anteriores. Cierra "la colonia aprende" |
+| DG-042 | Próximo paso del roadmap (higiene del repo) | **Option A** — `pnpm format` sobre 44 archivos con drift + nuevo script raíz `verify` (`format:check && lint && build && test`) que codifica el gate por ciclo | 2026-05-21 | El drift se acumuló porque `format:check` nunca estuvo en el gate; el ciclo de higiene lo cierra y materializa el gate como un comando. Cierra FI-010 |
 | Q1 | Package manager / tooling de monorepo | **pnpm workspaces** (v10.33.0) | 2026-05-20 | Ya instalado; preferencia v0.4 §9.5; sin overhead |
 
 **Discovery cerrado. Scaffolding generado, verificado y commiteado** (`f0b5202`, 54 archivos). **Cycle 2 CERRADO.** Siguiente: PASO 4 — Scout Layer.
@@ -104,6 +105,7 @@
 - 2026-05-21 — Cycle 32: webview "tomo vivo" (DG-039 B, increment 3/3 — cierra DG-037 B) — panel lateral con los hallazgos del último scan, agrupados por severidad y clickeables para saltar al código (v0.4 §4.3). `vscode-extension/webview-content.ts` (`renderTomoWebviewHtml`, render puro con CSP+nonce y `escapeHtml`), `tomo-view.ts` (`SentinelTomoViewProvider`), `package.json` (`contributes.views`). Arquitectura spawn-CLI intacta (`escapeHtml` propio, no se importa el motor). **UX verbose completa**: CLI → pseudoterminal → webview. 279 tests verdes + 3 gated.
 - 2026-05-21 — Cycle 33: la colonia aprende — `learning_records` increment 1 (DG-040 B) — activa la tabla `learning_records`, inerte desde v1 (v0.4 §3.5). `core/types/learning.ts` (`LearningRecord`, `patternSignature` = `${category}:${ruleId}`, `triageClassificationToLearning`); `colony-db.ts` (`recordLearningBatch` — upsert por `(pattern_signature, classification)`; `getLearningRecords`); `cli/triage.ts` alimenta `learning_records` con los veredictos decisivos. `learning_records` generaliza por patrón (cross-scan/cross-ubicación), distinto de `triage_verdicts` (por `fingerprint` exacto). Sin cambio de schema. E2E verificado. 289 tests verdes + 3 gated.
 - 2026-05-21 — Cycle 34: la colonia aprende — lado lectura (DG-041 B, cierra "la colonia aprende") — `core/types/learning.ts` (`deriveFromLearning`, umbral de evidencia 3): el `triage` consulta `learning_records` y pre-clasifica los patrones conocidos —evidencia fuerte y consistente— sin gastar una llamada LLM (economía de tokens, v0.4 §187). El veredicto derivado se persiste con `agentId` `colony-learning` y nunca se realimenta (sin bucle). E2E sin costo de API: 7 hallazgos pre-clasificados desde la memoria, 0 llamadas LLM. 294 tests verdes + 3 gated.
+- 2026-05-21 — Cycle 35: higiene del repo (DG-042 A, cierra FI-010) — `pnpm format` sobre 44 archivos con drift (cambios puramente de estilo) + nuevo script raíz `verify` (`format:check && lint && build && test`) que codifica el gate por ciclo como un único comando. Hallazgo de fondo: un comentario de `cli-runner.test.ts` había quedado colapsado en una línea con `//` embebidos y en posición colgante entre los argumentos de `it(...)` — Prettier no podía estabilizarlo (`prettier(input) !== prettier(prettier(input))`, verificado con `--debug-check`); reescrito como bloque de líneas independientes movido antes de la llamada. `pnpm verify` completo en verde. 294 tests verdes + 3 gated.
 
 ---
 
@@ -122,7 +124,7 @@ Items identificados para mejorar más adelante. No bloquean el MVP.
 | FI-007 | Creación de `fp_known` | ✅ **Resuelto (DG-022 B)** — el comando CLI `mark-fp` y el Code Action "marcar falso positivo" de la extensión crean feromonas `fp_known`. |
 | FI-008 | Empaquetado de la extensión (`.vsix`) | El MVP de la extensión asume el layout del monorepo en dev: la CLI en el paquete hermano (`cli/dist`) y `node` en el `PATH`. Empaquetar como `.vsix` requiere bundlear/instalar la CLI y resolver un runtime de Node y la cache de scanners (ver FI-004). |
 | FI-009 | Cliente LLM | `AnthropicLlmClient` es un cliente mínimo vía `fetch` (desviación informada del v0.4 línea 695). Cuando se necesiten retries, streaming o rate-limiting (v0.4 §rate-limiting LLM), evaluar migrar a `@anthropic-ai/sdk` detrás del contrato `LlmClient`. |
-| FI-010 | Drift de Prettier | `pnpm format:check` falla en ~41 archivos: drift de formato acumulado en ciclos previos porque `format:check` no estaba en el gate de verificación (el gate era `build` + `lint` + `test`). Correr `pnpm format` en un ciclo dedicado y agregar `format:check` al gate por ciclo. Detectado en DG-035. |
+| FI-010 | Drift de Prettier | ✅ **Resuelto (DG-042 A)** — `pnpm format` sobre 44 archivos con drift; `format:check` incorporado al gate por ciclo via el nuevo script raíz `verify`. Se corrigió además un comentario inestable de `cli-runner.test.ts` que Prettier no podía estabilizar. |
 
 ---
 
@@ -146,10 +148,10 @@ Items identificados para mejorar más adelante. No bloquean el MVP.
 
 - **Name**: SENTINEL (Synaptic Sentinel)
 - **Description**: Toolkit OSS de auditoría agéntica de seguridad + capa premium LLM, vibe-coding-native.
-- **Phase**: Cycle 35 / Phase 7 — Brain Layer COMPLETO; 5 scouts + Coordinator con kill-switch + 3 agentes; UX verbose COMPLETA; memoria del enjambre COMPLETA (`learning_records`: escritura + lectura/economía de tokens); siguiente: DG-042
+- **Phase**: Cycle 36 / Phase 7 — Brain Layer COMPLETO; 5 scouts + Coordinator con kill-switch + 3 agentes; UX verbose COMPLETA; memoria del enjambre COMPLETA (`learning_records`: escritura + lectura/economía de tokens); repo sin drift de Prettier con el gate codificado en `verify`; siguiente: DG-043
 
 ---
 
 *Created: 2026-05-20T19:09:00.816Z*
-*Last Updated: 2026-05-21T22:45:00.000Z*
+*Last Updated: 2026-05-21T23:15:00.000Z*
 *SYNAPTIC Protocol v3.0*
