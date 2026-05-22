@@ -1548,7 +1548,34 @@ Each entry follows this structure:
 }
 ```
 
+### Entry #58 - DG-055 (A): la CLI corre con el Node del extension host (FI-008 sub-increment 1)
+```json
+{
+  "timestamp": "2026-05-22T21:15:00.000Z",
+  "cycle": 48,
+  "phase": 8,
+  "action": "FEATURE_IMPLEMENTED",
+  "details": {
+    "DG-055": {
+      "title": "Proximo paso del roadmap (runtime de Node del extension host)",
+      "selected": "Option A",
+      "effect": "Sub-increment 1 de FI-008: la extension lanza la CLI como child process con process.execPath (el Node del extension host) en vez de 'node' del PATH. Una extension empaquetada (.vsix) no puede asumir 'node' en el PATH del usuario."
+    },
+    "files": "vscode-extension/src/cli-runner.ts (spawnCli usa process.execPath por defecto; nodePath sigue inyectable para tests).",
+    "design": "Cambio de un solo default, de-riskea los increments mayores de FI-008 (bundlear la CLI, producir el .vsix). Sin cambio de comportamiento en dev: nodePath es opcional. Sub-increments restantes de FI-008: bundlear la CLI dentro de la extension, y producir el .vsix.",
+    "verification_real": "pnpm verify verde (test:unit 304) + test:integration verde (9 + 3 gated; el cli-runner integration corre runCliScan con el nuevo default process.execPath).",
+    "tests": "sin tests nuevos — total 313 verdes + 3 gated",
+    "checks": "format:check / lint / build / test:unit + test:integration — todos en verde",
+    "instruccion_usuario": "El usuario pidio commit Y push luego de cada ciclo. El repo no tenia remoto (DG-002 A lo difirio). Como el monorepo contiene codigo Pro (packages/agents, LICENSE-PRO), el remoto de desarrollo debe ser PRIVADO; la configuracion del remoto se eleva al usuario antes del primer push.",
+    "commit": "codigo en el commit 277651c feat(vscode-extension); el registro SYNAPTIC de cierre del Cycle 48 se asienta en el commit docs siguiente"
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 53,
+  "complianceScore": 100
+}
+```
+
 ---
 
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-22T20:30:00.000Z*
+*Last Updated: 2026-05-22T21:15:00.000Z*

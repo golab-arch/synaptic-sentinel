@@ -61,6 +61,7 @@
     { "id": "DG-052", "title": "Proximo paso del roadmap (FI-011 etapa 5 - prompts del Brain Layer en ingles)", "selected": "A", "date": "2026-05-22", "summary": "Quinto y ultimo increment de FI-011: los prompts de los 3 agentes (Triage/Context/Remediation) migran a ingles para que el LLM responda en ingles. CIERRA FI-011. La forma JSON pedida no cambia: parser y schemas intactos", "rationale": "Ultima etapa de la migracion i18n; completarla deja el producto integramente en ingles y elimina el ultimo motivo para diferir Phase 8. Bajo riesgo: la traduccion no toca la forma JSON ni los schemas zod" },
     { "id": "DG-053", "title": "Proximo paso del roadmap (abrir Phase 8 - cache de scanners global)", "selected": "C", "date": "2026-05-22", "summary": "Abre Phase 8 (Distribucion). Sub-increment 1 de FI-004: resolveScannerBinary resuelve los binarios tambien desde una cache global por usuario (~/.synaptic-sentinel/scanners), no solo desde la cache .scanners/ del repo. La cache del repo mantiene prioridad. globalScannerCacheDir + findBinaryInCache; 3 tests nuevos", "rationale": "Con i18n cerrada (FI-011) ya no habia motivo de sequencing para diferir la distribucion. Primer C del proyecto. Alcance acotado a la resolucion -el tramo seguro-; la auto-instalacion (descarga de red) queda para el sub-increment 2. Prerequisito de FI-008 (.vsix)" },
     { "id": "DG-054", "title": "Proximo paso del roadmap (modo --global de install-scanners)", "selected": "A", "date": "2026-05-22", "summary": "Sub-increment 2 de FI-004: install-scanners.ts gana el modo --global que instala los binarios en la cache global por usuario (~/.synaptic-sentinel/scanners). Cierra el lazo de FI-004 (resolver + instalar). Ademas se tradujo la salida del script a ingles. E2E real verificado", "rationale": "Continuacion en sub-increments de Phase 8: tras la resolucion (DG-053), poblar la cache global. installScanner ya parametrizaba installDir -> el cambio es solo de main(), de bajo riesgo. Prerequisito de FI-008 (.vsix)" },
+    { "id": "DG-055", "title": "Proximo paso del roadmap (runtime de Node del extension host)", "selected": "A", "date": "2026-05-22", "summary": "Sub-increment 1 de FI-008: spawnCli de la extension usa process.execPath (el Node del extension host) en vez de 'node' del PATH. Una extension .vsix no puede asumir 'node' en el PATH del usuario", "rationale": "Continuacion en sub-increments de Phase 8/FI-008. Cambio de un solo default, bajo riesgo, de-riskea el bundle+package. nodePath sigue inyectable" },
     { "id": "Q1", "title": "Package manager", "selected": "pnpm workspaces", "date": "2026-05-20", "summary": "pnpm v10.33.0", "rationale": "Ya instalado; preferencia v0.4 9.5; simple sin overhead" }
   ],
   "roadmap": [
@@ -101,12 +102,13 @@
     }
   ],
   "implementationState": {
-    "lastCompletedTask": "Cycle 47 CERRADO: DG-054 A - modo --global de install-scanners (FI-004 sub-increment 2). install-scanners.ts gana el modo --global que instala en ~/.synaptic-sentinel/scanners; cierra el lazo de FI-004 (resolver + instalar). Salida del script migrada a ingles. E2E real verificado (modo --global resuelve la cache global, 4 scanners 'cache OK'). 313 verdes + 3 gated; commiteado fe04667.",
-    "currentTask": "Cycle 48 abierto. DG-055 a presentar: proximo paso del roadmap.",
+    "lastCompletedTask": "Cycle 48 CERRADO: DG-055 A - FI-008 sub-increment 1 (runtime de Node). spawnCli de cli-runner.ts usa process.execPath por defecto (el Node del extension host) en vez de 'node' del PATH. 313 verdes + 3 gated; commiteado 277651c.",
+    "currentTask": "Cycle 49 abierto. Pendiente: configurar el remoto git y primer push (instruccion del usuario); luego DG-056.",
     "pendingTasks": [
-      "Resolver DG-055 - proximo paso del roadmap (Phase 8: FI-008 .vsix -ultimo frente estructural-; alternativa FI-003 taint analysis)",
+      "PUSH: el usuario pidio commit+push por ciclo. El repo no tiene remoto (DG-002 A lo difirio). El monorepo tiene codigo Pro (agents, LICENSE-PRO) -> el remoto de desarrollo DEBE ser privado. Configurar el remoto (gh, cuenta golab-arch) y hacer el primer push; luego pushear cada ciclo.",
+      "Resolver DG-056 - proximo paso del roadmap (Phase 8: FI-008 sub-increments restantes -bundlear la CLI, producir el .vsix-; alternativa FI-003 taint analysis)",
       "Los directorios extranos de packages/vscode-extension/ quedan gitignoreados (DG-038); siguen en disco - el usuario puede eliminarlos",
-      "FI-008 (.vsix: bundlear la CLI, runtime de Node, auto-instalacion on-demand de scanners), FI-003 (taint analysis), FI-009 (migracion a @anthropic-ai/sdk)"
+      "FI-008 (bundlear la CLI dentro de la extension, producir el .vsix, auto-instalacion on-demand), FI-003 (taint analysis), FI-009 (migracion a @anthropic-ai/sdk)"
     ],
     "blockers": []
   },
@@ -138,5 +140,5 @@
     "Phase 8 (Distribucion) en curso. Cache de scanners global por usuario OPERATIVA (FI-004 cerrado): resolucion (DG-053) + instalacion via 'install-scanners --global' (DG-054), layout ~/.synaptic-sentinel/scanners. Pendiente hacia el beta instalable: FI-008 (empaquetado .vsix: bundlear la CLI, resolver un runtime de Node, disparar la auto-instalacion de scanners on-demand)",
     "Observacion: better-sqlite3 ABI con Electron; exactOptionalPropertyTypes estricto"
   ],
-  "lastUpdated": "2026-05-22T20:30:00.000Z"
+  "lastUpdated": "2026-05-22T21:15:00.000Z"
 }
