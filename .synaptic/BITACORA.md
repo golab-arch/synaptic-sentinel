@@ -1442,7 +1442,33 @@ Each entry follows this structure:
 }
 ```
 
+### Entry #54 - DG-051 (A): UI de la extension VSCode en ingles (FI-011 etapa 4)
+```json
+{
+  "timestamp": "2026-05-22T18:15:00.000Z",
+  "cycle": 44,
+  "phase": 7,
+  "action": "FEATURE_IMPLEMENTED",
+  "details": {
+    "DG-051": {
+      "title": "Proximo paso del roadmap (FI-011 etapa 4 - extension VSCode en ingles)",
+      "selected": "Option A",
+      "effect": "Cuarto increment de FI-011: la extension VSCode -superficie primaria del producto- migra a ingles. Resta solo la etapa 5 (prompts del Brain Layer)."
+    },
+    "files": "vscode-extension/package.json (description + setting cliPath). index.ts (status bar, Code Actions, prompts y notificaciones de scan/triage/mark-fp/API key). diagnostics.ts (triageLabel, labels del hover, texto del portapapeles). webview-content.ts (estado vacio, labels, lang=en). cli-runner.ts (error de assertCliOk). tomo-view.ts (warning). diagnostics.test.ts + webview-content.test.ts (aserciones).",
+    "design": "Etapa 4 de FI-011. La extension es la superficie primaria (v0.4 VSCode-primary): debe hablar ingles antes de empaquetar el beta. Solo strings; sin cambios de logica.",
+    "verification_real": "pnpm verify verde (test:unit 301; cubre hover/webview/diagnostics con las aserciones en ingles) + test:integration verde (9 + 3 gated). La UI de VSCode no se e2e-testea aqui (requiere F5); los renderers puros estan unit-testeados.",
+    "tests": "sin tests nuevos (aserciones de strings actualizadas) — total 310 verdes + 3 gated",
+    "checks": "format:check / lint / build / test:unit + test:integration — todos en verde",
+    "commit": "codigo + tests en el commit bb4d659 feat(vscode-extension); el registro SYNAPTIC de cierre del Cycle 44 se asienta en el commit docs siguiente"
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 49,
+  "complianceScore": 100
+}
+```
+
 ---
 
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-22T17:30:00.000Z*
+*Last Updated: 2026-05-22T18:15:00.000Z*
