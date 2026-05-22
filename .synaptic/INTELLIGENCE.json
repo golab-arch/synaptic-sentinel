@@ -4,7 +4,7 @@
     "fullName": "Synaptic Sentinel",
     "description": "Toolkit OSS de auditoria agentica de seguridad + capa premium LLM, vibe-coding-native, para la era del codigo generado por IA. Tercer producto de la familia Synaptic.",
     "currentPhase": "brain-layer",
-    "overallProgress": "Cycles 1-27 CERRADOS. 5 scouts (OpenGrep SAST, Gitleaks Secrets, Trivy SCA, Checkov IaC, Vibe-Detect VibeCoded) + Coordinator stages 1-2 + CLI + reporters JSON+HTML + extension VSCode (Brain Layer surfaceado: hover con triage/contexto/remediacion + Code Actions) + Brain Layer con 3 agentes wired (Triage + Context + Remediation, llamada LLM real verificada contra la API de Anthropic). 250 tests verdes + 3 gated."
+    "overallProgress": "Cycles 1-28 CERRADOS. 5 scouts (OpenGrep SAST, Gitleaks Secrets, Trivy SCA, Checkov IaC, Vibe-Detect VibeCoded) + Coordinator stages 1-2 + CLI + reporters JSON+HTML + extension VSCode (Brain Layer surfaceado: hover + Code Actions) + Brain Layer con 3 agentes wired (Triage + Context + Remediation, llamada LLM real verificada) + ONBOARDING.md. 250 tests verdes + 3 gated."
   },
   "decisions": [
     { "id": "DG-001", "title": "Estructura fisica del monorepo OSS/Pro", "selected": "B", "date": "2026-05-20", "summary": "Monorepo unico con workspaces marcados OSS/Pro + publish-oss.ts allowlist", "rationale": "Velocidad solo founder; refactors triviales; anti-filtracion en un script auditable" },
@@ -41,6 +41,7 @@
     { "id": "DG-032", "title": "Proximo paso del roadmap (VibeDetectScout / VibeCoded)", "selected": "B", "date": "2026-05-21", "summary": "Quinto/sexto scout: Vibe-Detect (VibeCoded - anti-patrones de codigo generado por IA). Deteccion nativa en TypeScript sin binario OSS: 6 detectores heuristicos regex, walker propio; el scout firma del producto vibe-coding-native. Wiring en el CLI (5 scouts). Gap LLM real cerrado con API key del usuario", "rationale": "El Scout Layer cubria SAST/Secrets/SCA/IaC pero no el diferenciador del producto; deteccion determinista = 100% verificable sin API key; la categoria VibeCoded ya existia en el schema sin uso" },
     { "id": "DG-033", "title": "Proximo paso del roadmap (Remediation Agent)", "selected": "A", "date": "2026-05-21", "summary": "Tercer y ultimo agente del Brain Layer: Remediation Agent (BrainAgent<Finding,RemediationSuggestion>). Propone como corregir un verdadero positivo; schema v4 (tabla aditiva remediation_suggestions); wiring en triage + surface en el tomo JSON/HTML. Completa el trio Triage->Context->Remediation", "rationale": "El Brain Layer tenia 2 de 3 agentes; el Remediation Agent reusa el contrato BrainAgent ya probado x2 y con la llamada LLM verificada, riesgo bajo; completa la vision del diferenciador premium" },
     { "id": "DG-034", "title": "Proximo paso del roadmap (surface del Brain Layer en la extension)", "selected": "B", "date": "2026-05-21", "summary": "La extension VSCode muestra el Brain Layer completo: HoverProvider con triage + contexto + remediacion, Code Action 'copiar remediacion sugerida'. .vscode/launch.json: la extension queda F5-testeable", "rationale": "El Brain Layer completo solo era visible en el tomo/CLI; surfacearlo en el IDE (superficie primaria del producto) y desbloquear el F5 era el paso natural y de riesgo medio" },
+    { "id": "DG-035", "title": "Proximo paso del roadmap (documento de onboarding)", "selected": "A", "date": "2026-05-21", "summary": "ONBOARDING.md (guia completa de instalacion/uso/desarrollo) + README al dia + docs/colony-db.md con las tablas v2-v4. Deliverable del roadmap 'Output & Polish'", "rationale": "Con la extension F5-testeable, documentar el uso era el paso de menor riesgo y un deliverable real del roadmap; vuelve el producto usable sin leer el codigo" },
     { "id": "Q1", "title": "Package manager", "selected": "pnpm workspaces", "date": "2026-05-20", "summary": "pnpm v10.33.0", "rationale": "Ya instalado; preferencia v0.4 9.5; simple sin overhead" }
   ],
   "roadmap": [
@@ -58,7 +59,8 @@
     { "id": "FI-004", "topic": "Cache de scanners del producto", "detail": "El CLI resuelve OpenGrep desde .scanners/ relativo al cwd. El producto enviado necesita una cache de scanners propia (global por usuario) y auto-instalacion." },
     { "id": "FI-005", "topic": "ruleId de OpenGrep", "detail": "El check_id de OpenGrep trae el prefijo de ruta cuando --config es un archivo; Finding.ruleId lo hereda. El CLI muestra title (limpio). Evaluar normalizar ruleId a un id canonico en el normalizer." },
     { "id": "FI-008", "topic": "Empaquetado de la extension (.vsix)", "detail": "El MVP de la extension asume el layout del monorepo en dev: la CLI en el paquete hermano (cli/dist) y node en el PATH. Empaquetar como .vsix requiere bundlear/instalar la CLI y resolver un runtime de Node y la cache de scanners (ver FI-004)." },
-    { "id": "FI-009", "topic": "Cliente LLM", "detail": "AnthropicLlmClient es un cliente minimo via fetch (desviacion informada del v0.4 linea 695). Cuando se necesiten retries, streaming o rate-limiting (v0.4 §rate-limiting LLM), evaluar migrar a @anthropic-ai/sdk detras del contrato LlmClient." }
+    { "id": "FI-009", "topic": "Cliente LLM", "detail": "AnthropicLlmClient es un cliente minimo via fetch (desviacion informada del v0.4 linea 695). Cuando se necesiten retries, streaming o rate-limiting (v0.4 §rate-limiting LLM), evaluar migrar a @anthropic-ai/sdk detras del contrato LlmClient." },
+    { "id": "FI-010", "topic": "Drift de Prettier", "detail": "pnpm format:check falla en ~41 archivos: drift de formato acumulado en ciclos previos porque format:check no estaba en el gate de verificacion (el gate era build+lint+test). Correr pnpm format en un ciclo dedicado y agregar format:check al gate por ciclo. Detectado en DG-035." }
   ],
   "resolvedImprovements": [
     { "id": "FI-007", "topic": "Creacion de fp_known", "resolvedBy": "DG-022 B", "detail": "Cerrado: el comando CLI mark-fp y el Code Action 'marcar falso positivo' de la extension crean feromonas fp_known." },
@@ -79,12 +81,12 @@
     }
   ],
   "implementationState": {
-    "lastCompletedTask": "Cycle 27 CERRADO: DG-034 B - surface del Brain Layer completo en la extension VSCode. vscode-extension/tomo.ts (ExtensionFinding gana context + remediation); diagnostics.ts (findingHoverMarkdown + remediationClipboardText, funciones puras); index.ts (HoverProvider con triage/contexto/remediacion + Code Action 'copiar remediacion sugerida'). .vscode/launch.json creado: la extension queda F5-testeable. Decision honesta: la Code Action copia al portapapeles en vez de insertar en el buffer (la remediacion es orientativa, no un patch). 250 tests verdes + 3 gated; commiteado ee59c74.",
-    "currentTask": "Cycle 28 abierto. DG-035 a presentar: proximo paso del roadmap.",
+    "lastCompletedTask": "Cycle 28 CERRADO: DG-035 A - documento de onboarding. ONBOARDING.md (NUEVO - guia completa de instalacion, uso de la CLI y la extension, arquitectura, troubleshooting); README.md al dia (5 scouts, Brain Layer 3 agentes, licencias reales); docs/colony-db.md con las tablas v2-v4. Los 3 archivos Prettier-clean. Hallazgo honesto: format:check (fuera del gate por ciclo) revela drift de Prettier en ~41 archivos -> FI-010. DG-035 no toca codigo; 250 tests verdes + 3 gated sin cambios; commiteado 7a33d6f.",
+    "currentTask": "Cycle 29 abierto. DG-036 a presentar: proximo paso del roadmap.",
     "pendingTasks": [
-      "Resolver DG-035 - proximo paso del roadmap",
-      "Verificacion de la extension VSCode en vivo: el usuario ya puede F5 (launch.json creado en DG-034); el primer arranque en vivo puede destapar asperezas",
-      "FI-002 (separar test:unit/test:integration - los tests de integracion ya rozan timeouts), FI-008 (.vsix), FI-009 (migracion a @anthropic-ai/sdk)"
+      "Resolver DG-036 - proximo paso del roadmap",
+      "Limpiar/gitignorar los directorios extranos en packages/vscode-extension/ (.synaptic/, .vscode/synaptic/, context/) - re-init del tooling SYNAPTIC al abrir la subcarpeta en VSCode; NO commiteados",
+      "FI-002 (separar test:unit/test:integration), FI-008 (.vsix), FI-009 (migracion a @anthropic-ai/sdk), FI-010 (drift de Prettier + agregar format:check al gate)"
     ],
     "blockers": []
   },
@@ -102,7 +104,8 @@
     "La llamada LLM real a Anthropic quedo verificada (Entry #34): los 3 agentes del Brain Layer (Triage/Context/Remediation) tienen test de integracion gated que paso con una API key BYOK del usuario (Haiku 4.5)",
     "Brain Layer COMPLETO: 3 agentes (Triage, Context, Remediation) wired al comando triage, surfaceados en el tomo JSON/HTML y en la extension VSCode (hover + Code Actions)",
     "La extension VSCode ya es F5-testeable: .vscode/launch.json (DG-034) lanza el Extension Development Host; requiere pnpm build previo",
+    "ONBOARDING.md (DG-035) documenta instalacion y uso; el gate de verificacion por ciclo deberia incluir format:check (ver FI-010)",
     "Observacion: better-sqlite3 ABI con Electron; exactOptionalPropertyTypes estricto"
   ],
-  "lastUpdated": "2026-05-21T20:30:00.000Z"
+  "lastUpdated": "2026-05-21T20:45:00.000Z"
 }

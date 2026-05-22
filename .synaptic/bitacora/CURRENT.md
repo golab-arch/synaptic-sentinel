@@ -6,11 +6,11 @@
 
 ## Current Cycle
 
-- **Cycle:** 28 — pendiente DG-035 (próximo paso del roadmap)
+- **Cycle:** 29 — pendiente DG-036 (próximo paso del roadmap)
 - **Phase:** 7 — Brain Layer
-- **Status:** Cycle 27 CERRADO; awaiting DG-035
+- **Status:** Cycle 28 CERRADO; awaiting DG-036
 - **Compliance:** 100%
-- **Synaptic Strength:** 32
+- **Synaptic Strength:** 33
 
 ## Cycles cerrados
 
@@ -27,25 +27,32 @@
 - **Cycle 22** — wire del Context Agent al pipeline (DG-029 A) — `8ff3288` ✅
 - **Cycle 23** — `TrivyScout`: cuarto scout, cobertura SCA (DG-030 A) — `e843b7c` ✅
 - **Cycle 24** — `CheckovScout`: quinto scout, cobertura IaC (DG-031 A) — `883c7ee` ✅
-- **Cycle 25** — `VibeDetectScout`: detección de código vibe-coded + cierre del gap LLM real (DG-032 B) — `b346142` ✅
+- **Cycle 25** — `VibeDetectScout` + cierre del gap LLM real (DG-032 B) — `b346142` ✅
 - **Cycle 26** — `Remediation Agent`: 3.er agente del Brain Layer (DG-033 A) — `bf98624` ✅
-- **Cycle 27** — surface del Brain Layer en la extensión VSCode: hover + Code Actions + `launch.json` (DG-034 B) — `ee59c74` ✅
+- **Cycle 27** — surface del Brain Layer en la extensión: hover + Code Actions + `launch.json` (DG-034 B) — `ee59c74` ✅
+- **Cycle 28** — `ONBOARDING.md` + README al día + colony-db v4 (DG-035 A) — `7a33d6f` ✅
 
 ## Estado del repo
 
-- 31 commits en `main` · 7 paquetes pnpm
+- 33 commits en `main` · 7 paquetes pnpm
 - **5 scouts**: OpenGrep (SAST) + Gitleaks (Secrets) + Trivy (SCA) + Checkov (IaC) + Vibe-Detect (VibeCoded) + `colony.db` (schema v4) + `Coordinator` (stages 1 y 2) + `reporters`
 - CLI: `synaptic-sentinel scan` (`--export` / `--export-html`), `mark-fp` y `triage` (Brain Layer, BYOK)
-- Extensión VSCode: `Scan Workspace`, `Triage Findings`, `Set Anthropic API Key`, hover del Brain Layer, Code Actions, status bar — **F5-testeable** (`.vscode/launch.json`)
-- **Brain Layer (Pro) COMPLETO**: `agents` con Triage + Context + Remediation wired — llamada LLM real verificada contra la API de Anthropic
-- `build` (tsc -b + esbuild) / `typecheck` / `lint` / `test` (250/250 + 3 gated) verdes
+- Extensión VSCode: `Scan Workspace`, `Triage Findings`, `Set Anthropic API Key`, hover del Brain Layer, Code Actions, status bar — **F5-testeable**
+- **Brain Layer (Pro) COMPLETO**: `agents` con Triage + Context + Remediation wired — llamada LLM real verificada
+- **Docs**: `README.md`, `ONBOARDING.md`, `docs/colony-db.md`, `.synaptic/DESIGN_DOC.md`
+- `build` / `typecheck` / `lint` / `test` (250/250 + 3 gated) verdes
+
+## Notas / deuda
+
+- **FI-010** — drift de Prettier en ~41 archivos (`format:check` no estaba en el gate). A corregir en un ciclo dedicado.
+- Directorios extraños en `packages/vscode-extension/` (`.synaptic/`, `.vscode/synaptic/`, `context/`) — re-init del tooling al abrir la subcarpeta en VSCode; NO commiteados, a limpiar.
 
 ## Decision Gate abierto
 
-- DG-035 — próximo paso del roadmap (a presentar)
+- DG-036 — próximo paso del roadmap (a presentar)
 
 ## Last Entry
 
-Entry #36 — FEATURE_IMPLEMENTED (DG-034 B) — 2026-05-21 — SUCCESS
+Entry #37 — FEATURE_IMPLEMENTED (DG-035 A) — 2026-05-21 — SUCCESS
 
 ---

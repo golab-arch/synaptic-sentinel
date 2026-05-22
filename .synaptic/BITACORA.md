@@ -993,7 +993,35 @@ Each entry follows this structure:
 }
 ```
 
+### Entry #37 - DG-035 (A): documento de onboarding
+```json
+{
+  "timestamp": "2026-05-21T20:45:00.000Z",
+  "cycle": 28,
+  "phase": 7,
+  "action": "FEATURE_IMPLEMENTED",
+  "details": {
+    "DG-035": {
+      "title": "Proximo paso del roadmap",
+      "selected": "Option A",
+      "effect": "Documento de onboarding - deliverable del roadmap 'Output & Polish'. El producto queda usable sin leer el codigo fuente."
+    },
+    "files": "ONBOARDING.md (NUEVO - guia completa: que es, requisitos, instalacion pnpm install/scanners:install/build, uso de la CLI scan/mark-fp/triage, la extension VSCode F5, el tomo, la arquitectura, desarrollo y troubleshooting). README.md (actualizado al estado real: 5 scouts, Brain Layer con 3 agentes, quickstart con scanners:install, tabla de paquetes con las licencias reales - 6 OSS Apache-2.0 + agents Pro). docs/colony-db.md (tabla de tablas al dia: triage_verdicts v2, context_explanations v3, remediation_suggestions v4).",
+    "design": "Documentacion: solo hechos verificados contra el repo (comandos, rutas, flags, los 5 scouts, los 3 agentes, F5). No se reclama lo no hecho (.vsix pendiente = FI-008; se documenta el modo desarrollo via F5).",
+    "verification_real": "Los 3 archivos quedan Prettier-clean (prettier --check verde sobre ellos). DG-035 no toca codigo: build/lint/test sin cambios respecto del ultimo verde (250/250, DG-034).",
+    "hallazgo": "format:check (que NO estaba en el gate de verificacion por ciclo - el gate era build+lint+test) revela drift de Prettier preexistente en ~41 archivos mas, acumulado en ciclos previos. Registrado como FI-010; no se corrige aqui (fuera del alcance de un ciclo de docs - seria un commit no-atomico de 41 archivos). No optimismo ilusorio: se reporta el drift en vez de ocultarlo.",
+    "observacion": "Aparecieron directorios extranos en packages/vscode-extension/ (.synaptic/, .vscode/synaptic/, context/) - una re-inicializacion del tooling SYNAPTIC al abrir la subcarpeta de la extension en VSCode. NO se commitearon (git add con rutas explicitas). A limpiar / gitignorar.",
+    "tests": "sin tests nuevos (ciclo de documentacion) - total 250 verdes + 3 gated, sin cambios",
+    "checks": "format:check de los 3 archivos verde; build/lint/test sin cambios (no se toco codigo)",
+    "commit": "los 3 documentos en el commit 7a33d6f docs; el registro SYNAPTIC de cierre del Cycle 28 se asienta en el commit docs siguiente"
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 33,
+  "complianceScore": 100
+}
+```
+
 ---
 
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-21T20:30:00.000Z*
+*Last Updated: 2026-05-21T20:45:00.000Z*

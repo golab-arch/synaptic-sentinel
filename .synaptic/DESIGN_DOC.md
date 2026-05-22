@@ -38,6 +38,7 @@
 | DG-032 | Próximo paso del roadmap | **Option B** — `VibeDetectScout` (detección de código *vibe-coded* — anti-patrones de código generado por IA, categoría `VibeCoded`) | 2026-05-21 | El Scout Layer cubría SAST/Secrets/SCA/IaC pero no el diferenciador del producto; detección determinista nativa (sin binario OSS) = 100% verificable sin API key; la categoría `VibeCoded` ya existía en el schema sin uso |
 | DG-033 | Próximo paso del roadmap | **Option A** — Remediation Agent (3.er agente del Brain Layer — propone cómo corregir un verdadero positivo) | 2026-05-21 | El Brain Layer tenía 2 de 3 agentes; el Remediation Agent reusa el contrato `BrainAgent` probado ×2 y con la llamada LLM verificada → riesgo bajo; completa el trío Triage→Context→Remediation |
 | DG-034 | Próximo paso del roadmap | **Option B** — surface del Brain Layer completo en la extensión VSCode (hover con triage/contexto/remediación + Code Action de remediación + `.vscode/launch.json`) | 2026-05-21 | El Brain Layer completo solo era visible en el tomo/CLI; surfacearlo en el IDE (superficie primaria) y desbloquear el F5 era el paso natural de riesgo medio |
+| DG-035 | Próximo paso del roadmap | **Option A** — documento de onboarding (`ONBOARDING.md` + README al día + `docs/colony-db.md` v4) | 2026-05-21 | Con la extensión F5-testeable, documentar el uso es un deliverable real del roadmap "Output & Polish" con riesgo mínimo; vuelve el producto usable sin leer el código |
 | Q1 | Package manager / tooling de monorepo | **pnpm workspaces** (v10.33.0) | 2026-05-20 | Ya instalado; preferencia v0.4 §9.5; sin overhead |
 
 **Discovery cerrado. Scaffolding generado, verificado y commiteado** (`f0b5202`, 54 archivos). **Cycle 2 CERRADO.** Siguiente: PASO 4 — Scout Layer.
@@ -90,6 +91,7 @@
 - 2026-05-21 — Cycle 25: `VibeDetectScout` (DG-032 B) — scout de detección de código *vibe-coded* (categoría `VibeCoded`), el scout firma del producto vibe-coding-native. `scouts/vibe-detect/` (`detectors.ts` — catálogo curado de 6 detectores heurísticos regex; `detect.ts` — `runVibeDetectors` función pura; `vibe-detect-scout.ts` — `VibeDetectScout` con walker propio del árbol de archivos). Detección **nativa en TypeScript, sin binario OSS**: siempre disponible, 100% determinista. El CLI corre 5 scouts. Además — gap histórico cerrado: los 2 tests de integración del Brain Layer (Triage/Context) se corrieron con una API key BYOK del usuario y **pasaron contra la API real de Anthropic** (Haiku 4.5). `cli-runner.test` timeout 60s→120s (FI-002). 221 tests verdes + 2 gated.
 - 2026-05-21 — Cycle 26: `Remediation Agent` (DG-033 A) — 3.er y último agente del Brain Layer: propone cómo corregir un verdadero positivo. `core/types/remediation.ts` (`RemediationSuggestion` + `Record`); **colony.db schema v4** (tabla aditiva `remediation_suggestions`); `agents/remediation-agent.ts` (`RemediationAgent` — `BrainAgent<Finding, RemediationSuggestion>`); wiring en el comando `triage` (corre sobre los TP junto a Context) y surface en el tomo JSON/HTML. Completa el trío Triage→Context→Remediation. RemediationAgent verificado contra la API real de Anthropic; E2E scan→triage→export con el bloque de remediación en el HTML. 241 tests verdes + 3 gated.
 - 2026-05-21 — Cycle 27: surface del Brain Layer en la extensión (DG-034 B) — la extensión VSCode muestra el Brain Layer completo: `HoverProvider` con triage + cadena de contexto + remediación sobre los hallazgos bajo el cursor, y una Code Action "copiar remediación sugerida". `vscode-extension/` (`tomo.ts` — `ExtensionFinding` gana context/remediation; `diagnostics.ts` — `findingHoverMarkdown` + `remediationClipboardText` puras; `index.ts` — HoverProvider + comando + Code Action). **`.vscode/launch.json`** creado: la extensión ya es F5-testeable. Decisión honesta: la Code Action copia al portapapeles, no inserta en el buffer (la remediación es orientativa, no un patch). 250 tests verdes + 3 gated.
+- 2026-05-21 — Cycle 28: documento de onboarding (DG-035 A) — `ONBOARDING.md` (guía completa: instalación, uso de la CLI y la extensión, arquitectura, troubleshooting); `README.md` al día (5 scouts, Brain Layer con 3 agentes, licencias reales); `docs/colony-db.md` con las tablas v2-v4. Hallazgo honesto: `format:check` —fuera del gate de verificación por ciclo— revela drift de Prettier preexistente en ~41 archivos → **FI-010**. Ciclo de documentación, sin cambios de código: 250 tests verdes + 3 gated.
 
 ---
 
@@ -108,6 +110,7 @@ Items identificados para mejorar más adelante. No bloquean el MVP.
 | FI-007 | Creación de `fp_known` | ✅ **Resuelto (DG-022 B)** — el comando CLI `mark-fp` y el Code Action "marcar falso positivo" de la extensión crean feromonas `fp_known`. |
 | FI-008 | Empaquetado de la extensión (`.vsix`) | El MVP de la extensión asume el layout del monorepo en dev: la CLI en el paquete hermano (`cli/dist`) y `node` en el `PATH`. Empaquetar como `.vsix` requiere bundlear/instalar la CLI y resolver un runtime de Node y la cache de scanners (ver FI-004). |
 | FI-009 | Cliente LLM | `AnthropicLlmClient` es un cliente mínimo vía `fetch` (desviación informada del v0.4 línea 695). Cuando se necesiten retries, streaming o rate-limiting (v0.4 §rate-limiting LLM), evaluar migrar a `@anthropic-ai/sdk` detrás del contrato `LlmClient`. |
+| FI-010 | Drift de Prettier | `pnpm format:check` falla en ~41 archivos: drift de formato acumulado en ciclos previos porque `format:check` no estaba en el gate de verificación (el gate era `build` + `lint` + `test`). Correr `pnpm format` en un ciclo dedicado y agregar `format:check` al gate por ciclo. Detectado en DG-035. |
 
 ---
 
@@ -131,10 +134,10 @@ Items identificados para mejorar más adelante. No bloquean el MVP.
 
 - **Name**: SENTINEL (Synaptic Sentinel)
 - **Description**: Toolkit OSS de auditoría agéntica de seguridad + capa premium LLM, vibe-coding-native.
-- **Phase**: Cycle 28 / Phase 7 — Brain Layer COMPLETO y surfaceado en el IDE; 5 scouts (SAST/Secrets/SCA/IaC/VibeCoded) + Coordinator stages 1-2 + 3 agentes (Triage + Context + Remediation); extensión F5-testeable; siguiente: DG-035
+- **Phase**: Cycle 29 / Phase 7 — Brain Layer COMPLETO y surfaceado en el IDE; 5 scouts + Coordinator stages 1-2 + 3 agentes; extensión F5-testeable; `ONBOARDING.md` publicado; siguiente: DG-036
 
 ---
 
 *Created: 2026-05-20T19:09:00.816Z*
-*Last Updated: 2026-05-21T20:30:00.000Z*
+*Last Updated: 2026-05-21T20:45:00.000Z*
 *SYNAPTIC Protocol v3.0*
