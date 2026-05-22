@@ -4,7 +4,7 @@
     "fullName": "Synaptic Sentinel",
     "description": "Toolkit OSS de auditoria agentica de seguridad + capa premium LLM, vibe-coding-native, para la era del codigo generado por IA. Tercer producto de la familia Synaptic.",
     "currentPhase": "brain-layer",
-    "overallProgress": "Cycles 1-25 CERRADOS. 5 scouts (OpenGrep SAST, Gitleaks Secrets, Trivy SCA, Checkov IaC, Vibe-Detect VibeCoded) + Coordinator stages 1-2 + CLI + reporters JSON+HTML + extension VSCode + Brain Layer con 2 agentes wired (Triage + Context, llamada LLM real verificada contra la API de Anthropic). 221 tests verdes + 2 gated."
+    "overallProgress": "Cycles 1-26 CERRADOS. 5 scouts (OpenGrep SAST, Gitleaks Secrets, Trivy SCA, Checkov IaC, Vibe-Detect VibeCoded) + Coordinator stages 1-2 + CLI + reporters JSON+HTML + extension VSCode + Brain Layer con 3 agentes wired (Triage + Context + Remediation, llamada LLM real verificada contra la API de Anthropic). 241 tests verdes + 3 gated."
   },
   "decisions": [
     { "id": "DG-001", "title": "Estructura fisica del monorepo OSS/Pro", "selected": "B", "date": "2026-05-20", "summary": "Monorepo unico con workspaces marcados OSS/Pro + publish-oss.ts allowlist", "rationale": "Velocidad solo founder; refactors triviales; anti-filtracion en un script auditable" },
@@ -39,6 +39,7 @@
     { "id": "DG-030", "title": "Proximo paso del roadmap (TrivyScout / SCA)", "selected": "A", "date": "2026-05-21", "summary": "Cuarto scout: Trivy (SCA - dependencias vulnerables). Manifest v0.70.0, normalizer Trivy->Finding, wiring en el CLI; fix de install-scanners (extraccion .zip en Windows)", "rationale": "El Scout Layer cubria SAST+Secrets pero no SCA; Trivy es bajo riesgo (patron probado) y el Brain Layer aplica gratis a sus hallazgos" },
     { "id": "DG-031", "title": "Proximo paso del roadmap (CheckovScout / IaC)", "selected": "A", "date": "2026-05-21", "summary": "Quinto scout: Checkov (IaC - misconfiguraciones en Dockerfile/Terraform/k8s). Manifest 3.2.529 (binario standalone), normalizer Checkov->Finding IaC, wiring en el CLI (4 scouts); install-scanners gana archiveDir + extraccion .zip en Unix", "rationale": "El Scout Layer cubria SAST+Secrets+SCA pero no IaC; patron de scout probado x4 y el binario standalone de Checkov sortea la observacion 'Python 3.14'" },
     { "id": "DG-032", "title": "Proximo paso del roadmap (VibeDetectScout / VibeCoded)", "selected": "B", "date": "2026-05-21", "summary": "Quinto/sexto scout: Vibe-Detect (VibeCoded - anti-patrones de codigo generado por IA). Deteccion nativa en TypeScript sin binario OSS: 6 detectores heuristicos regex, walker propio; el scout firma del producto vibe-coding-native. Wiring en el CLI (5 scouts). Gap LLM real cerrado con API key del usuario", "rationale": "El Scout Layer cubria SAST/Secrets/SCA/IaC pero no el diferenciador del producto; deteccion determinista = 100% verificable sin API key; la categoria VibeCoded ya existia en el schema sin uso" },
+    { "id": "DG-033", "title": "Proximo paso del roadmap (Remediation Agent)", "selected": "A", "date": "2026-05-21", "summary": "Tercer y ultimo agente del Brain Layer: Remediation Agent (BrainAgent<Finding,RemediationSuggestion>). Propone como corregir un verdadero positivo; schema v4 (tabla aditiva remediation_suggestions); wiring en triage + surface en el tomo JSON/HTML. Completa el trio Triage->Context->Remediation", "rationale": "El Brain Layer tenia 2 de 3 agentes; el Remediation Agent reusa el contrato BrainAgent ya probado x2 y con la llamada LLM verificada, riesgo bajo; completa la vision del diferenciador premium" },
     { "id": "Q1", "title": "Package manager", "selected": "pnpm workspaces", "date": "2026-05-20", "summary": "pnpm v10.33.0", "rationale": "Ya instalado; preferencia v0.4 9.5; simple sin overhead" }
   ],
   "roadmap": [
@@ -77,12 +78,12 @@
     }
   ],
   "implementationState": {
-    "lastCompletedTask": "Cycle 25 CERRADO: DG-032 B - VibeDetectScout (deteccion de codigo vibe-coded, categoria VibeCoded). Paquete scouts/vibe-detect (detectors.ts catalogo de 6 detectores heuristicos, detect.ts funcion pura, vibe-detect-scout.ts con walker propio); deteccion nativa en TypeScript, sin binario OSS, siempre disponible. Wiring en el CLI (5 scouts, Vibe-Detect siempre incluido). Ademas, gap historico CERRADO: los 2 tests de integracion del Brain Layer (Triage/Context) se corrieron con una API key BYOK provista por el usuario y PASARON contra la API real de Anthropic (Haiku 4.5). Verificado: scan end-to-end con 5 scouts detecta los 7 anti-patrones del fixture vibe-coded. 221 tests verdes + 2 gated; commiteado b346142.",
-    "currentTask": "Cycle 26 abierto. DG-033 a presentar: proximo paso del roadmap.",
+    "lastCompletedTask": "Cycle 26 CERRADO: DG-033 A - Remediation Agent (3.er y ultimo agente del Brain Layer). core/types/remediation.ts (RemediationSuggestion + Record); colony.db schema v4 (tabla aditiva remediation_suggestions); agents/remediation-agent.ts (RemediationAgent implements BrainAgent<Finding,RemediationSuggestion>); wiring en el comando triage (corre sobre los TP junto a Context) + surface en el tomo JSON/HTML. Completa el trio Triage->Context->Remediation. Verificado: RemediationAgent probado contra la API REAL de Anthropic (Haiku 4.5); E2E scan->triage->scan --export-html con el bloque de remediacion en el HTML. 241 tests verdes + 3 gated; commiteado bf98624.",
+    "currentTask": "Cycle 27 abierto. DG-034 a presentar: proximo paso del roadmap.",
     "pendingTasks": [
-      "Resolver DG-033 - proximo paso del roadmap",
-      "Verificacion de la extension VSCode en vivo (F5 Extension Development Host) - no automatizable aqui",
-      "FI-002 (separar test:unit/test:integration - los tests de integracion ya rozan timeouts), FI-008 (.vsix), FI-009 (migracion a @anthropic-ai/sdk), roadmap: Remediation Agent"
+      "Resolver DG-034 - proximo paso del roadmap",
+      "Verificacion de la extension VSCode en vivo (F5 Extension Development Host) - falta crear .vscode/launch.json; no automatizable aqui",
+      "FI-002 (separar test:unit/test:integration - los tests de integracion ya rozan timeouts), FI-008 (.vsix), FI-009 (migracion a @anthropic-ai/sdk)"
     ],
     "blockers": []
   },
@@ -97,8 +98,9 @@
     "git commit es 100% local y NO requiere token de GitHub; el push futuro (diferido por DG-002 A) usara gh ya autenticado como golab-arch",
     "Checkov se integro via su binario standalone (PyInstaller onefile): sin interprete Python en el cliente, sorteando la observacion 'Python 3.14 vs Checkov'",
     "Vibe-Detect es un scout nativo (TypeScript puro, sin binario OSS): el contrato ScoutAgent no obliga a spawnear un proceso",
-    "La llamada LLM real a Anthropic quedo verificada (Entry #34): los 2 tests de integracion del Brain Layer pasaron con una API key BYOK del usuario (Haiku 4.5)",
+    "La llamada LLM real a Anthropic quedo verificada (Entry #34): los 3 agentes del Brain Layer (Triage/Context/Remediation) tienen test de integracion gated que paso con una API key BYOK del usuario (Haiku 4.5)",
+    "Brain Layer COMPLETO: 3 agentes (Triage, Context, Remediation) wired al comando triage y surfaceados en el tomo",
     "Observacion: better-sqlite3 ABI con Electron; exactOptionalPropertyTypes estricto"
   ],
-  "lastUpdated": "2026-05-21T19:50:00.000Z"
+  "lastUpdated": "2026-05-21T20:15:00.000Z"
 }

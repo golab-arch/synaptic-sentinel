@@ -2,7 +2,7 @@
   "version": "1.0",
   "projectId": "sentinel-1779304140796",
   "projectName": "SENTINEL",
-  "totalCycles": 25,
+  "totalCycles": 26,
   "currentTomeId": 1,
   "cyclesPerTome": 50,
   "tomes": [
@@ -16,10 +16,10 @@
         "from": "2026-05-20T19:09:00.852Z",
         "to": ""
       },
-      "summary": "Cycles 1-25: 5 scouts (OpenGrep SAST, Gitleaks Secrets, Trivy SCA, Checkov IaC, Vibe-Detect VibeCoded), Coordinator stages 1-2, colony.db, CLI, reporters JSON+HTML, extension VSCode, y Brain Layer con 2 agentes wired (Triage + Context, llamada LLM real verificada).",
-      "keyDecisions": ["DG-001", "DG-002", "DG-003", "DG-004", "DG-005", "DG-006", "DG-007", "DG-008", "DG-009", "DG-010", "DG-011", "DG-012", "DG-013", "DG-014", "DG-015", "DG-016", "DG-017", "DG-018", "DG-019", "DG-020", "DG-021", "DG-022", "DG-023", "DG-024", "DG-025", "DG-026", "DG-027", "DG-028", "DG-029", "DG-030", "DG-031", "DG-032", "Q1"],
-      "cycleCount": 25,
-      "successCount": 25,
+      "summary": "Cycles 1-26: 5 scouts (OpenGrep SAST, Gitleaks Secrets, Trivy SCA, Checkov IaC, Vibe-Detect VibeCoded), Coordinator stages 1-2, colony.db (schema v4), CLI, reporters JSON+HTML, extension VSCode, y Brain Layer COMPLETO con 3 agentes wired (Triage + Context + Remediation, llamada LLM real verificada).",
+      "keyDecisions": ["DG-001", "DG-002", "DG-003", "DG-004", "DG-005", "DG-006", "DG-007", "DG-008", "DG-009", "DG-010", "DG-011", "DG-012", "DG-013", "DG-014", "DG-015", "DG-016", "DG-017", "DG-018", "DG-019", "DG-020", "DG-021", "DG-022", "DG-023", "DG-024", "DG-025", "DG-026", "DG-027", "DG-028", "DG-029", "DG-030", "DG-031", "DG-032", "DG-033", "Q1"],
+      "cycleCount": 26,
+      "successCount": 26,
       "failureCount": 0,
       "jsonPath": "tomes/tome-001.json",
       "mdPath": "tomes/tome-001.md",
@@ -59,12 +59,13 @@
     { "id": "DG-030", "title": "Proximo paso del roadmap (TrivyScout / SCA)", "selected": "A", "cycle": 23, "date": "2026-05-21" },
     { "id": "DG-031", "title": "Proximo paso del roadmap (CheckovScout / IaC)", "selected": "A", "cycle": 24, "date": "2026-05-21" },
     { "id": "DG-032", "title": "Proximo paso del roadmap (VibeDetectScout / VibeCoded)", "selected": "B", "cycle": 25, "date": "2026-05-21" },
+    { "id": "DG-033", "title": "Proximo paso del roadmap (Remediation Agent)", "selected": "A", "cycle": 26, "date": "2026-05-21" },
     { "id": "Q1", "title": "Package manager", "selected": "pnpm", "cycle": 1, "date": "2026-05-20" }
   ],
   "metrics": {
-    "totalDecisions": 33,
+    "totalDecisions": 34,
     "optionDistribution": {
-      "A": 20,
+      "A": 21,
       "B": 13,
       "C": 0
     },
@@ -77,8 +78,8 @@
       "4": 3,
       "5": 5,
       "6": 4,
-      "7": 9
+      "7": 10
     }
   },
-  "lastUpdated": "2026-05-21T19:50:00.000Z"
+  "lastUpdated": "2026-05-21T20:15:00.000Z"
 }

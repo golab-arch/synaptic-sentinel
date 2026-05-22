@@ -36,6 +36,7 @@
 | DG-030 | Próximo paso del roadmap | **Option A** — `TrivyScout` (cuarto scout, cobertura SCA — dependencias vulnerables) | 2026-05-21 | El Scout Layer cubría SAST y Secrets pero no SCA; Trivy es bajo riesgo (patrón de scout probado ×2) y el Brain Layer aplica gratis a sus hallazgos |
 | DG-031 | Próximo paso del roadmap | **Option A** — `CheckovScout` (quinto scout, cobertura IaC — misconfiguraciones en Dockerfile/Terraform/k8s) | 2026-05-21 | El Scout Layer cubría SAST, Secrets y SCA pero no IaC; patrón de scout probado ×4 y el binario standalone de Checkov sortea la observación "Python 3.14" |
 | DG-032 | Próximo paso del roadmap | **Option B** — `VibeDetectScout` (detección de código *vibe-coded* — anti-patrones de código generado por IA, categoría `VibeCoded`) | 2026-05-21 | El Scout Layer cubría SAST/Secrets/SCA/IaC pero no el diferenciador del producto; detección determinista nativa (sin binario OSS) = 100% verificable sin API key; la categoría `VibeCoded` ya existía en el schema sin uso |
+| DG-033 | Próximo paso del roadmap | **Option A** — Remediation Agent (3.er agente del Brain Layer — propone cómo corregir un verdadero positivo) | 2026-05-21 | El Brain Layer tenía 2 de 3 agentes; el Remediation Agent reusa el contrato `BrainAgent` probado ×2 y con la llamada LLM verificada → riesgo bajo; completa el trío Triage→Context→Remediation |
 | Q1 | Package manager / tooling de monorepo | **pnpm workspaces** (v10.33.0) | 2026-05-20 | Ya instalado; preferencia v0.4 §9.5; sin overhead |
 
 **Discovery cerrado. Scaffolding generado, verificado y commiteado** (`f0b5202`, 54 archivos). **Cycle 2 CERRADO.** Siguiente: PASO 4 — Scout Layer.
@@ -86,6 +87,7 @@
 - 2026-05-21 — Cycle 23: `TrivyScout` (DG-030 A) — cuarto scout: **Trivy v0.70.0** (SCA, dependencias vulnerables). `scouts/trivy/` (output schema + normalizer Trivy→`Finding` categoría `SCA` + `TrivyScout`); el CLI corre 3 scouts. Fix de `install-scanners`: extracción de `.zip` en Windows vía PowerShell `Expand-Archive` (el `tar` de Windows interpretaba `D:\...` como host remoto). 197 tests verdes + 2 skipped.
 - 2026-05-21 — Cycle 24: `CheckovScout` (DG-031 A) — quinto scout: **Checkov 3.2.529** (IaC, misconfiguraciones en Dockerfile/Terraform/k8s). `scouts/checkov/` (output schema unión objeto|array + normalizer Checkov→`Finding` categoría `IaC`, severidad `null` de Checkov OSS → `medium` + `CheckovScout`); el CLI corre 4 scouts. Fix de `install-scanners`: extracción de `.zip` en Unix vía `unzip` + campo `archiveDir` que aplana el binario empaquetado bajo `dist/`. Checkov se integra como binario standalone (sin intérprete Python). 208 tests verdes + 2 skipped.
 - 2026-05-21 — Cycle 25: `VibeDetectScout` (DG-032 B) — scout de detección de código *vibe-coded* (categoría `VibeCoded`), el scout firma del producto vibe-coding-native. `scouts/vibe-detect/` (`detectors.ts` — catálogo curado de 6 detectores heurísticos regex; `detect.ts` — `runVibeDetectors` función pura; `vibe-detect-scout.ts` — `VibeDetectScout` con walker propio del árbol de archivos). Detección **nativa en TypeScript, sin binario OSS**: siempre disponible, 100% determinista. El CLI corre 5 scouts. Además — gap histórico cerrado: los 2 tests de integración del Brain Layer (Triage/Context) se corrieron con una API key BYOK del usuario y **pasaron contra la API real de Anthropic** (Haiku 4.5). `cli-runner.test` timeout 60s→120s (FI-002). 221 tests verdes + 2 gated.
+- 2026-05-21 — Cycle 26: `Remediation Agent` (DG-033 A) — 3.er y último agente del Brain Layer: propone cómo corregir un verdadero positivo. `core/types/remediation.ts` (`RemediationSuggestion` + `Record`); **colony.db schema v4** (tabla aditiva `remediation_suggestions`); `agents/remediation-agent.ts` (`RemediationAgent` — `BrainAgent<Finding, RemediationSuggestion>`); wiring en el comando `triage` (corre sobre los TP junto a Context) y surface en el tomo JSON/HTML. Completa el trío Triage→Context→Remediation. RemediationAgent verificado contra la API real de Anthropic; E2E scan→triage→export con el bloque de remediación en el HTML. 241 tests verdes + 3 gated.
 
 ---
 
@@ -127,10 +129,10 @@ Items identificados para mejorar más adelante. No bloquean el MVP.
 
 - **Name**: SENTINEL (Synaptic Sentinel)
 - **Description**: Toolkit OSS de auditoría agéntica de seguridad + capa premium LLM, vibe-coding-native.
-- **Phase**: Cycle 26 / Phase 7 — Brain Layer; 5 scouts (SAST/Secrets/SCA/IaC/VibeCoded) + Coordinator stages 1-2 + 2 agentes (Triage + Context) wired y verificados contra la API real; siguiente: DG-033
+- **Phase**: Cycle 27 / Phase 7 — Brain Layer COMPLETO; 5 scouts (SAST/Secrets/SCA/IaC/VibeCoded) + Coordinator stages 1-2 + 3 agentes (Triage + Context + Remediation) wired y verificados contra la API real; siguiente: DG-034
 
 ---
 
 *Created: 2026-05-20T19:09:00.816Z*
-*Last Updated: 2026-05-21T19:50:00.000Z*
+*Last Updated: 2026-05-21T20:15:00.000Z*
 *SYNAPTIC Protocol v3.0*

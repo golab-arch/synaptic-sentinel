@@ -940,7 +940,33 @@ Each entry follows this structure:
 }
 ```
 
+### Entry #35 - DG-033 (A): Remediation Agent (3.er agente del Brain Layer)
+```json
+{
+  "timestamp": "2026-05-21T20:15:00.000Z",
+  "cycle": 26,
+  "phase": 7,
+  "action": "FEATURE_IMPLEMENTED",
+  "details": {
+    "DG-033": {
+      "title": "Proximo paso del roadmap",
+      "selected": "Option A",
+      "effect": "Tercer y ultimo agente de la capa Cerebro: Remediation Agent. Propone como corregir un hallazgo confirmado como verdadero positivo. Completa el trio Triage -> Context -> Remediation (v0.4 §3.6)."
+    },
+    "files": "core/types/remediation.ts (NUEVO - RemediationSuggestion + RemediationSuggestionRecord). core/types/index.ts (export). core/colony/schema.sql (tabla aditiva remediation_suggestions, schema v4). core/colony/colony-db.ts (insert/getRemediationSuggestions, rowToRemediationSuggestion, migracion v4 idempotente). agents/remediation-agent.ts (NUEVO - RemediationAgent implements BrainAgent<Finding,RemediationSuggestion>). agents/index.ts (export). cli/commands/triage.ts (corre el Remediation Agent sobre los TP, persiste). cli/commands/scan.ts (pasa remediationSuggestions a buildTomo). reporters/tomo.ts (TomoFinding gana remediation; join por fingerprint). reporters/html-reporter.ts (renderRemediation + CSS).",
+    "design": "3.er agente reusando el contrato BrainAgent/LlmClient/runAgent ya probado x2. fixedSnippet es opcional: muchas remediaciones son de configuracion o de proceso, sin snippet de codigo. dropEmptySnippet normaliza el 'fixedSnippet':'' que el LLM devuelve a veces. Schema v4: tabla dedicada aditiva, cero riesgo de migracion (mismo patron que v2/v3). Un fallo de remediacion no descarta el veredicto de triage (degraded > failed).",
+    "verification_real": "RemediationAgent probado contra la API REAL de Anthropic (Haiku 4.5, test de integracion gated, corrido con la API key del usuario). E2E: scan del probe -> triage --limit 1 (eval-vuln.js clasificado true_positive 0.95; corrieron Context y Remediation) -> scan --export-html: el tomo HTML incluye el bloque de remediacion con su snippet. 21 tests nuevos.",
+    "tests": "21 nuevos (core remediation 6, agents remediation-agent 8 + integracion 1 gated, colony-db 4, tomo 1, html-reporter 1) - total 241 verdes + 3 gated",
+    "checks": "build / typecheck / lint / test - todos en verde",
+    "commit": "codigo + tests en el commit bf98624 feat(core,agents,cli,reporters); el registro SYNAPTIC de cierre del Cycle 26 se asienta en el commit docs siguiente"
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 31,
+  "complianceScore": 100
+}
+```
+
 ---
 
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-21T19:50:00.000Z*
+*Last Updated: 2026-05-21T20:15:00.000Z*

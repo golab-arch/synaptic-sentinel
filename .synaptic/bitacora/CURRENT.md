@@ -6,11 +6,11 @@
 
 ## Current Cycle
 
-- **Cycle:** 26 — pendiente DG-033 (próximo paso del roadmap)
+- **Cycle:** 27 — pendiente DG-034 (próximo paso del roadmap)
 - **Phase:** 7 — Brain Layer
-- **Status:** Cycle 25 CERRADO; awaiting DG-033
+- **Status:** Cycle 26 CERRADO; awaiting DG-034
 - **Compliance:** 100%
-- **Synaptic Strength:** 30
+- **Synaptic Strength:** 31
 
 ## Cycles cerrados
 
@@ -28,22 +28,23 @@
 - **Cycle 23** — `TrivyScout`: cuarto scout, cobertura SCA (DG-030 A) — `e843b7c` ✅
 - **Cycle 24** — `CheckovScout`: quinto scout, cobertura IaC (DG-031 A) — `883c7ee` ✅
 - **Cycle 25** — `VibeDetectScout`: detección de código vibe-coded + cierre del gap LLM real (DG-032 B) — `b346142` ✅
+- **Cycle 26** — `Remediation Agent`: 3.er agente del Brain Layer (DG-033 A) — `bf98624` ✅
 
 ## Estado del repo
 
-- 27 commits en `main` · 7 paquetes pnpm
-- **5 scouts**: OpenGrep (SAST) + Gitleaks (Secrets) + Trivy (SCA) + Checkov (IaC) + Vibe-Detect (VibeCoded) + `colony.db` (schema v3) + `Coordinator` (stages 1 y 2) + `reporters`
+- 29 commits en `main` · 7 paquetes pnpm
+- **5 scouts**: OpenGrep (SAST) + Gitleaks (Secrets) + Trivy (SCA) + Checkov (IaC) + Vibe-Detect (VibeCoded) + `colony.db` (schema v4) + `Coordinator` (stages 1 y 2) + `reporters`
 - CLI: `synaptic-sentinel scan` (`--export` / `--export-html`), `mark-fp` y `triage` (Brain Layer, BYOK)
 - Extensión VSCode: `Scan Workspace`, `Triage Findings`, `Set Anthropic API Key`, Code Action, status bar
-- **Brain Layer (Pro)**: `agents` con Triage Agent y Context Agent wired — llamada LLM real verificada contra la API de Anthropic (Entry #34)
-- `build` (tsc -b + esbuild) / `typecheck` / `lint` / `test` (221/221 + 2 gated) verdes
+- **Brain Layer (Pro) COMPLETO**: `agents` con Triage + Context + Remediation wired — llamada LLM real verificada contra la API de Anthropic
+- `build` (tsc -b + esbuild) / `typecheck` / `lint` / `test` (241/241 + 3 gated) verdes
 
 ## Decision Gate abierto
 
-- DG-033 — próximo paso del roadmap (a presentar)
+- DG-034 — próximo paso del roadmap (a presentar)
 
 ## Last Entry
 
-Entry #34 — VERIFICATION (cierre del gap LLM real) — 2026-05-21 — SUCCESS
+Entry #35 — FEATURE_IMPLEMENTED (DG-033 A) — 2026-05-21 — SUCCESS
 
 ---
