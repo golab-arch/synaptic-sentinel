@@ -4,7 +4,7 @@
     "fullName": "Synaptic Sentinel",
     "description": "Toolkit OSS de auditoria agentica de seguridad + capa premium LLM, vibe-coding-native, para la era del codigo generado por IA. Tercer producto de la familia Synaptic.",
     "currentPhase": "brain-layer",
-    "overallProgress": "Cycles 1-32 CERRADOS. 5 scouts (OpenGrep SAST, Gitleaks Secrets, Trivy SCA, Checkov IaC, Vibe-Detect VibeCoded) + Coordinator stages 1-2 con kill-switch por scout + CLI con salida verbose/dinamica + reporters JSON+HTML+consola + extension VSCode (Brain Layer surfaceado, pseudoterminal verbose y webview 'tomo vivo') + Brain Layer con 3 agentes wired (Triage + Context + Remediation, LLM real verificada) + ONBOARDING.md. UX verbose (DG-037 B) COMPLETA. 279 tests verdes + 3 gated."
+    "overallProgress": "Cycles 1-33 CERRADOS. 5 scouts (OpenGrep SAST, Gitleaks Secrets, Trivy SCA, Checkov IaC, Vibe-Detect VibeCoded) + Coordinator stages 1-2 con kill-switch por scout + CLI con salida verbose/dinamica + reporters JSON+HTML+consola + extension VSCode (Brain Layer surfaceado, pseudoterminal verbose y webview 'tomo vivo') + Brain Layer con 3 agentes wired (Triage + Context + Remediation, LLM real verificada) + memoria del enjambre (learning_records, lado escritura) + ONBOARDING.md. UX verbose COMPLETA. 289 tests verdes + 3 gated."
   },
   "decisions": [
     { "id": "DG-001", "title": "Estructura fisica del monorepo OSS/Pro", "selected": "B", "date": "2026-05-20", "summary": "Monorepo unico con workspaces marcados OSS/Pro + publish-oss.ts allowlist", "rationale": "Velocidad solo founder; refactors triviales; anti-filtracion en un script auditable" },
@@ -46,6 +46,7 @@
     { "id": "DG-037", "title": "Salida verbose dinamica del scan (UX techie/hacker)", "selected": "B", "date": "2026-05-21", "summary": "Increment 1 de 3: la CLI emite una salida verbose con banner + drip por scout (Coordinator.onScoutSettled + spinner) + reveal coloreado agrupado por severidad. reporters/console-reporter.ts puro; arquitectura 'un show, dos superficies'. Increments 2 (pseudoterminal en la extension) y 3 (webview tomo vivo) pendientes", "rationale": "La prueba F5 (Entry #39) revelo que la extension no da feedback del proceso; v0.4 §4.3 no cubria el feedback dinamico. La CLI como motor del show beneficia tambien al publico OSS/terminal con un solo esfuerzo" },
     { "id": "DG-038", "title": "UX verbose increment 2: pseudoterminal en la extension", "selected": "B", "date": "2026-05-21", "summary": "Increment 2 de 3: la extension transmite el 'show' de la CLI a un Pseudoterminal nativo de VSCode (con FORCE_COLOR=1). SentinelTerminal + toCrlf; los comandos Scan y Triage abren la terminal. El comando triage de la CLI se enriquece (banner + tag coloreado). Increment 3 (webview tomo vivo) pendiente", "rationale": "Cierra la arquitectura 'un show, dos superficies' con una API nativa (Pseudoterminal, sin webview - respeta Decision #23); el feedback del proceso pasa a verse en el IDE" },
     { "id": "DG-039", "title": "UX verbose increment 3: webview 'tomo vivo'", "selected": "B", "date": "2026-05-21", "summary": "Increment 3 de 3 (cierra DG-037 B): panel lateral webview con los hallazgos agrupados por severidad y clickeables para saltar al codigo (v0.4 §4.3). webview-content.ts (render puro, CSP+nonce, escapeHtml) + SentinelTomoViewProvider; contributes.views en package.json", "rationale": "Cierra la trilogia de UX verbose con la superficie de exploracion de resultados que pedia v0.4 §4.3; webview sancionado por §4.3 pese a la preferencia general por APIs nativas (Decision #23)" },
+    { "id": "DG-040", "title": "La colonia aprende - learning_records (increment 1)", "selected": "B", "date": "2026-05-21", "summary": "Increment 1 (lado escritura) de la memoria del enjambre (v0.4 §3.5): el triage alimenta learning_records (tabla inerte desde v1). patternSignature ${category}:${ruleId}; recordLearningBatch (upsert por (signature, classification)). Lado lectura = increment 2", "rationale": "Activa el corazon conceptual del producto (la colonia que aprende), dormido desde el inicio; increment de escritura acotado y verificado e2e, de-riskea el lado lectura" },
     { "id": "Q1", "title": "Package manager", "selected": "pnpm workspaces", "date": "2026-05-20", "summary": "pnpm v10.33.0", "rationale": "Ya instalado; preferencia v0.4 9.5; simple sin overhead" }
   ],
   "roadmap": [
@@ -85,10 +86,10 @@
     }
   ],
   "implementationState": {
-    "lastCompletedTask": "Cycle 32 CERRADO: DG-039 B - increment 3 de la UX verbose (webview 'tomo vivo'), cierra DG-037 B. vscode-extension: webview-content.ts (render puro del HTML, CSP+nonce, escapeHtml), tomo-view.ts (SentinelTomoViewProvider - panel lateral, click abre el archivo), index.ts (registra el provider; Scan/Triage/mark-fp lo actualizan), package.json (contributes.views). Trilogia de UX verbose completa: CLI -> pseudoterminal -> webview. 279 verdes + 3 gated; commiteado 90c7452.",
-    "currentTask": "Cycle 33 abierto. DG-040 a presentar: proximo paso del roadmap.",
+    "lastCompletedTask": "Cycle 33 CERRADO: DG-040 B - 'la colonia aprende', increment 1 (lado escritura). core/types/learning.ts (LearningRecord, patternSignature, triageClassificationToLearning); colony-db.ts (recordLearningBatch upsert + getLearningRecords); cli/triage.ts alimenta learning_records con los veredictos decisivos. Sin cambio de schema (la tabla existe desde v1). E2E verificado con la API key: triage -> filas en colony.db (fp_pattern + real_pattern). 289 verdes + 3 gated; commiteado aec45ea.",
+    "currentTask": "Cycle 34 abierto. DG-041 a presentar: proximo paso del roadmap.",
     "pendingTasks": [
-      "Resolver DG-040 - proximo paso del roadmap (candidatos: 'la colonia aprende' / learning_records; FI-010 higiene; FI-008 .vsix hacia el beta)",
+      "Resolver DG-041 - proximo paso del roadmap (candidatos: 'la colonia aprende' increment 2 / lado lectura; FI-010 higiene; FI-008 .vsix hacia el beta)",
       "Los directorios extranos de packages/vscode-extension/ quedan gitignoreados (DG-038); siguen en disco - el usuario puede eliminarlos",
       "FI-002 (separar test:unit/test:integration), FI-008 (.vsix), FI-009 (migracion a @anthropic-ai/sdk), FI-010 (drift de Prettier + agregar format:check al gate)"
     ],
@@ -112,7 +113,8 @@
     "El Coordinator aplica un kill-switch por scout (DG-036): presupuesto de tiempo + AbortSignal propia; un scout colgado degrada el scan, no lo cuelga",
     "UX verbose (DG-037 B) COMPLETA: el 'show' rico vive en la CLI (console-reporter); la extension lo pipea a un Pseudoterminal nativo (DG-038); el webview 'tomo vivo' explora los resultados (DG-039)",
     "Gap F5 de la extension CERRADO: el usuario la probo en vivo (Entry #39); funciona, pero el feedback del proceso era pobre — motivo de DG-037/DG-038",
+    "Memoria del enjambre activa (DG-040): el triage alimenta learning_records (patron ${category}:${ruleId}); falta el lado lectura (increment 2 - economia de tokens / pre-clasificacion)",
     "Observacion: better-sqlite3 ABI con Electron; exactOptionalPropertyTypes estricto"
   ],
-  "lastUpdated": "2026-05-21T22:15:00.000Z"
+  "lastUpdated": "2026-05-21T22:30:00.000Z"
 }

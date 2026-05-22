@@ -1150,7 +1150,33 @@ Each entry follows this structure:
 }
 ```
 
+### Entry #43 - DG-040 (B): la colonia aprende — learning_records (increment 1)
+```json
+{
+  "timestamp": "2026-05-21T22:30:00.000Z",
+  "cycle": 33,
+  "phase": 7,
+  "action": "FEATURE_IMPLEMENTED",
+  "details": {
+    "DG-040": {
+      "title": "Proximo paso del roadmap (la colonia aprende)",
+      "selected": "Option B",
+      "effect": "Increment 1 (lado escritura) de la memoria del enjambre (v0.4 §3.5): el comando triage alimenta la tabla learning_records, inerte desde v1. Cada clasificacion decisiva del triage registra un patron generalizado."
+    },
+    "files": "core/types/learning.ts (NUEVO - LearningClassification, LearningRecord schema; patternSignature -> ${category}:${ruleId}; triageClassificationToLearning). core/types/index.ts (export). core/colony/colony-db.ts (recordLearningBatch - upsert transaccional por (pattern_signature, classification); getLearningRecords). cli/commands/triage.ts (recolecta learning entries de los veredictos decisivos y los persiste; el resumen reporta 'patrones aprendidos: N').",
+    "design": "learning_records generaliza por patron (${category}:${ruleId}), distinto de triage_verdicts que es por fingerprint exacto (path:rule:line): asi la tabla NO es redundante — triage_verdicts = 'este hallazgo exacto', learning_records = 'este tipo de hallazgo' (memoria cross-scan / cross-ubicacion). Clave logica (pattern_signature, classification): registros separados por clasificacion capturan la distribucion via evidence_count, sin conflicto de sobre-escritura. Un veredicto inconclusive no produce aprendizaje. Sin cambio de schema: la tabla existe desde v1. El lado lectura (economia de tokens / pre-clasificacion) es el increment 2.",
+    "verification_real": "build / typecheck / lint / test verdes. 10 tests nuevos (learning 6, colony-db recordLearningBatch/getLearningRecords 4). E2E con la API key del usuario: triage de 2 hallazgos -> 'patrones aprendidos: 2'; filas confirmadas en colony.db (VibeCoded:vibe-placeholder-secret -> fp_pattern, VibeCoded:vibe-debug-mode-enabled -> real_pattern, evidence_count 1, last_seen_scan correcto).",
+    "tests": "10 nuevos - total 289 verdes + 3 gated",
+    "checks": "build / typecheck / lint / test - todos en verde",
+    "commit": "codigo + tests en el commit aec45ea feat(core,cli); el registro SYNAPTIC de cierre del Cycle 33 se asienta en el commit docs siguiente"
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 38,
+  "complianceScore": 100
+}
+```
+
 ---
 
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-21T22:15:00.000Z*
+*Last Updated: 2026-05-21T22:30:00.000Z*
