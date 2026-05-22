@@ -4,7 +4,7 @@
     "fullName": "Synaptic Sentinel",
     "description": "Toolkit OSS de auditoria agentica de seguridad + capa premium LLM, vibe-coding-native, para la era del codigo generado por IA. Tercer producto de la familia Synaptic.",
     "currentPhase": "brain-layer",
-    "overallProgress": "Cycles 1-35 CERRADOS. 5 scouts (OpenGrep SAST, Gitleaks Secrets, Trivy SCA, Checkov IaC, Vibe-Detect VibeCoded) + Coordinator stages 1-2 con kill-switch por scout + CLI con salida verbose/dinamica + reporters JSON+HTML+consola + extension VSCode (Brain Layer surfaceado, pseudoterminal verbose y webview 'tomo vivo') + Brain Layer con 3 agentes wired (Triage + Context + Remediation, LLM real verificada) + memoria del enjambre COMPLETA (learning_records: escritura + lectura/economia de tokens) + ONBOARDING.md. UX verbose COMPLETA. Repo sin drift de Prettier; gate por ciclo codificado en el script 'verify' (format:check+lint+build+test). 294 tests verdes + 3 gated."
+    "overallProgress": "Cycles 1-36 CERRADOS. 5 scouts (OpenGrep SAST, Gitleaks Secrets, Trivy SCA, Checkov IaC, Vibe-Detect VibeCoded) + Coordinator stages 1-2 con kill-switch por scout + CLI con salida verbose/dinamica + reporters JSON+HTML+consola + extension VSCode (Brain Layer surfaceado, pseudoterminal verbose y webview 'tomo vivo') + Brain Layer con 3 agentes wired (Triage + Context + Remediation, LLM real verificada) + memoria del enjambre COMPLETA (learning_records: escritura + lectura/economia de tokens) + ONBOARDING.md. UX verbose COMPLETA. Repo sin drift de Prettier; gate por ciclo codificado en el script 'verify' (format:check+lint+build+test). Catalogo SAST de OpenGrep ampliado a 11 reglas pattern-based (CWE-95/78/79/502/327). 296 tests verdes + 3 gated."
   },
   "decisions": [
     { "id": "DG-001", "title": "Estructura fisica del monorepo OSS/Pro", "selected": "B", "date": "2026-05-20", "summary": "Monorepo unico con workspaces marcados OSS/Pro + publish-oss.ts allowlist", "rationale": "Velocidad solo founder; refactors triviales; anti-filtracion en un script auditable" },
@@ -49,6 +49,7 @@
     { "id": "DG-040", "title": "La colonia aprende - learning_records (increment 1)", "selected": "B", "date": "2026-05-21", "summary": "Increment 1 (lado escritura) de la memoria del enjambre (v0.4 §3.5): el triage alimenta learning_records (tabla inerte desde v1). patternSignature ${category}:${ruleId}; recordLearningBatch (upsert por (signature, classification)). Lado lectura = increment 2", "rationale": "Activa el corazon conceptual del producto (la colonia que aprende), dormido desde el inicio; increment de escritura acotado y verificado e2e, de-riskea el lado lectura" },
     { "id": "DG-041", "title": "La colonia aprende - lado lectura (increment 2)", "selected": "B", "date": "2026-05-21", "summary": "Increment 2 (lado lectura): deriveFromLearning - el triage pre-clasifica los patrones conocidos (evidencia fuerte y consistente, umbral 3) sin gastar llamada LLM (economia de tokens, v0.4 §187). Un veredicto derivado se persiste con agentId 'colony-learning' y no se realimenta. Cierra 'la colonia aprende'", "rationale": "Sin el lado lectura el aprendizaje queda registrado pero inerte; con el, cada scan se beneficia de los anteriores y se ahorran tokens en patrones ya conocidos" },
     { "id": "DG-042", "title": "Proximo paso del roadmap (higiene del repo)", "selected": "A", "date": "2026-05-21", "summary": "Cierra FI-010: 'pnpm format' sobre 44 archivos con drift + nuevo script raiz 'verify' (format:check && lint && build && test) que codifica el gate por ciclo. Se corrigio de fondo un comentario inestable de cli-runner.test.ts que Prettier no podia estabilizar (prettier(input) !== prettier(prettier(input)))", "rationale": "El drift se acumulo porque format:check nunca estuvo en el gate; el ciclo de higiene lo cierra y materializa el gate como un comando para que no reaparezca. Riesgo bajo, cambios puramente de estilo, base limpia antes de empujar el beta" },
+    { "id": "DG-043", "title": "Proximo paso del roadmap (ampliar el catalogo SAST)", "selected": "B", "date": "2026-05-22", "summary": "Atiende FI-003: el ruleset baseline de OpenGrep pasa de 4 a 11 reglas pattern-based deterministas. 7 reglas nuevas — JS/TS: setTimeout/setInterval con string (CWE-95), document.write (CWE-79), innerHTML dinamico (CWE-79); Python: os.system (CWE-78), yaml.load sin SafeLoader (CWE-502), pickle.load/loads (CWE-502), hashlib.md5 (CWE-327). 2 fixtures vulnerables + 2 tests de integracion contra OpenGrep real", "rationale": "El catalogo SAST es el core value prop del scanner; expandirlo mejora directamente lo que el producto encuentra. Solo patrones deterministas de alta confianza (taint analysis diferido); pattern-not excluye formas seguras para acotar falsos positivos" },
     { "id": "Q1", "title": "Package manager", "selected": "pnpm workspaces", "date": "2026-05-20", "summary": "pnpm v10.33.0", "rationale": "Ya instalado; preferencia v0.4 9.5; simple sin overhead" }
   ],
   "roadmap": [
@@ -62,7 +63,7 @@
   "futureImprovements": [
     { "id": "FI-001", "topic": "Driver SQLite", "detail": "node:sqlite es experimental; si genera friccion (API en un Node mayor futuro, o extension host de VSCode con Node < 22.5), migrar a better-sqlite3 detras de la clase ColonyDb." },
     { "id": "FI-002", "topic": "Suite de tests", "detail": "Los tests de integracion (OpenGrep, Trivy, Checkov, cli-runner) dominan el tiempo de pnpm test y rozan sus timeouts bajo contencion de CPU (cli-runner subido a 120s en DG-032). Separar en test:unit (rapido) y test:integration." },
-    { "id": "FI-003", "topic": "Catalogo de reglas", "detail": "sentinel-baseline.yaml tiene 4 reglas pattern-based. Ampliar el catalogo SAST (taint analysis, mas CWEs)." },
+    { "id": "FI-003", "topic": "Catalogo de reglas / taint analysis", "detail": "sentinel-baseline.yaml tiene 11 reglas pattern-based tras DG-043 B (CWE-95/78/79/502/327). Lo que resta: analisis con taint (seguir el flujo source->sink) para cubrir inyecciones que un patron sintactico no alcanza y reducir falsos positivos en sinks de uso ambiguo (innerHTML, child_process)." },
     { "id": "FI-004", "topic": "Cache de scanners del producto", "detail": "El CLI resuelve OpenGrep desde .scanners/ relativo al cwd. El producto enviado necesita una cache de scanners propia (global por usuario) y auto-instalacion." },
     { "id": "FI-005", "topic": "ruleId de OpenGrep", "detail": "El check_id de OpenGrep trae el prefijo de ruta cuando --config es un archivo; Finding.ruleId lo hereda. El CLI muestra title (limpio). Evaluar normalizar ruleId a un id canonico en el normalizer." },
     { "id": "FI-008", "topic": "Empaquetado de la extension (.vsix)", "detail": "El MVP de la extension asume el layout del monorepo en dev: la CLI en el paquete hermano (cli/dist) y node en el PATH. Empaquetar como .vsix requiere bundlear/instalar la CLI y resolver un runtime de Node y la cache de scanners (ver FI-004)." },
@@ -88,12 +89,12 @@
     }
   ],
   "implementationState": {
-    "lastCompletedTask": "Cycle 35 CERRADO: DG-042 A - higiene del repo. 'pnpm format' sobre 44 archivos con drift; nuevo script raiz 'verify' (format:check && lint && build && test) que codifica el gate por ciclo. Se corrigio de fondo un comentario inestable de cli-runner.test.ts (Prettier no podia estabilizarlo: prettier(input) !== prettier(prettier(input))). Cierra FI-010. pnpm verify completo en verde; 294 verdes + 3 gated; commiteado 09fe0ab.",
-    "currentTask": "Cycle 36 abierto. DG-043 a presentar: proximo paso del roadmap.",
+    "lastCompletedTask": "Cycle 36 CERRADO: DG-043 B - ampliacion del catalogo SAST. El ruleset baseline de OpenGrep paso de 4 a 11 reglas pattern-based deterministas (7 nuevas: setTimeout/setInterval con string, document.write, innerHTML dinamico, os.system, yaml.load sin SafeLoader, pickle.load/loads, hashlib.md5; CWE-95/78/79/502/327). 2 fixtures vulnerables + 2 tests de integracion contra OpenGrep real. pnpm verify completo en verde; 296 verdes + 3 gated; commiteado fcf90a3.",
+    "currentTask": "Cycle 37 abierto. DG-044 a presentar: proximo paso del roadmap.",
     "pendingTasks": [
-      "Resolver DG-043 - proximo paso del roadmap (candidatos: FI-003 ampliar el catalogo SAST; FI-002 separar test:unit/test:integration; FI-008 .vsix + FI-004 cache de scanners hacia el beta)",
+      "Resolver DG-044 - proximo paso del roadmap (candidatos: FI-002 separar test:unit/test:integration; FI-008 .vsix + FI-004 cache de scanners hacia el beta; FI-003 taint analysis)",
       "Los directorios extranos de packages/vscode-extension/ quedan gitignoreados (DG-038); siguen en disco - el usuario puede eliminarlos",
-      "FI-002 (separar test:unit/test:integration), FI-003 (ampliar el catalogo SAST), FI-004 (cache de scanners del producto), FI-008 (.vsix), FI-009 (migracion a @anthropic-ai/sdk)"
+      "FI-002 (separar test:unit/test:integration; la suite de integracion ya pesa ~105s en verify), FI-003 (taint analysis - resta del catalogo SAST), FI-004 (cache de scanners del producto), FI-008 (.vsix), FI-009 (migracion a @anthropic-ai/sdk)"
     ],
     "blockers": []
   },
@@ -116,7 +117,8 @@
     "UX verbose (DG-037 B) COMPLETA: el 'show' rico vive en la CLI (console-reporter); la extension lo pipea a un Pseudoterminal nativo (DG-038); el webview 'tomo vivo' explora los resultados (DG-039)",
     "Gap F5 de la extension CERRADO: el usuario la probo en vivo (Entry #39); funciona, pero el feedback del proceso era pobre — motivo de DG-037/DG-038",
     "Memoria del enjambre COMPLETA (DG-040 escritura + DG-041 lectura): el triage alimenta learning_records y pre-clasifica patrones conocidos sin LLM (economia de tokens, umbral de evidencia 3, sin realimentacion)",
+    "Catalogo SAST de OpenGrep (sentinel-baseline.yaml) ampliado a 11 reglas pattern-based en DG-043 B: ejecucion dinamica de codigo (CWE-95), inyeccion de comandos (CWE-78), XSS (CWE-79), deserializacion insegura (CWE-502) y criptografia debil (CWE-327); el taint analysis queda diferido (FI-003)",
     "Observacion: better-sqlite3 ABI con Electron; exactOptionalPropertyTypes estricto"
   ],
-  "lastUpdated": "2026-05-21T23:15:00.000Z"
+  "lastUpdated": "2026-05-22T12:30:00.000Z"
 }

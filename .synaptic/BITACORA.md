@@ -1229,7 +1229,34 @@ Each entry follows this structure:
 }
 ```
 
+### Entry #46 - DG-043 (B): amplia el catalogo SAST de 4 a 11 reglas
+```json
+{
+  "timestamp": "2026-05-22T12:30:00.000Z",
+  "cycle": 36,
+  "phase": 7,
+  "action": "FEATURE_IMPLEMENTED",
+  "details": {
+    "DG-043": {
+      "title": "Proximo paso del roadmap (ampliar el catalogo SAST)",
+      "selected": "Option B",
+      "effect": "Atiende FI-003: el ruleset baseline de OpenGrep pasa de 4 a 11 reglas pattern-based deterministas y de alta confianza."
+    },
+    "files": "scouts/src/opengrep/rules/sentinel-baseline.yaml (7 reglas nuevas). 2 fixtures deliberadamente vulnerables: tests/opengrep/fixtures/vulnerable/javascript/xss-and-injection.js y .../python/unsafe-apis.py. scouts/tests/opengrep/integration.test.ts (2 tests de integracion nuevos).",
+    "rules": "JS/TS: setTimeout/setInterval con string literal (CWE-95), document.write/writeln (CWE-79), asignacion dinamica a innerHTML (CWE-79, excluye literales con pattern-not). Python: os.system (CWE-78), yaml.load sin SafeLoader (CWE-502, excluye Loader=SafeLoader/CSafeLoader), pickle.load/loads (CWE-502), hashlib.md5 (CWE-327). Todas con refs CWE + OWASP 2021.",
+    "design": "Solo patrones sintacticos deterministas y de alta confianza; el taint analysis queda explicitamente para una fase posterior (FI-003 sigue abierto, acotado a taint). Las reglas con riesgo de FP (innerHTML, yaml.load) usan pattern-not para excluir las formas seguras; las de FP tolerable (md5, document.write) van como WARNING.",
+    "verification_real": "El test de integracion corre OpenGrep real: las 7 reglas nuevas detectan sus patrones en los fixtures; severidad verificada (os.system ERROR->high, md5 WARNING->medium). pnpm verify completo en verde.",
+    "tests": "2 nuevos de integracion — total 296 verdes + 3 gated",
+    "checks": "format:check / lint / build / test — todos en verde via 'verify'",
+    "commit": "codigo + tests + fixtures en el commit fcf90a3 feat(scouts); el registro SYNAPTIC de cierre del Cycle 36 se asienta en el commit docs siguiente"
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 41,
+  "complianceScore": 100
+}
+```
+
 ---
 
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-21T23:15:00.000Z*
+*Last Updated: 2026-05-22T12:30:00.000Z*
