@@ -1021,7 +1021,33 @@ Each entry follows this structure:
 }
 ```
 
+### Entry #38 - DG-036 (B): kill-switch del Coordinator (presupuesto de tiempo por scout)
+```json
+{
+  "timestamp": "2026-05-21T21:10:00.000Z",
+  "cycle": 29,
+  "phase": 7,
+  "action": "FEATURE_IMPLEMENTED",
+  "details": {
+    "DG-036": {
+      "title": "Proximo paso del roadmap",
+      "selected": "Option B",
+      "effect": "Kill-switch del Coordinator: presupuesto de tiempo por scout (v0.4 §9.6 'Rogue Agents'). Un scout que se cuelga se cancela y se reporta failed; el scan sigue con los demas."
+    },
+    "files": "core/coordinator/coordinator.ts (constante DEFAULT_SCOUT_TIMEOUT_MS = 5 min; ScanOptions.scoutTimeoutMs; runScan pasa el presupuesto a cada scout; #runScout reescrito).",
+    "design": "Cada scout recibe una AbortSignal propia, enlazada al signal del llamante, que se dispara por (a) expiracion del presupuesto o (b) aborto del llamante. La ejecucion del scout compite (Promise.race) contra esa senal: si el scout se cuelga e ignora su signal, gana la cancelacion y no cuelga el scan. Un scout cancelado se reporta `failed` (no `partial`: no produjo nada usable). Default 5 min: kill-switch holgado, no un SLA. Sin cambios en el CLI (usa el presupuesto por defecto).",
+    "verification_real": "build / typecheck / lint / test verdes. 3 tests nuevos: scout colgado cancelado + scan degradado (el scout sano persiste igual); scout rapido intacto dentro del presupuesto; el signal del llamante cancela un scout colgado aunque el presupuesto sea amplio. El test de integracion cli-runner (CLI real -> Coordinator real, presupuesto default) confirma que el camino normal no regresiona.",
+    "tests": "3 nuevos (coordinator kill-switch) - total 253 verdes + 3 gated",
+    "checks": "build / typecheck / lint / test - todos en verde",
+    "commit": "codigo + tests en el commit 0be9ffd feat(core); el registro SYNAPTIC de cierre del Cycle 29 se asienta en el commit docs siguiente"
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 34,
+  "complianceScore": 100
+}
+```
+
 ---
 
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-21T20:45:00.000Z*
+*Last Updated: 2026-05-21T21:10:00.000Z*

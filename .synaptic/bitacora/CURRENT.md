@@ -6,11 +6,11 @@
 
 ## Current Cycle
 
-- **Cycle:** 29 — pendiente DG-036 (próximo paso del roadmap)
+- **Cycle:** 30 — pendiente DG-037 (próximo paso del roadmap)
 - **Phase:** 7 — Brain Layer
-- **Status:** Cycle 28 CERRADO; awaiting DG-036
+- **Status:** Cycle 29 CERRADO; awaiting DG-037
 - **Compliance:** 100%
-- **Synaptic Strength:** 33
+- **Synaptic Strength:** 34
 
 ## Cycles cerrados
 
@@ -29,18 +29,19 @@
 - **Cycle 24** — `CheckovScout`: quinto scout, cobertura IaC (DG-031 A) — `883c7ee` ✅
 - **Cycle 25** — `VibeDetectScout` + cierre del gap LLM real (DG-032 B) — `b346142` ✅
 - **Cycle 26** — `Remediation Agent`: 3.er agente del Brain Layer (DG-033 A) — `bf98624` ✅
-- **Cycle 27** — surface del Brain Layer en la extensión: hover + Code Actions + `launch.json` (DG-034 B) — `ee59c74` ✅
+- **Cycle 27** — surface del Brain Layer en la extensión (DG-034 B) — `ee59c74` ✅
 - **Cycle 28** — `ONBOARDING.md` + README al día + colony-db v4 (DG-035 A) — `7a33d6f` ✅
+- **Cycle 29** — kill-switch del Coordinator: presupuesto de tiempo por scout (DG-036 B) — `0be9ffd` ✅
 
 ## Estado del repo
 
-- 33 commits en `main` · 7 paquetes pnpm
-- **5 scouts**: OpenGrep (SAST) + Gitleaks (Secrets) + Trivy (SCA) + Checkov (IaC) + Vibe-Detect (VibeCoded) + `colony.db` (schema v4) + `Coordinator` (stages 1 y 2) + `reporters`
+- 35 commits en `main` · 7 paquetes pnpm
+- **5 scouts**: OpenGrep (SAST) + Gitleaks (Secrets) + Trivy (SCA) + Checkov (IaC) + Vibe-Detect (VibeCoded) + `colony.db` (schema v4) + `Coordinator` (stages 1 y 2, **kill-switch por scout**) + `reporters`
 - CLI: `synaptic-sentinel scan` (`--export` / `--export-html`), `mark-fp` y `triage` (Brain Layer, BYOK)
 - Extensión VSCode: `Scan Workspace`, `Triage Findings`, `Set Anthropic API Key`, hover del Brain Layer, Code Actions, status bar — **F5-testeable**
 - **Brain Layer (Pro) COMPLETO**: `agents` con Triage + Context + Remediation wired — llamada LLM real verificada
 - **Docs**: `README.md`, `ONBOARDING.md`, `docs/colony-db.md`, `.synaptic/DESIGN_DOC.md`
-- `build` / `typecheck` / `lint` / `test` (250/250 + 3 gated) verdes
+- `build` / `typecheck` / `lint` / `test` (253/253 + 3 gated) verdes
 
 ## Notas / deuda
 
@@ -49,10 +50,10 @@
 
 ## Decision Gate abierto
 
-- DG-036 — próximo paso del roadmap (a presentar)
+- DG-037 — próximo paso del roadmap (a presentar)
 
 ## Last Entry
 
-Entry #37 — FEATURE_IMPLEMENTED (DG-035 A) — 2026-05-21 — SUCCESS
+Entry #38 — FEATURE_IMPLEMENTED (DG-036 B) — 2026-05-21 — SUCCESS
 
 ---
