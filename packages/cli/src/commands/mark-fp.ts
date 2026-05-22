@@ -24,7 +24,7 @@ export function runMarkFpCommand(options: MarkFpCommandOptions): number {
   const projectRoot = resolve(options.path);
   const dbPath = join(projectRoot, '.synaptic-sentinel', 'colony.db');
   if (!existsSync(dbPath)) {
-    console.error(`No hay colony.db en ${projectRoot}. Corre "synaptic-sentinel scan" primero.`);
+    console.error(`No colony.db in ${projectRoot}. Run "synaptic-sentinel scan" first.`);
     return 1;
   }
 
@@ -33,11 +33,11 @@ export function runMarkFpCommand(options: MarkFpCommandOptions): number {
     const existing = db.getPheromonesByFingerprint(options.fingerprint);
     const finding = existing.find((pheromone) => pheromone.type === 'finding');
     if (finding === undefined) {
-      console.error(`No se encontro ningun hallazgo con fingerprint "${options.fingerprint}".`);
+      console.error(`No finding found with fingerprint "${options.fingerprint}".`);
       return 1;
     }
     if (existing.some((pheromone) => pheromone.type === 'fp_known')) {
-      console.log('El hallazgo ya estaba marcado como falso positivo.');
+      console.log('The finding was already marked as a false positive.');
       return 0;
     }
 
@@ -49,7 +49,7 @@ export function runMarkFpCommand(options: MarkFpCommandOptions): number {
         ...(options.reason !== undefined ? { reason: options.reason } : {}),
       }),
     );
-    console.log('Hallazgo marcado como falso positivo. El proximo scan lo omitira.');
+    console.log('Finding marked as a false positive. The next scan will skip it.');
     return 0;
   } finally {
     db.close();

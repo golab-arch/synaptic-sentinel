@@ -234,9 +234,9 @@ export async function runScanCommand(options: ScanCommandOptions): Promise<numbe
   // externos no se resolvieron: el scan corre igual pero degradado.
   if (scouts.every((scout) => scout.id === 'vibe-detect')) {
     console.warn(
-      'Aviso: no se encontro ningun scanner externo (OpenGrep / Gitleaks / Trivy / ' +
-        'Checkov). Solo correra Vibe-Detect. Instala los scanners con ' +
-        '"pnpm scanners:install" o indica las rutas con --opengrep-bin / ' +
+      'Warning: no external scanner found (OpenGrep / Gitleaks / Trivy / ' +
+        'Checkov). Only Vibe-Detect will run. Install the scanners with ' +
+        '"pnpm scanners:install" or pass the paths with --opengrep-bin / ' +
         '--gitleaks-bin / --trivy-bin / --checkov-bin.',
     );
   }
@@ -253,7 +253,7 @@ export async function runScanCommand(options: ScanCommandOptions): Promise<numbe
     // Feedback en vivo: un spinner mientras el enjambre trabaja y una linea
     // permanente por cada scout a medida que termina (Coordinator.onScoutSettled).
     const spinner = new Spinner(color);
-    spinner.start('escaneando el enjambre...');
+    spinner.start('the scout swarm is scanning...');
     const outcome = await coordinator.runScan({
       rootPath: projectRoot,
       mode: 'full',
@@ -289,17 +289,17 @@ export async function runScanCommand(options: ScanCommandOptions): Promise<numbe
       if (options.exportPath !== undefined) {
         const target = resolve(options.exportPath);
         writeFileSync(target, renderTomoJson(tomo));
-        console.log(`Tomo exportado (JSON): ${target}`);
+        console.log(`Tome exported (JSON): ${target}`);
       }
       if (options.exportHtmlPath !== undefined) {
         const target = resolve(options.exportHtmlPath);
         writeFileSync(target, renderTomoHtml(tomo));
-        console.log(`Tomo exportado (HTML): ${target}`);
+        console.log(`Tome exported (HTML): ${target}`);
       }
       if (options.exportSarifPath !== undefined) {
         const target = resolve(options.exportSarifPath);
         writeFileSync(target, renderTomoSarif(tomo));
-        console.log(`Tomo exportado (SARIF): ${target}`);
+        console.log(`Tome exported (SARIF): ${target}`);
       }
     }
 
@@ -310,12 +310,12 @@ export async function runScanCommand(options: ScanCommandOptions): Promise<numbe
       const blocking = countBlockingFindings(findings, failOn);
       if (blocking > 0) {
         console.error(
-          `\nPolitica --fail-on: ${String(blocking)} hallazgo(s) con severidad ` +
-            `>= ${failOn}. El scan termina con exit code ${String(FAIL_ON_EXIT_CODE)}.`,
+          `\n--fail-on policy: ${String(blocking)} finding(s) at severity ` +
+            `>= ${failOn}. Scan exits with code ${String(FAIL_ON_EXIT_CODE)}.`,
         );
         return FAIL_ON_EXIT_CODE;
       }
-      console.log(`Politica --fail-on: ningun hallazgo con severidad >= ${failOn}. ✓`);
+      console.log(`--fail-on policy: no findings at severity >= ${failOn}. ✓`);
     }
     return 0;
   } finally {

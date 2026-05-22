@@ -59,7 +59,7 @@ export async function runTriageCommand(options: TriageCommandOptions): Promise<n
   const projectRoot = resolve(options.path);
   const dbPath = join(projectRoot, '.synaptic-sentinel', 'colony.db');
   if (!existsSync(dbPath)) {
-    console.error(`No hay colony.db en ${projectRoot}. Corre "synaptic-sentinel scan" primero.`);
+    console.error(`No colony.db in ${projectRoot}. Run "synaptic-sentinel scan" first.`);
     return 1;
   }
 
@@ -67,7 +67,7 @@ export async function runTriageCommand(options: TriageCommandOptions): Promise<n
   if (llm === undefined) {
     const apiKey = process.env['ANTHROPIC_API_KEY'];
     if (apiKey === undefined || apiKey === '') {
-      console.error('triage requiere una API key de Anthropic (BYOK). Exporta ANTHROPIC_API_KEY.');
+      console.error('triage requires an Anthropic API key (BYOK). Export ANTHROPIC_API_KEY.');
       return 1;
     }
     llm = new AnthropicLlmClient({ apiKey });
@@ -77,7 +77,7 @@ export async function runTriageCommand(options: TriageCommandOptions): Promise<n
   try {
     const scanId = db.getLatestScanId();
     if (scanId === undefined) {
-      console.error('colony.db no tiene ningun scan. Corre "synaptic-sentinel scan" primero.');
+      console.error('colony.db has no scan yet. Run "synaptic-sentinel scan" first.');
       return 1;
     }
 
@@ -97,12 +97,12 @@ export async function runTriageCommand(options: TriageCommandOptions): Promise<n
     const limit = options.limit ?? DEFAULT_TRIAGE_LIMIT;
     const toTriage = pending.slice(0, limit);
     console.log(
-      `Triage del scan ${scanId}: ${String(findings.length)} hallazgo(s), ` +
-        `${String(findings.length - pending.length)} omitido(s) (FP conocido / ya triado), ` +
-        `${String(toTriage.length)} a triar.`,
+      `Triage of scan ${scanId}: ${String(findings.length)} finding(s), ` +
+        `${String(findings.length - pending.length)} skipped (known FP / already triaged), ` +
+        `${String(toTriage.length)} to triage.`,
     );
     if (pending.length > toTriage.length) {
-      console.log(`  (limitado a ${String(limit)}; usa --limit para ampliar)`);
+      console.log(`  (capped at ${String(limit)}; use --limit to raise it)`);
     }
 
     const triageAgent = new TriageAgent();
@@ -129,8 +129,8 @@ export async function runTriageCommand(options: TriageCommandOptions): Promise<n
             classification: learned.classification,
             confidence: learned.confidence,
             rationale:
-              `Pre-clasificado por la memoria del enjambre: el patron "${signature}" fue ` +
-              `${learned.classification} en ${String(learned.evidenceCount)} hallazgo(s) previo(s).`,
+              `Pre-classified by the colony memory: the pattern "${signature}" was ` +
+              `${learned.classification} in ${String(learned.evidenceCount)} prior finding(s).`,
           };
           learnedCount += 1;
         } else {
@@ -146,11 +146,11 @@ export async function runTriageCommand(options: TriageCommandOptions): Promise<n
           agentId: learned !== undefined ? 'colony-learning' : triageAgent.id,
           createdAt: new Date().toISOString(),
         });
-        const source = learned !== undefined ? ' (memoria del enjambre)' : '';
+        const source = learned !== undefined ? ' (colony memory)' : '';
         console.log(
           `  ${renderTriageTag(verdict.classification, color)}  ${finding.title} ` +
             `— ${finding.location.path}:${String(finding.location.startLine)} ` +
-            `(confianza ${verdict.confidence.toFixed(2)})${source}`,
+            `(confidence ${verdict.confidence.toFixed(2)})${source}`,
         );
         // Aprendizaje: solo de las decisiones del LLM, nunca de un veredicto
         // derivado de la propia memoria (evita un bucle de realimentacion).
@@ -176,11 +176,11 @@ export async function runTriageCommand(options: TriageCommandOptions): Promise<n
               agentId: contextAgent.id,
               createdAt: new Date().toISOString(),
             });
-            console.log(`      contexto: ${explanation.summary}`);
+            console.log(`      context: ${explanation.summary}`);
           } catch (err) {
             // Un fallo de contexto no descarta el veredicto de triage.
             const message = err instanceof Error ? err.message : String(err);
-            console.error(`      ! fallo el contexto de "${finding.title}": ${message}`);
+            console.error(`      ! context failed for "${finding.title}": ${message}`);
           }
           // Stage 4 — Remediation: como corregir el verdadero positivo.
           try {
@@ -197,17 +197,17 @@ export async function runTriageCommand(options: TriageCommandOptions): Promise<n
               agentId: remediationAgent.id,
               createdAt: new Date().toISOString(),
             });
-            console.log(`      remediacion: ${remediation.summary}`);
+            console.log(`      remediation: ${remediation.summary}`);
           } catch (err) {
             // Un fallo de remediacion no descarta el veredicto de triage.
             const message = err instanceof Error ? err.message : String(err);
-            console.error(`      ! fallo la remediacion de "${finding.title}": ${message}`);
+            console.error(`      ! remediation failed for "${finding.title}": ${message}`);
           }
         }
       } catch (err) {
         // Un fallo de triage no aborta la corrida (degraded > failed).
         const message = err instanceof Error ? err.message : String(err);
-        console.error(`  ! fallo el triage de "${finding.title}": ${message}`);
+        console.error(`  ! triage failed for "${finding.title}": ${message}`);
       }
     }
 
@@ -216,11 +216,11 @@ export async function runTriageCommand(options: TriageCommandOptions): Promise<n
     db.insertRemediationSuggestions(remediations);
     db.recordLearningBatch(learningEntries, scanId);
     console.log(
-      `Veredictos de triage persistidos: ${String(verdicts.length)}; ` +
-        `explicaciones de contexto: ${String(explanations.length)}; ` +
-        `sugerencias de remediacion: ${String(remediations.length)}; ` +
-        `patrones aprendidos: ${String(learningEntries.length)}; ` +
-        `pre-clasificados por la memoria: ${String(learnedCount)}.`,
+      `Triage verdicts persisted: ${String(verdicts.length)}; ` +
+        `context explanations: ${String(explanations.length)}; ` +
+        `remediation suggestions: ${String(remediations.length)}; ` +
+        `patterns learned: ${String(learningEntries.length)}; ` +
+        `pre-classified from memory: ${String(learnedCount)}.`,
     );
     return 0;
   } finally {

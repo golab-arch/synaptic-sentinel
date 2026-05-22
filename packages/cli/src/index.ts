@@ -12,38 +12,38 @@ import { runTriageCommand } from './commands/triage.js';
 
 const USAGE = `Synaptic Sentinel — CLI
 
-Uso:
-  synaptic-sentinel scan [--path <dir>] [--opengrep-bin <ruta>]
-                         [--gitleaks-bin <ruta>] [--trivy-bin <ruta>]
-                         [--checkov-bin <ruta>] [--no-color]
-                         [--export <archivo>] [--export-html <archivo>]
-                         [--export-sarif <archivo>] [--fail-on <severidad>]
-  synaptic-sentinel mark-fp --fingerprint <fp> [--path <dir>] [--reason <texto>]
+Usage:
+  synaptic-sentinel scan [--path <dir>] [--opengrep-bin <path>]
+                         [--gitleaks-bin <path>] [--trivy-bin <path>]
+                         [--checkov-bin <path>] [--no-color]
+                         [--export <file>] [--export-html <file>]
+                         [--export-sarif <file>] [--fail-on <severity>]
+  synaptic-sentinel mark-fp --fingerprint <fp> [--path <dir>] [--reason <text>]
   synaptic-sentinel triage [--path <dir>] [--limit <n>]
 
-Comandos:
-  scan       Escanea un proyecto y persiste los hallazgos en colony.db
-  mark-fp    Marca un hallazgo como falso positivo (lo suprime en scans futuros)
-  triage     Tria los hallazgos del ultimo scan con el Brain Layer (BYOK)
+Commands:
+  scan       Scan a project and persist the findings to colony.db
+  mark-fp    Mark a finding as a false positive (suppressed in future scans)
+  triage     Triage the latest scan's findings with the Brain Layer (BYOK)
 
-Opciones:
-  --path <dir>           Directorio del proyecto (por defecto: el directorio actual)
-  --opengrep-bin <ruta>  Ruta explicita al binario de OpenGrep
-  --gitleaks-bin <ruta>  Ruta explicita al binario de Gitleaks
-  --trivy-bin <ruta>     Ruta explicita al binario de Trivy
-  --checkov-bin <ruta>   Ruta explicita al binario de Checkov
-  --no-color             Desactiva el color ANSI de la salida del scan
-  --export <archivo>     Exporta el tomo del scan en JSON al archivo indicado
-  --export-html <arch.>  Exporta el tomo del scan en HTML al archivo indicado
-  --export-sarif <arch.> Exporta el tomo del scan en SARIF 2.1.0 (CI / GitHub)
-  --fail-on <severidad>  Falla el scan (exit code 2) si hay hallazgos de
-                         severidad >= la indicada (critical|high|medium|low|info)
-  --fingerprint <fp>     Huella del hallazgo a marcar (comando mark-fp)
-  --reason <texto>       Motivo del descarte (comando mark-fp)
-  --limit <n>            Tope de hallazgos a triar (comando triage; por defecto 25)
-  -h, --help             Muestra esta ayuda
+Options:
+  --path <dir>           Project directory (default: the current directory)
+  --opengrep-bin <path>  Explicit path to the OpenGrep binary
+  --gitleaks-bin <path>  Explicit path to the Gitleaks binary
+  --trivy-bin <path>     Explicit path to the Trivy binary
+  --checkov-bin <path>   Explicit path to the Checkov binary
+  --no-color             Disable ANSI color in the scan output
+  --export <file>        Export the scan tome as JSON to the given file
+  --export-html <file>   Export the scan tome as HTML to the given file
+  --export-sarif <file>  Export the scan tome as SARIF 2.1.0 (CI / GitHub)
+  --fail-on <severity>   Fail the scan (exit code 2) if there are findings at
+                         severity >= the given one (critical|high|medium|low|info)
+  --fingerprint <fp>     Fingerprint of the finding to mark (mark-fp command)
+  --reason <text>        Reason for the dismissal (mark-fp command)
+  --limit <n>            Cap of findings to triage (triage command; default 25)
+  -h, --help             Show this help
 
-El comando triage requiere la variable de entorno ANTHROPIC_API_KEY (BYOK).
+The triage command requires the ANTHROPIC_API_KEY environment variable (BYOK).
 `;
 
 async function main(): Promise<void> {
@@ -78,7 +78,7 @@ async function main(): Promise<void> {
     const failOnRaw = values['fail-on'];
     if (failOnRaw !== undefined) {
       if (!(SEVERITIES as readonly string[]).includes(failOnRaw)) {
-        console.error(`--fail-on debe ser una de: ${SEVERITIES.join(', ')}.\n`);
+        console.error(`--fail-on must be one of: ${SEVERITIES.join(', ')}.\n`);
         process.exitCode = 1;
         return;
       }
@@ -102,7 +102,7 @@ async function main(): Promise<void> {
   if (command === 'mark-fp') {
     const fingerprint = values.fingerprint;
     if (fingerprint === undefined || fingerprint === '') {
-      console.error('mark-fp requiere --fingerprint <fp>.\n');
+      console.error('mark-fp requires --fingerprint <fp>.\n');
       console.log(USAGE);
       process.exitCode = 1;
       return;
@@ -120,7 +120,7 @@ async function main(): Promise<void> {
     if (values.limit !== undefined) {
       limit = Number.parseInt(values.limit, 10);
       if (!Number.isInteger(limit) || limit < 0) {
-        console.error('--limit debe ser un entero no negativo.\n');
+        console.error('--limit must be a non-negative integer.\n');
         process.exitCode = 1;
         return;
       }
@@ -133,7 +133,7 @@ async function main(): Promise<void> {
     return;
   }
 
-  console.error(`Comando desconocido: ${command}\n`);
+  console.error(`Unknown command: ${command}\n`);
   console.log(USAGE);
   process.exitCode = 1;
 }

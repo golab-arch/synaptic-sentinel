@@ -76,7 +76,7 @@ describe('renderScoutLine', () => {
     const line = renderScoutLine({ scoutId: 'opengrep', status: 'ok', findings: 3 }, false);
     expect(line).toContain('✓');
     expect(line).toContain('opengrep');
-    expect(line).toContain('3 hallazgo(s)');
+    expect(line).toContain('3 finding(s)');
   });
 
   it('marca un scout failed con ✗ y muestra el error', () => {
@@ -94,8 +94,8 @@ describe('renderScanReveal', () => {
     const outcome = makeOutcome({ status: 'ok', findingsCount: 2, suppressedCount: 1 });
     const text = renderScanReveal(outcome, [makeFinding('low'), makeFinding('critical')], false);
     expect(text).toContain('OK');
-    expect(text).toContain('2 hallazgo(s)');
-    expect(text).toContain('1 suprimido(s)');
+    expect(text).toContain('2 finding(s)');
+    expect(text).toContain('1 suppressed');
     // critical se renderiza antes que low (orden por severidad).
     expect(text.indexOf('CRITICAL')).toBeLessThan(text.indexOf('LOW'));
   });
@@ -104,8 +104,8 @@ describe('renderScanReveal', () => {
     expect(renderScanReveal(makeOutcome({ status: 'degraded' }), [], false)).toContain('DEGRADED');
   });
 
-  it('muestra "sin hallazgos" cuando no hay findings', () => {
-    expect(renderScanReveal(makeOutcome(), [], false)).toContain('sin hallazgos');
+  it('muestra "no findings" cuando no hay findings', () => {
+    expect(renderScanReveal(makeOutcome(), [], false)).toContain('no findings');
   });
 
   it('anota el ciclo de vida no-new', () => {

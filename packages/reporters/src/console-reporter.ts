@@ -53,7 +53,7 @@ export const SPINNER_FRAMES: readonly string[] = ['⠋', '⠙', '⠹', '⠸', '�
 export function renderBanner(color: boolean): string {
   const lines = [
     '┌─ SYNAPTIC SENTINEL ────────────────────────────────────',
-    '│  auditoria agentica de seguridad · vibe-coding-native',
+    '│  agentic security auditing · vibe-coding-native',
     '└─────────────────────────────────────────────────────────',
   ];
   return lines.map((line) => paint(line, ACCENT + BOLD, color)).join('\n');
@@ -72,7 +72,7 @@ export function renderScoutLine(
   const ok = scout.status === 'ok';
   const glyph = paint(ok ? '✓' : '✗', ok ? OK_COLOR : FAIL_COLOR, color);
   const detail = scout.error !== undefined ? paint(` (${scout.error})`, DIM, color) : '';
-  return `  ${glyph} ${scout.scoutId.padEnd(13)}${String(scout.findings)} hallazgo(s)${detail}`;
+  return `  ${glyph} ${scout.scoutId.padEnd(13)}${String(scout.findings)} finding(s)${detail}`;
 }
 
 /**
@@ -96,16 +96,16 @@ export function renderScanReveal(
   lines.push('');
   lines.push(`  ${status}  scan ${paint(outcome.scanId, DIM, color)}`);
   lines.push(
-    `  ${paint(String(outcome.findingsCount), BOLD, color)} hallazgo(s)` +
-      (outcome.suppressedCount > 0 ? ` · ${String(outcome.suppressedCount)} suprimido(s)` : ''),
+    `  ${paint(String(outcome.findingsCount), BOLD, color)} finding(s)` +
+      (outcome.suppressedCount > 0 ? ` · ${String(outcome.suppressedCount)} suppressed` : ''),
   );
 
   lines.push('');
   if (findings.length === 0) {
-    lines.push(paint('  sin hallazgos ✓', OK_COLOR, color));
+    lines.push(paint('  no findings ✓', OK_COLOR, color));
     return lines.join('\n');
   }
-  lines.push(paint('  HALLAZGOS', DIM, color));
+  lines.push(paint('  FINDINGS', DIM, color));
   for (const severity of SEVERITY_ORDER) {
     for (const finding of findings.filter((f) => f.severity === severity)) {
       const glyph = paint(SEVERITY_GLYPH[severity], SEVERITY_COLOR[severity], color);
