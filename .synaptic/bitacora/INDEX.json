@@ -2,7 +2,7 @@
   "version": "1.0",
   "projectId": "sentinel-1779304140796",
   "projectName": "SENTINEL",
-  "totalCycles": 33,
+  "totalCycles": 34,
   "currentTomeId": 1,
   "cyclesPerTome": 50,
   "tomes": [
@@ -16,10 +16,10 @@
         "from": "2026-05-20T19:09:00.852Z",
         "to": ""
       },
-      "summary": "Cycles 1-33: 5 scouts (OpenGrep SAST, Gitleaks Secrets, Trivy SCA, Checkov IaC, Vibe-Detect VibeCoded), Coordinator stages 1-2 con kill-switch por scout, colony.db (schema v4) con learning_records activo, CLI con salida verbose/dinamica, reporters JSON+HTML+consola, extension VSCode con el Brain Layer surfaceado, pseudoterminal verbose y webview 'tomo vivo', Brain Layer COMPLETO con 3 agentes wired (Triage + Context + Remediation, llamada LLM real verificada), y ONBOARDING.md.",
-      "keyDecisions": ["DG-001", "DG-002", "DG-003", "DG-004", "DG-005", "DG-006", "DG-007", "DG-008", "DG-009", "DG-010", "DG-011", "DG-012", "DG-013", "DG-014", "DG-015", "DG-016", "DG-017", "DG-018", "DG-019", "DG-020", "DG-021", "DG-022", "DG-023", "DG-024", "DG-025", "DG-026", "DG-027", "DG-028", "DG-029", "DG-030", "DG-031", "DG-032", "DG-033", "DG-034", "DG-035", "DG-036", "DG-037", "DG-038", "DG-039", "DG-040", "Q1"],
-      "cycleCount": 33,
-      "successCount": 33,
+      "summary": "Cycles 1-34: 5 scouts (OpenGrep SAST, Gitleaks Secrets, Trivy SCA, Checkov IaC, Vibe-Detect VibeCoded), Coordinator stages 1-2 con kill-switch por scout, colony.db (schema v4) con learning_records activo (escritura + lectura), CLI con salida verbose/dinamica, reporters JSON+HTML+consola, extension VSCode con el Brain Layer surfaceado, pseudoterminal verbose y webview 'tomo vivo', Brain Layer COMPLETO con 3 agentes wired (Triage + Context + Remediation, llamada LLM real verificada), memoria del enjambre completa, y ONBOARDING.md.",
+      "keyDecisions": ["DG-001", "DG-002", "DG-003", "DG-004", "DG-005", "DG-006", "DG-007", "DG-008", "DG-009", "DG-010", "DG-011", "DG-012", "DG-013", "DG-014", "DG-015", "DG-016", "DG-017", "DG-018", "DG-019", "DG-020", "DG-021", "DG-022", "DG-023", "DG-024", "DG-025", "DG-026", "DG-027", "DG-028", "DG-029", "DG-030", "DG-031", "DG-032", "DG-033", "DG-034", "DG-035", "DG-036", "DG-037", "DG-038", "DG-039", "DG-040", "DG-041", "Q1"],
+      "cycleCount": 34,
+      "successCount": 34,
       "failureCount": 0,
       "jsonPath": "tomes/tome-001.json",
       "mdPath": "tomes/tome-001.md",
@@ -67,13 +67,14 @@
     { "id": "DG-038", "title": "UX verbose increment 2: pseudoterminal en la extension", "selected": "B", "cycle": 31, "date": "2026-05-21" },
     { "id": "DG-039", "title": "UX verbose increment 3: webview 'tomo vivo'", "selected": "B", "cycle": 32, "date": "2026-05-21" },
     { "id": "DG-040", "title": "La colonia aprende - learning_records (increment 1)", "selected": "B", "cycle": 33, "date": "2026-05-21" },
+    { "id": "DG-041", "title": "La colonia aprende - lado lectura (increment 2)", "selected": "B", "cycle": 34, "date": "2026-05-21" },
     { "id": "Q1", "title": "Package manager", "selected": "pnpm", "cycle": 1, "date": "2026-05-20" }
   ],
   "metrics": {
-    "totalDecisions": 41,
+    "totalDecisions": 42,
     "optionDistribution": {
       "A": 22,
-      "B": 19,
+      "B": 20,
       "C": 0
     },
     "overallSuccessRate": 100,
@@ -85,8 +86,8 @@
       "4": 3,
       "5": 5,
       "6": 4,
-      "7": 17
+      "7": 18
     }
   },
-  "lastUpdated": "2026-05-21T22:30:00.000Z"
+  "lastUpdated": "2026-05-21T22:45:00.000Z"
 }

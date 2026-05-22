@@ -1176,7 +1176,33 @@ Each entry follows this structure:
 }
 ```
 
+### Entry #44 - DG-041 (B): la colonia aprende — lado lectura (increment 2)
+```json
+{
+  "timestamp": "2026-05-21T22:45:00.000Z",
+  "cycle": 34,
+  "phase": 7,
+  "action": "FEATURE_IMPLEMENTED",
+  "details": {
+    "DG-041": {
+      "title": "Proximo paso del roadmap (la colonia aprende - lado lectura)",
+      "selected": "Option B",
+      "effect": "Increment 2 (lado lectura) de la memoria del enjambre: el triage consulta learning_records y pre-clasifica los patrones conocidos sin gastar una llamada LLM (economia de tokens, v0.4 §187). Cierra 'la colonia aprende'."
+    },
+    "files": "core/types/learning.ts (LEARNING_CONFIDENCE_THRESHOLD = 3; LearnedVerdict; deriveFromLearning - devuelve un veredicto derivado solo con evidencia fuerte y consistente; confianza creciente con la evidencia, tope 0.95). cli/commands/triage.ts (antes del LLM consulta deriveFromLearning; si la colonia conoce el patron deriva el veredicto -agentId 'colony-learning', rationale explicito- y salta la llamada LLM; el resumen reporta 'pre-clasificados por la memoria: N').",
+    "design": "Pre-clasifica solo con evidencia FUERTE (>= umbral) y CONSISTENTE (una unica direccion; evidencia en ambas = patron ambiguo -> decide el LLM). Un veredicto derivado se persiste con agentId 'colony-learning' (trazabilidad) y NUNCA se realimenta a learning_records — evita un bucle en el que la colonia aprenda de su propia memoria. Para un FP-pattern conocido el ahorro es total (FP no dispara Context/Remediation); para un real-pattern se ahorra la llamada de triage y siguen Context+Remediation (artefactos por hallazgo). El --limit sigue contando ambos tipos (refinamiento menor, diferido).",
+    "verification_real": "build / typecheck / lint / test verdes. 5 tests nuevos de deriveFromLearning (fp/real fuerte, bajo umbral, contradiccion, sin registros). E2E SIN costo de API: sembrando learning_records (6 patrones fp, evidence 5), un triage de 7 hallazgos los pre-clasifico TODOS desde la memoria — 0 llamadas LLM (con ANTHROPIC_API_KEY dummy) — y 'patrones aprendidos: 0' confirma que no hay realimentacion.",
+    "tests": "5 nuevos - total 294 verdes + 3 gated",
+    "checks": "build / typecheck / lint / test - todos en verde",
+    "commit": "codigo + tests en el commit 6f28445 feat(core,cli); el registro SYNAPTIC de cierre del Cycle 34 se asienta en el commit docs siguiente"
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 39,
+  "complianceScore": 100
+}
+```
+
 ---
 
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-21T22:30:00.000Z*
+*Last Updated: 2026-05-21T22:45:00.000Z*
