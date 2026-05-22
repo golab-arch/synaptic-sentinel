@@ -8,11 +8,13 @@ import { parseTomo, type ExtensionTomo } from './tomo.js';
  * Resuelve la ruta por defecto del entry de la CLI.
  *
  * `extensionRoot` es la raiz del paquete de la extension
- * (`vscode.ExtensionContext.extensionPath`); la CLI vive en el paquete
- * hermano `cli`.
+ * (`vscode.ExtensionContext.extensionPath`). La CLI se bundlea dentro de la
+ * extension (FI-008): `dist/cli.mjs` (formato ESM, junto al bundle de la
+ * extension). El bundle es ESM porque la CLI resuelve assets via
+ * `new URL(..., import.meta.url)` — `import.meta` solo existe en ESM.
  */
 export function defaultCliEntry(extensionRoot: string): string {
-  return join(extensionRoot, '..', 'cli', 'dist', 'index.js');
+  return join(extensionRoot, 'dist', 'cli.mjs');
 }
 
 /** Resultado de la ejecucion de un proceso de la CLI. */

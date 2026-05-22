@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { DatabaseSync } from 'node:sqlite';
 import {
@@ -20,11 +20,23 @@ import {
 } from '../types/index.js';
 
 /**
- * Ruta al schema SQL. La expresion resuelve igual desde el codigo fuente
- * (src/) y desde el build (dist/): en ambos casos `../../src/colony/...`
- * apunta a la raiz del paquete + src/colony/schema.sql.
+ * Ruta al schema SQL.
+ *
+ * En ejecucion normal `../../src/colony/...` resuelve igual desde el codigo
+ * fuente (src/) y desde el build (dist/): apunta a la raiz del paquete +
+ * src/colony/schema.sql.
+ *
+ * Cuando la CLI se bundlea dentro de la extension VSCode (FI-008) ese path
+ * deja de existir: el script de copia post-bundle deja el `.sql` junto al
+ * `cli.mjs`, asi que caemos al fallback `./schema.sql`.
  */
-const SCHEMA_PATH = fileURLToPath(new URL('../../src/colony/schema.sql', import.meta.url));
+function resolveSchemaPath(): string {
+  const canonical = fileURLToPath(new URL('../../src/colony/schema.sql', import.meta.url));
+  if (existsSync(canonical)) return canonical;
+  return fileURLToPath(new URL('./schema.sql', import.meta.url));
+}
+
+const SCHEMA_PATH = resolveSchemaPath();
 
 /** Convierte una fila de la tabla `scans` en un objeto `Scan` validado. */
 function rowToScan(row: unknown): Scan {

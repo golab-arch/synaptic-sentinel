@@ -6,9 +6,9 @@ import { defaultCliEntry, runCliMarkFp, runCliScan, runCliTriage } from '../src/
 const repoRoot = fileURLToPath(new URL('../../../', import.meta.url));
 
 describe('defaultCliEntry', () => {
-  it('resuelve la CLI como paquete hermano de la extension', () => {
+  it('resuelve la CLI bundleada (ESM) en dist/ de la extension', () => {
     const entry = defaultCliEntry(join('repo', 'packages', 'vscode-extension'));
-    expect(entry).toBe(join('repo', 'packages', 'cli', 'dist', 'index.js'));
+    expect(entry).toBe(join('repo', 'packages', 'vscode-extension', 'dist', 'cli.mjs'));
   });
 });
 

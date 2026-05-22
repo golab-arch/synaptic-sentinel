@@ -2,6 +2,7 @@
 # the tests, the dev config or node_modules (everything is in the bundle).
 src/**
 tests/**
+scripts/**
 node_modules/**
 tsconfig.json
 **/*.map

@@ -7,8 +7,9 @@ import { findingToDiagnosticInput } from '../src/diagnostics.js';
 
 const repoRoot = fileURLToPath(new URL('../../../', import.meta.url));
 
-// Integracion: requiere la CLI construida (`pnpm build`) y OpenGrep instalado.
-const cliEntry = join(repoRoot, 'packages', 'cli', 'dist', 'index.js');
+// Integracion: requiere la extension construida (`pnpm bundle` bundlea la CLI
+// a dist/cli.mjs) y OpenGrep instalado.
+const cliEntry = join(repoRoot, 'packages', 'vscode-extension', 'dist', 'cli.mjs');
 const opengrepInstalled = existsSync(join(repoRoot, '.scanners', 'opengrep'));
 const integrationSuite = existsSync(cliEntry) && opengrepInstalled ? describe : describe.skip;
 
