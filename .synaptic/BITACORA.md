@@ -1283,7 +1283,35 @@ Each entry follows this structure:
 }
 ```
 
+### Entry #48 - DG-045 (B): politica de exit code --fail-on para CI
+```json
+{
+  "timestamp": "2026-05-22T13:45:00.000Z",
+  "cycle": 38,
+  "phase": 7,
+  "action": "FEATURE_IMPLEMENTED",
+  "details": {
+    "DG-045": {
+      "title": "Proximo paso del roadmap (politica de exit code para CI)",
+      "selected": "Option B",
+      "effect": "Flag scan --fail-on <severidad>: el comando scan termina con exit code 2 si hay hallazgos de severidad >= umbral. Completa la historia CI-native que abrio el reporter SARIF (DG-044): SARIF reporta y el exit code bloquea el pipeline."
+    },
+    "files": "cli/src/commands/scan.ts (FAIL_ON_EXIT_CODE=2; ScanCommandOptions.failOn; countBlockingFindings - helper puro y exportado; logica de exit code en runScanCommand). cli/src/index.ts (flag --fail-on + validacion de la severidad). cli/tests/scan.test.ts (5 tests de countBlockingFindings).",
+    "design": "Exit code 2 para 'hallazgos bloqueantes', distinto del exit 1 'error de ejecucion': un consumidor de CI los distingue. --fail-on es OPT-IN: sin el flag, scan sigue en exit code 0. Reusa severityAtLeast del core. countBlockingFindings se extrajo como funcion pura para verificarla sin correr un scan.",
+    "riesgo_verificado": "El riesgo senalado en el DG (la extension VSCode trata exit != 0 como fallo via assertCliOk) se verifico de fondo: cli-runner NUNCA pasa --fail-on, asi que el scan de la extension sigue en exit 0. El e2e 'sin --fail-on -> exit 0' lo confirma.",
+    "verification_real": "5 tests unitarios de countBlockingFindings + E2E real con la CLI construida contra el probe vulnerable: --fail-on high -> exit 2, --fail-on critical -> exit 0, sin flag -> exit 0, --fail-on foo (invalido) -> exit 1. Los 4 exit codes exactos. pnpm verify completo en verde.",
+    "instruccion_usuario": "El usuario pidio que en lo sucesivo cada DG incluya mi recomendacion explicita y razonada sobre las opciones (seccion 6 del MANTRA). Registrado en memoria persistente y como contextNote de INTELLIGENCE.json.",
+    "tests": "5 nuevos — total 309 verdes + 3 gated",
+    "checks": "format:check / lint / build / test — todos en verde via 'verify'",
+    "commit": "codigo + tests en el commit 0e41fcf feat(cli); el registro SYNAPTIC de cierre del Cycle 38 se asienta en el commit docs siguiente"
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 43,
+  "complianceScore": 100
+}
+```
+
 ---
 
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-22T13:00:00.000Z*
+*Last Updated: 2026-05-22T13:45:00.000Z*
