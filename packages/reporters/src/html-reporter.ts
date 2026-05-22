@@ -76,9 +76,9 @@ function severityClass(severity: string): string {
 
 /** Etiqueta legible de una clasificacion de triage. */
 function triageLabel(classification: string): string {
-  if (classification === 'true_positive') return 'verdadero positivo';
-  if (classification === 'false_positive') return 'falso positivo';
-  return 'inconcluso';
+  if (classification === 'true_positive') return 'true positive';
+  if (classification === 'false_positive') return 'false positive';
+  return 'inconclusive';
 }
 
 /** Clase CSS de la badge de triage. */
@@ -91,7 +91,7 @@ function triageClass(classification: string): string {
 /** Renderiza los conteos de un `Record<string, number>` como chips. */
 function renderChips(counts: Readonly<Record<string, number>>): string {
   const entries = Object.entries(counts);
-  if (entries.length === 0) return '<p class="meta">Sin datos.</p>';
+  if (entries.length === 0) return '<p class="meta">No data.</p>';
   return `<div class="chips">${entries
     .map(([key, n]) => `<span class="chip">${escapeHtml(key)}: ${String(n)}</span>`)
     .join('')}</div>`;
@@ -104,7 +104,7 @@ function renderTriage(finding: TomoFinding): string {
   return (
     `<p class="triage"><span class="badge ${triageClass(triage.classification)}">` +
     `Triage: ${escapeHtml(triageLabel(triage.classification))}</span> ` +
-    `(confianza ${triage.confidence.toFixed(2)}) — ${escapeHtml(triage.rationale)}</p>`
+    `(confidence ${triage.confidence.toFixed(2)}) — ${escapeHtml(triage.rationale)}</p>`
   );
 }
 
@@ -113,11 +113,11 @@ function renderContext(finding: TomoFinding): string {
   const context = finding.context;
   if (context === undefined) return '';
   return `<div class="context">
-      <strong>Contexto:</strong> ${escapeHtml(context.summary)}
+      <strong>Context:</strong> ${escapeHtml(context.summary)}
       <ul>
-        <li><strong>Entrada:</strong> ${escapeHtml(context.entryPoint)}</li>
+        <li><strong>Entry point:</strong> ${escapeHtml(context.entryPoint)}</li>
         <li><strong>Sink:</strong> ${escapeHtml(context.sink)}</li>
-        <li><strong>Exposicion:</strong> ${escapeHtml(context.exposure)}</li>
+        <li><strong>Exposure:</strong> ${escapeHtml(context.exposure)}</li>
       </ul>
     </div>`;
 }
@@ -131,7 +131,7 @@ function renderRemediation(finding: TomoFinding): string {
       ? `<pre>${escapeHtml(remediation.fixedSnippet)}</pre>`
       : '';
   return `<div class="remediation">
-      <strong>Remediacion:</strong> ${escapeHtml(remediation.summary)}
+      <strong>Remediation:</strong> ${escapeHtml(remediation.summary)}
       <p>${escapeHtml(remediation.recommendation)}</p>
       ${snippet}
     </div>`;
@@ -175,7 +175,7 @@ function renderMethodology(tomo: Tomo): string {
     )
     .join('');
   return `<table>
-      <thead><tr><th>Scout</th><th>Estado</th><th>Hallazgos</th><th>Error</th></tr></thead>
+      <thead><tr><th>Scout</th><th>Status</th><th>Findings</th><th>Error</th></tr></thead>
       <tbody>${rows}</tbody>
     </table>`;
 }
@@ -194,9 +194,7 @@ export function renderTomoHtml(tomo: Tomo): string {
     (a, b) => SEVERITY_RANK[b.severity] - SEVERITY_RANK[a.severity],
   );
   const findingsHtml =
-    sorted.length > 0
-      ? sorted.map(renderFinding).join('\n')
-      : '<p class="meta">Sin hallazgos. ✓</p>';
+    sorted.length > 0 ? sorted.map(renderFinding).join('\n') : '<p class="meta">No findings. ✓</p>';
   // Conteos de triage con etiquetas legibles; se omite la seccion sin triage.
   const triageLabeled: Record<string, number> = {};
   for (const [key, count] of Object.entries(summary.byTriage)) {
@@ -204,51 +202,51 @@ export function renderTomoHtml(tomo: Tomo): string {
   }
   const triageSection =
     Object.keys(triageLabeled).length > 0
-      ? `<p class="meta">Por triage</p>\n${renderChips(triageLabeled)}`
+      ? `<p class="meta">By triage</p>\n${renderChips(triageLabeled)}`
       : '';
   const gitSha =
     metadata.gitSha !== undefined ? ` · commit <code>${escapeHtml(metadata.gitSha)}</code>` : '';
 
   return `<!doctype html>
-<html lang="es">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Synaptic Sentinel — Tomo de auditoria</title>
+<title>Synaptic Sentinel — Audit tome</title>
 <style>${STYLE}</style>
 </head>
 <body>
 <main>
 <header>
-<h1>Synaptic Sentinel — Tomo de auditoria</h1>
-<p class="meta">Proyecto <code>${escapeHtml(metadata.scope.rootPath)}</code> ·
-publicado ${escapeHtml(metadata.publishedAt)} ·
+<h1>Synaptic Sentinel — Audit tome</h1>
+<p class="meta">Project <code>${escapeHtml(metadata.scope.rootPath)}</code> ·
+published ${escapeHtml(metadata.publishedAt)} ·
 Sentinel ${escapeHtml(metadata.sentinelVersion)}${gitSha}</p>
 <p class="meta">scan <code>${escapeHtml(summary.scanId)}</code> ·
-estado <span class="badge ${summary.status === 'ok' ? 'ok' : 'degraded'}">${escapeHtml(summary.status)}</span></p>
+status <span class="badge ${summary.status === 'ok' ? 'ok' : 'degraded'}">${escapeHtml(summary.status)}</span></p>
 </header>
 
-<h2>Resumen</h2>
-<p><strong>${String(summary.totalFindings)}</strong> hallazgo(s) ·
-<strong>${String(summary.suppressedCount)}</strong> suprimido(s) (duplicados o falsos positivos conocidos)</p>
-<p class="meta">Por severidad</p>
+<h2>Summary</h2>
+<p><strong>${String(summary.totalFindings)}</strong> finding(s) ·
+<strong>${String(summary.suppressedCount)}</strong> suppressed (duplicates or known false positives)</p>
+<p class="meta">By severity</p>
 ${renderChips(summary.bySeverity)}
-<p class="meta">Por categoria</p>
+<p class="meta">By category</p>
 ${renderChips(summary.byCategory)}
 ${triageSection}
 
-<h2>Metodologia</h2>
-<p class="meta">Scan iniciado ${escapeHtml(tomo.methodology.startedAt)},
-finalizado ${escapeHtml(tomo.methodology.finishedAt)}.</p>
+<h2>Methodology</h2>
+<p class="meta">Scan started ${escapeHtml(tomo.methodology.startedAt)},
+finished ${escapeHtml(tomo.methodology.finishedAt)}.</p>
 ${renderMethodology(tomo)}
 
-<h2>Hallazgos (${String(sorted.length)})</h2>
+<h2>Findings (${String(sorted.length)})</h2>
 ${findingsHtml}
 
 <footer>
-Integridad ${escapeHtml(tomo.integrity.algorithm)}:
+Integrity ${escapeHtml(tomo.integrity.algorithm)}:
 <code>${escapeHtml(tomo.integrity.hash)}</code><br>
-Generado por Synaptic Sentinel · tomo <code>${escapeHtml(metadata.tomoId)}</code>
+Generated by Synaptic Sentinel · tome <code>${escapeHtml(metadata.tomoId)}</code>
 </footer>
 </main>
 </body>

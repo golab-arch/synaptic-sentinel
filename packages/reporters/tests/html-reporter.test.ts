@@ -57,7 +57,7 @@ describe('renderTomoHtml', () => {
     expect(html).toContain('rule-x');
     expect(html).toContain('src/x.ts:3');
     expect(html).toContain(tomo.integrity.hash);
-    expect(html).toContain('2</strong> suprimido'); // suppressedCount (FI-006)
+    expect(html).toContain('2</strong> suppressed'); // suppressedCount (FI-006)
     expect(html).not.toContain('<link'); // autocontenido, sin recursos externos
   });
 
@@ -75,7 +75,7 @@ describe('renderTomoHtml', () => {
 
   it('muestra un mensaje cuando no hay hallazgos', () => {
     const tomo = buildTomo(makeOutcome({ findingsCount: 0 }), [], meta);
-    expect(renderTomoHtml(tomo)).toContain('Sin hallazgos');
+    expect(renderTomoHtml(tomo)).toContain('No findings');
   });
 
   it('renderiza el veredicto de triage cuando el hallazgo fue triado', () => {
@@ -93,9 +93,9 @@ describe('renderTomoHtml', () => {
     const html = renderTomoHtml(
       buildTomo(makeOutcome(), [finding], meta, { triageVerdicts: [verdict] }),
     );
-    expect(html).toContain('Triage: falso positivo');
+    expect(html).toContain('Triage: false positive');
     expect(html).toContain('no es explotable en este contexto');
-    expect(html).toContain('Por triage');
+    expect(html).toContain('By triage');
   });
 
   it('renderiza la explicacion de contexto cuando el hallazgo fue explicado', () => {
@@ -114,7 +114,7 @@ describe('renderTomoHtml', () => {
     const html = renderTomoHtml(
       buildTomo(makeOutcome(), [finding], meta, { contextExplanations: [explanation] }),
     );
-    expect(html).toContain('Contexto:');
+    expect(html).toContain('Context:');
     expect(html).toContain('el parametro req.query.expr');
     expect(html).toContain('ejecucion de codigo arbitrario');
   });
@@ -134,7 +134,7 @@ describe('renderTomoHtml', () => {
     const html = renderTomoHtml(
       buildTomo(makeOutcome(), [finding], meta, { remediationSuggestions: [suggestion] }),
     );
-    expect(html).toContain('Remediacion:');
+    expect(html).toContain('Remediation:');
     expect(html).toContain('usar JSON.parse en vez de eval');
     expect(html).toContain('JSON.parse(req.query.expr)');
   });
