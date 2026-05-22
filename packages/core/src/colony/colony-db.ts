@@ -1,7 +1,10 @@
 import { randomUUID } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { DatabaseSync } from 'node:sqlite';
+import Database from 'better-sqlite3';
+
+/** Instance type of better-sqlite3 (namespace-qualified to disambiguate the class). */
+type DatabaseInstance = Database.Database;
 import {
   ContextExplanationRecordSchema,
   LearningRecordSchema,
@@ -128,18 +131,20 @@ function rowToRemediationSuggestion(row: unknown): RemediationSuggestionRecord {
 /**
  * Memoria compartida del enjambre — wrapper de la colony DB (SQLite local).
  *
- * Usa `node:sqlite`, el modulo SQLite integrado de Node (sin dependencias
- * nativas; DG-013 A). Toda la persistencia pasa por esta clase para poder
- * cambiar de driver sin tocar el resto del sistema (ver DESIGN_DOC, Mejoras
- * Futuras FI-001).
+ * Usa `better-sqlite3` (DG-060 B, FI-001 cerrado). La eleccion inicial fue
+ * `node:sqlite` (DG-013 A) que requiere Node >= 22.5; el .vsix instalable
+ * (DG-058) ya no impone ese piso al runtime del extension host, porque
+ * `better-sqlite3` viaja como modulo nativo prebuilt con la extension.
+ * Toda la persistencia pasa por esta clase para poder cambiar de driver sin
+ * tocar el resto del sistema.
  *
  * Las escrituras validan su entrada con los schemas `zod` antes de tocar la
  * base de datos: defensa en profundidad contra Memory Poisoning (v0.4 §9.6).
  */
 export class ColonyDb {
-  readonly #db: DatabaseSync;
+  readonly #db: DatabaseInstance;
 
-  private constructor(db: DatabaseSync) {
+  private constructor(db: DatabaseInstance) {
     this.#db = db;
   }
 
@@ -148,7 +153,7 @@ export class ColonyDb {
    * idempotente. Usar `:memory:` para una base efimera en tests.
    */
   static open(path: string): ColonyDb {
-    const db = new DatabaseSync(path);
+    const db = new Database(path);
     db.exec(readFileSync(SCHEMA_PATH, 'utf8'));
     // Migraciones aditivas (v2: triage_verdicts, v3: context_explanations,
     // v4: remediation_suggestions): las tablas se crean via CREATE TABLE IF
