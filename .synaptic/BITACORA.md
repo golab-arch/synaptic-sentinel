@@ -1337,7 +1337,34 @@ Each entry follows this structure:
 }
 ```
 
+### Entry #50 - DG-047 (A): normaliza el ruleId de OpenGrep a su id canonico
+```json
+{
+  "timestamp": "2026-05-22T15:15:00.000Z",
+  "cycle": 40,
+  "phase": 7,
+  "action": "FEATURE_IMPLEMENTED",
+  "details": {
+    "DG-047": {
+      "title": "Proximo paso del roadmap (normalizar el ruleId de OpenGrep)",
+      "selected": "Option A",
+      "effect": "Cierra FI-005: el Finding.ruleId de OpenGrep pasa a ser el id canonico de la regla (ultimo segmento del check_id), sin el prefijo de ruta que OpenGrep agrega cuando --config es un archivo."
+    },
+    "files": "scouts/src/opengrep/normalizer.ts (deriveTitle renombrada a canonicalRuleId; ruleId y title del Finding usan el id canonico). scouts/tests/opengrep/normalizer.test.ts y integration.test.ts (aserciones del id canonico).",
+    "design": "El id canonico es el ultimo segmento del check_id (las reglas del baseline usan ids planos en kebab-case). Beneficio: ruleId estable independiente de la ubicacion del archivo de reglas; patternSignature de la memoria del enjambre y rule.id del SARIF quedan limpios.",
+    "verification_real": "Test unitario del normalizer (canonicalRuleId + idempotencia) + e2e contra OpenGrep real: el test de integracion asierta ruleId === 'sentinel-js-eval-usage' (sin prefijo). pnpm verify verde (test:unit 301); test:integration verde (9 + 3 gated).",
+    "tests": "1 nuevo (idempotencia) — total 310 verdes + 3 gated (301 unit / 9+3 integration)",
+    "checks": "format:check / lint / build / test:unit + test:integration — todos en verde",
+    "requisito_nuevo": "El usuario pidio que TODA la salida del producto al usuario final sea en ingles (usuario objetivo angloparlante; el ecosistema de desarrollo es en ingles). Delego en el asistente definir la estrategia. Registrado como FI-011 con 5 etapas (1 CLI, 2 mensajes de reglas de scouts, 3 reporters del tomo, 4 extension VSCode, 5 prompts del Brain Layer); se abordara en DGs futuros. Principio inmediato: todo string de salida NUEVO se escribe en ingles. Fuera de alcance: bookkeeping de .synaptic/, comentarios de codigo y mensajes de commit.",
+    "commit": "codigo + tests en el commit 44118ca fix(scouts); el registro SYNAPTIC de cierre del Cycle 40 se asienta en el commit docs siguiente"
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 45,
+  "complianceScore": 100
+}
+```
+
 ---
 
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-22T14:30:00.000Z*
+*Last Updated: 2026-05-22T15:15:00.000Z*
