@@ -28,16 +28,24 @@ interface SpawnCliOptions {
   readonly args: readonly string[];
   /** Variables de entorno extra (se fusionan con `process.env`). */
   readonly env?: Readonly<Record<string, string>>;
+  /** Ejecutable de Node a usar. Por defecto el del extension host (`process.execPath`). */
   readonly nodePath?: string;
   readonly signal?: AbortSignal;
   /** Callback de streaming: recibe cada chunk de stdout/stderr del child. */
   readonly onOutput?: (chunk: string) => void;
 }
 
-/** Lanza la CLI como child process y espera a que termine. */
+/**
+ * Lanza la CLI como child process y espera a que termine.
+ *
+ * Por defecto usa `process.execPath` — el Node con el que VSCode corre el
+ * extension host — en vez de `node` del `PATH`: una extension empaquetada
+ * (`.vsix`) no puede asumir que el usuario tenga `node` instalado en el
+ * `PATH` (FI-008).
+ */
 function spawnCli(options: SpawnCliOptions): Promise<CliProcessResult> {
   return new Promise<CliProcessResult>((resolvePromise, reject) => {
-    const child = spawn(options.nodePath ?? 'node', [options.cliEntry, ...options.args], {
+    const child = spawn(options.nodePath ?? process.execPath, [options.cliEntry, ...options.args], {
       cwd: options.cwd,
       ...(options.env !== undefined ? { env: { ...process.env, ...options.env } } : {}),
       ...(options.signal !== undefined ? { signal: options.signal } : {}),
@@ -74,7 +82,7 @@ export interface RunCliScanOptions {
   readonly cliEntry: string;
   /** Carpeta del proyecto a escanear. */
   readonly workspacePath: string;
-  /** Ejecutable de Node a usar. Por defecto `node` (del PATH). */
+  /** Ejecutable de Node a usar. Por defecto el del extension host (`process.execPath`). */
   readonly nodePath?: string;
   /** Senal de cancelacion (kill-switch, v0.4 §9.6). */
   readonly signal?: AbortSignal;
@@ -125,7 +133,7 @@ export interface RunCliMarkFpOptions {
   readonly fingerprint: string;
   /** Motivo del descarte, opcional. */
   readonly reason?: string;
-  /** Ejecutable de Node a usar. Por defecto `node` (del PATH). */
+  /** Ejecutable de Node a usar. Por defecto el del extension host (`process.execPath`). */
   readonly nodePath?: string;
   /** Senal de cancelacion. */
   readonly signal?: AbortSignal;
@@ -161,7 +169,7 @@ export interface RunCliTriageOptions {
   readonly workspacePath: string;
   /** API key de Anthropic (BYOK). Se pasa por entorno, nunca por argumentos. */
   readonly apiKey: string;
-  /** Ejecutable de Node a usar. Por defecto `node` (del PATH). */
+  /** Ejecutable de Node a usar. Por defecto el del extension host (`process.execPath`). */
   readonly nodePath?: string;
   /** Senal de cancelacion. */
   readonly signal?: AbortSignal;
