@@ -1711,5 +1711,35 @@ Each entry follows this structure:
 
 ---
 
+### Entry #64 - DG-060 (B): migra ColonyDb a better-sqlite3 (CIERRA FI-001); cierra Cycle 53
+```json
+{
+  "timestamp": "2026-05-23T01:00:00.000Z",
+  "cycle": 53,
+  "phase": 8,
+  "action": "FEATURE_IMPLEMENTED",
+  "details": {
+    "DG-060": {
+      "title": "Proximo paso del roadmap (migracion de ColonyDb a better-sqlite3 - cierra FI-001)",
+      "selected": "Option B",
+      "effect": "El driver SQLite pasa de node:sqlite (experimental, requiere Node >= 22.5) a better-sqlite3 (modulo nativo NAPI con prebuilts). Elimina el piso de Node 22.5 que arrastraba el .vsix; borra el band-aid runtime-check.ts; remueve la ExperimentalWarning. FI-001 RESUELTO."
+    },
+    "files": "packages/core/package.json (+better-sqlite3@^12.0.0 dep; +@types/better-sqlite3 devDep). core/src/colony/colony-db.ts (DatabaseSync -> Database default + Database.Database como tipo de instancia; comentario de cabecera actualizado al nuevo driver). packages/vscode-extension/package.json (+better-sqlite3 dep, bundle script con --external:better-sqlite3). vscode-extension/scripts/copy-cli-assets.mjs (copia ahora better-sqlite3 + bindings + file-uri-to-path a dist/node_modules/ navegando createRequire de cada parent para sortear la aislacion estricta de pnpm). vscode-extension/src/index.ts (-import de checkExtensionHostRuntime, -bloque de aviso en activate). package.json raiz (+'better-sqlite3' en pnpm.onlyBuiltDependencies). ELIMINADOS: vscode-extension/src/runtime-check.ts y tests/runtime-check.test.ts (band-aid del Node>=22.5, ya no aplica).",
+    "design": "La persistencia ya estaba aislada detras de ColonyDb desde DG-013, asi que el cambio de driver es estrictamente local al wrapper - todas las firmas (.exec/.prepare/.run/.get/.all/.close) son identicas entre node:sqlite y better-sqlite3. Primer intento con better-sqlite3@^11 fallo: prebuilds solo hasta Node 22, y mi env tiene Node 24 sin Visual Studio para compilar -> bloqueo real, no optimismo ilusorio. Bump a ^12 que SI trae prebuilds NAPI para Node 24 (resolvio el blocker). esbuild no puede bundlear .node binaries -> --external:better-sqlite3 + copy step a dist/node_modules. La aislacion estricta de pnpm requirio resolver bindings desde el require() de better-sqlite3 y file-uri-to-path desde el de bindings (chain de createRequire).",
+    "verification_real": "pnpm verify verde (test:unit 304; -7 por la eliminacion de runtime-check). test:integration verde (9 passed; ColonyDb sigue funcionando en los tests que la usan). E2E REAL en serio: 'node packages/vscode-extension/dist/cli.mjs scan' corre fin a fin con better-sqlite3 cargado desde dist/node_modules (ColonyDb abre colony.db, OpenGrep 1 finding); ADEMAS extraje el .vsix a una ruta externa (d:/tmp) y la CLI extraida corre tambien fin a fin (prueba que la layout del .vsix es autocontenida). El .vsix crecio de 87 KB a 3.65 MB por el binario nativo + deps.",
+    "tests": "0 nuevos; -7 (eliminacion de runtime-check.test.ts) - total 313 verdes + 3 gated",
+    "checks": "format:check / lint / build / test:unit / test:integration / vsce package - todos en verde; e2e doble (dist/ y .vsix extraido) exitoso",
+    "commit": "feature en el commit d452564 feat(core,vscode-extension); el registro SYNAPTIC se asienta en el commit docs siguiente",
+    "honest_caveat": "El binario de better-sqlite3 v12 es NAPI (ABI-estable cross-version y cross-Electron segun la documentacion oficial). El .vsix se VALIDO end-to-end bajo Node 24 regular; la carga real en el extension host de VSCode (Electron en modo Node) no se verifico - requiere cargar el .vsix manualmente en VSCode, lo que escapa de este entorno. La eleccion de NAPI hace la compatibilidad esperable, no garantizada.",
+    "fi_001_close": "FI-001 RESUELTO. Open desde DG-013 (eleccion inicial de node:sqlite con desviacion informada del v0.4 §9.4). La mitigacion via runtime-check.ts de DG-058 queda obsoleta y se elimina."
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 58,
+  "complianceScore": 100
+}
+```
+
+---
+
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-23T00:30:00.000Z*
+*Last Updated: 2026-05-23T01:00:00.000Z*

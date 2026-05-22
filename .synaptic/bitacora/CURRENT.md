@@ -6,11 +6,11 @@
 
 ## Current Cycle
 
-- **Cycle:** 53 — pendiente DG-060 (próximo paso del roadmap)
-- **Phase:** 8 — Distribución **COMPLETA** (FI-008 cerrado)
-- **Status:** Cycle 52 CERRADO; awaiting DG-060
+- **Cycle:** 54 — pendiente DG-061 (próximo paso del roadmap)
+- **Phase:** 8 — Distribución **COMPLETA** (FI-008 + FI-001 cerrados)
+- **Status:** Cycle 53 CERRADO; awaiting DG-061
 - **Compliance:** 100%
-- **Synaptic Strength:** 57
+- **Synaptic Strength:** 58
 
 ## Cycles cerrados
 
@@ -24,6 +24,7 @@
 - **Cycle 46-47** — Phase 8 abierta: resolución (DG-053) + instalación `--global` (DG-054) de la cache de scanners (FI-004 cerrado) ✅
 - **Cycle 48-50** — FI-008: Node del extension host (DG-055) · manifest para `vsce` (DG-056) · CLI bundleada en la extensión (DG-057) ✅
 - **Cycle 51-52** — FI-008 cerrado: `.vsix` producido y validado (DG-058) · sub-comando turnkey "Install Scanners" (DG-059) → **Phase 8 COMPLETA** ✅
+- **Cycle 53** — FI-001 cerrado: migración de `ColonyDb` a `better-sqlite3` NAPI (DG-060 B), sin piso Node ≥ 22.5 ✅
 
 ## Tomo 001 — CERRADO
 
@@ -32,28 +33,28 @@
 
 ## Estado del repo
 
-- 82 commits · `origin` → `github.com/golab-arch/synaptic-sentinel` (**privado**, en sync) · push por ciclo activo
+- 84 commits · `origin` → `github.com/golab-arch/synaptic-sentinel` (**privado**, en sync) · push por ciclo activo
 - **Producto íntegramente en inglés** (FI-011 cerrado) · **cache de scanners global operativa** (FI-004 cerrado)
-- **5 scouts**: OpenGrep (**11 reglas SAST**) + Gitleaks + Trivy + Checkov + Vibe-Detect + `colony.db` (v4) + `Coordinator` + `reporters`
-- CLI: `scan` (export **JSON / HTML / SARIF**, **`--fail-on`**) · `triage` · `mark-fp` · **`scanners install [--global]`** (DG-059)
-- Extensión VSCode: comandos/hover/Code Actions/status bar/pseudoterminal/webview; **empaqueta su propia CLI bundleada** + **comando "Install Scanners" turnkey**; `.vsix` instalable (`synaptic-sentinel-0.0.0.vsix`, id `golab.synaptic-sentinel`)
+- **5 scouts**: OpenGrep (**11 reglas SAST**) + Gitleaks + Trivy + Checkov + Vibe-Detect + `colony.db` (v4, **better-sqlite3 NAPI**) + `Coordinator` + `reporters`
+- CLI: `scan` (export **JSON / HTML / SARIF**, **`--fail-on`**) · `triage` · `mark-fp` · `scanners install [--global]`
+- Extensión VSCode: comandos/hover/Code Actions/status bar/pseudoterminal/webview; **empaqueta su propia CLI bundleada** + **comando "Install Scanners" turnkey**; `.vsix` instalable (`synaptic-sentinel-0.0.0.vsix`, **3.65 MB**, id `golab.synaptic-sentinel`)
 - **Brain Layer (Pro) COMPLETO** · **UX verbose COMPLETA** · **memoria del enjambre COMPLETA** · **CI-native COMPLETA** · **Distribución COMPLETA**
-- `verify` (format:check / lint / build / **test:unit**) verde · 320 tests + 3 gated (311 unit / 9+3 integration)
+- `verify` (format:check / lint / build / **test:unit**) verde · 313 tests + 3 gated (304 unit / 9+3 integration)
 
 ## Notas / deuda
 
-- **Phase 8 (Distribución) COMPLETA** — FI-008 cerrado en 5 sub-increments (DG-055/DG-056/DG-057/DG-058/DG-059). Experiencia turnkey: instalar el `.vsix` → "Install Scanners" una vez → "Scan Workspace".
-- **FI-001 mitigada (no cerrada)** — `runtime-check.ts` avisa en `activate()` si el Node del extension host es < 22.5 (lo necesita `node:sqlite` de la CLI bundleada). La migración del driver a `better-sqlite3` sigue como deuda abierta.
-- **FI-003** — resta el **taint analysis** (único frente abierto de detection value).
-- FI abiertos: FI-001 (driver SQLite, mitigada), FI-003 (taint), FI-009 (cliente LLM).
+- **Phase 8 (Distribución) COMPLETA** — FI-008 + FI-001 cerrados. El `.vsix` es una experiencia turnkey end-to-end (`better-sqlite3` viaja en `dist/node_modules/`, sin piso de Node, sin la `ExperimentalWarning`).
+- **CAVEAT FI-001** (cerrado en código, abierto en verificación) — el binario NAPI de `better-sqlite3 v12` es ABI-estable cross-Electron según la documentación oficial, pero la carga real en el extension host de VSCode requiere cargar el `.vsix` manualmente — fuera de este entorno.
+- **FI-003** — taint analysis (único frente de detection value remaining).
+- FI abiertos: FI-003 (taint), FI-009 (cliente LLM).
 - **Instrucciones permanentes**: cada DG incluye mi recomendación explícita (DG-045); commit + push por ciclo (DG-055).
 
 ## Decision Gate abierto
 
-- DG-060 — próximo paso del roadmap (a presentar)
+- DG-061 — próximo paso del roadmap (a presentar)
 
 ## Last Entry
 
-Entry #63 — FEATURE_IMPLEMENTED (DG-059 A) — 2026-05-22 — SUCCESS · CIERRA FI-008
+Entry #64 — FEATURE_IMPLEMENTED (DG-060 B) — 2026-05-22 — SUCCESS · CIERRA FI-001
 
 ---
