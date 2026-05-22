@@ -37,7 +37,7 @@ describe('resolvePlatformTarget', () => {
   });
 
   it('lanza un error claro en una plataforma no soportada', () => {
-    expect(() => resolvePlatformTarget(opengrep, 'sunos', 'sparc')).toThrow(/no soportada/);
+    expect(() => resolvePlatformTarget(opengrep, 'sunos', 'sparc')).toThrow(/Unsupported platform/);
   });
 
   it('conserva el campo archive cuando el target es un comprimido', () => {

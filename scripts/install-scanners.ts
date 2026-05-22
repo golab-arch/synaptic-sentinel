@@ -8,7 +8,8 @@
  * Soporta binarios sueltos y assets comprimidos (.zip / .tar.gz): estos
  * ultimos se extraen con `tar` (disponible en Windows 10+, macOS y Linux).
  *
- * Uso:  pnpm scanners:install
+ * Uso:  pnpm scanners:install            (instala en el .scanners/ del repo)
+ *       pnpm scanners:install --global   (instala en la cache global del usuario)
  *
  * Requiere Node >= 22.6 (type stripping nativo). El comando `pnpm` agrega
  * el flag --use-system-ca, necesario en entornos con inspeccion TLS
@@ -20,6 +21,7 @@
 import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { chmod, mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
+import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -85,7 +87,7 @@ export function resolvePlatformTarget(
   const target = scanner.platforms[key];
   if (!target) {
     const supported = Object.keys(scanner.platforms).sort().join(', ');
-    throw new Error(`Plataforma no soportada: ${key}. Disponibles: ${supported}.`);
+    throw new Error(`Unsupported platform: ${key}. Available: ${supported}.`);
   }
   return target;
 }
@@ -114,12 +116,12 @@ async function exists(path: string): Promise<boolean> {
 async function downloadVerified(url: string, expectedSha256: string): Promise<Buffer> {
   const res = await fetch(url, { redirect: 'follow' });
   if (!res.ok) {
-    throw new Error(`Descarga fallida (HTTP ${res.status} ${res.statusText}): ${url}`);
+    throw new Error(`Download failed (HTTP ${res.status} ${res.statusText}): ${url}`);
   }
   const data = Buffer.from(await res.arrayBuffer());
   const actual = sha256(data);
   if (actual !== expectedSha256) {
-    throw new Error(`Checksum invalido.\n  esperado: ${expectedSha256}\n  obtenido: ${actual}`);
+    throw new Error(`Invalid checksum.\n  expected: ${expectedSha256}\n  actual: ${actual}`);
   }
   return data;
 }
@@ -135,7 +137,7 @@ function spawnExtract(command: string, args: readonly string[]): Promise<void> {
     child.on('error', reject);
     child.on('close', (code) => {
       if (code === 0) resolve();
-      else reject(new Error(`${command} fallo (exit ${String(code)}): ${stderr.trim()}`));
+      else reject(new Error(`${command} failed (exit ${String(code)}): ${stderr.trim()}`));
     });
   });
 }
@@ -185,7 +187,7 @@ export async function installScanner(
         return { scanner: name, version: scanner.version, path: destPath, action: 'cached' };
       }
     }
-    console.log(`  descargando ${name} ${scanner.version} (${target.asset})...`);
+    console.log(`  downloading ${name} ${scanner.version} (${target.asset})...`);
     const data = await downloadVerified(url, target.sha256);
     await mkdir(destDir, { recursive: true });
     await writeFile(destPath, data);
@@ -195,7 +197,7 @@ export async function installScanner(
     if (await exists(destPath)) {
       return { scanner: name, version: scanner.version, path: destPath, action: 'cached' };
     }
-    console.log(`  descargando ${name} ${scanner.version} (${target.asset})...`);
+    console.log(`  downloading ${name} ${scanner.version} (${target.asset})...`);
     const data = await downloadVerified(url, target.sha256);
     await mkdir(destDir, { recursive: true });
     const archivePath = join(destDir, target.asset);
@@ -212,7 +214,9 @@ export async function installScanner(
       }
     }
     if (!(await exists(destPath))) {
-      throw new Error(`El binario "${target.binary}" no aparecio tras extraer ${target.asset}.`);
+      throw new Error(
+        `The "${target.binary}" binary did not appear after extracting ${target.asset}.`,
+      );
     }
   }
 
@@ -224,6 +228,16 @@ export async function installScanner(
 
 /** Raiz del repositorio (scripts/ esta un nivel por debajo). */
 const REPO_ROOT = fileURLToPath(new URL('..', import.meta.url));
+
+/**
+ * Directorio de la cache global de scanners por usuario (FI-004, Phase 8).
+ * Espeja la definicion canonica de cli/src/commands/scan.ts
+ * (`globalScannerCacheDir`): un join sobre `homedir()`, deliberadamente
+ * estable. Lo usa el modo `--global` de este script.
+ */
+function globalScannerCacheDir(): string {
+  return join(homedir(), '.synaptic-sentinel', 'scanners');
+}
 
 /** Carga y parsea el manifest de scanners. */
 async function loadManifest(): Promise<ScannersManifest> {
@@ -238,20 +252,28 @@ function describeError(err: unknown): string {
   return cause instanceof Error ? `${err.message} (${cause.message})` : err.message;
 }
 
-/** Punto de entrada: instala todos los scanners del manifest. */
+/**
+ * Punto de entrada: instala todos los scanners del manifest.
+ *
+ * Con `--global` instala en la cache global del usuario
+ * (`~/.synaptic-sentinel/scanners`, FI-004); sin el flag, en el `.scanners/`
+ * del repo (modo dev).
+ */
 async function main(): Promise<void> {
-  console.log('Synaptic Sentinel - instalacion de scanners OSS');
+  console.log('Synaptic Sentinel - OSS scanner installation');
   const manifest = await loadManifest();
-  const installDir = join(REPO_ROOT, manifest.installDir);
+  const useGlobal = process.argv.includes('--global');
+  const installDir = useGlobal ? globalScannerCacheDir() : join(REPO_ROOT, manifest.installDir);
+  console.log(`  target: ${installDir} ${useGlobal ? '(global cache)' : '(repo)'}`);
 
   for (const [name, spec] of Object.entries(manifest.scanners)) {
     const outcome = await installScanner(name, spec, installDir);
     console.log(
-      `  ${name} ${outcome.version}: ${outcome.action === 'cached' ? 'cache OK' : 'instalado'}`,
+      `  ${name} ${outcome.version}: ${outcome.action === 'cached' ? 'cache OK' : 'installed'}`,
     );
     console.log(`    ${outcome.path}`);
   }
-  console.log('Listo.');
+  console.log('Done.');
 }
 
 // Ejecuta main() solo cuando el script se invoca directamente (no al importarlo).
@@ -261,7 +283,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     console.error(`ERROR: ${msg}`);
     if (/certificate|UNABLE_TO_VERIFY/i.test(msg)) {
       console.error(
-        'El entorno tiene inspeccion TLS. Ejecuta "pnpm scanners:install" (agrega --use-system-ca).',
+        'The environment has TLS inspection. Run "pnpm scanners:install" (it adds --use-system-ca).',
       );
     }
     process.exitCode = 1;
