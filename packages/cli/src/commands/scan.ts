@@ -1,4 +1,5 @@
 import { existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs';
+import { homedir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
@@ -73,12 +74,44 @@ export function platformBinary(base: string): string {
 }
 
 /**
+ * Directorio de la cache de scanners global por usuario (FI-004, Phase 8).
+ *
+ * El layout en dev es `<repo>/.scanners/<scanner>/<version>/<binario>`; un
+ * producto enviado no tiene ese repo, asi que necesita una cache propia,
+ * global y por usuario. Esta funcion devuelve su raiz (que contiene
+ * directamente los directorios `<scanner>/`, sin el nivel `.scanners/`).
+ */
+export function globalScannerCacheDir(): string {
+  return join(homedir(), '.synaptic-sentinel', 'scanners');
+}
+
+/**
+ * Busca el binario `binaryName` de `scanner` dentro de un directorio cache
+ * con layout `<cacheRoot>/<scanner>/<version>/<binaryName>`. Elige la version
+ * mas alta lexicograficamente. Devuelve `undefined` si no esta.
+ */
+function findBinaryInCache(
+  cacheRoot: string,
+  scanner: string,
+  binaryName: string,
+): string | undefined {
+  const scannerDir = join(cacheRoot, scanner);
+  if (!existsSync(scannerDir)) return undefined;
+  for (const version of readdirSync(scannerDir).sort().reverse()) {
+    const candidate = join(scannerDir, version, binaryName);
+    if (existsSync(candidate)) return candidate;
+  }
+  return undefined;
+}
+
+/**
  * Resuelve la ruta del binario de un scanner.
  *
  * Orden de resolucion: ruta explicita -> variable de entorno `envVar` ->
- * cache `.scanners/<scanner>/<version>/<binaryName>` bajo `searchRoot`
- * (se elige la version mas alta lexicograficamente). Devuelve `undefined`
- * si no se encuentra.
+ * cache `.scanners/` del repo bajo `searchRoot` (modo dev) -> cache global
+ * por usuario `globalCacheDir` (producto enviado, FI-004). En cada cache se
+ * elige la version mas alta lexicograficamente. Devuelve `undefined` si no
+ * se encuentra en ninguna.
  */
 export function resolveScannerBinary(
   scanner: string,
@@ -86,18 +119,17 @@ export function resolveScannerBinary(
   envVar: string,
   explicit?: string,
   searchRoot: string = process.cwd(),
+  globalCacheDir: string = globalScannerCacheDir(),
 ): string | undefined {
   if (explicit !== undefined && explicit.length > 0) return explicit;
   const fromEnv = process.env[envVar];
   if (fromEnv !== undefined && fromEnv.length > 0) return fromEnv;
 
-  const scannerDir = join(searchRoot, '.scanners', scanner);
-  if (!existsSync(scannerDir)) return undefined;
-  for (const version of readdirSync(scannerDir).sort().reverse()) {
-    const candidate = join(scannerDir, version, binaryName);
-    if (existsSync(candidate)) return candidate;
-  }
-  return undefined;
+  // 1) Cache del repo en dev (`.scanners/` relativo al `searchRoot`).
+  const fromRepo = findBinaryInCache(join(searchRoot, '.scanners'), scanner, binaryName);
+  if (fromRepo !== undefined) return fromRepo;
+  // 2) Cache global por usuario (producto enviado).
+  return findBinaryInCache(globalCacheDir, scanner, binaryName);
 }
 
 /**

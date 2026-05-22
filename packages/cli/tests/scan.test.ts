@@ -1,13 +1,14 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { FindingSchema, type Finding, type Severity } from '@synaptic-sentinel/core';
 import {
   buildScouts,
   countBlockingFindings,
   findScannersRoot,
+  globalScannerCacheDir,
   platformBinary,
   resolveScannerBinary,
   shouldUseColor,
@@ -51,10 +52,18 @@ describe('resolveScannerBinary', () => {
     ).toBe('/ruta/explicita/opengrep');
   });
 
-  it('devuelve undefined si no existe una cache .scanners/', () => {
+  it('devuelve undefined si no esta en ninguna cache (repo ni global)', () => {
     const root = join(tmpdir(), `cli-noscan-${randomUUID()}`);
+    const globalCache = join(tmpdir(), `cli-noglobal-${randomUUID()}`);
     expect(
-      resolveScannerBinary('gitleaks', 'gitleaks', 'SENTINEL_GITLEAKS_BIN', undefined, root),
+      resolveScannerBinary(
+        'gitleaks',
+        'gitleaks',
+        'SENTINEL_GITLEAKS_BIN',
+        undefined,
+        root,
+        globalCache,
+      ),
     ).toBeUndefined();
   });
 
@@ -84,6 +93,60 @@ describe('resolveScannerBinary', () => {
         resolveScannerBinary('opengrep', binaryName, 'SENTINEL_OPENGREP_BIN', undefined, root),
       ).toBe(join(root, '.scanners', 'opengrep', 'v1.22.0', binaryName));
     });
+  });
+
+  describe('cache global por usuario (FI-004)', () => {
+    let repoRoot = '';
+    let globalCache = '';
+    afterEach(() => {
+      rmSync(repoRoot, { recursive: true, force: true });
+      rmSync(globalCache, { recursive: true, force: true });
+    });
+
+    it('resuelve el binario desde la cache global cuando no esta en el repo', () => {
+      repoRoot = join(tmpdir(), `cli-repo-${randomUUID()}`);
+      globalCache = join(tmpdir(), `cli-global-${randomUUID()}`);
+      const versionDir = join(globalCache, 'trivy', 'v0.70.0');
+      mkdirSync(versionDir, { recursive: true });
+      writeFileSync(join(versionDir, 'trivy'), 'binario falso');
+      expect(
+        resolveScannerBinary(
+          'trivy',
+          'trivy',
+          'SENTINEL_TRIVY_BIN',
+          undefined,
+          repoRoot,
+          globalCache,
+        ),
+      ).toBe(join(versionDir, 'trivy'));
+    });
+
+    it('la cache del repo tiene prioridad sobre la global', () => {
+      repoRoot = join(tmpdir(), `cli-repo-${randomUUID()}`);
+      globalCache = join(tmpdir(), `cli-global-${randomUUID()}`);
+      const repoBin = join(repoRoot, '.scanners', 'trivy', 'v0.70.0', 'trivy');
+      mkdirSync(dirname(repoBin), { recursive: true });
+      writeFileSync(repoBin, 'binario del repo');
+      const globalBin = join(globalCache, 'trivy', 'v0.70.0', 'trivy');
+      mkdirSync(dirname(globalBin), { recursive: true });
+      writeFileSync(globalBin, 'binario global');
+      expect(
+        resolveScannerBinary(
+          'trivy',
+          'trivy',
+          'SENTINEL_TRIVY_BIN',
+          undefined,
+          repoRoot,
+          globalCache,
+        ),
+      ).toBe(repoBin);
+    });
+  });
+});
+
+describe('globalScannerCacheDir', () => {
+  it('apunta a una carpeta .synaptic-sentinel/scanners del usuario', () => {
+    expect(globalScannerCacheDir().endsWith(join('.synaptic-sentinel', 'scanners'))).toBe(true);
   });
 });
 
