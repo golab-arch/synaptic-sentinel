@@ -1623,5 +1623,34 @@ Each entry follows this structure:
 
 ---
 
+### Entry #61 - DG-057 (B): bundlea la CLI dentro de la extension (FI-008); cierra Cycle 50 y Tomo 001
+```json
+{
+  "timestamp": "2026-05-22T23:30:00.000Z",
+  "cycle": 50,
+  "phase": 8,
+  "action": "FEATURE_IMPLEMENTED",
+  "details": {
+    "DG-057": {
+      "title": "Proximo paso del roadmap (bundlear la CLI dentro de la extension)",
+      "selected": "Option B",
+      "effect": "Sub-increment de FI-008: la extension VSCode empaqueta su propia CLI. El script 'bundle' produce dos artefactos esbuild - extension.cjs (extension host, CJS) y cli.mjs (la CLI, ESM) - y copia los assets de runtime de la CLI junto al bundle."
+    },
+    "files": "vscode-extension/package.json (script 'bundle': segundo esbuild para la CLI en formato ESM -> dist/cli.mjs, + paso 'node scripts/copy-cli-assets.mjs'). vscode-extension/scripts/copy-cli-assets.mjs (NUEVO; copia schema.sql y sentinel-baseline.yaml a dist/). vscode-extension/.vscodeignore (+scripts/**). vscode-extension/src/cli-runner.ts (defaultCliEntry -> dist/cli.mjs). vscode-extension/tests/cli-runner.test.ts y cli-runner.integration.test.ts (entry -> cli.mjs). core/src/colony/colony-db.ts y scouts/src/opengrep/rules.ts (resolucion de asset resiliente: path canonico de src/ con fallback al asset hermano del bundle).",
+    "design": "esbuild NO procesa new URL(...,import.meta.url) -es un patron de webpack, no de esbuild-, asi que el loader 'copy' no alcanza para emitir los assets; se copian con un script post-bundle. La CLI bundleada va en ESM (no CJS como la extension) porque import.meta.url -base para resolver los assets- solo existe en ESM; el primer intento en CJS fallo en runtime (import.meta vacio -> ERR_INVALID_URL). colony-db.ts y rules.ts prueban el path canonico de src/ y, si no existe (caso bundle), caen al asset hermano de cli.mjs. La extension y la CLI son procesos distintos: sus formatos de bundle son independientes.",
+    "verification_real": "pnpm verify verde (format:check / lint / build con el bundle + copy / test:unit 304). E2E REAL: 'node packages/vscode-extension/dist/cli.mjs scan' corre la CLI bundleada de punta a punta - ColonyDb crea colony.db (schema.sql resuelto), OpenGrep encuentra 1 finding (sentinel-baseline.yaml resuelto). test:integration verde: 9 passed, incluido cli-runner.integration que ejercita el bundle real dist/cli.mjs via runCliScan. CAVEAT HONESTO: la CLI bundleada usa node:sqlite via el Node del extension host (process.execPath); si ese Node es < 22.5, el .vsix no correra end-to-end hasta resolver FI-001.",
+    "tests": "sin tests nuevos (los tests de cli-runner se actualizaron al nuevo entry .mjs) - total 313 verdes + 3 gated",
+    "checks": "format:check / lint / build / test:unit / test:integration - todos en verde",
+    "commit": "feature en el commit a5f8465 feat(vscode-extension); el registro SYNAPTIC de cierre del Cycle 50 + roll de tomo se asienta en el commit docs siguiente",
+    "cycle_close": "CIERRA el Cycle 50, ultimo ciclo del Tomo 001. Tomo 001 (Cycles 1-50, 2026-05-20 -> 2026-05-22, 100% de exito) CERRADO y archivado en tomes/tome-001.{json,md}; Tomo 002 abierto desde el Cycle 51. INDEX.json: currentTomeId 2, totalCycles 50."
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 55,
+  "complianceScore": 100
+}
+```
+
+---
+
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-22T22:15:00.000Z*
+*Last Updated: 2026-05-22T23:30:00.000Z*

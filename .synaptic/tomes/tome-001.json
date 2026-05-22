@@ -1,51 +1,27 @@
 {
-  "version": "1.0",
+  "tomeId": 1,
   "projectId": "sentinel-1779304140796",
   "projectName": "SENTINEL",
-  "totalCycles": 50,
-  "currentTomeId": 2,
-  "cyclesPerTome": 50,
-  "tomes": [
-    {
-      "tomeId": 1,
-      "cycleRange": {
-        "from": 1,
-        "to": 50
-      },
-      "dateRange": {
-        "from": "2026-05-20T19:09:00.852Z",
-        "to": "2026-05-22T23:30:00.000Z"
-      },
-      "summary": "Tomo 001 (Cycles 1-50) CERRADO. De discovery a un producto funcionalmente completo, integramente en ingles (FI-011 cerrado) y en Phase 8 (Distribucion). 5 scouts (OpenGrep SAST con 11 reglas pattern-based y ruleId canonico, Gitleaks Secrets, Trivy SCA, Checkov IaC, Vibe-Detect VibeCoded), Coordinator stages 1-2 con kill-switch por scout, colony.db (schema v4) con learning_records activo (escritura + lectura), CLI con salida verbose/dinamica y politica de exit code --fail-on para CI, cache de scanners global por usuario operativa (resolucion + install-scanners --global, FI-004 cerrado), reporters JSON+HTML+SARIF+consola (tomo CI-native), extension VSCode con el Brain Layer surfaceado, pseudoterminal verbose y webview 'tomo vivo', Brain Layer COMPLETO con 3 agentes wired (Triage + Context + Remediation, llamada LLM real verificada), memoria del enjambre completa, ONBOARDING.md, repo sin drift de Prettier con el gate por ciclo codificado en 'verify', suite Vitest dividida en proyectos unit/integration, remoto git privado configurado (push por ciclo). FI-008 (empaquetado .vsix) avanzado: runtime de Node del extension host (DG-055), manifest para vsce (DG-056) y la CLI bundleada dentro de la extension (DG-057); resta producir el .vsix con @vscode/vsce.",
-      "keyDecisions": ["DG-001", "DG-002", "DG-003", "DG-004", "DG-005", "DG-006", "DG-007", "DG-008", "DG-009", "DG-010", "DG-011", "DG-012", "DG-013", "DG-014", "DG-015", "DG-016", "DG-017", "DG-018", "DG-019", "DG-020", "DG-021", "DG-022", "DG-023", "DG-024", "DG-025", "DG-026", "DG-027", "DG-028", "DG-029", "DG-030", "DG-031", "DG-032", "DG-033", "DG-034", "DG-035", "DG-036", "DG-037", "DG-038", "DG-039", "DG-040", "DG-041", "DG-042", "DG-043", "DG-044", "DG-045", "DG-046", "DG-047", "DG-048", "DG-049", "DG-050", "DG-051", "DG-052", "DG-053", "DG-054", "DG-055", "DG-056", "DG-057", "Q1"],
-      "cycleCount": 50,
-      "successCount": 50,
-      "failureCount": 0,
-      "jsonPath": "tomes/tome-001.json",
-      "mdPath": "tomes/tome-001.md",
-      "closed": true
-    },
-    {
-      "tomeId": 2,
-      "cycleRange": {
-        "from": 51,
-        "to": 100
-      },
-      "dateRange": {
-        "from": "2026-05-22T23:30:00.000Z",
-        "to": ""
-      },
-      "summary": "Tomo 002 abierto en el Cycle 51, Phase 8 (Distribucion). Continua FI-008 (empaquetado .vsix de la extension) y la deuda tecnica restante (FI-001 driver SQLite, FI-003 taint analysis, FI-009 cliente LLM).",
-      "keyDecisions": [],
-      "cycleCount": 0,
-      "successCount": 0,
-      "failureCount": 0,
-      "jsonPath": "tomes/tome-002.json",
-      "mdPath": "tomes/tome-002.md",
-      "closed": false
-    }
-  ],
-  "decisionIndex": [
+  "cycleRange": { "from": 1, "to": 50 },
+  "dateRange": {
+    "from": "2026-05-20T19:09:00.852Z",
+    "to": "2026-05-22T23:30:00.000Z"
+  },
+  "closed": true,
+  "closedAt": "2026-05-22T23:30:00.000Z",
+  "cycleCount": 50,
+  "successCount": 50,
+  "failureCount": 0,
+  "overallSuccessRate": 100,
+  "averageCompliance": 100,
+  "synapticStrengthAtClose": 55,
+  "summary": "Tomo 001 (Cycles 1-50). De discovery a un producto funcionalmente completo, integramente en ingles (FI-011 cerrado) y en Phase 8 (Distribucion). 5 scouts (OpenGrep SAST con 11 reglas pattern-based y ruleId canonico, Gitleaks Secrets, Trivy SCA, Checkov IaC, Vibe-Detect VibeCoded), Coordinator stages 1-2 con kill-switch por scout, colony.db (schema v4) con learning_records activo (escritura + lectura), CLI con salida verbose/dinamica y politica de exit code --fail-on para CI, cache de scanners global por usuario operativa (resolucion + install-scanners --global, FI-004 cerrado), reporters JSON+HTML+SARIF+consola (tomo CI-native), extension VSCode con el Brain Layer surfaceado, pseudoterminal verbose y webview 'tomo vivo', Brain Layer COMPLETO con 3 agentes wired (Triage + Context + Remediation, llamada LLM real verificada), memoria del enjambre completa, ONBOARDING.md, repo sin drift de Prettier con el gate por ciclo codificado en 'verify', suite Vitest dividida en proyectos unit/integration, remoto git privado configurado (push por ciclo). FI-008 (empaquetado .vsix) avanzado: runtime de Node del extension host (DG-055), manifest para vsce (DG-056) y la CLI bundleada dentro de la extension (DG-057); resta producir el .vsix con @vscode/vsce.",
+  "metrics": {
+    "totalDecisions": 58,
+    "optionDistribution": { "A": 33, "B": 24, "C": 1 },
+    "phaseDistribution": { "1": 5, "2": 3, "3": 4, "4": 3, "5": 5, "6": 4, "7": 29, "8": 5 }
+  },
+  "decisions": [
     { "id": "DG-001", "title": "Estructura fisica del monorepo OSS/Pro", "selected": "B", "cycle": 1, "date": "2026-05-20" },
     { "id": "DG-002", "title": "Creacion del repositorio GitHub", "selected": "A", "cycle": 1, "date": "2026-05-20" },
     { "id": "DG-003", "title": "Estrategia de binarios de scanners", "selected": "A", "cycle": 1, "date": "2026-05-20" },
@@ -105,25 +81,31 @@
     { "id": "DG-057", "title": "Proximo paso del roadmap (bundlear la CLI dentro de la extension)", "selected": "B", "cycle": 50, "date": "2026-05-22" },
     { "id": "Q1", "title": "Package manager", "selected": "pnpm", "cycle": 1, "date": "2026-05-20" }
   ],
-  "metrics": {
-    "totalDecisions": 58,
-    "optionDistribution": {
-      "A": 33,
-      "B": 24,
-      "C": 1
-    },
-    "overallSuccessRate": 100,
-    "averageCompliance": 100,
-    "phaseDistribution": {
-      "1": 5,
-      "2": 3,
-      "3": 4,
-      "4": 3,
-      "5": 5,
-      "6": 4,
-      "7": 29,
-      "8": 5
-    }
+  "improvements": {
+    "resolved": [
+      { "id": "FI-002", "topic": "Suite de tests", "resolvedBy": "DG-046 A" },
+      { "id": "FI-004", "topic": "Cache de scanners del producto", "resolvedBy": "DG-053 C + DG-054 A" },
+      { "id": "FI-005", "topic": "ruleId de OpenGrep", "resolvedBy": "DG-047 A" },
+      { "id": "FI-006", "topic": "suppressedCount en el tomo", "resolvedBy": "DG-023 A" },
+      { "id": "FI-007", "topic": "Creacion de fp_known", "resolvedBy": "DG-022 B" },
+      { "id": "FI-010", "topic": "Drift de Prettier", "resolvedBy": "DG-042 A" },
+      { "id": "FI-011", "topic": "Salida del producto en ingles", "resolvedBy": "DG-048..DG-052 (A)" }
+    ],
+    "openAtClose": [
+      { "id": "FI-001", "topic": "Driver SQLite (node:sqlite experimental)" },
+      { "id": "FI-003", "topic": "Catalogo de reglas / taint analysis" },
+      { "id": "FI-008", "topic": "Empaquetado de la extension (.vsix)" },
+      { "id": "FI-009", "topic": "Cliente LLM (@anthropic-ai/sdk)" }
+    ]
   },
-  "lastUpdated": "2026-05-22T23:30:00.000Z"
+  "learnings": [
+    { "id": "L-001", "topic": "Norton 360 - inspeccion TLS (NODE_OPTIONS=--use-system-ca)" },
+    { "id": "L-002", "topic": "Norton 360 - bloqueo de escrituras de git (exclusion de carpeta)" }
+  ],
+  "sources": {
+    "log": "../BITACORA.md (Entries #0 - #61)",
+    "decisionIndex": "INDEX.json",
+    "designDoc": "../DESIGN_DOC.md",
+    "intelligence": "../INTELLIGENCE.json"
+  }
 }
