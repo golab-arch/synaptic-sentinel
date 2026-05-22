@@ -1595,7 +1595,33 @@ Each entry follows this structure:
 }
 ```
 
+### Entry #60 - DG-056 (A): prepara el manifest de la extension para vsce (FI-008)
+```json
+{
+  "timestamp": "2026-05-22T22:15:00.000Z",
+  "cycle": 49,
+  "phase": 8,
+  "action": "FEATURE_IMPLEMENTED",
+  "details": {
+    "DG-056": {
+      "title": "Proximo paso del roadmap (preparar el manifest de la extension para vsce)",
+      "selected": "Option A",
+      "effect": "Sub-increment de FI-008: la extension VSCode queda lista a nivel de metadata para 'vsce package' - campos del package.json, .vscodeignore, README.md de marketplace y LICENSE."
+    },
+    "files": "vscode-extension/package.json (repository con directory, homepage, bugs, keywords). vscode-extension/.vscodeignore (NUEVO; el .vsix shippea solo dist/, no src/tests/node_modules). vscode-extension/README.md (NUEVO; pagina de marketplace, en ingles). vscode-extension/LICENSE (NUEVO; copia del Apache-2.0 raiz).",
+    "design": "Etapa de metadata, sin tocar logica. El campo repository aprovecha el remoto recien creado (Entry #59). .vscodeignore excluye fuente/tests/node_modules: la extension es bundle autocontenido (esbuild). Sin icon (vsce solo advierte; pulido futuro). El tooling vsce y el script vscode:prepublish son del proximo sub-increment de FI-008 (empaquetado).",
+    "verification_real": "pnpm verify verde (test:unit 304; package.json valido y prettier-clean). LIMITACION HONESTA: la validacion con 'vsce ls' NO se pudo correr - 'npx @vscode/vsce' se colgo en la descarga en este entorno (Norton/TLS); 2 intentos sin output. La validacion real con vsce queda para el ciclo de empaquetado, cuando @vscode/vsce se agregue como devDependency.",
+    "tests": "sin tests nuevos (metadata) — total 313 verdes + 3 gated",
+    "checks": "format:check / lint / build / test:unit — todos en verde",
+    "commit": "metadata en el commit 50e8ba3 build(vscode-extension); el registro SYNAPTIC de cierre del Cycle 49 se asienta en el commit docs siguiente"
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 54,
+  "complianceScore": 100
+}
+```
+
 ---
 
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-22T21:30:00.000Z*
+*Last Updated: 2026-05-22T22:15:00.000Z*

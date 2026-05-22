@@ -62,6 +62,7 @@
     { "id": "DG-053", "title": "Proximo paso del roadmap (abrir Phase 8 - cache de scanners global)", "selected": "C", "date": "2026-05-22", "summary": "Abre Phase 8 (Distribucion). Sub-increment 1 de FI-004: resolveScannerBinary resuelve los binarios tambien desde una cache global por usuario (~/.synaptic-sentinel/scanners), no solo desde la cache .scanners/ del repo. La cache del repo mantiene prioridad. globalScannerCacheDir + findBinaryInCache; 3 tests nuevos", "rationale": "Con i18n cerrada (FI-011) ya no habia motivo de sequencing para diferir la distribucion. Primer C del proyecto. Alcance acotado a la resolucion -el tramo seguro-; la auto-instalacion (descarga de red) queda para el sub-increment 2. Prerequisito de FI-008 (.vsix)" },
     { "id": "DG-054", "title": "Proximo paso del roadmap (modo --global de install-scanners)", "selected": "A", "date": "2026-05-22", "summary": "Sub-increment 2 de FI-004: install-scanners.ts gana el modo --global que instala los binarios en la cache global por usuario (~/.synaptic-sentinel/scanners). Cierra el lazo de FI-004 (resolver + instalar). Ademas se tradujo la salida del script a ingles. E2E real verificado", "rationale": "Continuacion en sub-increments de Phase 8: tras la resolucion (DG-053), poblar la cache global. installScanner ya parametrizaba installDir -> el cambio es solo de main(), de bajo riesgo. Prerequisito de FI-008 (.vsix)" },
     { "id": "DG-055", "title": "Proximo paso del roadmap (runtime de Node del extension host)", "selected": "A", "date": "2026-05-22", "summary": "Sub-increment 1 de FI-008: spawnCli de la extension usa process.execPath (el Node del extension host) en vez de 'node' del PATH. Una extension .vsix no puede asumir 'node' en el PATH del usuario", "rationale": "Continuacion en sub-increments de Phase 8/FI-008. Cambio de un solo default, bajo riesgo, de-riskea el bundle+package. nodePath sigue inyectable" },
+    { "id": "DG-056", "title": "Proximo paso del roadmap (preparar el manifest de la extension para vsce)", "selected": "A", "date": "2026-05-22", "summary": "Sub-increment de FI-008: la extension VSCode lista a nivel de metadata para vsce - package.json (repository/homepage/bugs/keywords), .vscodeignore, README.md de marketplace, LICENSE. Sin tocar logica", "rationale": "Continuacion en sub-increments de FI-008; el manifest es el prerequisito de menor riesgo del .vsix. La validacion con vsce ls no se pudo correr (npx colgado en este entorno) y queda para el ciclo de empaquetado" },
     { "id": "Q1", "title": "Package manager", "selected": "pnpm workspaces", "date": "2026-05-20", "summary": "pnpm v10.33.0", "rationale": "Ya instalado; preferencia v0.4 9.5; simple sin overhead" }
   ],
   "roadmap": [
@@ -102,13 +103,13 @@
     }
   ],
   "implementationState": {
-    "lastCompletedTask": "Cycle 48 CERRADO: DG-055 A - FI-008 sub-increment 1 (runtime de Node). spawnCli de cli-runner.ts usa process.execPath por defecto (el Node del extension host) en vez de 'node' del PATH. 313 verdes + 3 gated; commiteado 277651c.",
-    "currentTask": "Cycle 49 abierto. Remoto git configurado (Entry #59). DG-056 a presentar: proximo paso del roadmap.",
+    "lastCompletedTask": "Cycle 49 CERRADO: DG-056 A - prepara el manifest de la extension para vsce (FI-008). package.json (repository/homepage/bugs/keywords), .vscodeignore, README.md de marketplace, LICENSE. Solo metadata. pnpm verify verde (test:unit 304); commiteado 50e8ba3. LIMITACION: 'vsce ls' no se pudo correr (npx @vscode/vsce colgado en este entorno) - validacion vsce diferida al ciclo de empaquetado.",
+    "currentTask": "Cycle 50 abierto. DG-057 a presentar: proximo paso del roadmap. NOTA: el cierre del Cycle 50 rola Tomo 001 -> Tomo 002.",
     "pendingTasks": [
-      "Resolver DG-056 - proximo paso del roadmap (Phase 8: FI-008 sub-increments restantes -bundlear la CLI, producir el .vsix-; alternativa FI-003 taint analysis)",
+      "Resolver DG-057 - proximo paso del roadmap (Phase 8: FI-008 sub-increments restantes -bundlear la CLI, producir el .vsix con vsce-; alternativa FI-003 taint analysis)",
+      "Al cerrar el Cycle 50: rolar Tomo 001 (Cycles 1-50) -> abrir Tomo 002, actualizar INDEX.json (cerrar tome-001) y CURRENT.md",
       "Cada cierre de ciclo: commit + git push a origin (instruccion del usuario, DG-055)",
-      "Los directorios extranos de packages/vscode-extension/ quedan gitignoreados (DG-038); siguen en disco - el usuario puede eliminarlos",
-      "FI-008 (bundlear la CLI dentro de la extension, producir el .vsix, auto-instalacion on-demand), FI-003 (taint analysis), FI-009 (migracion a @anthropic-ai/sdk)"
+      "FI-008 (bundlear la CLI dentro de la extension; producir el .vsix con @vscode/vsce + script vscode:prepublish; auto-instalacion on-demand de scanners), FI-003 (taint analysis), FI-009 (migracion a @anthropic-ai/sdk)"
     ],
     "blockers": []
   },
@@ -140,5 +141,5 @@
     "Phase 8 (Distribucion) en curso. Cache de scanners global por usuario OPERATIVA (FI-004 cerrado): resolucion (DG-053) + instalacion via 'install-scanners --global' (DG-054), layout ~/.synaptic-sentinel/scanners. Pendiente hacia el beta instalable: FI-008 (empaquetado .vsix: bundlear la CLI, resolver un runtime de Node, disparar la auto-instalacion de scanners on-demand)",
     "Observacion: better-sqlite3 ABI con Electron; exactOptionalPropertyTypes estricto"
   ],
-  "lastUpdated": "2026-05-22T21:30:00.000Z"
+  "lastUpdated": "2026-05-22T22:15:00.000Z"
 }
