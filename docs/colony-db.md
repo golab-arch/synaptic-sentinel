@@ -8,12 +8,18 @@ solo está el schema que la crea
 
 ## Tablas
 
-| Tabla | Propósito |
-|---|---|
-| `meta` | Versión del schema (habilita migraciones) |
-| `scans` | Una fila por escaneo ejecutado |
-| `pheromones` | Feromonas digitales: `finding`, `context`, `hypothesis`, `exploration_marker`, `fp_known` |
-| `learning_records` | Patrones confirmados entre escaneos (cross-tomo learning) |
+| Tabla                     | Propósito                                                                                 |
+| ------------------------- | ----------------------------------------------------------------------------------------- |
+| `meta`                    | Versión del schema (habilita migraciones)                                                 |
+| `scans`                   | Una fila por escaneo ejecutado                                                            |
+| `pheromones`              | Feromonas digitales: `finding`, `context`, `hypothesis`, `exploration_marker`, `fp_known` |
+| `learning_records`        | Patrones confirmados entre escaneos (cross-tomo learning)                                 |
+| `triage_verdicts`         | Veredictos del Triage Agent (Brain Layer) — schema v2                                     |
+| `context_explanations`    | Explicaciones de la cadena de explotabilidad del Context Agent — schema v3                |
+| `remediation_suggestions` | Sugerencias de corrección del Remediation Agent — schema v4                               |
+
+El schema crece de forma **aditiva** (`CREATE TABLE IF NOT EXISTS`): cada versión
+nueva agrega tablas sin reconstruir las existentes. La versión actual es **v4**.
 
 ## WAL mode
 
