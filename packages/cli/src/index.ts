@@ -5,6 +5,7 @@
  * Licencia: Apache-2.0 (OSS).
  */
 import { parseArgs } from 'node:util';
+import { SEVERITIES, type Severity } from '@synaptic-sentinel/core';
 import { runScanCommand } from './commands/scan.js';
 import { runMarkFpCommand } from './commands/mark-fp.js';
 import { runTriageCommand } from './commands/triage.js';
@@ -16,7 +17,7 @@ Uso:
                          [--gitleaks-bin <ruta>] [--trivy-bin <ruta>]
                          [--checkov-bin <ruta>] [--no-color]
                          [--export <archivo>] [--export-html <archivo>]
-                         [--export-sarif <archivo>]
+                         [--export-sarif <archivo>] [--fail-on <severidad>]
   synaptic-sentinel mark-fp --fingerprint <fp> [--path <dir>] [--reason <texto>]
   synaptic-sentinel triage [--path <dir>] [--limit <n>]
 
@@ -35,6 +36,8 @@ Opciones:
   --export <archivo>     Exporta el tomo del scan en JSON al archivo indicado
   --export-html <arch.>  Exporta el tomo del scan en HTML al archivo indicado
   --export-sarif <arch.> Exporta el tomo del scan en SARIF 2.1.0 (CI / GitHub)
+  --fail-on <severidad>  Falla el scan (exit code 2) si hay hallazgos de
+                         severidad >= la indicada (critical|high|medium|low|info)
   --fingerprint <fp>     Huella del hallazgo a marcar (comando mark-fp)
   --reason <texto>       Motivo del descarte (comando mark-fp)
   --limit <n>            Tope de hallazgos a triar (comando triage; por defecto 25)
@@ -56,6 +59,7 @@ async function main(): Promise<void> {
       export: { type: 'string' },
       'export-html': { type: 'string' },
       'export-sarif': { type: 'string' },
+      'fail-on': { type: 'string' },
       fingerprint: { type: 'string' },
       reason: { type: 'string' },
       limit: { type: 'string' },
@@ -70,6 +74,16 @@ async function main(): Promise<void> {
   }
 
   if (command === 'scan') {
+    let failOn: Severity | undefined;
+    const failOnRaw = values['fail-on'];
+    if (failOnRaw !== undefined) {
+      if (!(SEVERITIES as readonly string[]).includes(failOnRaw)) {
+        console.error(`--fail-on debe ser una de: ${SEVERITIES.join(', ')}.\n`);
+        process.exitCode = 1;
+        return;
+      }
+      failOn = failOnRaw as Severity;
+    }
     process.exitCode = await runScanCommand({
       path: values.path ?? process.cwd(),
       ...(values['opengrep-bin'] !== undefined ? { opengrepBin: values['opengrep-bin'] } : {}),
@@ -80,6 +94,7 @@ async function main(): Promise<void> {
       ...(values.export !== undefined ? { exportPath: values.export } : {}),
       ...(values['export-html'] !== undefined ? { exportHtmlPath: values['export-html'] } : {}),
       ...(values['export-sarif'] !== undefined ? { exportSarifPath: values['export-sarif'] } : {}),
+      ...(failOn !== undefined ? { failOn } : {}),
     });
     return;
   }

@@ -3,13 +3,34 @@ import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
+import { FindingSchema, type Finding, type Severity } from '@synaptic-sentinel/core';
 import {
   buildScouts,
+  countBlockingFindings,
   findScannersRoot,
   platformBinary,
   resolveScannerBinary,
   shouldUseColor,
 } from '../src/commands/scan.js';
+
+/** Construye un Finding valido con la severidad indicada. */
+function findingWith(severity: Severity): Finding {
+  return FindingSchema.parse({
+    id: randomUUID(),
+    scanId: 'scan-1',
+    scoutId: 'opengrep',
+    severity,
+    category: 'SAST',
+    ruleId: 'r',
+    title: 'r',
+    message: 'm',
+    location: { path: 'x.ts', startLine: 1 },
+    complianceRefs: [],
+    fingerprint: `fp-${randomUUID()}`,
+    lifecycleState: 'new',
+    createdAt: '2026-05-22T00:00:00.000Z',
+  });
+}
 
 describe('platformBinary', () => {
   it('agrega .exe en win32 y deja el nombre crudo en el resto', () => {
@@ -124,5 +145,36 @@ describe('shouldUseColor', () => {
       if (previous === undefined) delete process.env['NO_COLOR'];
       else process.env['NO_COLOR'] = previous;
     }
+  });
+});
+
+describe('countBlockingFindings', () => {
+  const findings = [
+    findingWith('critical'),
+    findingWith('high'),
+    findingWith('medium'),
+    findingWith('low'),
+    findingWith('info'),
+  ];
+
+  it('cuenta los hallazgos cuya severidad alcanza o supera el umbral', () => {
+    expect(countBlockingFindings(findings, 'high')).toBe(2); // critical + high
+  });
+
+  it('con umbral "critical" solo cuenta los hallazgos critical', () => {
+    expect(countBlockingFindings(findings, 'critical')).toBe(1);
+  });
+
+  it('con umbral "info" cuenta todos los hallazgos', () => {
+    expect(countBlockingFindings(findings, 'info')).toBe(5);
+  });
+
+  it('devuelve 0 cuando ningun hallazgo alcanza el umbral', () => {
+    const leves = [findingWith('low'), findingWith('info')];
+    expect(countBlockingFindings(leves, 'high')).toBe(0);
+  });
+
+  it('devuelve 0 con una lista de hallazgos vacia', () => {
+    expect(countBlockingFindings([], 'info')).toBe(0);
   });
 });

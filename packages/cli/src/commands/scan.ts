@@ -1,7 +1,15 @@
 import { existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { ColonyDb, Coordinator, FindingSchema, type ScoutAgent } from '@synaptic-sentinel/core';
+import {
+  ColonyDb,
+  Coordinator,
+  FindingSchema,
+  severityAtLeast,
+  type Finding,
+  type ScoutAgent,
+  type Severity,
+} from '@synaptic-sentinel/core';
 import {
   BASELINE_RULESET_PATH,
   CheckovScout,
@@ -24,6 +32,14 @@ import { Spinner } from '../spinner.js';
 /** Version reportada en los tomos exportados. */
 const SENTINEL_VERSION = '0.0.0';
 
+/**
+ * Exit code del comando `scan` cuando la politica `--fail-on` encuentra
+ * hallazgos por encima del umbral. Es distinto del exit code 1 (error de
+ * ejecucion): un consumidor de CI puede asi distinguir "hubo hallazgos
+ * bloqueantes" de "el scan fallo".
+ */
+const FAIL_ON_EXIT_CODE = 2;
+
 /** Opciones del comando `scan`. */
 export interface ScanCommandOptions {
   /** Directorio a escanear. */
@@ -42,6 +58,11 @@ export interface ScanCommandOptions {
   readonly exportHtmlPath?: string;
   /** Ruta donde exportar el tomo en SARIF 2.1.0, si se provee. */
   readonly exportSarifPath?: string;
+  /**
+   * Umbral de severidad para la politica de exit code de CI: si se provee y
+   * hay hallazgos de severidad mayor o igual, `scan` termina con exit code 2.
+   */
+  readonly failOn?: Severity;
   /** Desactiva el color ANSI (tambien lo desactivan `NO_COLOR` y un stdout no-TTY). */
   readonly noColor?: boolean;
 }
@@ -186,10 +207,22 @@ export function buildScouts(options: ScanCommandOptions): ScoutAgent[] {
 }
 
 /**
+ * Cuenta los hallazgos cuya severidad alcanza o supera el umbral `--fail-on`.
+ * Es la base de la politica de exit code para CI (DG-045 B): funcion pura,
+ * para poder verificarla sin correr un scan.
+ */
+export function countBlockingFindings(findings: readonly Finding[], failOn: Severity): number {
+  return findings.filter((finding) => severityAtLeast(finding.severity, failOn)).length;
+}
+
+/**
  * Ejecuta el comando `scan`: corre el Coordinator sobre `path` con todos los
  * scouts disponibles (OpenGrep, Gitleaks, Trivy, Checkov y Vibe-Detect),
  * persiste los hallazgos en `colony.db`, imprime el resultado y -si se pidio-
- * exporta el tomo en JSON/HTML. Devuelve el codigo de salida del proceso.
+ * exporta el tomo en JSON/HTML/SARIF.
+ *
+ * Devuelve el codigo de salida: 0 si todo fue bien; 2 si se paso `--fail-on`
+ * y hay hallazgos por encima del umbral (politica de CI).
  */
 export async function runScanCommand(options: ScanCommandOptions): Promise<number> {
   const projectRoot = resolve(options.path);
@@ -268,6 +301,21 @@ export async function runScanCommand(options: ScanCommandOptions): Promise<numbe
         writeFileSync(target, renderTomoSarif(tomo));
         console.log(`Tomo exportado (SARIF): ${target}`);
       }
+    }
+
+    // Politica de exit code para CI (--fail-on): un exit distinto de 0 deja
+    // que el scan haga fallar un pipeline. Solo aplica si se pidio el flag.
+    const failOn = options.failOn;
+    if (failOn !== undefined) {
+      const blocking = countBlockingFindings(findings, failOn);
+      if (blocking > 0) {
+        console.error(
+          `\nPolitica --fail-on: ${String(blocking)} hallazgo(s) con severidad ` +
+            `>= ${failOn}. El scan termina con exit code ${String(FAIL_ON_EXIT_CODE)}.`,
+        );
+        return FAIL_ON_EXIT_CODE;
+      }
+      console.log(`Politica --fail-on: ningun hallazgo con severidad >= ${failOn}. ✓`);
     }
     return 0;
   } finally {
