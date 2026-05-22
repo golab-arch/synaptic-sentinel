@@ -34,6 +34,8 @@ interface FakeOptions {
   readonly status?: ScoutStatus;
   readonly findingCount?: number;
   readonly throws?: boolean;
+  /** Si es `true`, el scout nunca resuelve e ignora su signal (scout colgado). */
+  readonly hangs?: boolean;
   /** Si se provee, el scout emite un finding por cada fingerprint dado. */
   readonly fingerprints?: readonly string[];
 }
@@ -46,6 +48,8 @@ function fakeScout(opts: FakeOptions): ScoutAgent {
     category: 'SAST',
     isAvailable: (): Promise<boolean> => Promise.resolve(opts.available ?? true),
     scan: (request: ScanRequest): Promise<ScoutResult> => {
+      // Scout colgado: nunca resuelve e ignora la signal de cancelacion.
+      if (opts.hangs === true) return new Promise<ScoutResult>(() => undefined);
       if (opts.throws === true) return Promise.reject(new Error('scout roto'));
       const now = new Date().toISOString();
       const findings =
@@ -203,6 +207,67 @@ describe('Coordinator (stage 2 - dedup, fp_known, ciclo de vida)', () => {
     expect(persisted).toHaveLength(1);
     expect(persisted[0]!.payload['fingerprint']).toBe('fp-real');
     expect(lifecycleOf(persisted[0]!.payload)).toBe('known');
+    db.close();
+  });
+});
+
+describe('Coordinator (kill-switch — presupuesto de tiempo, v0.4 §9.6)', () => {
+  it('cancela un scout que excede su presupuesto y degrada el scan', async () => {
+    const db = ColonyDb.open(':memory:');
+    const coordinator = new Coordinator(db, [
+      fakeScout({ id: 'sano', findingCount: 1 }),
+      fakeScout({ id: 'colgado', hangs: true }),
+    ]);
+
+    const outcome = await coordinator.runScan({
+      rootPath: '/p',
+      mode: 'full',
+      scoutTimeoutMs: 50,
+    });
+
+    expect(outcome.status).toBe('degraded');
+    // El scout sano persiste sus hallazgos pese al scout colgado.
+    expect(outcome.findingsCount).toBe(1);
+    const hung = outcome.scouts.find((s) => s.scoutId === 'colgado');
+    expect(hung?.status).toBe('failed');
+    expect(hung?.error).toContain('presupuesto');
+    expect(db.getPheromonesByScan(outcome.scanId)).toHaveLength(1);
+    db.close();
+  });
+
+  it('un scout que termina dentro del presupuesto no se ve afectado', async () => {
+    const db = ColonyDb.open(':memory:');
+    const coordinator = new Coordinator(db, [fakeScout({ id: 'rapido', findingCount: 2 })]);
+
+    const outcome = await coordinator.runScan({
+      rootPath: '/p',
+      mode: 'full',
+      scoutTimeoutMs: 5000,
+    });
+
+    expect(outcome.status).toBe('ok');
+    expect(outcome.findingsCount).toBe(2);
+    db.close();
+  });
+
+  it('el signal del llamante cancela un scout colgado aunque el presupuesto sea amplio', async () => {
+    const db = ColonyDb.open(':memory:');
+    const coordinator = new Coordinator(db, [fakeScout({ id: 'colgado', hangs: true })]);
+    const controller = new AbortController();
+    setTimeout(() => {
+      controller.abort();
+    }, 30);
+
+    const outcome = await coordinator.runScan({
+      rootPath: '/p',
+      mode: 'full',
+      signal: controller.signal,
+      scoutTimeoutMs: 60_000,
+    });
+
+    expect(outcome.status).toBe('degraded');
+    expect(outcome.scouts[0]?.status).toBe('failed');
+    expect(outcome.scouts[0]?.error).toContain('llamante');
     db.close();
   });
 });

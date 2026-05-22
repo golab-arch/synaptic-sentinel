@@ -5,6 +5,13 @@ import type { Pheromone } from '../types/pheromone.js';
 import type { Scan, ScanMode } from '../types/scan.js';
 import type { ScanRequest, ScoutAgent, ScoutResult, ScoutStatus } from '../types/scout-agent.js';
 
+/**
+ * Presupuesto de tiempo por defecto para un scout: 5 minutos. Es un
+ * kill-switch para scouts colgados (v0.4 §9.6), no un SLA — debe ser holgado
+ * para no matar un scan legitimo de un proyecto grande.
+ */
+const DEFAULT_SCOUT_TIMEOUT_MS = 5 * 60 * 1000;
+
 /** Parametros de un scan dirigido al Coordinator. */
 export interface ScanOptions {
   /** Raiz del proyecto del cliente (ruta absoluta). */
@@ -15,8 +22,14 @@ export interface ScanOptions {
   readonly mode: ScanMode;
   /** SHA del commit git sobre el que se ejecuta el scan, si aplica. */
   readonly gitSha?: string;
-  /** Senal de cancelacion (kill-switch, v0.4 §9.6). */
+  /** Senal de cancelacion del llamante (kill-switch, v0.4 §9.6). */
   readonly signal?: AbortSignal;
+  /**
+   * Presupuesto de tiempo por scout, en ms. Un scout que lo excede se cancela
+   * y se reporta `failed` — un scout colgado degrada el scan, no lo cuelga
+   * (v0.4 §9.6 "Rogue Agents"). Por defecto 5 minutos.
+   */
+  readonly scoutTimeoutMs?: number;
 }
 
 /** Resumen de la ejecucion de un scout dentro de un scan. */
@@ -62,6 +75,8 @@ function findingToPheromone(finding: Finding): Pheromone {
  * solo corre los scouts que recibe, sin delegacion libre) y agrega sus
  * hallazgos. El fallo de un scout degrada el scan, nunca lo aborta (v0.4
  * §3.7: degraded > failed) — por eso `runScan` no lanza por culpa de un scout.
+ * Cada scout corre con un presupuesto de tiempo (kill-switch, v0.4 §9.6): si
+ * se cuelga, se cancela y se reporta `failed`, y el scan sigue con los demas.
  *
  * Stage 2: deduplica los hallazgos por `fingerprint` (dentro del scan),
  * suprime los que sean falsos positivos confirmados (`fp_known`), marca como
@@ -97,10 +112,11 @@ export class Coordinator {
       ...(options.signal !== undefined ? { signal: options.signal } : {}),
     };
 
-    // Stage 1 — scouts disponibles, en paralelo.
+    // Stage 1 — scouts disponibles, en paralelo, cada uno con su presupuesto.
+    const timeoutMs = options.scoutTimeoutMs ?? DEFAULT_SCOUT_TIMEOUT_MS;
     const available = await this.#availableScouts();
     const results = await Promise.all(
-      available.map((scout) => this.#runScout(scout, request)),
+      available.map((scout) => this.#runScout(scout, request, timeoutMs)),
     );
 
     // Stage 2 — dedup por fingerprint, supresion de falsos positivos
@@ -185,21 +201,80 @@ export class Coordinator {
     return checks.filter((check) => check.ok).map((check) => check.scout);
   }
 
-  /** Corre un scout; cualquier excepcion se captura como `ScoutResult` failed. */
-  async #runScout(scout: ScoutAgent, request: ScanRequest): Promise<ScoutResult> {
+  /**
+   * Corre un scout con un presupuesto de tiempo (kill-switch, v0.4 §9.6).
+   *
+   * El scout recibe una `AbortSignal` propia que se dispara si (a) expira el
+   * presupuesto o (b) aborta el `signal` del llamante. La ejecucion del scout
+   * compite contra esa senal: si el scout se cuelga e ignora su signal, gana
+   * la carrera la cancelacion y el scout se reporta `failed` sin colgar el
+   * scan. Cualquier excepcion del scout tambien se captura como `failed`.
+   */
+  async #runScout(
+    scout: ScoutAgent,
+    baseRequest: ScanRequest,
+    timeoutMs: number,
+  ): Promise<ScoutResult> {
+    const startedAt = new Date().toISOString();
+    const controller = new AbortController();
+    const parentSignal = baseRequest.signal;
+    const onParentAbort = (): void => controller.abort();
+    if (parentSignal !== undefined) {
+      if (parentSignal.aborted) controller.abort();
+      else parentSignal.addEventListener('abort', onParentAbort, { once: true });
+    }
+
+    let timedOut = false;
+    const timer = setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, timeoutMs);
+
+    // Se rechaza en cuanto el controller aborta (timeout o signal del
+    // llamante); asi la carrera termina aunque el scout ignore su signal.
+    const aborted = new Promise<never>((_resolve, reject) => {
+      if (controller.signal.aborted) {
+        reject(new Error('scout-cancelado'));
+        return;
+      }
+      controller.signal.addEventListener(
+        'abort',
+        () => reject(new Error('scout-cancelado')),
+        { once: true },
+      );
+    });
+
+    const request: ScanRequest = { ...baseRequest, signal: controller.signal };
     try {
-      return await scout.scan(request);
+      const scoutRun = scout.scan(request);
+      // La carrera ya maneja el rechazo de `scoutRun`; este catch evita un
+      // unhandled rejection si el scout rechaza despues de perder la carrera.
+      void scoutRun.catch(() => undefined);
+      return await Promise.race([scoutRun, aborted]);
     } catch (err) {
-      const now = new Date().toISOString();
+      const finishedAt = new Date().toISOString();
+      let error: string;
+      if (timedOut) {
+        error =
+          `El scout excedio su presupuesto de tiempo (${String(timeoutMs)} ms) ` +
+          'y fue cancelado.';
+      } else if (controller.signal.aborted) {
+        error = 'El scout fue cancelado por el llamante.';
+      } else {
+        error = err instanceof Error ? err.message : String(err);
+      }
       return {
         scoutId: scout.id,
-        scanId: request.scanId,
+        scanId: baseRequest.scanId,
         findings: [],
         status: 'failed',
-        startedAt: now,
-        finishedAt: now,
-        error: err instanceof Error ? err.message : String(err),
+        startedAt,
+        finishedAt,
+        error,
       };
+    } finally {
+      clearTimeout(timer);
+      if (parentSignal !== undefined) parentSignal.removeEventListener('abort', onParentAbort);
     }
   }
 }
