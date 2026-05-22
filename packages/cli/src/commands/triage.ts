@@ -5,11 +5,13 @@ import {
   ColonyDb,
   FindingSchema,
   type ContextExplanationRecord,
+  type RemediationSuggestionRecord,
   type TriageVerdictRecord,
 } from '@synaptic-sentinel/core';
 import {
   AnthropicLlmClient,
   ContextAgent,
+  RemediationAgent,
   runAgent,
   TriageAgent,
   type LlmClient,
@@ -33,9 +35,10 @@ export interface TriageCommandOptions {
 
 /**
  * Ejecuta el comando `triage`: corre el Brain Layer sobre los hallazgos del
- * ultimo scan. El Triage Agent clasifica cada hallazgo; el Context Agent
- * explica la cadena de explotabilidad de los verdaderos positivos. Veredictos
- * y explicaciones se persisten en `colony.db`.
+ * ultimo scan. El Triage Agent clasifica cada hallazgo; sobre los verdaderos
+ * positivos, el Context Agent explica la cadena de explotabilidad y el
+ * Remediation Agent propone como corregirlos. Veredictos, explicaciones y
+ * sugerencias se persisten en `colony.db`.
  *
  * Economia de tokens (v0.4 §187): salta los hallazgos ya descartados como
  * falso positivo (`fp_known`) y los ya triados. BYOK: la API key la provee
@@ -98,8 +101,10 @@ export async function runTriageCommand(options: TriageCommandOptions): Promise<n
 
     const triageAgent = new TriageAgent();
     const contextAgent = new ContextAgent();
+    const remediationAgent = new RemediationAgent();
     const verdicts: TriageVerdictRecord[] = [];
     const explanations: ContextExplanationRecord[] = [];
+    const remediations: RemediationSuggestionRecord[] = [];
     for (const finding of toTriage) {
       try {
         const verdict = await runAgent(triageAgent, finding, llm);
@@ -139,6 +144,27 @@ export async function runTriageCommand(options: TriageCommandOptions): Promise<n
             const message = err instanceof Error ? err.message : String(err);
             console.error(`      ! fallo el contexto de "${finding.title}": ${message}`);
           }
+          // Stage 4 — Remediation: como corregir el verdadero positivo.
+          try {
+            const remediation = await runAgent(remediationAgent, finding, llm);
+            remediations.push({
+              id: randomUUID(),
+              scanId,
+              fingerprint: finding.fingerprint,
+              summary: remediation.summary,
+              recommendation: remediation.recommendation,
+              ...(remediation.fixedSnippet !== undefined
+                ? { fixedSnippet: remediation.fixedSnippet }
+                : {}),
+              agentId: remediationAgent.id,
+              createdAt: new Date().toISOString(),
+            });
+            console.log(`      remediacion: ${remediation.summary}`);
+          } catch (err) {
+            // Un fallo de remediacion no descarta el veredicto de triage.
+            const message = err instanceof Error ? err.message : String(err);
+            console.error(`      ! fallo la remediacion de "${finding.title}": ${message}`);
+          }
         }
       } catch (err) {
         // Un fallo de triage no aborta la corrida (degraded > failed).
@@ -149,9 +175,11 @@ export async function runTriageCommand(options: TriageCommandOptions): Promise<n
 
     db.insertTriageVerdicts(verdicts);
     db.insertContextExplanations(explanations);
+    db.insertRemediationSuggestions(remediations);
     console.log(
       `Veredictos de triage persistidos: ${String(verdicts.length)}; ` +
-        `explicaciones de contexto: ${String(explanations.length)}.`,
+        `explicaciones de contexto: ${String(explanations.length)}; ` +
+        `sugerencias de remediacion: ${String(remediations.length)}.`,
     );
     return 0;
   } finally {

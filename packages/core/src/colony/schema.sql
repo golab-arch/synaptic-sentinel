@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS meta (
   key   TEXT PRIMARY KEY,
   value TEXT NOT NULL
 );
-INSERT OR IGNORE INTO meta (key, value) VALUES ('schema_version', '3');
+INSERT OR IGNORE INTO meta (key, value) VALUES ('schema_version', '4');
 
 CREATE TABLE IF NOT EXISTS scans (
   id            TEXT PRIMARY KEY,
@@ -78,3 +78,17 @@ CREATE TABLE IF NOT EXISTS context_explanations (
 );
 CREATE INDEX IF NOT EXISTS idx_context_fingerprint ON context_explanations(fingerprint);
 CREATE INDEX IF NOT EXISTS idx_context_scan        ON context_explanations(scan_id);
+
+-- Sugerencias de remediacion del Brain Layer (schema v4 — tabla aditiva).
+CREATE TABLE IF NOT EXISTS remediation_suggestions (
+  id             TEXT PRIMARY KEY,
+  scan_id        TEXT NOT NULL REFERENCES scans(id),
+  fingerprint    TEXT NOT NULL,               -- Finding.fingerprint
+  summary        TEXT NOT NULL,
+  recommendation TEXT NOT NULL,
+  fixed_snippet  TEXT,                        -- opcional (NULL si no aplica)
+  agent_id       TEXT NOT NULL,               -- trazabilidad (OWASP ASI 2026)
+  created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_remediation_fingerprint ON remediation_suggestions(fingerprint);
+CREATE INDEX IF NOT EXISTS idx_remediation_scan        ON remediation_suggestions(scan_id);

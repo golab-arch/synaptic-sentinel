@@ -4,11 +4,13 @@ import { DatabaseSync } from 'node:sqlite';
 import {
   ContextExplanationRecordSchema,
   PheromoneSchema,
+  RemediationSuggestionRecordSchema,
   ScanSchema,
   TriageVerdictRecordSchema,
   type ContextExplanationRecord,
   type Pheromone,
   type PheromoneType,
+  type RemediationSuggestionRecord,
   type Scan,
   type TriageVerdictRecord,
 } from '../types/index.js';
@@ -81,6 +83,21 @@ function rowToContextExplanation(row: unknown): ContextExplanationRecord {
   });
 }
 
+/** Convierte una fila de `remediation_suggestions` en un registro validado. */
+function rowToRemediationSuggestion(row: unknown): RemediationSuggestionRecord {
+  const r = row as Record<string, unknown>;
+  return RemediationSuggestionRecordSchema.parse({
+    id: r['id'],
+    scanId: r['scan_id'],
+    fingerprint: r['fingerprint'],
+    summary: r['summary'],
+    recommendation: r['recommendation'],
+    fixedSnippet: r['fixed_snippet'] ?? undefined,
+    agentId: r['agent_id'],
+    createdAt: r['created_at'],
+  });
+}
+
 /**
  * Memoria compartida del enjambre — wrapper de la colony DB (SQLite local).
  *
@@ -106,10 +123,11 @@ export class ColonyDb {
   static open(path: string): ColonyDb {
     const db = new DatabaseSync(path);
     db.exec(readFileSync(SCHEMA_PATH, 'utf8'));
-    // Migraciones aditivas (v2: triage_verdicts, v3: context_explanations):
-    // las tablas se crean via CREATE TABLE IF NOT EXISTS en el schema, sin
-    // reconstruir nada; aqui se sincroniza la version de una base preexistente.
-    db.exec("UPDATE meta SET value = '3' WHERE key = 'schema_version'");
+    // Migraciones aditivas (v2: triage_verdicts, v3: context_explanations,
+    // v4: remediation_suggestions): las tablas se crean via CREATE TABLE IF
+    // NOT EXISTS en el schema, sin reconstruir nada; aqui se sincroniza la
+    // version de una base preexistente.
+    db.exec("UPDATE meta SET value = '4' WHERE key = 'schema_version'");
     return new ColonyDb(db);
   }
 
@@ -341,6 +359,44 @@ export class ColonyDb {
       .prepare('SELECT * FROM context_explanations ORDER BY created_at')
       .all()
       .map(rowToContextExplanation);
+  }
+
+  /** Inserta un lote de sugerencias de remediacion en una unica transaccion. */
+  insertRemediationSuggestions(records: readonly RemediationSuggestionRecord[]): void {
+    if (records.length === 0) return;
+    const stmt = this.#db.prepare(
+      'INSERT INTO remediation_suggestions ' +
+        '(id, scan_id, fingerprint, summary, recommendation, fixed_snippet, agent_id, created_at) ' +
+        'VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+    );
+    this.#db.exec('BEGIN');
+    try {
+      for (const raw of records) {
+        const r = RemediationSuggestionRecordSchema.parse(raw);
+        stmt.run(
+          r.id,
+          r.scanId,
+          r.fingerprint,
+          r.summary,
+          r.recommendation,
+          r.fixedSnippet ?? null,
+          r.agentId,
+          r.createdAt,
+        );
+      }
+      this.#db.exec('COMMIT');
+    } catch (err) {
+      this.#db.exec('ROLLBACK');
+      throw err;
+    }
+  }
+
+  /** Todas las sugerencias de remediacion, ordenadas por fecha de creacion. */
+  getRemediationSuggestions(): RemediationSuggestionRecord[] {
+    return this.#db
+      .prepare('SELECT * FROM remediation_suggestions ORDER BY created_at')
+      .all()
+      .map(rowToRemediationSuggestion);
   }
 
   /** Cierra la conexion con la base de datos. */

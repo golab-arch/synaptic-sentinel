@@ -110,6 +110,30 @@ describe('buildTomo', () => {
     expect(tomo.findings[0]?.triage).toBeUndefined();
   });
 
+  it('adjunta la sugerencia de remediacion al hallazgo con fingerprint coincidente', () => {
+    const finding = makeFinding('high', 'SAST');
+    finding['fingerprint'] = 'fp-rem';
+    const suggestion = {
+      id: randomUUID(),
+      scanId: 'scan-1',
+      fingerprint: 'fp-rem',
+      summary: 'reemplazar eval por un parser seguro',
+      recommendation: 'usar JSON.parse en vez de eval sobre la entrada',
+      fixedSnippet: 'JSON.parse(input)',
+      agentId: 'remediation',
+      createdAt: '2026-05-21T00:00:00.000Z',
+    };
+    const tomo = buildTomo(
+      makeOutcome('scan-1'),
+      [finding],
+      { rootPath: '/p', sentinelVersion: '0.0.0' },
+      { remediationSuggestions: [suggestion] },
+    );
+    expect(tomo.findings[0]?.remediation?.summary).toContain('parser seguro');
+    expect(tomo.findings[0]?.remediation?.fixedSnippet).toBe('JSON.parse(input)');
+    expect(tomo.findings[0]?.triage).toBeUndefined();
+  });
+
   it('deja sin triage los hallazgos sin veredicto', () => {
     const tomo = buildTomo(makeOutcome('scan-1'), [makeFinding('low', 'SAST')], {
       rootPath: '/p',

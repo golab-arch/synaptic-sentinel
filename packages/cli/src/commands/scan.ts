@@ -235,8 +235,9 @@ export async function runScanCommand(options: ScanCommandOptions): Promise<numbe
     console.log(formatOutcome(outcome, findings));
 
     if (options.exportPath !== undefined || options.exportHtmlPath !== undefined) {
-      // El tomo se enriquece con los veredictos de triage y las explicaciones
-      // de contexto ya persistidas (de una corrida previa de `triage`).
+      // El tomo se enriquece con los veredictos de triage, las explicaciones
+      // de contexto y las sugerencias de remediacion ya persistidas (de una
+      // corrida previa de `triage`).
       const tomo = buildTomo(
         outcome,
         findings,
@@ -244,6 +245,7 @@ export async function runScanCommand(options: ScanCommandOptions): Promise<numbe
         {
           triageVerdicts: db.getTriageVerdicts(),
           contextExplanations: db.getContextExplanations(),
+          remediationSuggestions: db.getRemediationSuggestions(),
         },
       );
       if (options.exportPath !== undefined) {

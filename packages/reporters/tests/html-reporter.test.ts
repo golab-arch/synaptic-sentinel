@@ -118,4 +118,24 @@ describe('renderTomoHtml', () => {
     expect(html).toContain('el parametro req.query.expr');
     expect(html).toContain('ejecucion de codigo arbitrario');
   });
+
+  it('renderiza la sugerencia de remediacion cuando el hallazgo fue remediado', () => {
+    const finding = makeFinding({ fingerprint: 'fp-r' });
+    const suggestion = {
+      id: randomUUID(),
+      scanId: 'scan-1',
+      fingerprint: 'fp-r',
+      summary: 'reemplazar eval por un parser seguro',
+      recommendation: 'usar JSON.parse en vez de eval sobre la entrada',
+      fixedSnippet: 'const r = JSON.parse(req.query.expr);',
+      agentId: 'remediation',
+      createdAt: '2026-05-21T00:00:00.000Z',
+    };
+    const html = renderTomoHtml(
+      buildTomo(makeOutcome(), [finding], meta, { remediationSuggestions: [suggestion] }),
+    );
+    expect(html).toContain('Remediacion:');
+    expect(html).toContain('usar JSON.parse en vez de eval');
+    expect(html).toContain('JSON.parse(req.query.expr)');
+  });
 });

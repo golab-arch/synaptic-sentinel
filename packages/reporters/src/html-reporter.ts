@@ -56,6 +56,12 @@ const STYLE = `
   .context { margin: 0.45rem 0 0; font-size: 0.82rem; color: #3a3f4a;
     background: #eef0f3; border-radius: 4px; padding: 0.5rem 0.7rem; }
   .context ul { margin: 0.3rem 0 0; padding-left: 1.1rem; }
+  .remediation { margin: 0.45rem 0 0; font-size: 0.82rem; color: #3a3f4a;
+    background: #eaf3ec; border-radius: 4px; padding: 0.5rem 0.7rem; }
+  .remediation p { margin: 0.3rem 0 0; }
+  .remediation pre { margin: 0.4rem 0 0; padding: 0.55rem 0.7rem; background: #1a1a2e;
+    color: #e8eaed; border-radius: 4px; overflow-x: auto; font-size: 0.78rem;
+    font-family: ui-monospace, "Cascadia Code", Consolas, monospace; }
   table { border-collapse: collapse; width: 100%; font-size: 0.88rem; }
   th, td { text-align: left; padding: 0.4rem 0.6rem; border-bottom: 1px solid #e0e2e6; }
   th { color: #5a5f6a; font-weight: 600; }
@@ -116,6 +122,21 @@ function renderContext(finding: TomoFinding): string {
     </div>`;
 }
 
+/** Renderiza la sugerencia de remediacion de un hallazgo, si fue remediado. */
+function renderRemediation(finding: TomoFinding): string {
+  const remediation = finding.remediation;
+  if (remediation === undefined) return '';
+  const snippet =
+    remediation.fixedSnippet !== undefined
+      ? `<pre>${escapeHtml(remediation.fixedSnippet)}</pre>`
+      : '';
+  return `<div class="remediation">
+      <strong>Remediacion:</strong> ${escapeHtml(remediation.summary)}
+      <p>${escapeHtml(remediation.recommendation)}</p>
+      ${snippet}
+    </div>`;
+}
+
 /** Renderiza un hallazgo como una tarjeta. */
 function renderFinding(finding: TomoFinding): string {
   const loc = `${finding.location.path}:${String(finding.location.startLine)}`;
@@ -139,6 +160,7 @@ function renderFinding(finding: TomoFinding): string {
       <p class="finding-msg">${escapeHtml(finding.message)}</p>
       ${renderTriage(finding)}
       ${renderContext(finding)}
+      ${renderRemediation(finding)}
       ${refs}
     </article>`;
 }

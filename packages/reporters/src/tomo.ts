@@ -3,10 +3,12 @@ import { z } from 'zod';
 import {
   ContextExplanationSchema,
   FindingSchema,
+  RemediationSuggestionSchema,
   ScoutStatusSchema,
   TriageVerdictSchema,
   type ContextExplanationRecord,
   type Finding,
+  type RemediationSuggestionRecord,
   type ScanOutcome,
   type TriageVerdictRecord,
 } from '@synaptic-sentinel/core';
@@ -54,12 +56,14 @@ const TomoMethodologySchema = z.object({
 
 /**
  * Hallazgo del tomo: el `Finding` determinista mas el enriquecimiento del
- * Brain Layer — el veredicto de triage y la explicacion de contexto, cada
- * uno presente solo si el agente correspondiente proceso el hallazgo.
+ * Brain Layer — el veredicto de triage, la explicacion de contexto y la
+ * sugerencia de remediacion, cada uno presente solo si el agente
+ * correspondiente proceso el hallazgo.
  */
 export const TomoFindingSchema = FindingSchema.extend({
   triage: TriageVerdictSchema.optional(),
   context: ContextExplanationSchema.optional(),
+  remediation: RemediationSuggestionSchema.optional(),
 });
 
 /** Hallazgo del tomo (Finding + triage opcional). */
@@ -120,6 +124,8 @@ export interface TomoEnrichment {
   readonly triageVerdicts?: readonly TriageVerdictRecord[];
   /** Explicaciones de contexto a unir con los hallazgos por `fingerprint`. */
   readonly contextExplanations?: readonly ContextExplanationRecord[];
+  /** Sugerencias de remediacion a unir con los hallazgos por `fingerprint`. */
+  readonly remediationSuggestions?: readonly RemediationSuggestionRecord[];
 }
 
 /**
@@ -145,6 +151,10 @@ export function buildTomo(
   for (const explanation of enrichment.contextExplanations ?? []) {
     contextByFingerprint.set(explanation.fingerprint, explanation);
   }
+  const remediationByFingerprint = new Map<string, RemediationSuggestionRecord>();
+  for (const suggestion of enrichment.remediationSuggestions ?? []) {
+    remediationByFingerprint.set(suggestion.fingerprint, suggestion);
+  }
 
   const bySeverity: Record<string, number> = {};
   const byCategory: Record<string, number> = {};
@@ -154,6 +164,7 @@ export function buildTomo(
     byCategory[finding.category] = (byCategory[finding.category] ?? 0) + 1;
     const verdict = triageByFingerprint.get(finding.fingerprint);
     const explanation = contextByFingerprint.get(finding.fingerprint);
+    const suggestion = remediationByFingerprint.get(finding.fingerprint);
     if (verdict !== undefined) {
       byTriage[verdict.classification] = (byTriage[verdict.classification] ?? 0) + 1;
     }
@@ -175,6 +186,17 @@ export function buildTomo(
               entryPoint: explanation.entryPoint,
               sink: explanation.sink,
               exposure: explanation.exposure,
+            },
+          }
+        : {}),
+      ...(suggestion !== undefined
+        ? {
+            remediation: {
+              summary: suggestion.summary,
+              recommendation: suggestion.recommendation,
+              ...(suggestion.fixedSnippet !== undefined
+                ? { fixedSnippet: suggestion.fixedSnippet }
+                : {}),
             },
           }
         : {}),

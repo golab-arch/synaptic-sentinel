@@ -12,5 +12,6 @@ export * from './pheromone.js';
 export * from './fp-known.js';
 export * from './triage.js';
 export * from './context.js';
+export * from './remediation.js';
 export * from './scan.js';
 export * from './scout-agent.js';

@@ -15,3 +15,4 @@ export * from './anthropic-client.js';
 export * from './brain-agent.js';
 export * from './triage-agent.js';
 export * from './context-agent.js';
+export * from './remediation-agent.js';

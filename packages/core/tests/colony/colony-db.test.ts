@@ -30,7 +30,7 @@ function makePheromone(
 describe('ColonyDb (base en memoria)', () => {
   it('aplica el schema y expone la version', () => {
     const db = ColonyDb.open(':memory:');
-    expect(db.getSchemaVersion()).toBe('3');
+    expect(db.getSchemaVersion()).toBe('4');
     db.close();
   });
 
@@ -255,6 +255,66 @@ describe('ColonyDb - context explanations (schema v3)', () => {
     db.insertScan(scan);
     expect(() =>
       db.insertContextExplanations([makeExplanation(String(scan['id']), { sink: '' })]),
+    ).toThrow();
+    db.close();
+  });
+});
+
+describe('ColonyDb - remediation suggestions (schema v4)', () => {
+  /** Construye una sugerencia de remediacion valida de base. */
+  function makeSuggestion(
+    scanId: string,
+    overrides: Record<string, unknown> = {},
+  ): Record<string, unknown> {
+    return {
+      id: randomUUID(),
+      scanId,
+      fingerprint: 'fp-1',
+      summary: 'parametrizar la consulta',
+      recommendation: 'usar consultas preparadas en vez de concatenar el input',
+      agentId: 'remediation',
+      createdAt: new Date().toISOString(),
+      ...overrides,
+    };
+  }
+
+  it('inserta sugerencias de remediacion y las recupera', () => {
+    const db = ColonyDb.open(':memory:');
+    const scan = makeScan();
+    db.insertScan(scan);
+    db.insertRemediationSuggestions([
+      makeSuggestion(String(scan['id']), { fingerprint: 'fp-a', fixedSnippet: 'q(sql, [id])' }),
+    ]);
+    const suggestions = db.getRemediationSuggestions();
+    expect(suggestions).toHaveLength(1);
+    expect(suggestions[0]?.fingerprint).toBe('fp-a');
+    expect(suggestions[0]?.fixedSnippet).toBe('q(sql, [id])');
+    db.close();
+  });
+
+  it('persiste una sugerencia sin fixedSnippet (columna opcional)', () => {
+    const db = ColonyDb.open(':memory:');
+    const scan = makeScan();
+    db.insertScan(scan);
+    db.insertRemediationSuggestions([makeSuggestion(String(scan['id']))]);
+    expect(db.getRemediationSuggestions()[0]?.fixedSnippet).toBeUndefined();
+    db.close();
+  });
+
+  it('getRemediationSuggestions es vacio sin sugerencias', () => {
+    const db = ColonyDb.open(':memory:');
+    expect(db.getRemediationSuggestions()).toHaveLength(0);
+    db.close();
+  });
+
+  it('rechaza una sugerencia con un campo requerido vacio (validacion zod)', () => {
+    const db = ColonyDb.open(':memory:');
+    const scan = makeScan();
+    db.insertScan(scan);
+    expect(() =>
+      db.insertRemediationSuggestions([
+        makeSuggestion(String(scan['id']), { recommendation: '' }),
+      ]),
     ).toThrow();
     db.close();
   });
