@@ -1390,7 +1390,33 @@ Each entry follows this structure:
 }
 ```
 
+### Entry #52 - DG-049 (A): mensajes de los scouts en ingles (FI-011 etapa 2)
+```json
+{
+  "timestamp": "2026-05-22T16:45:00.000Z",
+  "cycle": 42,
+  "phase": 7,
+  "action": "FEATURE_IMPLEMENTED",
+  "details": {
+    "DG-049": {
+      "title": "Proximo paso del roadmap (FI-011 etapa 2 - mensajes de los scouts en ingles)",
+      "selected": "Option A",
+      "effect": "Segundo increment de FI-011: todos los strings que un scout propio pone en un Finding se migran a ingles. Etapas 3-5 (reporters del tomo, extension VSCode, prompts del Brain Layer) quedan para DGs futuros."
+    },
+    "files": "opengrep/rules/sentinel-baseline.yaml (los 11 message de las reglas SAST). vibe-detect/detectors.ts (title + message de los 6 detectores). trivy/normalizer.ts (glue del mensaje: 'is vulnerable', 'fixed in', 'no fixed version available'). checkov/normalizer.ts (glue ' Guideline:'). checkov/normalizer.test.ts (asercion del glue).",
+    "design": "Solo se traduce el glue/texto propio: Gitleaks/Trivy/Checkov emiten el grueso de su descripcion en ingles nativamente. Los mensajes se propagan al tomo, SARIF y al hover de la extension - un cambio con efecto multiplicador. Comentarios de codigo y header del YAML fuera de alcance.",
+    "verification_real": "pnpm verify verde (test:unit 301) + test:integration verde (9 + 3 gated; el YAML traducido sigue valido para OpenGrep, confirmado por la corrida real) + e2e real: el message del Finding en el tomo exportado sale en ingles.",
+    "tests": "sin tests nuevos (1 asercion de glue actualizada) — total 310 verdes + 3 gated",
+    "checks": "format:check / lint / build / test:unit + test:integration — todos en verde",
+    "commit": "codigo + test en el commit 3159344 feat(scouts); el registro SYNAPTIC de cierre del Cycle 42 se asienta en el commit docs siguiente"
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 47,
+  "complianceScore": 100
+}
+```
+
 ---
 
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-22T16:00:00.000Z*
+*Last Updated: 2026-05-22T16:45:00.000Z*

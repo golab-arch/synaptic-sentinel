@@ -6,11 +6,11 @@
 
 ## Current Cycle
 
-- **Cycle:** 42 — pendiente DG-049 (próximo paso del roadmap)
+- **Cycle:** 43 — pendiente DG-050 (próximo paso del roadmap)
 - **Phase:** 7 — Brain Layer
-- **Status:** Cycle 41 CERRADO; awaiting DG-049
+- **Status:** Cycle 42 CERRADO; awaiting DG-050
 - **Compliance:** 100%
-- **Synaptic Strength:** 46
+- **Synaptic Strength:** 47
 
 ## Cycles cerrados
 
@@ -26,10 +26,11 @@
 - **Cycle 39** — separación `test:unit` / `test:integration` (DG-046 A) — `eef0d32` ✅
 - **Cycle 40** — `ruleId` canónico de OpenGrep (DG-047 A) — `44118ca` ✅
 - **Cycle 41** — salida de la CLI en inglés, FI-011 etapa 1 (DG-048 A) — `cccb834` ✅
+- **Cycle 42** — mensajes de los scouts en inglés, FI-011 etapa 2 (DG-049 A) — `3159344` ✅
 
 ## Estado del repo
 
-- 60 commits en `main` · 7 paquetes pnpm
+- 62 commits en `main` · 7 paquetes pnpm
 - **5 scouts**: OpenGrep (**11 reglas SAST**, `ruleId` canónico) + Gitleaks + Trivy + Checkov + Vibe-Detect + `colony.db` (v4) + `Coordinator` (stages 1-2, kill-switch) + `reporters`
 - CLI: `scan` (export **JSON / HTML / SARIF**, **`--fail-on`** gate de CI) y `triage` con **salida verbose en inglés**, `mark-fp`
 - Extensión VSCode: `Scan/Triage/Set API Key`, hover, Code Actions, status bar, **pseudoterminal verbose**, **webview "tomo vivo"**
@@ -39,18 +40,18 @@
 
 ## Notas / deuda
 
-- **FI-011** — migración a inglés: **etapa 1 (CLI) COMPLETA**; restan etapas 2 (reglas de scouts), 3 (reporters del tomo), 4 (extensión VSCode), 5 (prompts del Brain Layer). Principio: todo string de salida **nuevo** se escribe en inglés.
+- **FI-011** — migración a inglés: **etapas 1 (CLI) y 2 (mensajes de scouts) COMPLETAS**; restan etapas 3 (reporters del tomo), 4 (extensión VSCode), 5 (prompts del Brain Layer).
 - **FI-003** — el catálogo SAST quedó en 11 reglas pattern-based; resta el **taint analysis**.
 - Directorios extraños en `packages/vscode-extension/` gitignoreados (DG-038); siguen en disco — el usuario puede eliminarlos.
-- FI abiertos: FI-001 (driver SQLite, diferido), FI-003 (taint), FI-004 (cache de scanners), FI-008 (.vsix), FI-009 (cliente LLM), FI-011 (etapas 2-5).
+- FI abiertos: FI-001 (driver SQLite, diferido), FI-003 (taint), FI-004 (cache de scanners), FI-008 (.vsix), FI-009 (cliente LLM), FI-011 (etapas 3-5).
 - **Instrucción permanente del usuario** (desde DG-045): cada DG futuro debe incluir mi recomendación explícita sobre las opciones.
 
 ## Decision Gate abierto
 
-- DG-049 — próximo paso del roadmap (a presentar)
+- DG-050 — próximo paso del roadmap (a presentar)
 
 ## Last Entry
 
-Entry #51 — FEATURE_IMPLEMENTED (DG-048 A) — 2026-05-22 — SUCCESS
+Entry #52 — FEATURE_IMPLEMENTED (DG-049 A) — 2026-05-22 — SUCCESS
 
 ---
