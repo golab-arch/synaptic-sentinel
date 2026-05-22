@@ -2,7 +2,7 @@
   "name": "@synaptic-sentinel/vscode-extension",
   "displayName": "Synaptic Sentinel",
   "version": "0.0.0",
-  "description": "Extension VSCode de Synaptic Sentinel - auditoria agentica de seguridad en el IDE.",
+  "description": "VSCode extension for Synaptic Sentinel — agentic security auditing in the IDE.",
   "license": "Apache-2.0",
   "private": true,
   "publisher": "golab",
@@ -49,7 +49,7 @@
         "synaptic-sentinel.cliPath": {
           "type": "string",
           "default": "",
-          "description": "Ruta al entry de la CLI (cli/dist/index.js). Vacio = se resuelve junto a la extension."
+          "description": "Path to the CLI entry (cli/dist/index.js). Empty = resolved next to the extension."
         }
       }
     }

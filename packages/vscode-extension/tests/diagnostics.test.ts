@@ -76,7 +76,7 @@ describe('findingToDiagnosticInput', () => {
         triage: { classification: 'false_positive', confidence: 0.9, rationale: 'sin riesgo' },
       }),
     );
-    expect(input.message).toContain('[triage: falso positivo]');
+    expect(input.message).toContain('[triage: false positive]');
   });
 });
 
@@ -92,8 +92,8 @@ describe('findingHoverMarkdown', () => {
   it('no incluye secciones del Brain Layer si el hallazgo no fue procesado', () => {
     const md = findingHoverMarkdown(makeFinding());
     expect(md).not.toContain('Triage:');
-    expect(md).not.toContain('Contexto:');
-    expect(md).not.toContain('Remediacion:');
+    expect(md).not.toContain('Context:');
+    expect(md).not.toContain('Remediation:');
   });
 
   it('incluye triage, contexto y remediacion cuando estan presentes', () => {
@@ -113,11 +113,11 @@ describe('findingHoverMarkdown', () => {
         },
       }),
     );
-    expect(md).toContain('**Triage:** verdadero positivo');
+    expect(md).toContain('**Triage:** true positive');
     expect(md).toContain('riesgo real');
-    expect(md).toContain('**Contexto:** eval sobre entrada del usuario');
+    expect(md).toContain('**Context:** eval sobre entrada del usuario');
     expect(md).toContain('Sink: eval()');
-    expect(md).toContain('**Remediacion:** reemplazar eval por un parser seguro');
+    expect(md).toContain('**Remediation:** reemplazar eval por un parser seguro');
     expect(md).toContain('JSON.parse(req.query.expr)');
   });
 
@@ -130,7 +130,7 @@ describe('findingHoverMarkdown', () => {
         },
       }),
     );
-    expect(md).toContain('**Remediacion:** rotar el secreto');
+    expect(md).toContain('**Remediation:** rotar el secreto');
     expect(md).not.toContain('```');
   });
 });
@@ -155,7 +155,7 @@ describe('remediationClipboardText', () => {
     expect(text).toContain('src/a.js:7');
     expect(text).toContain('reemplazar eval por un parser seguro');
     expect(text).toContain('usar JSON.parse en vez de eval');
-    expect(text).toContain('Codigo sugerido:');
+    expect(text).toContain('Suggested code:');
     expect(text).toContain('JSON.parse(input)');
   });
 
@@ -166,15 +166,15 @@ describe('remediationClipboardText', () => {
       }),
     );
     expect(text).toContain('rotar el secreto');
-    expect(text).not.toContain('Codigo sugerido:');
+    expect(text).not.toContain('Suggested code:');
   });
 });
 
 describe('triageLabel', () => {
   it('traduce las clasificaciones de triage', () => {
-    expect(triageLabel('true_positive')).toBe('verdadero positivo');
-    expect(triageLabel('false_positive')).toBe('falso positivo');
-    expect(triageLabel('inconclusive')).toBe('inconcluso');
+    expect(triageLabel('true_positive')).toBe('true positive');
+    expect(triageLabel('false_positive')).toBe('false positive');
+    expect(triageLabel('inconclusive')).toBe('inconclusive');
   });
 
   it('devuelve la clasificacion cruda si es desconocida', () => {

@@ -77,13 +77,13 @@ function renderCard(finding: ExtensionFinding): string {
   }
   if (finding.context !== undefined) {
     parts.push(
-      `<div class="brain"><strong>Contexto:</strong> ` +
+      `<div class="brain"><strong>Context:</strong> ` +
         `${escapeHtml(finding.context.summary)}</div>`,
     );
   }
   if (finding.remediation !== undefined) {
     parts.push(
-      `<div class="brain"><strong>Remediacion:</strong> ` +
+      `<div class="brain"><strong>Remediation:</strong> ` +
         `${escapeHtml(finding.remediation.summary)}</div>`,
     );
   }
@@ -111,7 +111,7 @@ export function renderTomoWebviewHtml(
 
   let body: string;
   if (findings.length === 0) {
-    body = '<p class="empty">Ejecuta "Scan Workspace" para ver los hallazgos aqui.</p>';
+    body = '<p class="empty">Run "Scan Workspace" to see findings here.</p>';
   } else {
     const cards: string[] = [];
     for (const severity of SEVERITY_ORDER) {
@@ -120,8 +120,8 @@ export function renderTomoWebviewHtml(
       }
     }
     body =
-      `<p class="meta">${String(findings.length)} hallazgo(s) · ` +
-      'click para abrir en el editor</p>' +
+      `<p class="meta">${String(findings.length)} finding(s) · ` +
+      'click to open in the editor</p>' +
       cards.join('');
   }
 
@@ -136,7 +136,7 @@ export function renderTomoWebviewHtml(
     `});}`;
 
   return `<!doctype html>
-<html lang="es">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Content-Security-Policy" content="${csp}">

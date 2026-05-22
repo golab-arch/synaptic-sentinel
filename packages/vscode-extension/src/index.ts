@@ -100,25 +100,25 @@ export function activate(context: vscode.ExtensionContext): void {
 /** Estado ocioso del status bar. */
 function setStatusIdle(statusBar: vscode.StatusBarItem): void {
   statusBar.text = '$(shield) Sentinel';
-  statusBar.tooltip = 'Synaptic Sentinel: escanear el workspace';
+  statusBar.tooltip = 'Synaptic Sentinel: scan the workspace';
 }
 
 /** Estado "escaneando" del status bar. */
 function setStatusScanning(statusBar: vscode.StatusBarItem): void {
-  statusBar.text = '$(sync~spin) Sentinel: escaneando...';
-  statusBar.tooltip = 'Synaptic Sentinel esta escaneando el workspace';
+  statusBar.text = '$(sync~spin) Sentinel: scanning...';
+  statusBar.tooltip = 'Synaptic Sentinel is scanning the workspace';
 }
 
 /** Estado con el resultado del ultimo scan. */
 function setStatusResult(statusBar: vscode.StatusBarItem, count: number): void {
-  statusBar.text = `$(shield) Sentinel: ${String(count)} hallazgo(s)`;
-  statusBar.tooltip = 'Synaptic Sentinel: escanear de nuevo';
+  statusBar.text = `$(shield) Sentinel: ${String(count)} finding(s)`;
+  statusBar.tooltip = 'Synaptic Sentinel: scan again';
 }
 
 /** Estado "triando" del status bar. */
 function setStatusTriaging(statusBar: vscode.StatusBarItem): void {
-  statusBar.text = '$(sync~spin) Sentinel: triando...';
-  statusBar.tooltip = 'Synaptic Sentinel esta triando los hallazgos';
+  statusBar.text = '$(sync~spin) Sentinel: triaging...';
+  statusBar.tooltip = 'Synaptic Sentinel is triaging the findings';
 }
 
 /** Convierte el nivel agnostico en la severidad de VSCode. */
@@ -187,23 +187,23 @@ function provideCodeActions(
   const actions: vscode.CodeAction[] = [];
   for (const finding of matches) {
     const markFp = new vscode.CodeAction(
-      `Synaptic Sentinel: marcar "${finding.title}" como falso positivo`,
+      `Synaptic Sentinel: mark "${finding.title}" as a false positive`,
       vscode.CodeActionKind.QuickFix,
     );
     markFp.command = {
       command: COMMAND_MARK_FP,
-      title: 'Marcar como falso positivo',
+      title: 'Mark as false positive',
       arguments: [finding.fingerprint],
     };
     actions.push(markFp);
     if (finding.remediation !== undefined) {
       const copy = new vscode.CodeAction(
-        `Synaptic Sentinel: copiar remediacion sugerida de "${finding.title}"`,
+        `Synaptic Sentinel: copy suggested remediation for "${finding.title}"`,
         vscode.CodeActionKind.QuickFix,
       );
       copy.command = {
         command: COMMAND_COPY_REMEDIATION,
-        title: 'Copiar remediacion sugerida',
+        title: 'Copy suggested remediation',
         arguments: [finding.fingerprint],
       };
       actions.push(copy);
@@ -240,7 +240,7 @@ function copyRemediation(fingerprint: string): void {
   if (text === undefined) return;
   void vscode.env.clipboard.writeText(text);
   void vscode.window.showInformationMessage(
-    'Synaptic Sentinel: remediacion sugerida copiada al portapapeles.',
+    'Synaptic Sentinel: suggested remediation copied to the clipboard.',
   );
 }
 
@@ -253,9 +253,7 @@ async function runScanCommand(
 ): Promise<void> {
   const folder = vscode.workspace.workspaceFolders?.[0];
   if (folder === undefined) {
-    void vscode.window.showWarningMessage(
-      'Synaptic Sentinel: abre una carpeta de proyecto para escanear.',
-    );
+    void vscode.window.showWarningMessage('Synaptic Sentinel: open a project folder to scan.');
     return;
   }
   const workspacePath = folder.uri.fsPath;
@@ -266,7 +264,7 @@ async function runScanCommand(
   await vscode.window.withProgress(
     {
       location: vscode.ProgressLocation.Notification,
-      title: 'Synaptic Sentinel: escaneando el workspace...',
+      title: 'Synaptic Sentinel: scanning the workspace...',
       cancellable: true,
     },
     async (_progress, token) => {
@@ -289,12 +287,12 @@ async function runScanCommand(
         tomoView?.update(workspacePath, tomo.findings);
         setStatusResult(statusBar, tomo.findings.length);
         void vscode.window.showInformationMessage(
-          `Synaptic Sentinel: ${String(tomo.findings.length)} hallazgo(s) en el workspace.`,
+          `Synaptic Sentinel: ${String(tomo.findings.length)} finding(s) in the workspace.`,
         );
       } catch (err) {
         setStatusIdle(statusBar);
         const message = err instanceof Error ? err.message : String(err);
-        void vscode.window.showErrorMessage(`Synaptic Sentinel: el scan fallo. ${message}`);
+        void vscode.window.showErrorMessage(`Synaptic Sentinel: the scan failed. ${message}`);
       }
     },
   );
@@ -318,12 +316,12 @@ async function markFalsePositive(
     tomoView?.update(workspacePath, remaining);
     setStatusResult(statusBar, remaining.length);
     void vscode.window.showInformationMessage(
-      'Synaptic Sentinel: hallazgo marcado como falso positivo.',
+      'Synaptic Sentinel: finding marked as a false positive.',
     );
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     void vscode.window.showErrorMessage(
-      `Synaptic Sentinel: no se pudo marcar el falso positivo. ${message}`,
+      `Synaptic Sentinel: could not mark the false positive. ${message}`,
     );
   }
 }
@@ -335,8 +333,8 @@ async function markFalsePositive(
  */
 async function setApiKey(secrets: vscode.SecretStorage): Promise<void> {
   const key = await vscode.window.showInputBox({
-    title: 'Synaptic Sentinel — API key de Anthropic (BYOK)',
-    prompt: 'Se guarda cifrada en el almacen de secretos del sistema. Vacio = borrar.',
+    title: 'Synaptic Sentinel — Anthropic API key (BYOK)',
+    prompt: 'Stored encrypted in the system secret store. Empty = delete.',
     password: true,
     ignoreFocusOut: true,
   });
@@ -344,11 +342,11 @@ async function setApiKey(secrets: vscode.SecretStorage): Promise<void> {
   const trimmed = key.trim();
   if (trimmed === '') {
     await secrets.delete(SECRET_API_KEY);
-    void vscode.window.showInformationMessage('Synaptic Sentinel: API key eliminada.');
+    void vscode.window.showInformationMessage('Synaptic Sentinel: API key deleted.');
     return;
   }
   await secrets.store(SECRET_API_KEY, trimmed);
-  void vscode.window.showInformationMessage('Synaptic Sentinel: API key guardada.');
+  void vscode.window.showInformationMessage('Synaptic Sentinel: API key saved.');
 }
 
 /** Maneja el comando `Triage Findings`: corre el Brain Layer sobre el scan. */
@@ -361,24 +359,22 @@ async function triageWorkspace(
 ): Promise<void> {
   const folder = vscode.workspace.workspaceFolders?.[0];
   if (folder === undefined) {
-    void vscode.window.showWarningMessage(
-      'Synaptic Sentinel: abre una carpeta de proyecto para triar.',
-    );
+    void vscode.window.showWarningMessage('Synaptic Sentinel: open a project folder to triage.');
     return;
   }
   if (lastScan === undefined) {
     void vscode.window.showWarningMessage(
-      'Synaptic Sentinel: ejecuta "Scan Workspace" antes de triar.',
+      'Synaptic Sentinel: run "Scan Workspace" before triaging.',
     );
     return;
   }
   const apiKey = await secrets.get(SECRET_API_KEY);
   if (apiKey === undefined || apiKey === '') {
     const pick = await vscode.window.showWarningMessage(
-      'Synaptic Sentinel: falta la API key de Anthropic (BYOK).',
-      'Configurar API key',
+      'Synaptic Sentinel: the Anthropic API key (BYOK) is missing.',
+      'Configure API key',
     );
-    if (pick === 'Configurar API key') await setApiKey(secrets);
+    if (pick === 'Configure API key') await setApiKey(secrets);
     return;
   }
 
@@ -391,7 +387,7 @@ async function triageWorkspace(
   await vscode.window.withProgress(
     {
       location: vscode.ProgressLocation.Notification,
-      title: 'Synaptic Sentinel: triando los hallazgos...',
+      title: 'Synaptic Sentinel: triaging the findings...',
       cancellable: true,
     },
     async (_progress, token) => {
@@ -417,11 +413,11 @@ async function triageWorkspace(
         renderDiagnostics(diagnostics, workspacePath, tomo.findings);
         tomoView?.update(workspacePath, tomo.findings);
         setStatusResult(statusBar, tomo.findings.length);
-        void vscode.window.showInformationMessage('Synaptic Sentinel: triage completado.');
+        void vscode.window.showInformationMessage('Synaptic Sentinel: triage complete.');
       } catch (err) {
         setStatusResult(statusBar, previousCount);
         const message = err instanceof Error ? err.message : String(err);
-        void vscode.window.showErrorMessage(`Synaptic Sentinel: el triage fallo. ${message}`);
+        void vscode.window.showErrorMessage(`Synaptic Sentinel: the triage failed. ${message}`);
       }
     },
   );

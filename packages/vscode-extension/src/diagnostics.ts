@@ -37,9 +37,9 @@ export function diagnosticLevelForSeverity(severity: string): DiagnosticLevel {
 
 /** Etiqueta legible de una clasificacion de triage. */
 export function triageLabel(classification: string): string {
-  if (classification === 'true_positive') return 'verdadero positivo';
-  if (classification === 'false_positive') return 'falso positivo';
-  if (classification === 'inconclusive') return 'inconcluso';
+  if (classification === 'true_positive') return 'true positive';
+  if (classification === 'false_positive') return 'false positive';
+  if (classification === 'inconclusive') return 'inconclusive';
   return classification;
 }
 
@@ -75,30 +75,30 @@ export function findingHoverMarkdown(finding: ExtensionFinding): string {
   const lines: string[] = [
     `**Synaptic Sentinel** — ${finding.title}`,
     '',
-    `Severidad: \`${finding.severity}\` · Categoria: \`${finding.category}\` · ` +
-      `Regla: \`${finding.ruleId}\``,
+    `Severity: \`${finding.severity}\` · Category: \`${finding.category}\` · ` +
+      `Rule: \`${finding.ruleId}\``,
   ];
   const triage = finding.triage;
   if (triage !== undefined) {
     lines.push(
       '',
       `**Triage:** ${triageLabel(triage.classification)} ` +
-        `(confianza ${triage.confidence.toFixed(2)}) — ${triage.rationale}`,
+        `(confidence ${triage.confidence.toFixed(2)}) — ${triage.rationale}`,
     );
   }
   const context = finding.context;
   if (context !== undefined) {
     lines.push(
       '',
-      `**Contexto:** ${context.summary}`,
-      `- Entrada: ${context.entryPoint}`,
+      `**Context:** ${context.summary}`,
+      `- Entry point: ${context.entryPoint}`,
       `- Sink: ${context.sink}`,
-      `- Exposicion: ${context.exposure}`,
+      `- Exposure: ${context.exposure}`,
     );
   }
   const remediation = finding.remediation;
   if (remediation !== undefined) {
-    lines.push('', `**Remediacion:** ${remediation.summary}`, '', remediation.recommendation);
+    lines.push('', `**Remediation:** ${remediation.summary}`, '', remediation.recommendation);
     if (remediation.fixedSnippet !== undefined) {
       lines.push('', '```', remediation.fixedSnippet, '```');
     }
@@ -115,15 +115,15 @@ export function remediationClipboardText(finding: ExtensionFinding): string | un
   if (remediation === undefined) return undefined;
   const loc = `${finding.location.path}:${String(finding.location.startLine)}`;
   const parts = [
-    'Remediacion sugerida por Synaptic Sentinel',
-    `Hallazgo: ${finding.title} (${loc})`,
+    'Remediation suggested by Synaptic Sentinel',
+    `Finding: ${finding.title} (${loc})`,
     '',
     remediation.summary,
     '',
     remediation.recommendation,
   ];
   if (remediation.fixedSnippet !== undefined) {
-    parts.push('', 'Codigo sugerido:', remediation.fixedSnippet);
+    parts.push('', 'Suggested code:', remediation.fixedSnippet);
   }
   return parts.join('\n');
 }

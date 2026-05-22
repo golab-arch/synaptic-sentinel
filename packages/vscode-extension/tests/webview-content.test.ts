@@ -45,7 +45,7 @@ describe('renderTomoWebviewHtml', () => {
       [makeFinding({ severity: 'low' }), makeFinding({ severity: 'critical', title: 'Critico' })],
       opts,
     );
-    expect(html).toContain('2 hallazgo(s)');
+    expect(html).toContain('2 finding(s)');
     expect(html).toContain('data-path="src/a.js"');
     expect(html).toContain('data-line="4"');
     // critical se renderiza antes que low (orden por severidad).
@@ -76,7 +76,7 @@ describe('renderTomoWebviewHtml', () => {
     );
     expect(html).toContain('Triage:');
     expect(html).toContain('riesgo real');
-    expect(html).toContain('Remediacion:');
+    expect(html).toContain('Remediation:');
     expect(html).toContain('parametrizar la consulta');
   });
 });

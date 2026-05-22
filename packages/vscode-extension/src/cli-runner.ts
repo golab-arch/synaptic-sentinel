@@ -63,7 +63,7 @@ function assertCliOk(result: CliProcessResult, command: string): void {
   if (result.code === 0) return;
   const detail = result.stderr.trim();
   throw new Error(
-    `La CLI (${command}) termino con codigo ${String(result.code)}.` +
+    `The CLI (${command}) exited with code ${String(result.code)}.` +
       (detail !== '' ? ` ${detail}` : ''),
   );
 }
