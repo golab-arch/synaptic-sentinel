@@ -1682,5 +1682,34 @@ Each entry follows this structure:
 
 ---
 
+### Entry #63 - DG-059 (A): sub-comando `scanners install` turnkey (CIERRA FI-008); cierra Cycle 52
+```json
+{
+  "timestamp": "2026-05-23T00:30:00.000Z",
+  "cycle": 52,
+  "phase": 8,
+  "action": "FEATURE_IMPLEMENTED",
+  "details": {
+    "DG-059": {
+      "title": "Proximo paso del roadmap (sub-comando scanners install turnkey - cierra FI-008)",
+      "selected": "Option A",
+      "effect": "Cierra el ultimo item de FI-008 (auto-instalacion on-demand de scanners). La CLI gana 'scanners install [--global]' que vive dentro del bundle de la extension; la extension gana el comando 'Synaptic Sentinel: Install Scanners'. FI-008 RESUELTO."
+    },
+    "files": "cli/src/scanners/install.ts (NUEVO; logica de install movida desde scripts/install-scanners.ts: download + SHA-256 + extract + chmod). cli/src/scanners/scanners.manifest.ts (NUEVO; manifest convertido de JSON a const TS tipado para evitar copia de asset al bundle/dist). cli/src/commands/scanners-install.ts (NUEVO; CLI sub-comando). cli/src/index.ts (dispatch 'scanners install' + USAGE + flag --global). cli/src/commands/scan.ts (warning de scanners faltantes apunta al nuevo sub-comando). cli/tests/scanners/install.test.ts (NUEVO/movido; 5 unit tests). vscode-extension/package.json (comando 'synaptic-sentinel.installScanners'). vscode-extension/src/cli-runner.ts (runCliScannersInstall: spawnea con NODE_OPTIONS=--use-system-ca por TLS). vscode-extension/src/index.ts (registra y wirea el comando). scouts/tests/{opengrep,gitleaks,trivy,checkov}/integration.test.ts (importan SCANNERS_MANIFEST en vez de readFileSync). scouts/src/{4 scouts}/*-scout.ts (comentarios actualizados). vitest.config.ts (drop scripts/** globs). package.json raiz (scanners:install -> node packages/cli/dist/index.js scanners install; typecheck -> solo 'tsc -b'). ELIMINADOS: scripts/install-scanners.{ts,test.ts}, scripts/scanners.manifest.json, scripts/tsconfig.json (logica/datos absorbidos por cli).",
+    "design": "La logica de instalacion baja al paquete cli para que viaje DENTRO del bundle de la extension: misma logica para dev (`pnpm scanners:install`) y para producto enviado (extension). El manifest pasa de JSON a const TS - evita el ceremonial de copiar el JSON al dist/ tras `tsc -b` y al bundle tras esbuild (la const TS se inlinea naturalmente en ambos casos). Los 4 tests de integracion de scouts comparten ese unico const tipado en vez de leer JSON con readFileSync. La extension dispara el install via el pseudoterminal verbose para que el usuario VEA el download.",
+    "verification_real": "pnpm verify verde (test:unit 311; los 5 tests movidos siguen verdes en cli/tests/scanners/install.test.ts). test:integration verde (9 passed; los 4 scout integration tests siguen funcionando con el nuevo import). E2E REAL en serio: 'node packages/vscode-extension/dist/cli.mjs scanners install --global' DESCARGO los 4 scanners (opengrep / gitleaks / trivy / checkov) desde GitHub Releases, verifico el SHA-256 de cada uno, extrajo los archivos comprimidos (Expand-Archive en Windows) y los instalo en ~/.synaptic-sentinel/scanners. Segundo run inmediato: los 4 'cache OK' (idempotente). El .vsix repackagea limpio (9 archivos, 87 KB) con el sub-comando dentro del bundle.",
+    "tests": "0 tests nuevos (5 movidos, net 0) - total 320 verdes + 3 gated",
+    "checks": "format:check / lint / build / test:unit / test:integration / vsce package - todos en verde; e2e con red real exitoso",
+    "commit": "feature en el commit 604e4e1 feat(cli,vscode-extension); el registro SYNAPTIC de cierre del Cycle 52 se asienta en el commit docs siguiente",
+    "fi_008_close": "FI-008 RESUELTO. Sub-increments encadenados: DG-055 (runtime de Node del extension host) + DG-056 (manifest del .vsix) + DG-057 (CLI bundleada en la extension) + DG-058 (.vsix producido y validado) + DG-059 (auto-instalacion turnkey de scanners). El producto es ahora una experiencia turnkey: instalar el .vsix -> 'Install Scanners' (una vez) -> 'Scan Workspace'. Phase 8 (Distribucion) COMPLETA."
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 57,
+  "complianceScore": 100
+}
+```
+
+---
+
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-22T23:55:00.000Z*
+*Last Updated: 2026-05-23T00:30:00.000Z*
