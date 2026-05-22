@@ -12,4 +12,5 @@ export const PACKAGE_NAME = '@synaptic-sentinel/reporters';
 export * from './tomo.js';
 export * from './json-reporter.js';
 export * from './html-reporter.js';
+export * from './sarif-reporter.js';
 export * from './console-reporter.js';

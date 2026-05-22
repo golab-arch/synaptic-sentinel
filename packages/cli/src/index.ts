@@ -16,6 +16,7 @@ Uso:
                          [--gitleaks-bin <ruta>] [--trivy-bin <ruta>]
                          [--checkov-bin <ruta>] [--no-color]
                          [--export <archivo>] [--export-html <archivo>]
+                         [--export-sarif <archivo>]
   synaptic-sentinel mark-fp --fingerprint <fp> [--path <dir>] [--reason <texto>]
   synaptic-sentinel triage [--path <dir>] [--limit <n>]
 
@@ -33,6 +34,7 @@ Opciones:
   --no-color             Desactiva el color ANSI de la salida del scan
   --export <archivo>     Exporta el tomo del scan en JSON al archivo indicado
   --export-html <arch.>  Exporta el tomo del scan en HTML al archivo indicado
+  --export-sarif <arch.> Exporta el tomo del scan en SARIF 2.1.0 (CI / GitHub)
   --fingerprint <fp>     Huella del hallazgo a marcar (comando mark-fp)
   --reason <texto>       Motivo del descarte (comando mark-fp)
   --limit <n>            Tope de hallazgos a triar (comando triage; por defecto 25)
@@ -53,6 +55,7 @@ async function main(): Promise<void> {
       'no-color': { type: 'boolean' },
       export: { type: 'string' },
       'export-html': { type: 'string' },
+      'export-sarif': { type: 'string' },
       fingerprint: { type: 'string' },
       reason: { type: 'string' },
       limit: { type: 'string' },
@@ -76,6 +79,7 @@ async function main(): Promise<void> {
       ...(values['no-color'] === true ? { noColor: true } : {}),
       ...(values.export !== undefined ? { exportPath: values.export } : {}),
       ...(values['export-html'] !== undefined ? { exportHtmlPath: values['export-html'] } : {}),
+      ...(values['export-sarif'] !== undefined ? { exportSarifPath: values['export-sarif'] } : {}),
     });
     return;
   }

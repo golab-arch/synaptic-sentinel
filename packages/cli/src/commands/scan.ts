@@ -17,6 +17,7 @@ import {
   renderScoutLine,
   renderTomoHtml,
   renderTomoJson,
+  renderTomoSarif,
 } from '@synaptic-sentinel/reporters';
 import { Spinner } from '../spinner.js';
 
@@ -39,6 +40,8 @@ export interface ScanCommandOptions {
   readonly exportPath?: string;
   /** Ruta donde exportar el tomo en HTML, si se provee. */
   readonly exportHtmlPath?: string;
+  /** Ruta donde exportar el tomo en SARIF 2.1.0, si se provee. */
+  readonly exportSarifPath?: string;
   /** Desactiva el color ANSI (tambien lo desactivan `NO_COLOR` y un stdout no-TTY). */
   readonly noColor?: boolean;
 }
@@ -232,7 +235,11 @@ export async function runScanCommand(options: ScanCommandOptions): Promise<numbe
       .map((pheromone) => FindingSchema.parse(pheromone.payload));
     console.log(renderScanReveal(outcome, findings, color));
 
-    if (options.exportPath !== undefined || options.exportHtmlPath !== undefined) {
+    if (
+      options.exportPath !== undefined ||
+      options.exportHtmlPath !== undefined ||
+      options.exportSarifPath !== undefined
+    ) {
       // El tomo se enriquece con los veredictos de triage, las explicaciones
       // de contexto y las sugerencias de remediacion ya persistidas (de una
       // corrida previa de `triage`).
@@ -255,6 +262,11 @@ export async function runScanCommand(options: ScanCommandOptions): Promise<numbe
         const target = resolve(options.exportHtmlPath);
         writeFileSync(target, renderTomoHtml(tomo));
         console.log(`Tomo exportado (HTML): ${target}`);
+      }
+      if (options.exportSarifPath !== undefined) {
+        const target = resolve(options.exportSarifPath);
+        writeFileSync(target, renderTomoSarif(tomo));
+        console.log(`Tomo exportado (SARIF): ${target}`);
       }
     }
     return 0;
