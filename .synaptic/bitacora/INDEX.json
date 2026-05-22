@@ -2,7 +2,7 @@
   "version": "1.0",
   "projectId": "sentinel-1779304140796",
   "projectName": "SENTINEL",
-  "totalCycles": 30,
+  "totalCycles": 31,
   "currentTomeId": 1,
   "cyclesPerTome": 50,
   "tomes": [
@@ -16,10 +16,10 @@
         "from": "2026-05-20T19:09:00.852Z",
         "to": ""
       },
-      "summary": "Cycles 1-30: 5 scouts (OpenGrep SAST, Gitleaks Secrets, Trivy SCA, Checkov IaC, Vibe-Detect VibeCoded), Coordinator stages 1-2 con kill-switch por scout, colony.db (schema v4), CLI con salida verbose/dinamica, reporters JSON+HTML+consola, extension VSCode con el Brain Layer surfaceado, Brain Layer COMPLETO con 3 agentes wired (Triage + Context + Remediation, llamada LLM real verificada), y ONBOARDING.md.",
-      "keyDecisions": ["DG-001", "DG-002", "DG-003", "DG-004", "DG-005", "DG-006", "DG-007", "DG-008", "DG-009", "DG-010", "DG-011", "DG-012", "DG-013", "DG-014", "DG-015", "DG-016", "DG-017", "DG-018", "DG-019", "DG-020", "DG-021", "DG-022", "DG-023", "DG-024", "DG-025", "DG-026", "DG-027", "DG-028", "DG-029", "DG-030", "DG-031", "DG-032", "DG-033", "DG-034", "DG-035", "DG-036", "DG-037", "Q1"],
-      "cycleCount": 30,
-      "successCount": 30,
+      "summary": "Cycles 1-31: 5 scouts (OpenGrep SAST, Gitleaks Secrets, Trivy SCA, Checkov IaC, Vibe-Detect VibeCoded), Coordinator stages 1-2 con kill-switch por scout, colony.db (schema v4), CLI con salida verbose/dinamica, reporters JSON+HTML+consola, extension VSCode con el Brain Layer surfaceado y pseudoterminal verbose, Brain Layer COMPLETO con 3 agentes wired (Triage + Context + Remediation, llamada LLM real verificada), y ONBOARDING.md.",
+      "keyDecisions": ["DG-001", "DG-002", "DG-003", "DG-004", "DG-005", "DG-006", "DG-007", "DG-008", "DG-009", "DG-010", "DG-011", "DG-012", "DG-013", "DG-014", "DG-015", "DG-016", "DG-017", "DG-018", "DG-019", "DG-020", "DG-021", "DG-022", "DG-023", "DG-024", "DG-025", "DG-026", "DG-027", "DG-028", "DG-029", "DG-030", "DG-031", "DG-032", "DG-033", "DG-034", "DG-035", "DG-036", "DG-037", "DG-038", "Q1"],
+      "cycleCount": 31,
+      "successCount": 31,
       "failureCount": 0,
       "jsonPath": "tomes/tome-001.json",
       "mdPath": "tomes/tome-001.md",
@@ -64,13 +64,14 @@
     { "id": "DG-035", "title": "Proximo paso del roadmap (documento de onboarding)", "selected": "A", "cycle": 28, "date": "2026-05-21" },
     { "id": "DG-036", "title": "Proximo paso del roadmap (kill-switch del Coordinator)", "selected": "B", "cycle": 29, "date": "2026-05-21" },
     { "id": "DG-037", "title": "Salida verbose dinamica del scan (increment 1: CLI)", "selected": "B", "cycle": 30, "date": "2026-05-21" },
+    { "id": "DG-038", "title": "UX verbose increment 2: pseudoterminal en la extension", "selected": "B", "cycle": 31, "date": "2026-05-21" },
     { "id": "Q1", "title": "Package manager", "selected": "pnpm", "cycle": 1, "date": "2026-05-20" }
   ],
   "metrics": {
-    "totalDecisions": 38,
+    "totalDecisions": 39,
     "optionDistribution": {
       "A": 22,
-      "B": 16,
+      "B": 17,
       "C": 0
     },
     "overallSuccessRate": 100,
@@ -82,8 +83,8 @@
       "4": 3,
       "5": 5,
       "6": 4,
-      "7": 14
+      "7": 15
     }
   },
-  "lastUpdated": "2026-05-21T21:45:00.000Z"
+  "lastUpdated": "2026-05-21T22:00:00.000Z"
 }

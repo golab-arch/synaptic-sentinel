@@ -4,7 +4,7 @@
     "fullName": "Synaptic Sentinel",
     "description": "Toolkit OSS de auditoria agentica de seguridad + capa premium LLM, vibe-coding-native, para la era del codigo generado por IA. Tercer producto de la familia Synaptic.",
     "currentPhase": "brain-layer",
-    "overallProgress": "Cycles 1-30 CERRADOS. 5 scouts (OpenGrep SAST, Gitleaks Secrets, Trivy SCA, Checkov IaC, Vibe-Detect VibeCoded) + Coordinator stages 1-2 con kill-switch por scout + CLI con salida verbose/dinamica (banner + drip por scout + reveal coloreado) + reporters JSON+HTML+consola + extension VSCode (Brain Layer surfaceado) + Brain Layer con 3 agentes wired (Triage + Context + Remediation, LLM real verificada) + ONBOARDING.md. 267 tests verdes + 3 gated."
+    "overallProgress": "Cycles 1-31 CERRADOS. 5 scouts (OpenGrep SAST, Gitleaks Secrets, Trivy SCA, Checkov IaC, Vibe-Detect VibeCoded) + Coordinator stages 1-2 con kill-switch por scout + CLI con salida verbose/dinamica + reporters JSON+HTML+consola + extension VSCode (Brain Layer surfaceado + pseudoterminal verbose) + Brain Layer con 3 agentes wired (Triage + Context + Remediation, LLM real verificada) + ONBOARDING.md. 273 tests verdes + 3 gated."
   },
   "decisions": [
     { "id": "DG-001", "title": "Estructura fisica del monorepo OSS/Pro", "selected": "B", "date": "2026-05-20", "summary": "Monorepo unico con workspaces marcados OSS/Pro + publish-oss.ts allowlist", "rationale": "Velocidad solo founder; refactors triviales; anti-filtracion en un script auditable" },
@@ -44,6 +44,7 @@
     { "id": "DG-035", "title": "Proximo paso del roadmap (documento de onboarding)", "selected": "A", "date": "2026-05-21", "summary": "ONBOARDING.md (guia completa de instalacion/uso/desarrollo) + README al dia + docs/colony-db.md con las tablas v2-v4. Deliverable del roadmap 'Output & Polish'", "rationale": "Con la extension F5-testeable, documentar el uso era el paso de menor riesgo y un deliverable real del roadmap; vuelve el producto usable sin leer el codigo" },
     { "id": "DG-036", "title": "Proximo paso del roadmap (kill-switch del Coordinator)", "selected": "B", "date": "2026-05-21", "summary": "Endurecimiento del Coordinator: presupuesto de tiempo por scout (v0.4 §9.6). Cada scout corre con una AbortSignal propia; si excede el presupuesto o el llamante aborta, se cancela (Promise.race) y se reporta failed sin colgar el scan. Default 5 min", "rationale": "Robustez requerida por el threat model (Rogue Agents); un scanner colgado bloqueaba el scan entero. Riesgo medio: toca el nucleo del Coordinator, mitigado con 3 tests y el cli-runner de integracion" },
     { "id": "DG-037", "title": "Salida verbose dinamica del scan (UX techie/hacker)", "selected": "B", "date": "2026-05-21", "summary": "Increment 1 de 3: la CLI emite una salida verbose con banner + drip por scout (Coordinator.onScoutSettled + spinner) + reveal coloreado agrupado por severidad. reporters/console-reporter.ts puro; arquitectura 'un show, dos superficies'. Increments 2 (pseudoterminal en la extension) y 3 (webview tomo vivo) pendientes", "rationale": "La prueba F5 (Entry #39) revelo que la extension no da feedback del proceso; v0.4 §4.3 no cubria el feedback dinamico. La CLI como motor del show beneficia tambien al publico OSS/terminal con un solo esfuerzo" },
+    { "id": "DG-038", "title": "UX verbose increment 2: pseudoterminal en la extension", "selected": "B", "date": "2026-05-21", "summary": "Increment 2 de 3: la extension transmite el 'show' de la CLI a un Pseudoterminal nativo de VSCode (con FORCE_COLOR=1). SentinelTerminal + toCrlf; los comandos Scan y Triage abren la terminal. El comando triage de la CLI se enriquece (banner + tag coloreado). Increment 3 (webview tomo vivo) pendiente", "rationale": "Cierra la arquitectura 'un show, dos superficies' con una API nativa (Pseudoterminal, sin webview - respeta Decision #23); el feedback del proceso pasa a verse en el IDE" },
     { "id": "Q1", "title": "Package manager", "selected": "pnpm workspaces", "date": "2026-05-20", "summary": "pnpm v10.33.0", "rationale": "Ya instalado; preferencia v0.4 9.5; simple sin overhead" }
   ],
   "roadmap": [
@@ -83,11 +84,11 @@
     }
   ],
   "implementationState": {
-    "lastCompletedTask": "Cycle 30 CERRADO: DG-037 B increment 1 de 3 - salida verbose y dinamica de la CLI. reporters/console-reporter.ts (NUEVO, puro: banner + glifos/colores por severidad + renderScoutLine + renderScanReveal); core/coordinator ScanOptions.onScoutSettled (callback de progreso); cli/spinner.ts (NUEVO, spinner braille); cli/scan.ts (banner -> drip en vivo por scout -> reveal coloreado; shouldUseColor; flag --no-color). Arquitectura 'un show, dos superficies'. E2E verificado. 267 verdes + 3 gated; commiteado 1705e8c. Tambien Entry #39: gap F5 de la extension CERRADO por prueba en vivo del usuario.",
-    "currentTask": "Cycle 31 abierto. DG-038 a presentar: increment 2 de la UX verbose (pseudoterminal en la extension VSCode).",
+    "lastCompletedTask": "Cycle 31 CERRADO: DG-038 B - increment 2 de la UX verbose. La extension transmite el 'show' de la CLI a un Pseudoterminal nativo de VSCode. vscode-extension: terminal.ts (SentinelTerminal), terminal-format.ts (toCrlf), cli-runner.ts (streaming via onOutput + FORCE_COLOR), index.ts (Scan y Triage abren la terminal). cli/triage.ts enriquecido (banner + tag coloreado). .gitignore ignora los dirs extranos de subpaquetes. 273 verdes + 3 gated; commiteado 84180b4.",
+    "currentTask": "Cycle 32 abierto. DG-039 a presentar: increment 3 de la UX verbose (webview 'tomo vivo') u otro paso del roadmap.",
     "pendingTasks": [
-      "Resolver DG-038 - increment 2 de DG-037 B (la extension pipea la CLI a un pseudoterminal nativo) + increment 3 (webview 'tomo vivo')",
-      "Limpiar/gitignorar los directorios extranos en packages/vscode-extension/ (.synaptic/, .vscode/synaptic/, context/) - re-init del tooling SYNAPTIC al abrir la subcarpeta en VSCode; NO commiteados",
+      "Resolver DG-039 - increment 3 de DG-037 B (webview 'tomo vivo' para explorar resultados) u otro paso del roadmap",
+      "Los directorios extranos de packages/vscode-extension/ quedan gitignoreados (DG-038); siguen en disco - el usuario puede eliminarlos",
       "FI-002 (separar test:unit/test:integration), FI-008 (.vsix), FI-009 (migracion a @anthropic-ai/sdk), FI-010 (drift de Prettier + agregar format:check al gate)"
     ],
     "blockers": []
@@ -108,9 +109,9 @@
     "La extension VSCode ya es F5-testeable: .vscode/launch.json (DG-034) lanza el Extension Development Host; requiere pnpm build previo",
     "ONBOARDING.md (DG-035) documenta instalacion y uso; el gate de verificacion por ciclo deberia incluir format:check (ver FI-010)",
     "El Coordinator aplica un kill-switch por scout (DG-036): presupuesto de tiempo + AbortSignal propia; un scout colgado degrada el scan, no lo cuelga",
-    "UX verbose (DG-037 B): el 'show' rico vive en la CLI (reporters/console-reporter, puro); la extension lo reusara pipeando a un pseudoterminal (increment 2). El color lo gobierna shouldUseColor (FORCE_COLOR lo fuerza)",
-    "Gap F5 de la extension CERRADO: el usuario la probo en vivo (Entry #39); funciona, pero el feedback del proceso era pobre — motivo de DG-037",
+    "UX verbose (DG-037 B): el 'show' rico vive en la CLI (reporters/console-reporter, puro); la extension lo pipea a un Pseudoterminal nativo (DG-038, increment 2). Falta el increment 3 (webview 'tomo vivo')",
+    "Gap F5 de la extension CERRADO: el usuario la probo en vivo (Entry #39); funciona, pero el feedback del proceso era pobre — motivo de DG-037/DG-038",
     "Observacion: better-sqlite3 ABI con Electron; exactOptionalPropertyTypes estricto"
   ],
-  "lastUpdated": "2026-05-21T21:45:00.000Z"
+  "lastUpdated": "2026-05-21T22:00:00.000Z"
 }

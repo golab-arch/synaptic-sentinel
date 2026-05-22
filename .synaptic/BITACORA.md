@@ -1095,7 +1095,35 @@ Each entry follows this structure:
 }
 ```
 
+### Entry #41 - DG-038 (B): pseudoterminal verbose en la extension (UX verbose increment 2)
+```json
+{
+  "timestamp": "2026-05-21T22:00:00.000Z",
+  "cycle": 31,
+  "phase": 7,
+  "action": "FEATURE_IMPLEMENTED",
+  "details": {
+    "DG-038": {
+      "title": "UX verbose increment 2: pseudoterminal en la extension",
+      "selected": "Option B",
+      "effect": "El 'show' de la CLI (banner + drip + reveal, con color y animacion) se transmite a un Pseudoterminal nativo de VSCode. Los comandos Scan y Triage de la extension abren la terminal 'Synaptic Sentinel' y transmiten ahi la salida en vivo."
+    },
+    "files": "vscode-extension/terminal.ts (NUEVO - SentinelTerminal: wrapper de un Pseudoterminal de solo-lectura, reutilizable, con buffer pre-open). vscode-extension/terminal-format.ts (NUEVO - toCrlf, normaliza LF->CRLF preservando el CR del spinner). vscode-extension/cli-runner.ts (spawnCli transmite stdout/stderr via onOutput; runCliScan/runCliTriage corren la CLI con FORCE_COLOR=1 cuando hay onOutput). vscode-extension/index.ts (Scan y Triage abren la terminal y transmiten; el re-scan del triage no transmite). cli/triage.ts (banner + renderTriageTag coloreado + --no-color). reporters/console-reporter.ts (renderTriageTag).",
+    "design": "Cierra la arquitectura 'un show, dos superficies': el motor (increment 1) emite ANSI; la extension lo pipea a un Pseudoterminal nativo — API nativa, sin webview (respeta Decision #23). El Pseudoterminal exige CRLF; toCrlf lo normaliza sin tocar el CR suelto de la animacion del spinner. FORCE_COLOR=1 se pasa solo cuando hay onOutput (la terminal renderiza ANSI). El re-scan silencioso del triage no transmite, para no duplicar un 'show' de scan.",
+    "verification_real": "build / typecheck / lint / test verdes. El test de integracion cli-runner (CLI real) verifica el streaming: el callback onOutput recibe el banner. E2E: el comando triage imprime el banner. 6 tests nuevos (renderTriageTag 2, toCrlf 4).",
+    "verification_gap": "El Pseudoterminal en si (SentinelTerminal, API de VSCode) no es testeable headless: se verifica con F5 / Extension Development Host. toCrlf y el streaming de cli-runner SI tienen cobertura de tests.",
+    "housekeeping": ".gitignore: se ignoran packages/*/.synaptic|.vscode|context — re-inicializacion del tooling SYNAPTIC al abrir la subcarpeta de la extension en VSCode; no son del proyecto y rompian git add. Los directorios siguen en disco (gitignore no borra); se recomienda al usuario eliminarlos.",
+    "tests": "6 nuevos - total 273 verdes + 3 gated",
+    "checks": "build / typecheck / lint / test - todos en verde",
+    "commit": "codigo + tests en el commit 84180b4 feat(vscode-extension,cli); el registro SYNAPTIC de cierre del Cycle 31 (con el fix de .gitignore) se asienta en el commit docs siguiente"
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 36,
+  "complianceScore": 100
+}
+```
+
 ---
 
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-21T21:45:00.000Z*
+*Last Updated: 2026-05-21T22:00:00.000Z*

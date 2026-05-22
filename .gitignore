@@ -30,3 +30,9 @@ Thumbs.db
 
 # Directorio de herramienta (Claude Code) — no es del proyecto
 .claude/
+
+# Re-inicializacion del tooling SYNAPTIC en subcarpetas — no es del proyecto.
+# El .synaptic/ y context/ validos viven solo en la raiz del repo (DG-038).
+packages/*/.synaptic/
+packages/*/.vscode/
+packages/*/context/
