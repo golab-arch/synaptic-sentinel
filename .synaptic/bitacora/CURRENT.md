@@ -6,9 +6,9 @@
 
 ## Current Cycle
 
-- **Cycle:** 49 — pendiente: configurar el remoto git + primer push; luego DG-056
+- **Cycle:** 49 — pendiente DG-056 (próximo paso del roadmap)
 - **Phase:** 8 — Distribución
-- **Status:** Cycle 48 CERRADO; awaiting remoto/push + DG-056
+- **Status:** Cycle 48 CERRADO; remoto git configurado; awaiting DG-056
 - **Compliance:** 100%
 - **Synaptic Strength:** 53
 
@@ -26,7 +26,8 @@
 
 ## Estado del repo
 
-- 74 commits en `main` · 7 paquetes pnpm · **sin remoto aún** (pendiente de configurar — ver abajo)
+- 74 commits en `main` · **remoto:** `origin` → `github.com/golab-arch/synaptic-sentinel` (**privado**, en sync)
+- **Push por ciclo activo** — cada cierre de ciclo hace `git push` (instrucción del usuario, DG-055)
 - **Producto íntegramente en inglés** (FI-011 cerrado) · **cache de scanners global operativa** (FI-004 cerrado)
 - **5 scouts**: OpenGrep (**11 reglas SAST**) + Gitleaks + Trivy + Checkov + Vibe-Detect + `colony.db` (v4) + `Coordinator` + `reporters`
 - CLI: `scan` (export **JSON / HTML / SARIF**, **`--fail-on`**) y `triage`, `mark-fp`
@@ -36,19 +37,19 @@
 
 ## Notas / deuda
 
-- **PUSH pendiente** — el usuario pidió commit+push por ciclo. El repo no tiene remoto (DG-002 A lo difirió). El monorepo contiene código **Pro** (`packages/agents`, LICENSE-PRO) → el remoto de desarrollo **debe ser privado**. Configurar el remoto y hacer el primer push está elevado al usuario.
+- **Remoto privado configurado** (Entry #59) — cierra el diferimiento de DG-002 A. La publicación de la parte OSS (allowlist `publish-oss.ts`) es un proceso aparte y futuro.
 - **Phase 8** — resta **FI-008**: bundlear la CLI dentro de la extensión, producir el `.vsix`, auto-instalación on-demand de scanners.
 - **FI-003** — resta el **taint analysis**.
 - Directorios extraños en `packages/vscode-extension/` gitignoreados (DG-038); siguen en disco.
 - FI abiertos: FI-001 (driver SQLite, diferido), FI-003 (taint), FI-008 (.vsix), FI-009 (cliente LLM).
-- **Instrucción permanente del usuario**: cada DG incluye mi recomendación explícita (DG-045); commit+push por ciclo (DG-055).
+- **Instrucciones permanentes del usuario**: cada DG incluye mi recomendación explícita (DG-045); commit + push por ciclo (DG-055).
 
 ## Decision Gate abierto
 
-- DG-056 — próximo paso del roadmap (a presentar tras configurar el remoto/push)
+- DG-056 — próximo paso del roadmap (a presentar)
 
 ## Last Entry
 
-Entry #58 — FEATURE_IMPLEMENTED (DG-055 A) — 2026-05-22 — SUCCESS
+Entry #59 — INFRASTRUCTURE (remoto git + primer push) — 2026-05-22 — SUCCESS
 
 ---

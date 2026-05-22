@@ -103,10 +103,10 @@
   ],
   "implementationState": {
     "lastCompletedTask": "Cycle 48 CERRADO: DG-055 A - FI-008 sub-increment 1 (runtime de Node). spawnCli de cli-runner.ts usa process.execPath por defecto (el Node del extension host) en vez de 'node' del PATH. 313 verdes + 3 gated; commiteado 277651c.",
-    "currentTask": "Cycle 49 abierto. Pendiente: configurar el remoto git y primer push (instruccion del usuario); luego DG-056.",
+    "currentTask": "Cycle 49 abierto. Remoto git configurado (Entry #59). DG-056 a presentar: proximo paso del roadmap.",
     "pendingTasks": [
-      "PUSH: el usuario pidio commit+push por ciclo. El repo no tiene remoto (DG-002 A lo difirio). El monorepo tiene codigo Pro (agents, LICENSE-PRO) -> el remoto de desarrollo DEBE ser privado. Configurar el remoto (gh, cuenta golab-arch) y hacer el primer push; luego pushear cada ciclo.",
       "Resolver DG-056 - proximo paso del roadmap (Phase 8: FI-008 sub-increments restantes -bundlear la CLI, producir el .vsix-; alternativa FI-003 taint analysis)",
+      "Cada cierre de ciclo: commit + git push a origin (instruccion del usuario, DG-055)",
       "Los directorios extranos de packages/vscode-extension/ quedan gitignoreados (DG-038); siguen en disco - el usuario puede eliminarlos",
       "FI-008 (bundlear la CLI dentro de la extension, producir el .vsix, auto-instalacion on-demand), FI-003 (taint analysis), FI-009 (migracion a @anthropic-ai/sdk)"
     ],
@@ -118,9 +118,9 @@
     "Invariant inviolable: el codigo del cliente NUNCA cruza su perimetro",
     "Estructura: monorepo unico pnpm con 7 paquetes (DG-001 B / DG-005 B); build tsc -b project references",
     "Scaffolding verificado: pnpm install (204 pkgs), build, lint, test - todos verdes",
-    "Primer commit atomico f0b5202 en branch main (54 archivos); repo remoto GitHub aun diferido (DG-002 A)",
+    "Primer commit atomico f0b5202 en branch main (54 archivos). Remoto git configurado en el Cycle 48 (Entry #59): origin -> github.com/golab-arch/synaptic-sentinel, PRIVADO (el monorepo tiene codigo Pro). Cierra el diferimiento de DG-002 A",
     "ENTORNO: antivirus activo Norton 360. Requiere NODE_OPTIONS=--use-system-ca para red (L-001) y exclusion de carpeta para git (L-002)",
-    "git commit es 100% local y NO requiere token de GitHub; el push futuro (diferido por DG-002 A) usara gh ya autenticado como golab-arch",
+    "Remoto privado origin configurado (gh, golab-arch). Cada cierre de ciclo termina con commit + git push (instruccion del usuario, DG-055). La publicacion de la parte OSS es un proceso aparte (allowlist publish-oss.ts, futuro)",
     "Checkov se integro via su binario standalone (PyInstaller onefile): sin interprete Python en el cliente, sorteando la observacion 'Python 3.14 vs Checkov'",
     "Vibe-Detect es un scout nativo (TypeScript puro, sin binario OSS): el contrato ScoutAgent no obliga a spawnear un proceso",
     "La llamada LLM real a Anthropic quedo verificada (Entry #34): los 3 agentes del Brain Layer (Triage/Context/Remediation) tienen test de integracion gated que paso con una API key BYOK del usuario (Haiku 4.5)",
@@ -140,5 +140,5 @@
     "Phase 8 (Distribucion) en curso. Cache de scanners global por usuario OPERATIVA (FI-004 cerrado): resolucion (DG-053) + instalacion via 'install-scanners --global' (DG-054), layout ~/.synaptic-sentinel/scanners. Pendiente hacia el beta instalable: FI-008 (empaquetado .vsix: bundlear la CLI, resolver un runtime de Node, disparar la auto-instalacion de scanners on-demand)",
     "Observacion: better-sqlite3 ABI con Electron; exactOptionalPropertyTypes estricto"
   ],
-  "lastUpdated": "2026-05-22T21:15:00.000Z"
+  "lastUpdated": "2026-05-22T21:30:00.000Z"
 }

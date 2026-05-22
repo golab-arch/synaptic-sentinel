@@ -1575,7 +1575,27 @@ Each entry follows this structure:
 }
 ```
 
+### Entry #59 - INFRASTRUCTURE: remoto git configurado + primer push
+```json
+{
+  "timestamp": "2026-05-22T21:30:00.000Z",
+  "cycle": 48,
+  "phase": 8,
+  "action": "INFRASTRUCTURE",
+  "details": {
+    "trigger": "Instruccion del usuario (en DG-055): hacer commit Y push tras cada ciclo.",
+    "effect": "Configurado el remoto git y realizado el primer push. Cierra el diferimiento de DG-002 A (repo remoto GitHub). Desde ahora cada cierre de ciclo termina con git push.",
+    "repo": "github.com/golab-arch/synaptic-sentinel - PRIVADO. El monorepo contiene codigo Pro (packages/agents, LICENSE-PRO); un repo publico filtraria el Brain Layer premium. Creado via gh (cuenta golab-arch); origin agregado; rama y default branch main.",
+    "verification": "git remote -v OK; main...origin/main en sync; local HEAD == origin/main (commit 12657a6, 74 commits). 'gh repo view' confirma visibility PRIVATE. Secret scan previo al push: ningun secreto real en el historial trackeado (solo el placeholder 'sk-ant-...' de ONBOARDING.md).",
+    "nota": "La publicacion de la parte OSS es un proceso aparte (allowlist publish-oss.ts, futuro). Este remoto privado es el de desarrollo (monorepo OSS+Pro)."
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 53,
+  "complianceScore": 100
+}
+```
+
 ---
 
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-22T21:15:00.000Z*
+*Last Updated: 2026-05-22T21:30:00.000Z*
