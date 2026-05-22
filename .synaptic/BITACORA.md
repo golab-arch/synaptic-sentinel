@@ -1123,7 +1123,34 @@ Each entry follows this structure:
 }
 ```
 
+### Entry #42 - DG-039 (B): webview "tomo vivo" (UX verbose increment 3/3)
+```json
+{
+  "timestamp": "2026-05-21T22:15:00.000Z",
+  "cycle": 32,
+  "phase": 7,
+  "action": "FEATURE_IMPLEMENTED",
+  "details": {
+    "DG-039": {
+      "title": "UX verbose increment 3/3: webview 'tomo vivo'",
+      "selected": "Option B",
+      "effect": "Panel lateral webview con los hallazgos del ultimo scan, agrupados por severidad y clickeables para saltar al codigo (v0.4 §4.3). Cierra DG-037 B — la trilogia de UX verbose queda completa (CLI -> pseudoterminal -> webview)."
+    },
+    "files": "vscode-extension/webview-content.ts (NUEVO - renderTomoWebviewHtml, funcion pura: tarjetas por hallazgo con severidad/ubicacion/detalle del Brain Layer; CSP con nonce; escapeHtml). vscode-extension/tomo-view.ts (NUEVO - SentinelTomoViewProvider: WebviewViewProvider, update(), el click 'reveal' abre el archivo en el editor). vscode-extension/index.ts (registra el provider; Scan/Triage/mark-fp actualizan el panel). vscode-extension/package.json (contributes.views - panel webview en el contenedor explorer).",
+    "design": "API nativa de webview, sancionada explicitamente por v0.4 §4.3 ('panel lateral con el tomo vivo'). Arquitectura spawn-CLI intacta (DG-021): el panel solo consume los ExtensionFinding que la extension ya tiene; escapeHtml propio, no se importa el motor. El re-render setea webview.html completo (los datos van horneados; el unico script, autorizado por nonce, solo maneja el click -> postMessage).",
+    "verification_real": "build / typecheck / lint / test verdes. 6 tests nuevos del render puro: escapeHtml, CSP/nonce, estado vacio, tarjetas agrupadas por severidad, escapado anti-inyeccion HTML, detalle del Brain Layer.",
+    "verification_gap": "El WebviewViewProvider y la contribucion de la vista (API de VSCode) no son testeables headless: se verifican con F5. El render del HTML (la logica con riesgo, incluido el escapado anti-inyeccion) SI tiene tests.",
+    "tests": "6 nuevos (webview-content) - total 279 verdes + 3 gated",
+    "checks": "build / typecheck / lint / test - todos en verde",
+    "commit": "codigo + tests en el commit 90c7452 feat(vscode-extension); el registro SYNAPTIC de cierre del Cycle 32 se asienta en el commit docs siguiente"
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 37,
+  "complianceScore": 100
+}
+```
+
 ---
 
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-21T22:00:00.000Z*
+*Last Updated: 2026-05-21T22:15:00.000Z*

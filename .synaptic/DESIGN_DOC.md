@@ -42,6 +42,7 @@
 | DG-036 | Próximo paso del roadmap | **Option B** — kill-switch del Coordinator: presupuesto de tiempo por scout (v0.4 §9.6) | 2026-05-21 | Un scanner colgado bloqueaba el scan entero; el kill-switch es un requisito del threat model ("Rogue Agents") y la inversión correcta en robustez antes del beta |
 | DG-037 | Salida verbose dinámica del scan (UX techie/hacker) | **Option B** — increment 1/3: la CLI emite el "show" (banner + drip por scout + reveal coloreado); increments 2-3 (pseudoterminal en la extensión, webview "tomo vivo") pendientes | 2026-05-21 | La prueba F5 reveló que la extensión no daba feedback del proceso (gap no cubierto por v0.4 §4.3); la CLI como motor del show beneficia también al público OSS/terminal con un solo esfuerzo |
 | DG-038 | UX verbose increment 2/3 | **Option B** — la extensión transmite el "show" de la CLI a un Pseudoterminal nativo (Scan + Triage); el comando `triage` de la CLI se enriquece | 2026-05-21 | Cierra la arquitectura "un show, dos superficies" con una API nativa (Pseudoterminal, sin webview — respeta Decisión #23); el feedback del proceso pasa a verse en el IDE |
+| DG-039 | UX verbose increment 3/3 | **Option B** — webview "tomo vivo": panel lateral con los hallazgos agrupados por severidad, clickeables para saltar al código (v0.4 §4.3) | 2026-05-21 | Cierra DG-037 B con la superficie de exploración de resultados que pedía v0.4 §4.3; el webview está sancionado por §4.3 pese a la preferencia general por APIs nativas |
 | Q1 | Package manager / tooling de monorepo | **pnpm workspaces** (v10.33.0) | 2026-05-20 | Ya instalado; preferencia v0.4 §9.5; sin overhead |
 
 **Discovery cerrado. Scaffolding generado, verificado y commiteado** (`f0b5202`, 54 archivos). **Cycle 2 CERRADO.** Siguiente: PASO 4 — Scout Layer.
@@ -98,6 +99,7 @@
 - 2026-05-21 — Cycle 29: kill-switch del Coordinator (DG-036 B) — presupuesto de tiempo por scout (v0.4 §9.6 "Rogue Agents"). `ScanOptions.scoutTimeoutMs` (default 5 min); cada scout corre con una `AbortSignal` propia —enlazada al `signal` del llamante— y su ejecución compite (`Promise.race`) contra la cancelación: un scout colgado que ignora su signal se cancela igual y se reporta `failed`, sin colgar el scan. Sin cambios en el CLI (usa el presupuesto por defecto). 253 tests verdes + 3 gated.
 - 2026-05-21 — Cycle 30: salida verbose y dinámica de la CLI (DG-037 B, increment 1/3) — tras la prueba F5 del usuario (Entry #39, gap "extensión en vivo" cerrado). `reporters/console-reporter.ts` (render puro: banner, glifos/colores por severidad v0.4 §4.3, `renderScanReveal`); `Coordinator.onScoutSettled` (callback de progreso); `cli/spinner.ts` (spinner braille); el comando `scan` imprime banner → drip en vivo por scout → reveal coloreado, con `--no-color` / `shouldUseColor`. Arquitectura "un show, dos superficies": el motor vive en la CLI, la extensión lo reusará (increment 2). 267 tests verdes + 3 gated.
 - 2026-05-21 — Cycle 31: pseudoterminal verbose en la extensión (DG-038 B, increment 2/3) — la extensión transmite el "show" de la CLI a un Pseudoterminal nativo de VSCode. `vscode-extension/terminal.ts` (`SentinelTerminal`), `terminal-format.ts` (`toCrlf`), `cli-runner.ts` (streaming vía `onOutput` + `FORCE_COLOR=1`); los comandos Scan y Triage abren la terminal "Synaptic Sentinel". `cli/triage.ts` enriquecido (banner + `renderTriageTag`). `.gitignore` ignora los dirs extraños de subpaquetes. Cierra "un show, dos superficies" con API nativa (sin webview). 273 tests verdes + 3 gated.
+- 2026-05-21 — Cycle 32: webview "tomo vivo" (DG-039 B, increment 3/3 — cierra DG-037 B) — panel lateral con los hallazgos del último scan, agrupados por severidad y clickeables para saltar al código (v0.4 §4.3). `vscode-extension/webview-content.ts` (`renderTomoWebviewHtml`, render puro con CSP+nonce y `escapeHtml`), `tomo-view.ts` (`SentinelTomoViewProvider`), `package.json` (`contributes.views`). Arquitectura spawn-CLI intacta (`escapeHtml` propio, no se importa el motor). **UX verbose completa**: CLI → pseudoterminal → webview. 279 tests verdes + 3 gated.
 
 ---
 
@@ -140,10 +142,10 @@ Items identificados para mejorar más adelante. No bloquean el MVP.
 
 - **Name**: SENTINEL (Synaptic Sentinel)
 - **Description**: Toolkit OSS de auditoría agéntica de seguridad + capa premium LLM, vibe-coding-native.
-- **Phase**: Cycle 32 / Phase 7 — Brain Layer COMPLETO; 5 scouts + Coordinator con kill-switch + 3 agentes; CLI y extensión con salida verbose (pseudoterminal nativo); siguiente: DG-039 (increment 3 — webview "tomo vivo" — u otro paso)
+- **Phase**: Cycle 33 / Phase 7 — Brain Layer COMPLETO; 5 scouts + Coordinator con kill-switch + 3 agentes; UX verbose COMPLETA (CLI → pseudoterminal → webview "tomo vivo"); siguiente: DG-040
 
 ---
 
 *Created: 2026-05-20T19:09:00.816Z*
-*Last Updated: 2026-05-21T22:00:00.000Z*
+*Last Updated: 2026-05-21T22:15:00.000Z*
 *SYNAPTIC Protocol v3.0*
