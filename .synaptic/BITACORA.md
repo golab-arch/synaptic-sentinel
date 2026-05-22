@@ -1495,7 +1495,34 @@ Each entry follows this structure:
 }
 ```
 
+### Entry #56 - DG-053 (C): abre Phase 8 — cache de scanners global por usuario
+```json
+{
+  "timestamp": "2026-05-22T19:45:00.000Z",
+  "cycle": 46,
+  "phase": 8,
+  "action": "FEATURE_IMPLEMENTED",
+  "details": {
+    "DG-053": {
+      "title": "Proximo paso del roadmap (abrir Phase 8 - cache de scanners global)",
+      "selected": "Option C",
+      "effect": "Abre Phase 8 (Distribucion). Sub-increment 1 de FI-004: la CLI resuelve los binarios de los scanners tambien desde una cache global por usuario (~/.synaptic-sentinel/scanners), no solo desde la cache .scanners/ del repo. Prerequisito de FI-008 (.vsix)."
+    },
+    "files": "cli/src/commands/scan.ts (globalScannerCacheDir, findBinaryInCache, resolveScannerBinary gana el 4.o paso de resolucion: explicito -> env -> .scanners/ del repo -> cache global). cli/tests/scan.test.ts (3 tests nuevos; el test de 'no esta en ninguna cache' pasa a determinista).",
+    "design": "Alcance acotado a la RESOLUCION; la auto-instalacion en la cache global es el siguiente sub-increment de FI-004 (descarga de red / Norton-TLS, el tramo de mayor riesgo). La cache del repo mantiene prioridad sobre la global -> sin cambio de comportamiento en dev. globalCacheDir es inyectable para tests deterministas.",
+    "verification_real": "pnpm verify verde (test:unit 304; +3 tests: resolucion desde la cache global, prioridad del repo, globalScannerCacheDir) + test:integration verde (9 + 3 gated; la resolucion desde el repo .scanners/ intacta).",
+    "tests": "3 nuevos — total 313 verdes + 3 gated (304 unit / 9+3 integration)",
+    "checks": "format:check / lint / build / test:unit + test:integration — todos en verde",
+    "phase_abierta": "Phase 8 (Distribucion) ABIERTA. Pendientes: FI-004 sub-increment 2 (auto-instalacion) y FI-008 (.vsix).",
+    "commit": "codigo + tests en el commit 8a1e045 feat(cli); el registro SYNAPTIC de cierre del Cycle 46 se asienta en el commit docs siguiente"
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 51,
+  "complianceScore": 100
+}
+```
+
 ---
 
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-22T19:00:00.000Z*
+*Last Updated: 2026-05-22T19:45:00.000Z*

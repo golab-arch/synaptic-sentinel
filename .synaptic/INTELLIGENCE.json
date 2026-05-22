@@ -3,8 +3,8 @@
     "name": "SENTINEL",
     "fullName": "Synaptic Sentinel",
     "description": "Toolkit OSS de auditoria agentica de seguridad + capa premium LLM, vibe-coding-native, para la era del codigo generado por IA. Tercer producto de la familia Synaptic.",
-    "currentPhase": "brain-layer",
-    "overallProgress": "Cycles 1-45 CERRADOS. Producto INTEGRAMENTE EN INGLES (FI-011 cerrado: CLI, scouts, reporters, extension, prompts del Brain Layer). 5 scouts (OpenGrep SAST, Gitleaks Secrets, Trivy SCA, Checkov IaC, Vibe-Detect VibeCoded) + Coordinator stages 1-2 con kill-switch por scout + CLI con salida verbose/dinamica + reporters JSON+HTML+SARIF+consola + extension VSCode (Brain Layer surfaceado, pseudoterminal verbose y webview 'tomo vivo') + Brain Layer con 3 agentes wired (Triage + Context + Remediation, LLM real verificada) + memoria del enjambre COMPLETA (learning_records: escritura + lectura/economia de tokens) + ONBOARDING.md. UX verbose COMPLETA. Repo sin drift de Prettier; gate por ciclo codificado en el script 'verify' (format:check+lint+build+test:unit). Catalogo SAST de OpenGrep ampliado a 11 reglas pattern-based (CWE-95/78/79/502/327), ruleId canonico. Tomo exportable a JSON+HTML+SARIF 2.1.0 (CI-native) y scan con politica de exit code --fail-on (gate de pipeline). Suite Vitest dividida en proyectos unit/integration (gate por ciclo corre solo unit, ~7s). 310 tests verdes + 3 gated."
+    "currentPhase": "distribution",
+    "overallProgress": "Cycles 1-46 CERRADOS. Phase 8 (Distribucion) ABIERTA. Producto INTEGRAMENTE EN INGLES (FI-011 cerrado). 5 scouts (OpenGrep SAST, Gitleaks Secrets, Trivy SCA, Checkov IaC, Vibe-Detect VibeCoded) + Coordinator stages 1-2 con kill-switch por scout + CLI con salida verbose/dinamica + reporters JSON+HTML+SARIF+consola + extension VSCode (Brain Layer surfaceado, pseudoterminal verbose y webview 'tomo vivo') + Brain Layer con 3 agentes wired (Triage + Context + Remediation, LLM real verificada) + memoria del enjambre COMPLETA (learning_records: escritura + lectura/economia de tokens) + ONBOARDING.md. UX verbose COMPLETA. Repo sin drift de Prettier; gate por ciclo codificado en el script 'verify' (format:check+lint+build+test:unit). Catalogo SAST de OpenGrep ampliado a 11 reglas pattern-based (CWE-95/78/79/502/327), ruleId canonico. Tomo exportable a JSON+HTML+SARIF 2.1.0 (CI-native) y scan con politica de exit code --fail-on (gate de pipeline). Suite Vitest dividida en proyectos unit/integration (gate por ciclo corre solo unit, ~7s). Cache de scanners global por usuario (resolucion; FI-004 sub-increment 1). 313 tests verdes + 3 gated."
   },
   "decisions": [
     { "id": "DG-001", "title": "Estructura fisica del monorepo OSS/Pro", "selected": "B", "date": "2026-05-20", "summary": "Monorepo unico con workspaces marcados OSS/Pro + publish-oss.ts allowlist", "rationale": "Velocidad solo founder; refactors triviales; anti-filtracion en un script auditable" },
@@ -59,6 +59,7 @@
     { "id": "DG-050", "title": "Proximo paso del roadmap (FI-011 etapa 3 - reporter HTML del tomo en ingles)", "selected": "A", "date": "2026-05-22", "summary": "Tercer increment de FI-011: los labels del reporter HTML del tomo (html-reporter.ts) migran a ingles - lang=en, encabezados, labels de triage/contexto/remediacion, columnas de tabla, pie de integridad. Verificado e2e", "rationale": "El tomo HTML es el deliverable que se muestra a un stakeholder/CISO; mostrarlo a medias seria peor que no haber empezado. Bajo riesgo (strings). Mantiene el momentum de la migracion a ingles" },
     { "id": "DG-051", "title": "Proximo paso del roadmap (FI-011 etapa 4 - extension VSCode en ingles)", "selected": "A", "date": "2026-05-22", "summary": "Cuarto increment de FI-011: la UI de la extension VSCode migra a ingles - package.json (description, setting), status bar, Code Actions, hover, webview, notificaciones, mensajes de error. Verificado por los unit tests de los renderers", "rationale": "La extension VSCode es la superficie primaria del producto (v0.4 VSCode-primary); debe hablar ingles antes de empaquetar el beta. Bajo riesgo (strings). Tras esta etapa resta solo la 5 (prompts del Brain Layer)" },
     { "id": "DG-052", "title": "Proximo paso del roadmap (FI-011 etapa 5 - prompts del Brain Layer en ingles)", "selected": "A", "date": "2026-05-22", "summary": "Quinto y ultimo increment de FI-011: los prompts de los 3 agentes (Triage/Context/Remediation) migran a ingles para que el LLM responda en ingles. CIERRA FI-011. La forma JSON pedida no cambia: parser y schemas intactos", "rationale": "Ultima etapa de la migracion i18n; completarla deja el producto integramente en ingles y elimina el ultimo motivo para diferir Phase 8. Bajo riesgo: la traduccion no toca la forma JSON ni los schemas zod" },
+    { "id": "DG-053", "title": "Proximo paso del roadmap (abrir Phase 8 - cache de scanners global)", "selected": "C", "date": "2026-05-22", "summary": "Abre Phase 8 (Distribucion). Sub-increment 1 de FI-004: resolveScannerBinary resuelve los binarios tambien desde una cache global por usuario (~/.synaptic-sentinel/scanners), no solo desde la cache .scanners/ del repo. La cache del repo mantiene prioridad. globalScannerCacheDir + findBinaryInCache; 3 tests nuevos", "rationale": "Con i18n cerrada (FI-011) ya no habia motivo de sequencing para diferir la distribucion. Primer C del proyecto. Alcance acotado a la resolucion -el tramo seguro-; la auto-instalacion (descarga de red) queda para el sub-increment 2. Prerequisito de FI-008 (.vsix)" },
     { "id": "Q1", "title": "Package manager", "selected": "pnpm workspaces", "date": "2026-05-20", "summary": "pnpm v10.33.0", "rationale": "Ya instalado; preferencia v0.4 9.5; simple sin overhead" }
   ],
   "roadmap": [
@@ -72,7 +73,7 @@
   "futureImprovements": [
     { "id": "FI-001", "topic": "Driver SQLite", "detail": "node:sqlite es experimental; si genera friccion (API en un Node mayor futuro, o extension host de VSCode con Node < 22.5), migrar a better-sqlite3 detras de la clase ColonyDb." },
     { "id": "FI-003", "topic": "Catalogo de reglas / taint analysis", "detail": "sentinel-baseline.yaml tiene 11 reglas pattern-based tras DG-043 B (CWE-95/78/79/502/327). Lo que resta: analisis con taint (seguir el flujo source->sink) para cubrir inyecciones que un patron sintactico no alcanza y reducir falsos positivos en sinks de uso ambiguo (innerHTML, child_process)." },
-    { "id": "FI-004", "topic": "Cache de scanners del producto", "detail": "El CLI resuelve OpenGrep desde .scanners/ relativo al cwd. El producto enviado necesita una cache de scanners propia (global por usuario) y auto-instalacion." },
+    { "id": "FI-004", "topic": "Cache de scanners del producto", "detail": "Sub-increment 1 (resolucion) RESUELTO en DG-053 C: resolveScannerBinary resuelve tambien desde ~/.synaptic-sentinel/scanners. Resta el sub-increment 2: la AUTO-INSTALACION en esa cache global (descarga de red on-demand; install-scanners.ts hoy instala solo en el .scanners/ del repo)." },
     { "id": "FI-008", "topic": "Empaquetado de la extension (.vsix)", "detail": "El MVP de la extension asume el layout del monorepo en dev: la CLI en el paquete hermano (cli/dist) y node en el PATH. Empaquetar como .vsix requiere bundlear/instalar la CLI y resolver un runtime de Node y la cache de scanners (ver FI-004)." },
     { "id": "FI-009", "topic": "Cliente LLM", "detail": "AnthropicLlmClient es un cliente minimo via fetch (desviacion informada del v0.4 linea 695). Cuando se necesiten retries, streaming o rate-limiting (v0.4 §rate-limiting LLM), evaluar migrar a @anthropic-ai/sdk detras del contrato LlmClient." }
   ],
@@ -99,12 +100,12 @@
     }
   ],
   "implementationState": {
-    "lastCompletedTask": "Cycle 45 CERRADO: DG-052 A - FI-011 etapa 5 (prompts del Brain Layer en ingles). Migrados a ingles los SYSTEM_PROMPT y user prompts de los 3 agentes; el LLM ahora responde en ingles. CIERRA FI-011 (las 5 etapas completas: el producto habla ingles de punta a punta). La forma JSON pedida no cambia; parser y schemas intactos. 310 verdes + 3 gated; commiteado 7aadf13.",
-    "currentTask": "Cycle 46 abierto. DG-053 a presentar: proximo paso del roadmap.",
+    "lastCompletedTask": "Cycle 46 CERRADO: DG-053 C - abre Phase 8 (Distribucion). Sub-increment 1 de FI-004: la CLI resuelve los binarios tambien desde una cache global por usuario (~/.synaptic-sentinel/scanners); globalScannerCacheDir + findBinaryInCache + 4.o paso en resolveScannerBinary. La cache del repo mantiene prioridad. 3 tests nuevos. 313 verdes + 3 gated; commiteado 8a1e045.",
+    "currentTask": "Cycle 47 abierto. DG-054 a presentar: proximo paso del roadmap.",
     "pendingTasks": [
-      "Resolver DG-053 - proximo paso del roadmap. FI-011 (i18n) CERRADO: con el producto ya integramente en ingles, el camino natural es abrir Phase 8 (distribucion: FI-004 cache de scanners + FI-008 .vsix). Alternativa: FI-003 taint analysis",
+      "Resolver DG-054 - proximo paso del roadmap (Phase 8: FI-004 sub-increment 2 auto-instalacion en la cache global; FI-008 .vsix; alternativa FI-003 taint analysis)",
       "Los directorios extranos de packages/vscode-extension/ quedan gitignoreados (DG-038); siguen en disco - el usuario puede eliminarlos",
-      "FI-003 (taint analysis), FI-004 (cache de scanners del producto), FI-008 (.vsix), FI-009 (migracion a @anthropic-ai/sdk)"
+      "FI-004 sub-increment 2 (auto-instalacion en la cache global), FI-008 (.vsix), FI-003 (taint analysis), FI-009 (migracion a @anthropic-ai/sdk)"
     ],
     "blockers": []
   },
@@ -133,7 +134,8 @@
     "Instruccion permanente del usuario (desde DG-045): la seccion 6 de cada DG futuro debe incluir mi recomendacion explicita y razonada sobre las opciones (registrado tambien en memoria persistente)",
     "Suite Vitest dividida en dos proyectos (DG-046 A, cierra FI-002): 'unit' (logica pura, ~7s) e 'integration' (binarios reales, lento). Gate por ciclo 'verify' -> test:unit; test:integration se corre explicito ante un commit de feature o un release. Integracion = sufijo *integration.test.ts",
     "i18n (FI-011) CERRADO en DG-052: las 5 etapas (CLI, mensajes de scouts, reporter HTML, extension VSCode, prompts del Brain Layer) estan migradas — el producto habla ingles de punta a punta. Todo string de salida NUEVO se escribe en ingles. Fuera de alcance (en espanol): .synaptic/, comentarios de codigo y mensajes de commit",
+    "Phase 8 (Distribucion) ABIERTA en DG-053 C. Resolucion de scanners desde una cache global por usuario (~/.synaptic-sentinel/scanners), con prioridad de la cache .scanners/ del repo. Pendientes hacia el beta instalable: FI-004 sub-increment 2 (auto-instalacion) y FI-008 (empaquetado .vsix)",
     "Observacion: better-sqlite3 ABI con Electron; exactOptionalPropertyTypes estricto"
   ],
-  "lastUpdated": "2026-05-22T19:00:00.000Z"
+  "lastUpdated": "2026-05-22T19:45:00.000Z"
 }

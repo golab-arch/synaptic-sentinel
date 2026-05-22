@@ -2,7 +2,7 @@
   "version": "1.0",
   "projectId": "sentinel-1779304140796",
   "projectName": "SENTINEL",
-  "totalCycles": 45,
+  "totalCycles": 46,
   "currentTomeId": 1,
   "cyclesPerTome": 50,
   "tomes": [
@@ -16,10 +16,10 @@
         "from": "2026-05-20T19:09:00.852Z",
         "to": ""
       },
-      "summary": "Cycles 1-45: producto integramente en ingles (FI-011 cerrado). 5 scouts (OpenGrep SAST con 11 reglas pattern-based y ruleId canonico, Gitleaks Secrets, Trivy SCA, Checkov IaC, Vibe-Detect VibeCoded), Coordinator stages 1-2 con kill-switch por scout, colony.db (schema v4) con learning_records activo (escritura + lectura), CLI con salida verbose/dinamica y politica de exit code --fail-on para CI, reporters JSON+HTML+SARIF+consola (tomo CI-native), extension VSCode con el Brain Layer surfaceado, pseudoterminal verbose y webview 'tomo vivo', Brain Layer COMPLETO con 3 agentes wired (Triage + Context + Remediation, llamada LLM real verificada), memoria del enjambre completa, ONBOARDING.md, repo sin drift de Prettier con el gate por ciclo codificado en 'verify', y suite Vitest dividida en proyectos unit/integration.",
-      "keyDecisions": ["DG-001", "DG-002", "DG-003", "DG-004", "DG-005", "DG-006", "DG-007", "DG-008", "DG-009", "DG-010", "DG-011", "DG-012", "DG-013", "DG-014", "DG-015", "DG-016", "DG-017", "DG-018", "DG-019", "DG-020", "DG-021", "DG-022", "DG-023", "DG-024", "DG-025", "DG-026", "DG-027", "DG-028", "DG-029", "DG-030", "DG-031", "DG-032", "DG-033", "DG-034", "DG-035", "DG-036", "DG-037", "DG-038", "DG-039", "DG-040", "DG-041", "DG-042", "DG-043", "DG-044", "DG-045", "DG-046", "DG-047", "DG-048", "DG-049", "DG-050", "DG-051", "DG-052", "Q1"],
-      "cycleCount": 45,
-      "successCount": 45,
+      "summary": "Cycles 1-46: producto integramente en ingles (FI-011 cerrado); Phase 8 (Distribucion) abierta. 5 scouts (OpenGrep SAST con 11 reglas pattern-based y ruleId canonico, Gitleaks Secrets, Trivy SCA, Checkov IaC, Vibe-Detect VibeCoded), Coordinator stages 1-2 con kill-switch por scout, colony.db (schema v4) con learning_records activo (escritura + lectura), CLI con salida verbose/dinamica y politica de exit code --fail-on para CI, resolucion de scanners desde una cache global por usuario, reporters JSON+HTML+SARIF+consola (tomo CI-native), extension VSCode con el Brain Layer surfaceado, pseudoterminal verbose y webview 'tomo vivo', Brain Layer COMPLETO con 3 agentes wired (Triage + Context + Remediation, llamada LLM real verificada), memoria del enjambre completa, ONBOARDING.md, repo sin drift de Prettier con el gate por ciclo codificado en 'verify', y suite Vitest dividida en proyectos unit/integration.",
+      "keyDecisions": ["DG-001", "DG-002", "DG-003", "DG-004", "DG-005", "DG-006", "DG-007", "DG-008", "DG-009", "DG-010", "DG-011", "DG-012", "DG-013", "DG-014", "DG-015", "DG-016", "DG-017", "DG-018", "DG-019", "DG-020", "DG-021", "DG-022", "DG-023", "DG-024", "DG-025", "DG-026", "DG-027", "DG-028", "DG-029", "DG-030", "DG-031", "DG-032", "DG-033", "DG-034", "DG-035", "DG-036", "DG-037", "DG-038", "DG-039", "DG-040", "DG-041", "DG-042", "DG-043", "DG-044", "DG-045", "DG-046", "DG-047", "DG-048", "DG-049", "DG-050", "DG-051", "DG-052", "DG-053", "Q1"],
+      "cycleCount": 46,
+      "successCount": 46,
       "failureCount": 0,
       "jsonPath": "tomes/tome-001.json",
       "mdPath": "tomes/tome-001.md",
@@ -79,14 +79,15 @@
     { "id": "DG-050", "title": "Proximo paso del roadmap (FI-011 etapa 3 - reporter HTML del tomo en ingles)", "selected": "A", "cycle": 43, "date": "2026-05-22" },
     { "id": "DG-051", "title": "Proximo paso del roadmap (FI-011 etapa 4 - extension VSCode en ingles)", "selected": "A", "cycle": 44, "date": "2026-05-22" },
     { "id": "DG-052", "title": "Proximo paso del roadmap (FI-011 etapa 5 - prompts del Brain Layer en ingles)", "selected": "A", "cycle": 45, "date": "2026-05-22" },
+    { "id": "DG-053", "title": "Proximo paso del roadmap (abrir Phase 8 - cache de scanners global)", "selected": "C", "cycle": 46, "date": "2026-05-22" },
     { "id": "Q1", "title": "Package manager", "selected": "pnpm", "cycle": 1, "date": "2026-05-20" }
   ],
   "metrics": {
-    "totalDecisions": 53,
+    "totalDecisions": 54,
     "optionDistribution": {
       "A": 30,
       "B": 23,
-      "C": 0
+      "C": 1
     },
     "overallSuccessRate": 100,
     "averageCompliance": 100,
@@ -97,8 +98,9 @@
       "4": 3,
       "5": 5,
       "6": 4,
-      "7": 29
+      "7": 29,
+      "8": 1
     }
   },
-  "lastUpdated": "2026-05-22T19:00:00.000Z"
+  "lastUpdated": "2026-05-22T19:45:00.000Z"
 }
