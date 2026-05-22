@@ -65,6 +65,71 @@ export function findingToDiagnosticInput(finding: ExtensionFinding): DiagnosticI
   };
 }
 
+/**
+ * Construye el contenido Markdown del hover de un hallazgo: severidad, regla
+ * y -si el Brain Layer los produjo- el veredicto de triage, la cadena de
+ * contexto (entrada -> sink -> exposicion) y la sugerencia de remediacion.
+ *
+ * Funcion pura (sin la API de VSCode): la capa `index.ts` la envuelve en un
+ * `vscode.MarkdownString`. Asi es testeable de forma directa.
+ */
+export function findingHoverMarkdown(finding: ExtensionFinding): string {
+  const lines: string[] = [
+    `**Synaptic Sentinel** — ${finding.title}`,
+    '',
+    `Severidad: \`${finding.severity}\` · Categoria: \`${finding.category}\` · ` +
+      `Regla: \`${finding.ruleId}\``,
+  ];
+  const triage = finding.triage;
+  if (triage !== undefined) {
+    lines.push(
+      '',
+      `**Triage:** ${triageLabel(triage.classification)} ` +
+        `(confianza ${triage.confidence.toFixed(2)}) — ${triage.rationale}`,
+    );
+  }
+  const context = finding.context;
+  if (context !== undefined) {
+    lines.push(
+      '',
+      `**Contexto:** ${context.summary}`,
+      `- Entrada: ${context.entryPoint}`,
+      `- Sink: ${context.sink}`,
+      `- Exposicion: ${context.exposure}`,
+    );
+  }
+  const remediation = finding.remediation;
+  if (remediation !== undefined) {
+    lines.push('', `**Remediacion:** ${remediation.summary}`, '', remediation.recommendation);
+    if (remediation.fixedSnippet !== undefined) {
+      lines.push('', '```', remediation.fixedSnippet, '```');
+    }
+  }
+  return lines.join('\n');
+}
+
+/**
+ * Texto plano de la remediacion de un hallazgo, para copiar al portapapeles.
+ * Devuelve `undefined` si el hallazgo no tiene sugerencia de remediacion.
+ */
+export function remediationClipboardText(finding: ExtensionFinding): string | undefined {
+  const remediation = finding.remediation;
+  if (remediation === undefined) return undefined;
+  const loc = `${finding.location.path}:${String(finding.location.startLine)}`;
+  const parts = [
+    'Remediacion sugerida por Synaptic Sentinel',
+    `Hallazgo: ${finding.title} (${loc})`,
+    '',
+    remediation.summary,
+    '',
+    remediation.recommendation,
+  ];
+  if (remediation.fixedSnippet !== undefined) {
+    parts.push('', 'Codigo sugerido:', remediation.fixedSnippet);
+  }
+  return parts.join('\n');
+}
+
 /** Agrupa una lista de `DiagnosticInput` por ruta de archivo. */
 export function groupDiagnosticsByPath(
   inputs: readonly DiagnosticInput[],

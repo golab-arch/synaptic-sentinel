@@ -2,9 +2,11 @@ import { describe, it, expect } from 'vitest';
 import { join } from 'node:path';
 import {
   diagnosticLevelForSeverity,
+  findingHoverMarkdown,
   findingToDiagnosticInput,
   findingsInRange,
   groupDiagnosticsByPath,
+  remediationClipboardText,
   triageLabel,
 } from '../src/diagnostics.js';
 import type { ExtensionFinding } from '../src/tomo.js';
@@ -75,6 +77,96 @@ describe('findingToDiagnosticInput', () => {
       }),
     );
     expect(input.message).toContain('[triage: falso positivo]');
+  });
+});
+
+describe('findingHoverMarkdown', () => {
+  it('incluye titulo, severidad, categoria y regla del hallazgo', () => {
+    const md = findingHoverMarkdown(makeFinding());
+    expect(md).toContain('Synaptic Sentinel');
+    expect(md).toContain('rule-x');
+    expect(md).toContain('high');
+    expect(md).toContain('SAST');
+  });
+
+  it('no incluye secciones del Brain Layer si el hallazgo no fue procesado', () => {
+    const md = findingHoverMarkdown(makeFinding());
+    expect(md).not.toContain('Triage:');
+    expect(md).not.toContain('Contexto:');
+    expect(md).not.toContain('Remediacion:');
+  });
+
+  it('incluye triage, contexto y remediacion cuando estan presentes', () => {
+    const md = findingHoverMarkdown(
+      makeFinding({
+        triage: { classification: 'true_positive', confidence: 0.95, rationale: 'riesgo real' },
+        context: {
+          summary: 'eval sobre entrada del usuario',
+          entryPoint: 'req.query.expr',
+          sink: 'eval()',
+          exposure: 'ejecucion de codigo arbitrario',
+        },
+        remediation: {
+          summary: 'reemplazar eval por un parser seguro',
+          recommendation: 'usar JSON.parse',
+          fixedSnippet: 'JSON.parse(req.query.expr)',
+        },
+      }),
+    );
+    expect(md).toContain('**Triage:** verdadero positivo');
+    expect(md).toContain('riesgo real');
+    expect(md).toContain('**Contexto:** eval sobre entrada del usuario');
+    expect(md).toContain('Sink: eval()');
+    expect(md).toContain('**Remediacion:** reemplazar eval por un parser seguro');
+    expect(md).toContain('JSON.parse(req.query.expr)');
+  });
+
+  it('omite el bloque de snippet cuando la remediacion no lo trae', () => {
+    const md = findingHoverMarkdown(
+      makeFinding({
+        remediation: {
+          summary: 'rotar el secreto',
+          recommendation: 'revocar y emitir uno nuevo',
+        },
+      }),
+    );
+    expect(md).toContain('**Remediacion:** rotar el secreto');
+    expect(md).not.toContain('```');
+  });
+});
+
+describe('remediationClipboardText', () => {
+  it('devuelve undefined si el hallazgo no tiene remediacion', () => {
+    expect(remediationClipboardText(makeFinding())).toBeUndefined();
+  });
+
+  it('arma el texto de la remediacion con el hallazgo, los pasos y el snippet', () => {
+    const text = remediationClipboardText(
+      makeFinding({
+        location: { path: 'src/a.js', startLine: 7 },
+        remediation: {
+          summary: 'reemplazar eval por un parser seguro',
+          recommendation: 'usar JSON.parse en vez de eval',
+          fixedSnippet: 'JSON.parse(input)',
+        },
+      }),
+    );
+    expect(text).toBeDefined();
+    expect(text).toContain('src/a.js:7');
+    expect(text).toContain('reemplazar eval por un parser seguro');
+    expect(text).toContain('usar JSON.parse en vez de eval');
+    expect(text).toContain('Codigo sugerido:');
+    expect(text).toContain('JSON.parse(input)');
+  });
+
+  it('omite la seccion de codigo cuando no hay snippet', () => {
+    const text = remediationClipboardText(
+      makeFinding({
+        remediation: { summary: 'rotar el secreto', recommendation: 'revocar la credencial' },
+      }),
+    );
+    expect(text).toContain('rotar el secreto');
+    expect(text).not.toContain('Codigo sugerido:');
   });
 });
 

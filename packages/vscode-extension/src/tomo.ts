@@ -20,6 +20,21 @@ const ExtensionTriageSchema = z.object({
   rationale: z.string().min(1),
 });
 
+/** Explicacion de contexto del Brain Layer (forma minima, solo para mostrar). */
+const ExtensionContextSchema = z.object({
+  summary: z.string().min(1),
+  entryPoint: z.string().min(1),
+  sink: z.string().min(1),
+  exposure: z.string().min(1),
+});
+
+/** Sugerencia de remediacion del Brain Layer (forma minima, solo para mostrar). */
+const ExtensionRemediationSchema = z.object({
+  summary: z.string().min(1),
+  recommendation: z.string().min(1),
+  fixedSnippet: z.string().min(1).optional(),
+});
+
 /** Hallazgo, en la forma minima que consume la extension. */
 const ExtensionFindingSchema = z.object({
   severity: SeveritySchema,
@@ -33,6 +48,10 @@ const ExtensionFindingSchema = z.object({
   lifecycleState: z.string().min(1).default('new'),
   /** Veredicto de triage, presente solo si el hallazgo fue triado. */
   triage: ExtensionTriageSchema.optional(),
+  /** Explicacion de contexto, presente solo si el hallazgo fue explicado. */
+  context: ExtensionContextSchema.optional(),
+  /** Sugerencia de remediacion, presente solo si el hallazgo fue remediado. */
+  remediation: ExtensionRemediationSchema.optional(),
 });
 
 /**

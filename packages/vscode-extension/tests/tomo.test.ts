@@ -68,6 +68,56 @@ describe('parseTomo', () => {
     expect(tomo.findings[0]?.triage?.rationale).toBe('sin riesgo');
   });
 
+  it('conserva el contexto y la remediacion del Brain Layer cuando el finding los trae', () => {
+    const tomo = parseTomo({
+      summary: { scanId: 's', status: 'ok', totalFindings: 1 },
+      findings: [
+        {
+          severity: 'high',
+          category: 'SAST',
+          ruleId: 'r',
+          title: 't',
+          message: 'm',
+          location: { path: 'a.js', startLine: 1 },
+          fingerprint: 'fp-1',
+          context: {
+            summary: 'eval sobre entrada del usuario',
+            entryPoint: 'req.query.expr',
+            sink: 'eval()',
+            exposure: 'ejecucion de codigo arbitrario',
+          },
+          remediation: {
+            summary: 'reemplazar eval por un parser seguro',
+            recommendation: 'usar JSON.parse',
+            fixedSnippet: 'JSON.parse(input)',
+          },
+        },
+      ],
+    });
+    expect(tomo.findings[0]?.context?.sink).toBe('eval()');
+    expect(tomo.findings[0]?.remediation?.summary).toContain('parser seguro');
+    expect(tomo.findings[0]?.remediation?.fixedSnippet).toBe('JSON.parse(input)');
+  });
+
+  it('deja context y remediation undefined cuando el finding no los trae', () => {
+    const tomo = parseTomo({
+      summary: { scanId: 's', status: 'ok', totalFindings: 1 },
+      findings: [
+        {
+          severity: 'high',
+          category: 'SAST',
+          ruleId: 'r',
+          title: 't',
+          message: 'm',
+          location: { path: 'a.js', startLine: 1 },
+          fingerprint: 'fp-1',
+        },
+      ],
+    });
+    expect(tomo.findings[0]?.context).toBeUndefined();
+    expect(tomo.findings[0]?.remediation).toBeUndefined();
+  });
+
   it('deja triage undefined cuando el finding no lo trae', () => {
     const tomo = parseTomo({
       summary: { scanId: 's', status: 'ok', totalFindings: 1 },

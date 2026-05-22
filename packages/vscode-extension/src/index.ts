@@ -12,9 +12,11 @@ import { join } from 'node:path';
 import * as vscode from 'vscode';
 import { defaultCliEntry, runCliMarkFp, runCliScan, runCliTriage } from './cli-runner.js';
 import {
+  findingHoverMarkdown,
   findingToDiagnosticInput,
   findingsInRange,
   groupDiagnosticsByPath,
+  remediationClipboardText,
   type DiagnosticInput,
   type DiagnosticLevel,
 } from './diagnostics.js';
@@ -24,6 +26,8 @@ import type { ExtensionFinding } from './tomo.js';
 const COMMAND_SCAN = 'synaptic-sentinel.scanWorkspace';
 /** Id del comando interno de marcado de falso positivo (lo invoca un Code Action). */
 const COMMAND_MARK_FP = 'synaptic-sentinel.markFalsePositive';
+/** Id del comando interno de copia de remediacion (lo invoca un Code Action). */
+const COMMAND_COPY_REMEDIATION = 'synaptic-sentinel.copyRemediation';
 /** Id del comando de triage del Brain Layer. */
 const COMMAND_TRIAGE = 'synaptic-sentinel.triageWorkspace';
 /** Id del comando para configurar la API key de Anthropic (BYOK). */
@@ -64,6 +68,9 @@ export function activate(context: vscode.ExtensionContext): void {
         void markFalsePositive(diagnostics, statusBar, extensionRoot, fingerprint);
       }
     }),
+    vscode.commands.registerCommand(COMMAND_COPY_REMEDIATION, (fingerprint: unknown) => {
+      if (typeof fingerprint === 'string') copyRemediation(fingerprint);
+    }),
     vscode.commands.registerCommand(COMMAND_TRIAGE, () => {
       void triageWorkspace(diagnostics, statusBar, extensionRoot, secrets);
     }),
@@ -75,6 +82,7 @@ export function activate(context: vscode.ExtensionContext): void {
       { provideCodeActions },
       { providedCodeActionKinds: [vscode.CodeActionKind.QuickFix] },
     ),
+    vscode.languages.registerHoverProvider('*', { provideHover }),
   );
 }
 
@@ -148,7 +156,11 @@ function resolveCliEntry(extensionRoot: string): string {
   return defaultCliEntry(extensionRoot);
 }
 
-/** Provee Code Actions "marcar falso positivo" para los hallazgos en rango. */
+/**
+ * Provee Code Actions para los hallazgos bajo el cursor: "marcar falso
+ * positivo" para todos, y "copiar remediacion sugerida" para los que el
+ * Remediation Agent ya proceso.
+ */
 function provideCodeActions(
   document: vscode.TextDocument,
   range: vscode.Range | vscode.Selection,
@@ -161,18 +173,66 @@ function provideCodeActions(
     range.start.line,
     range.end.line,
   );
-  return matches.map((finding) => {
-    const action = new vscode.CodeAction(
+  const actions: vscode.CodeAction[] = [];
+  for (const finding of matches) {
+    const markFp = new vscode.CodeAction(
       `Synaptic Sentinel: marcar "${finding.title}" como falso positivo`,
       vscode.CodeActionKind.QuickFix,
     );
-    action.command = {
+    markFp.command = {
       command: COMMAND_MARK_FP,
       title: 'Marcar como falso positivo',
       arguments: [finding.fingerprint],
     };
-    return action;
-  });
+    actions.push(markFp);
+    if (finding.remediation !== undefined) {
+      const copy = new vscode.CodeAction(
+        `Synaptic Sentinel: copiar remediacion sugerida de "${finding.title}"`,
+        vscode.CodeActionKind.QuickFix,
+      );
+      copy.command = {
+        command: COMMAND_COPY_REMEDIATION,
+        title: 'Copiar remediacion sugerida',
+        arguments: [finding.fingerprint],
+      };
+      actions.push(copy);
+    }
+  }
+  return actions;
+}
+
+/**
+ * Provee un hover con el detalle del Brain Layer (triage + contexto +
+ * remediacion) para los hallazgos que caen en la linea bajo el cursor.
+ */
+function provideHover(
+  document: vscode.TextDocument,
+  position: vscode.Position,
+): vscode.Hover | undefined {
+  if (lastScan === undefined) return undefined;
+  const matches = findingsInRange(
+    lastScan.findings,
+    lastScan.workspacePath,
+    document.uri.fsPath,
+    position.line,
+    position.line,
+  );
+  if (matches.length === 0) return undefined;
+  const markdown = new vscode.MarkdownString(
+    matches.map(findingHoverMarkdown).join('\n\n---\n\n'),
+  );
+  return new vscode.Hover(markdown);
+}
+
+/** Maneja el comando interno `copyRemediation` (lo invoca un Code Action). */
+function copyRemediation(fingerprint: string): void {
+  const finding = lastScan?.findings.find((item) => item.fingerprint === fingerprint);
+  const text = finding !== undefined ? remediationClipboardText(finding) : undefined;
+  if (text === undefined) return;
+  void vscode.env.clipboard.writeText(text);
+  void vscode.window.showInformationMessage(
+    'Synaptic Sentinel: remediacion sugerida copiada al portapapeles.',
+  );
 }
 
 /** Maneja el comando `Scan Workspace`. */
