@@ -18,15 +18,7 @@ export interface TrivyScoutOptions {
 /** Construye los argumentos de `trivy fs` para una peticion de escaneo. */
 export function buildTrivyArgs(request: ScanRequest): string[] {
   const target = request.targetPaths[0] ?? '.';
-  return [
-    'fs',
-    '--scanners',
-    'vuln',
-    '--format',
-    'json',
-    '--quiet',
-    target,
-  ];
+  return ['fs', '--scanners', 'vuln', '--format', 'json', '--quiet', target];
 }
 
 /**

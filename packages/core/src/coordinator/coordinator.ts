@@ -154,9 +154,7 @@ export class Coordinator {
 
     const finishedAt = new Date().toISOString();
     const scouts: ScoutOutcome[] = results.map(toScoutOutcome);
-    const status: 'ok' | 'degraded' = scouts.some((s) => s.status !== 'ok')
-      ? 'degraded'
-      : 'ok';
+    const status: 'ok' | 'degraded' = scouts.some((s) => s.status !== 'ok') ? 'degraded' : 'ok';
 
     this.#db.completeScan(scanId, finishedAt, {
       status,
@@ -203,9 +201,7 @@ export class Coordinator {
         continue;
       }
       seenInThisScan.add(fingerprint);
-      const lifecycleState: LifecycleState = seenInPriorScans.has(fingerprint)
-        ? 'known'
-        : 'new';
+      const lifecycleState: LifecycleState = seenInPriorScans.has(fingerprint) ? 'known' : 'new';
       persisted.push({ ...finding, lifecycleState });
     }
 
@@ -259,11 +255,9 @@ export class Coordinator {
         reject(new Error('scout-cancelado'));
         return;
       }
-      controller.signal.addEventListener(
-        'abort',
-        () => reject(new Error('scout-cancelado')),
-        { once: true },
-      );
+      controller.signal.addEventListener('abort', () => reject(new Error('scout-cancelado')), {
+        once: true,
+      });
     });
 
     const request: ScanRequest = { ...baseRequest, signal: controller.signal };

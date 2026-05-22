@@ -26,23 +26,19 @@ const suite = existsSync(binaryPath) ? describe : describe.skip;
 suite('CheckovScout - integracion con el binario real de Checkov', () => {
   const scout = new CheckovScout({ binaryPath });
 
-  it(
-    'detecta misconfiguraciones en un Dockerfile vulnerable',
-    async () => {
-      const result = await scout.scan({
-        scanId: 'it-iac',
-        rootPath: fixturesRoot,
-        targetPaths: [],
-        mode: 'full',
-      });
-      expect(result.status).toBe('ok');
-      expect(result.findings.length).toBeGreaterThan(0);
-      const finding = result.findings[0];
-      if (!finding) throw new Error('se esperaba un finding');
-      expect(finding.category).toBe('IaC');
-      expect(finding.location.path).toContain('Dockerfile');
-      expect(finding.ruleId).toMatch(/^CKV_/);
-    },
-    120_000,
-  );
+  it('detecta misconfiguraciones en un Dockerfile vulnerable', async () => {
+    const result = await scout.scan({
+      scanId: 'it-iac',
+      rootPath: fixturesRoot,
+      targetPaths: [],
+      mode: 'full',
+    });
+    expect(result.status).toBe('ok');
+    expect(result.findings.length).toBeGreaterThan(0);
+    const finding = result.findings[0];
+    if (!finding) throw new Error('se esperaba un finding');
+    expect(finding.category).toBe('IaC');
+    expect(finding.location.path).toContain('Dockerfile');
+    expect(finding.ruleId).toMatch(/^CKV_/);
+  }, 120_000);
 });

@@ -62,31 +62,27 @@ integrationSuite('runCliScan - integracion con la CLI real', () => {
     rmSync(join(probeDir, '.synaptic-sentinel'), { recursive: true, force: true });
   });
 
-  it(
-    'escanea un probe vulnerable, transmite la salida y devuelve findings parseados',
-    async () => {
-      let streamed = '';
-      const tomo = await runCliScan({
-        cliEntry,
-        workspacePath: probeDir,
-        onOutput: (chunk) => {
-          streamed += chunk;
-        },
-      });
-      expect(tomo.findings.length).toBeGreaterThan(0);
-      // El stream de la CLI llego al callback (banner verbose, DG-038 B).
-      expect(streamed).toContain('SYNAPTIC SENTINEL');
+  // Timeout de 120s: la CLI arranca en frio 4 binarios externos (Checkov,
+  // onefile de PyInstaller, es el mas lento); bajo la concurrencia de la suite
+  // completa 60s no alcanzan. En linea con FI-002 (separar test:unit /
+  // test:integration).
+  it('escanea un probe vulnerable, transmite la salida y devuelve findings parseados', async () => {
+    let streamed = '';
+    const tomo = await runCliScan({
+      cliEntry,
+      workspacePath: probeDir,
+      onOutput: (chunk) => {
+        streamed += chunk;
+      },
+    });
+    expect(tomo.findings.length).toBeGreaterThan(0);
+    // El stream de la CLI llego al callback (banner verbose, DG-038 B).
+    expect(streamed).toContain('SYNAPTIC SENTINEL');
 
-      const finding = tomo.findings[0];
-      if (!finding) throw new Error('se esperaba un finding');
-      const input = findingToDiagnosticInput(finding);
-      expect(input.path).toContain('eval-vuln.js');
-      expect(input.level).toBe('error');
-    },
-    // La CLI arranca en frio 4 binarios externos (Checkov, onefile de
-    // PyInstaller, es el mas lento); bajo la concurrencia de la suite completa
-    // 60s no alcanzan. 120s da margen, en linea con FI-002 (separar
-    // test:unit / test:integration).
-    120_000,
-  );
+    const finding = tomo.findings[0];
+    if (!finding) throw new Error('se esperaba un finding');
+    const input = findingToDiagnosticInput(finding);
+    expect(input.path).toContain('eval-vuln.js');
+    expect(input.level).toBe('error');
+  }, 120_000);
 });

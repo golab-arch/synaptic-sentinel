@@ -34,8 +34,7 @@ function rowToScan(row: unknown): Scan {
     startedAt: r['started_at'],
     finishedAt: r['finished_at'] ?? undefined,
     gitSha: r['git_sha'] ?? undefined,
-    agentSummary:
-      r['agent_summary'] != null ? JSON.parse(String(r['agent_summary'])) : undefined,
+    agentSummary: r['agent_summary'] != null ? JSON.parse(String(r['agent_summary'])) : undefined,
   });
 }
 
@@ -276,9 +275,7 @@ export class ColonyDb {
 
   /** Id del scan mas reciente, o `undefined` si no hay ninguno. */
   getLatestScanId(): string | undefined {
-    const row = this.#db
-      .prepare('SELECT id FROM scans ORDER BY started_at DESC LIMIT 1')
-      .get();
+    const row = this.#db.prepare('SELECT id FROM scans ORDER BY started_at DESC LIMIT 1').get();
     return row ? String((row as { id: unknown }).id) : undefined;
   }
 
@@ -319,9 +316,7 @@ export class ColonyDb {
    * vuelve a gastar tokens en hallazgos ya triados.
    */
   getTriagedFingerprints(): Set<string> {
-    const rows = this.#db
-      .prepare('SELECT DISTINCT fingerprint FROM triage_verdicts')
-      .all();
+    const rows = this.#db.prepare('SELECT DISTINCT fingerprint FROM triage_verdicts').all();
     const fingerprints = new Set<string>();
     for (const row of rows) {
       const value = (row as { fingerprint: unknown }).fingerprint;

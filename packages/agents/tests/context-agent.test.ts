@@ -54,9 +54,7 @@ describe('ContextAgent.parseResponse', () => {
   });
 
   it('rechaza una respuesta sin el campo sink', () => {
-    expect(() =>
-      agent.parseResponse('{"summary":"s","entryPoint":"e","exposure":"x"}'),
-    ).toThrow();
+    expect(() => agent.parseResponse('{"summary":"s","entryPoint":"e","exposure":"x"}')).toThrow();
   });
 
   it('rechaza una respuesta sin JSON', () => {

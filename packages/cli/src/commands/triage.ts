@@ -59,9 +59,7 @@ export async function runTriageCommand(options: TriageCommandOptions): Promise<n
   const projectRoot = resolve(options.path);
   const dbPath = join(projectRoot, '.synaptic-sentinel', 'colony.db');
   if (!existsSync(dbPath)) {
-    console.error(
-      `No hay colony.db en ${projectRoot}. Corre "synaptic-sentinel scan" primero.`,
-    );
+    console.error(`No hay colony.db en ${projectRoot}. Corre "synaptic-sentinel scan" primero.`);
     return 1;
   }
 
@@ -69,9 +67,7 @@ export async function runTriageCommand(options: TriageCommandOptions): Promise<n
   if (llm === undefined) {
     const apiKey = process.env['ANTHROPIC_API_KEY'];
     if (apiKey === undefined || apiKey === '') {
-      console.error(
-        'triage requiere una API key de Anthropic (BYOK). Exporta ANTHROPIC_API_KEY.',
-      );
+      console.error('triage requiere una API key de Anthropic (BYOK). Exporta ANTHROPIC_API_KEY.');
       return 1;
     }
     llm = new AnthropicLlmClient({ apiKey });
@@ -95,8 +91,7 @@ export async function runTriageCommand(options: TriageCommandOptions): Promise<n
     const alreadyTriaged = db.getTriagedFingerprints();
     const pending = findings.filter(
       (finding) =>
-        !knownFalsePositives.has(finding.fingerprint) &&
-        !alreadyTriaged.has(finding.fingerprint),
+        !knownFalsePositives.has(finding.fingerprint) && !alreadyTriaged.has(finding.fingerprint),
     );
 
     const limit = options.limit ?? DEFAULT_TRIAGE_LIMIT;

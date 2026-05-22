@@ -312,9 +312,7 @@ describe('ColonyDb - remediation suggestions (schema v4)', () => {
     const scan = makeScan();
     db.insertScan(scan);
     expect(() =>
-      db.insertRemediationSuggestions([
-        makeSuggestion(String(scan['id']), { recommendation: '' }),
-      ]),
+      db.insertRemediationSuggestions([makeSuggestion(String(scan['id']), { recommendation: '' })]),
     ).toThrow();
     db.close();
   });

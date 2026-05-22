@@ -18,10 +18,7 @@ export interface OpenGrepScoutOptions {
 }
 
 /** Construye los argumentos de `opengrep scan` para una peticion de escaneo. */
-export function buildOpenGrepArgs(
-  configArgs: readonly string[],
-  request: ScanRequest,
-): string[] {
+export function buildOpenGrepArgs(configArgs: readonly string[], request: ScanRequest): string[] {
   const targets = request.targetPaths.length > 0 ? [...request.targetPaths] : ['.'];
   return ['scan', '--json', '--quiet', '--disable-version-check', ...configArgs, ...targets];
 }

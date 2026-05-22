@@ -79,10 +79,7 @@ export interface NormalizeContext {
 }
 
 /** Normaliza la salida de OpenGrep a la lista canonica de `Finding`. */
-export function normalizeOpenGrepOutput(
-  output: OpenGrepOutput,
-  ctx: NormalizeContext,
-): Finding[] {
+export function normalizeOpenGrepOutput(output: OpenGrepOutput, ctx: NormalizeContext): Finding[] {
   const now = ctx.now ?? ((): string => new Date().toISOString());
   const newId = ctx.newId ?? ((): string => randomUUID());
 

@@ -43,10 +43,7 @@ const CheckovReportSchema = z.object({
  * un array de objetos cuando varios frameworks coinciden (un reporte por cada
  * uno). Se acepta tambien el array vacio (ningun framework con archivos).
  */
-export const CheckovOutputSchema = z.union([
-  CheckovReportSchema,
-  z.array(CheckovReportSchema),
-]);
+export const CheckovOutputSchema = z.union([CheckovReportSchema, z.array(CheckovReportSchema)]);
 
 /** Un check fallido de Checkov. */
 export type CheckovFailedCheck = z.infer<typeof CheckovFailedCheckSchema>;

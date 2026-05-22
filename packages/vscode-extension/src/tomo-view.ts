@@ -63,9 +63,7 @@ export class SentinelTomoViewProvider implements vscode.WebviewViewProvider {
       editor.selection = new vscode.Selection(position, position);
       editor.revealRange(new vscode.Range(position, position));
     } catch {
-      void vscode.window.showWarningMessage(
-        `Synaptic Sentinel: no se pudo abrir ${msg.path}.`,
-      );
+      void vscode.window.showWarningMessage(`Synaptic Sentinel: no se pudo abrir ${msg.path}.`);
     }
   }
 }

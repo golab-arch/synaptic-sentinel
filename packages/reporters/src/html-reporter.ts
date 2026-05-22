@@ -207,9 +207,7 @@ export function renderTomoHtml(tomo: Tomo): string {
       ? `<p class="meta">Por triage</p>\n${renderChips(triageLabeled)}`
       : '';
   const gitSha =
-    metadata.gitSha !== undefined
-      ? ` · commit <code>${escapeHtml(metadata.gitSha)}</code>`
-      : '';
+    metadata.gitSha !== undefined ? ` · commit <code>${escapeHtml(metadata.gitSha)}</code>` : '';
 
   return `<!doctype html>
 <html lang="es">

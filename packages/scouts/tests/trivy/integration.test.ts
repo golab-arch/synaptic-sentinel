@@ -26,23 +26,19 @@ const suite = existsSync(binaryPath) ? describe : describe.skip;
 suite('TrivyScout - integracion con el binario real de Trivy', () => {
   const scout = new TrivyScout({ binaryPath });
 
-  it(
-    'detecta una dependencia vulnerable (lodash) en un package-lock.json',
-    async () => {
-      const result = await scout.scan({
-        scanId: 'it-sca',
-        rootPath: fixturesRoot,
-        targetPaths: [],
-        mode: 'full',
-      });
-      expect(result.status).toBe('ok');
-      expect(result.findings.length).toBeGreaterThan(0);
-      const finding = result.findings[0];
-      if (!finding) throw new Error('se esperaba un finding');
-      expect(finding.category).toBe('SCA');
-      expect(finding.location.path).toContain('package-lock.json');
-      expect(finding.ruleId).toMatch(/^(CVE|GHSA)-/);
-    },
-    120_000,
-  );
+  it('detecta una dependencia vulnerable (lodash) en un package-lock.json', async () => {
+    const result = await scout.scan({
+      scanId: 'it-sca',
+      rootPath: fixturesRoot,
+      targetPaths: [],
+      mode: 'full',
+    });
+    expect(result.status).toBe('ok');
+    expect(result.findings.length).toBeGreaterThan(0);
+    const finding = result.findings[0];
+    if (!finding) throw new Error('se esperaba un finding');
+    expect(finding.category).toBe('SCA');
+    expect(finding.location.path).toContain('package-lock.json');
+    expect(finding.ruleId).toMatch(/^(CVE|GHSA)-/);
+  }, 120_000);
 });

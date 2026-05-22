@@ -75,8 +75,7 @@ export const VIBE_DETECTORS: readonly VibeDetector[] = [
     message:
       'La politica CORS permite cualquier origen. Un default comodo y muy ' +
       'frecuente en codigo generado por IA que expone la API a sitios de terceros.',
-    pattern:
-      /(?:access-control-allow-origin\b[^\n]*\*|\borigin\s*:\s*(?:["'`]\*["'`]|true)\b)/i,
+    pattern: /(?:access-control-allow-origin\b[^\n]*\*|\borigin\s*:\s*(?:["'`]\*["'`]|true)\b)/i,
     complianceRefs: ['CWE-942'],
   },
   {

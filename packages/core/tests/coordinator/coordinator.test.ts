@@ -3,7 +3,12 @@ import { randomUUID } from 'node:crypto';
 import { ColonyDb } from '../../src/colony/colony-db.js';
 import { Coordinator } from '../../src/coordinator/coordinator.js';
 import { buildFpKnownPheromone } from '../../src/types/fp-known.js';
-import type { ScanRequest, ScoutAgent, ScoutResult, ScoutStatus } from '../../src/types/scout-agent.js';
+import type {
+  ScanRequest,
+  ScoutAgent,
+  ScoutResult,
+  ScoutStatus,
+} from '../../src/types/scout-agent.js';
 
 /** Construye un Finding valido; con `fingerprint` fijo si se provee. */
 function makeFinding(

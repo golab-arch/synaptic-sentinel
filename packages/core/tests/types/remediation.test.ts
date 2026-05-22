@@ -23,9 +23,7 @@ describe('RemediationSuggestionSchema', () => {
   });
 
   it('rechaza una sugerencia con un campo requerido vacio', () => {
-    expect(() =>
-      RemediationSuggestionSchema.parse({ summary: 's', recommendation: '' }),
-    ).toThrow();
+    expect(() => RemediationSuggestionSchema.parse({ summary: 's', recommendation: '' })).toThrow();
   });
 
   it('rechaza un fixedSnippet vacio (si la clave esta, debe tener contenido)', () => {

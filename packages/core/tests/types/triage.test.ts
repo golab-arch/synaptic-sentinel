@@ -74,10 +74,6 @@ describe('TriageVerdictRecordSchema', () => {
 
 describe('TRIAGE_CLASSIFICATIONS', () => {
   it('tiene las tres clasificaciones de v0.4 (TP / FP / inconcluso)', () => {
-    expect(TRIAGE_CLASSIFICATIONS).toEqual([
-      'true_positive',
-      'false_positive',
-      'inconclusive',
-    ]);
+    expect(TRIAGE_CLASSIFICATIONS).toEqual(['true_positive', 'false_positive', 'inconclusive']);
   });
 });

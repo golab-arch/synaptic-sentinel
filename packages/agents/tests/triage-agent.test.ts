@@ -67,9 +67,7 @@ describe('TriageAgent.parseResponse', () => {
 
   it('rechaza una confianza fuera del rango 0..1', () => {
     expect(() =>
-      agent.parseResponse(
-        '{"classification":"inconclusive","confidence":1.8,"rationale":"x"}',
-      ),
+      agent.parseResponse('{"classification":"inconclusive","confidence":1.8,"rationale":"x"}'),
     ).toThrow();
   });
 

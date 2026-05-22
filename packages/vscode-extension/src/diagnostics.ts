@@ -49,9 +49,7 @@ export function findingToDiagnosticInput(finding: ExtensionFinding): DiagnosticI
   const startColumn = loc.startColumn ?? 1;
   const lifecycle = finding.lifecycleState !== 'new' ? ` (${finding.lifecycleState})` : '';
   const triage =
-    finding.triage !== undefined
-      ? ` [triage: ${triageLabel(finding.triage.classification)}]`
-      : '';
+    finding.triage !== undefined ? ` [triage: ${triageLabel(finding.triage.classification)}]` : '';
   return {
     path: loc.path,
     startLine: loc.startLine,

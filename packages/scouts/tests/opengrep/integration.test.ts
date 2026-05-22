@@ -38,55 +38,43 @@ suite('OpenGrepScout - integracion con el binario real de OpenGrep', () => {
     configArgs: ['--config', rulesetPath],
   });
 
-  it(
-    'detecta eval() en una fixture JavaScript',
-    async () => {
-      const result = await scout.scan({
-        scanId: 'it-js',
-        rootPath: fixturesRoot,
-        targetPaths: ['javascript'],
-        mode: 'full',
-      });
-      expect(result.status).toBe('ok');
-      expect(result.findings.length).toBeGreaterThan(0);
-      const finding = result.findings.find((f) => f.ruleId.includes('eval'));
-      expect(finding).toBeDefined();
-      expect(finding?.category).toBe('SAST');
-      expect(finding?.severity).toBe('high');
-      expect(finding?.location.path).toContain('eval-injection.js');
-    },
-    60_000,
-  );
+  it('detecta eval() en una fixture JavaScript', async () => {
+    const result = await scout.scan({
+      scanId: 'it-js',
+      rootPath: fixturesRoot,
+      targetPaths: ['javascript'],
+      mode: 'full',
+    });
+    expect(result.status).toBe('ok');
+    expect(result.findings.length).toBeGreaterThan(0);
+    const finding = result.findings.find((f) => f.ruleId.includes('eval'));
+    expect(finding).toBeDefined();
+    expect(finding?.category).toBe('SAST');
+    expect(finding?.severity).toBe('high');
+    expect(finding?.location.path).toContain('eval-injection.js');
+  }, 60_000);
 
-  it(
-    'detecta new Function() en una fixture TypeScript',
-    async () => {
-      const result = await scout.scan({
-        scanId: 'it-ts',
-        rootPath: fixturesRoot,
-        targetPaths: ['typescript'],
-        mode: 'full',
-      });
-      expect(result.status).toBe('ok');
-      expect(result.findings.some((f) => f.ruleId.includes('new-function'))).toBe(true);
-    },
-    60_000,
-  );
+  it('detecta new Function() en una fixture TypeScript', async () => {
+    const result = await scout.scan({
+      scanId: 'it-ts',
+      rootPath: fixturesRoot,
+      targetPaths: ['typescript'],
+      mode: 'full',
+    });
+    expect(result.status).toBe('ok');
+    expect(result.findings.some((f) => f.ruleId.includes('new-function'))).toBe(true);
+  }, 60_000);
 
-  it(
-    'detecta exec() y subprocess shell=True en una fixture Python',
-    async () => {
-      const result = await scout.scan({
-        scanId: 'it-py',
-        rootPath: fixturesRoot,
-        targetPaths: ['python'],
-        mode: 'full',
-      });
-      expect(result.status).toBe('ok');
-      const ruleIds = result.findings.map((f) => f.ruleId);
-      expect(ruleIds.some((r) => r.includes('exec'))).toBe(true);
-      expect(ruleIds.some((r) => r.includes('subprocess'))).toBe(true);
-    },
-    60_000,
-  );
+  it('detecta exec() y subprocess shell=True en una fixture Python', async () => {
+    const result = await scout.scan({
+      scanId: 'it-py',
+      rootPath: fixturesRoot,
+      targetPaths: ['python'],
+      mode: 'full',
+    });
+    expect(result.status).toBe('ok');
+    const ruleIds = result.findings.map((f) => f.ruleId);
+    expect(ruleIds.some((r) => r.includes('exec'))).toBe(true);
+    expect(ruleIds.some((r) => r.includes('subprocess'))).toBe(true);
+  }, 60_000);
 });

@@ -1,11 +1,7 @@
 import { z } from 'zod';
 
 /** Clasificaciones de triage de un hallazgo (v0.4 §3.6: TP / FP / inconcluso). */
-export const TRIAGE_CLASSIFICATIONS = [
-  'true_positive',
-  'false_positive',
-  'inconclusive',
-] as const;
+export const TRIAGE_CLASSIFICATIONS = ['true_positive', 'false_positive', 'inconclusive'] as const;
 
 /** Schema de validacion de la clasificacion de triage. */
 export const TriageClassificationSchema = z.enum(TRIAGE_CLASSIFICATIONS);

@@ -110,9 +110,7 @@ export class AnthropicLlmClient implements LlmClient {
     });
     if (!response.ok) {
       const detail = await response.text().catch(() => '');
-      throw new Error(
-        `Anthropic respondio ${String(response.status)}. ${detail.slice(0, 500)}`,
-      );
+      throw new Error(`Anthropic respondio ${String(response.status)}. ${detail.slice(0, 500)}`);
     }
     const payload: unknown = await response.json();
     return parseAnthropicResponse(payload);

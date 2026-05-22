@@ -33,10 +33,7 @@ const SEVERITY_BY_TRIVY: Readonly<Record<string, Severity>> = {
  * `SCA`. La discriminacion fina (TP/FP, criticidad real en este proyecto) la
  * afina el Brain Layer.
  */
-export function normalizeTrivyOutput(
-  output: TrivyOutput,
-  ctx: TrivyNormalizeContext,
-): Finding[] {
+export function normalizeTrivyOutput(output: TrivyOutput, ctx: TrivyNormalizeContext): Finding[] {
   const now = ctx.now ?? ((): string => new Date().toISOString());
   const newId = ctx.newId ?? ((): string => randomUUID());
   const findings: Finding[] = [];

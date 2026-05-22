@@ -108,7 +108,9 @@ function canonicalize(value: unknown): unknown {
 
 /** Hash SHA-256 (hex) de la forma canonica de un valor — determinista. */
 export function canonicalHash(value: unknown): string {
-  return createHash('sha256').update(JSON.stringify(canonicalize(value))).digest('hex');
+  return createHash('sha256')
+    .update(JSON.stringify(canonicalize(value)))
+    .digest('hex');
 }
 
 /** Metadata de entrada para construir un tomo. */

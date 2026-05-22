@@ -7,11 +7,7 @@ import type { TriageClassification } from './triage.js';
  * un patron que tiende a ser falso positivo, uno que tiende a ser una
  * vulnerabilidad real, o uno especifico de este proyecto.
  */
-export const LEARNING_CLASSIFICATIONS = [
-  'fp_pattern',
-  'real_pattern',
-  'project_specific',
-] as const;
+export const LEARNING_CLASSIFICATIONS = ['fp_pattern', 'real_pattern', 'project_specific'] as const;
 
 /** Schema de validacion de la clasificacion de un learning record. */
 export const LearningClassificationSchema = z.enum(LEARNING_CLASSIFICATIONS);
@@ -107,8 +103,7 @@ export function deriveFromLearning(
   threshold: number = LEARNING_CONFIDENCE_THRESHOLD,
 ): LearnedVerdict | undefined {
   const forSignature = records.filter((r) => r.patternSignature === signature);
-  const fpCount =
-    forSignature.find((r) => r.classification === 'fp_pattern')?.evidenceCount ?? 0;
+  const fpCount = forSignature.find((r) => r.classification === 'fp_pattern')?.evidenceCount ?? 0;
   const realCount =
     forSignature.find((r) => r.classification === 'real_pattern')?.evidenceCount ?? 0;
   // Evidencia contradictoria: el patron es ambiguo, debe decidir el LLM.

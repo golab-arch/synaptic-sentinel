@@ -24,9 +24,7 @@ export function runMarkFpCommand(options: MarkFpCommandOptions): number {
   const projectRoot = resolve(options.path);
   const dbPath = join(projectRoot, '.synaptic-sentinel', 'colony.db');
   if (!existsSync(dbPath)) {
-    console.error(
-      `No hay colony.db en ${projectRoot}. Corre "synaptic-sentinel scan" primero.`,
-    );
+    console.error(`No hay colony.db en ${projectRoot}. Corre "synaptic-sentinel scan" primero.`);
     return 1;
   }
 
@@ -35,9 +33,7 @@ export function runMarkFpCommand(options: MarkFpCommandOptions): number {
     const existing = db.getPheromonesByFingerprint(options.fingerprint);
     const finding = existing.find((pheromone) => pheromone.type === 'finding');
     if (finding === undefined) {
-      console.error(
-        `No se encontro ningun hallazgo con fingerprint "${options.fingerprint}".`,
-      );
+      console.error(`No se encontro ningun hallazgo con fingerprint "${options.fingerprint}".`);
       return 1;
     }
     if (existing.some((pheromone) => pheromone.type === 'fp_known')) {

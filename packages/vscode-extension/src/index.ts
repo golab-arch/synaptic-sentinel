@@ -229,9 +229,7 @@ function provideHover(
     position.line,
   );
   if (matches.length === 0) return undefined;
-  const markdown = new vscode.MarkdownString(
-    matches.map(findingHoverMarkdown).join('\n\n---\n\n'),
-  );
+  const markdown = new vscode.MarkdownString(matches.map(findingHoverMarkdown).join('\n\n---\n\n'));
   return new vscode.Hover(markdown);
 }
 

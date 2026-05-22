@@ -11,7 +11,10 @@
     "vscode": "^1.95.0",
     "node": ">=20"
   },
-  "categories": ["Linters", "Other"],
+  "categories": [
+    "Linters",
+    "Other"
+  ],
   "main": "./dist/extension.cjs",
   "contributes": {
     "commands": [

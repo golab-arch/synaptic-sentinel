@@ -212,9 +212,7 @@ export async function installScanner(
       }
     }
     if (!(await exists(destPath))) {
-      throw new Error(
-        `El binario "${target.binary}" no aparecio tras extraer ${target.asset}.`,
-      );
+      throw new Error(`El binario "${target.binary}" no aparecio tras extraer ${target.asset}.`);
     }
   }
 
@@ -248,7 +246,9 @@ async function main(): Promise<void> {
 
   for (const [name, spec] of Object.entries(manifest.scanners)) {
     const outcome = await installScanner(name, spec, installDir);
-    console.log(`  ${name} ${outcome.version}: ${outcome.action === 'cached' ? 'cache OK' : 'instalado'}`);
+    console.log(
+      `  ${name} ${outcome.version}: ${outcome.action === 'cached' ? 'cache OK' : 'instalado'}`,
+    );
     console.log(`    ${outcome.path}`);
   }
   console.log('Listo.');

@@ -12,14 +12,43 @@ import { runVibeDetectors } from './detect.js';
 
 /** Extensiones de archivo de texto que el scout inspecciona. */
 const TEXT_EXTENSIONS: ReadonlySet<string> = new Set([
-  '.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs', '.py', '.go', '.rb', '.java',
-  '.php', '.cs', '.rs', '.c', '.cpp', '.h', '.hpp', '.sh', '.yaml', '.yml',
-  '.json', '.tf', '.env', '.cfg', '.ini', '.toml',
+  '.js',
+  '.jsx',
+  '.ts',
+  '.tsx',
+  '.mjs',
+  '.cjs',
+  '.py',
+  '.go',
+  '.rb',
+  '.java',
+  '.php',
+  '.cs',
+  '.rs',
+  '.c',
+  '.cpp',
+  '.h',
+  '.hpp',
+  '.sh',
+  '.yaml',
+  '.yml',
+  '.json',
+  '.tf',
+  '.env',
+  '.cfg',
+  '.ini',
+  '.toml',
 ]);
 
 /** Directorios que el scout nunca recorre (ruido o artefactos de build). */
 const SKIP_DIRS: ReadonlySet<string> = new Set([
-  'node_modules', 'dist', 'build', 'out', 'coverage', 'vendor', '__pycache__',
+  'node_modules',
+  'dist',
+  'build',
+  'out',
+  'coverage',
+  'vendor',
+  '__pycache__',
 ]);
 
 /** Tamano maximo de archivo a inspeccionar (los mayores suelen ser generados). */

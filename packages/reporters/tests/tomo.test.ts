@@ -1,11 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { randomUUID } from 'node:crypto';
-import {
-  buildTomo,
-  verifyTomoIntegrity,
-  canonicalHash,
-  TomoSchema,
-} from '../src/tomo.js';
+import { buildTomo, verifyTomoIntegrity, canonicalHash, TomoSchema } from '../src/tomo.js';
 import { renderTomoJson } from '../src/json-reporter.js';
 
 /** Construye un Finding valido. */

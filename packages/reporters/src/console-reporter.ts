@@ -47,9 +47,7 @@ const FAIL_COLOR = '\x1b[38;5;196m';
 const ACCENT = '\x1b[38;5;44m'; // cian del branding
 
 /** Frames del spinner (estilo braille), expuestos para la CLI. */
-export const SPINNER_FRAMES: readonly string[] = [
-  '⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏',
-];
+export const SPINNER_FRAMES: readonly string[] = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
 
 /** Banner de cabecera de la CLI. */
 export function renderBanner(color: boolean): string {
@@ -63,7 +61,12 @@ export function renderBanner(color: boolean): string {
 
 /** Linea de resultado de un scout (✓/✗ + id + conteo + error). */
 export function renderScoutLine(
-  scout: { readonly scoutId: string; readonly status: string; readonly findings: number; readonly error?: string },
+  scout: {
+    readonly scoutId: string;
+    readonly status: string;
+    readonly findings: number;
+    readonly error?: string;
+  },
   color: boolean,
 ): string {
   const ok = scout.status === 'ok';
@@ -94,9 +97,7 @@ export function renderScanReveal(
   lines.push(`  ${status}  scan ${paint(outcome.scanId, DIM, color)}`);
   lines.push(
     `  ${paint(String(outcome.findingsCount), BOLD, color)} hallazgo(s)` +
-      (outcome.suppressedCount > 0
-        ? ` · ${String(outcome.suppressedCount)} suprimido(s)`
-        : ''),
+      (outcome.suppressedCount > 0 ? ` · ${String(outcome.suppressedCount)} suprimido(s)` : ''),
   );
 
   lines.push('');
@@ -111,9 +112,7 @@ export function renderScanReveal(
       const label = paint(severity.toUpperCase().padEnd(8), SEVERITY_COLOR[severity], color);
       // El ciclo de vida se anota solo si no es `new` (p.ej. `(known)`).
       const lifecycle =
-        finding.lifecycleState === 'new'
-          ? ''
-          : paint(` (${finding.lifecycleState})`, DIM, color);
+        finding.lifecycleState === 'new' ? '' : paint(` (${finding.lifecycleState})`, DIM, color);
       const loc = paint(
         `${finding.location.path}:${String(finding.location.startLine)}`,
         DIM,
