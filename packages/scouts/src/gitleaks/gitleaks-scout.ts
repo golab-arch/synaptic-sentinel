@@ -11,7 +11,7 @@ import { normalizeGitleaksOutput } from './normalizer.js';
 
 /** Opciones de construccion de un `GitleaksScout`. */
 export interface GitleaksScoutOptions {
-  /** Ruta al binario de Gitleaks (lo instala scripts/install-scanners.ts). */
+  /** Ruta al binario de Gitleaks (lo instala `synaptic-sentinel scanners install`). */
   readonly binaryPath: string;
 }
 

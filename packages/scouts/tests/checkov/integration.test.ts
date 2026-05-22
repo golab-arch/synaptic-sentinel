@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { SCANNERS_MANIFEST } from '../../../cli/src/scanners/scanners.manifest.js';
 import { CheckovScout } from '../../src/checkov/checkov-scout.js';
 
 const repoRoot = fileURLToPath(new URL('../../../../', import.meta.url));
@@ -9,10 +10,7 @@ const fixturesRoot = fileURLToPath(new URL('./fixtures/iac', import.meta.url));
 
 /** Resuelve la ruta del binario Checkov instalado segun el manifest. */
 function resolveBinaryPath(): string {
-  const manifest = JSON.parse(
-    readFileSync(join(repoRoot, 'scripts', 'scanners.manifest.json'), 'utf8'),
-  ) as { scanners: { checkov: { version: string } } };
-  const version = manifest.scanners.checkov.version;
+  const version = SCANNERS_MANIFEST.scanners.checkov!.version;
   const binaryName = process.platform === 'win32' ? 'checkov.exe' : 'checkov';
   return join(repoRoot, '.scanners', 'checkov', version, binaryName);
 }

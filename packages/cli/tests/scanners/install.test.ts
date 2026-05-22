@@ -4,7 +4,7 @@ import {
   resolvePlatformTarget,
   downloadUrl,
   type ScannerSpec,
-} from './install-scanners.js';
+} from '../../src/scanners/install.js';
 
 const opengrep: ScannerSpec = {
   version: 'v1.22.0',

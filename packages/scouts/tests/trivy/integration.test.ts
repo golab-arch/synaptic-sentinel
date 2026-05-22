@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { SCANNERS_MANIFEST } from '../../../cli/src/scanners/scanners.manifest.js';
 import { TrivyScout } from '../../src/trivy/trivy-scout.js';
 
 const repoRoot = fileURLToPath(new URL('../../../../', import.meta.url));
@@ -9,10 +10,7 @@ const fixturesRoot = fileURLToPath(new URL('./fixtures/vulnerable-deps', import.
 
 /** Resuelve la ruta del binario Trivy instalado segun el manifest. */
 function resolveBinaryPath(): string {
-  const manifest = JSON.parse(
-    readFileSync(join(repoRoot, 'scripts', 'scanners.manifest.json'), 'utf8'),
-  ) as { scanners: { trivy: { version: string } } };
-  const version = manifest.scanners.trivy.version;
+  const version = SCANNERS_MANIFEST.scanners.trivy!.version;
   const binaryName = process.platform === 'win32' ? 'trivy.exe' : 'trivy';
   return join(repoRoot, '.scanners', 'trivy', version, binaryName);
 }

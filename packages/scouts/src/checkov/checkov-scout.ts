@@ -11,7 +11,7 @@ import { normalizeCheckovOutput } from './normalizer.js';
 
 /** Opciones de construccion de un `CheckovScout`. */
 export interface CheckovScoutOptions {
-  /** Ruta al binario de Checkov (lo instala scripts/install-scanners.ts). */
+  /** Ruta al binario de Checkov (lo instala `synaptic-sentinel scanners install`). */
   readonly binaryPath: string;
 }
 

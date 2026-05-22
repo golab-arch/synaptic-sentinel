@@ -11,7 +11,7 @@ import { normalizeOpenGrepOutput } from './normalizer.js';
 
 /** Opciones de construccion de un `OpenGrepScout`. */
 export interface OpenGrepScoutOptions {
-  /** Ruta al binario de OpenGrep (lo instala scripts/install-scanners.ts). */
+  /** Ruta al binario de OpenGrep (lo instala `synaptic-sentinel scanners install`). */
   readonly binaryPath: string;
   /** Argumentos de configuracion de reglas (ej. `['--config', 'auto']`). */
   readonly configArgs: readonly string[];

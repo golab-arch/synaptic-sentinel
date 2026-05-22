@@ -203,3 +203,43 @@ export async function runCliTriage(options: RunCliTriageOptions): Promise<void> 
   });
   assertCliOk(result, 'triage');
 }
+
+/** Opciones para correr el install de scanners a traves de la CLI (DG-059). */
+export interface RunCliScannersInstallOptions {
+  /** Ruta al entry de la CLI (`dist/cli.mjs` de la extension bundleada). */
+  readonly cliEntry: string;
+  /** Ejecutable de Node a usar. Por defecto el del extension host (`process.execPath`). */
+  readonly nodePath?: string;
+  /** Senal de cancelacion. */
+  readonly signal?: AbortSignal;
+  /**
+   * Callback de streaming de la salida de la CLI. Si se provee, la CLI corre
+   * con `FORCE_COLOR=1` para que emita ANSI hacia el pseudoterminal.
+   */
+  readonly onOutput?: (chunk: string) => void;
+}
+
+/**
+ * Instala los binarios de los scanners en la cache global por usuario
+ * llamando a la CLI (`synaptic-sentinel scanners install --global`).
+ *
+ * `NODE_OPTIONS=--use-system-ca` es necesario porque el install descarga
+ * desde GitHub y el entorno del usuario puede tener inspeccion TLS
+ * (corporativo / antivirus); el child Node lo lee al arrancar. Lanza si
+ * la CLI no termina con codigo 0.
+ */
+export async function runCliScannersInstall(options: RunCliScannersInstallOptions): Promise<void> {
+  const result = await spawnCli({
+    cliEntry: options.cliEntry,
+    cwd: process.cwd(),
+    args: ['scanners', 'install', '--global'],
+    env: {
+      NODE_OPTIONS: '--use-system-ca',
+      ...(options.onOutput !== undefined ? { FORCE_COLOR: '1' } : {}),
+    },
+    ...(options.onOutput !== undefined ? { onOutput: options.onOutput } : {}),
+    ...(options.nodePath !== undefined ? { nodePath: options.nodePath } : {}),
+    ...(options.signal !== undefined ? { signal: options.signal } : {}),
+  });
+  assertCliOk(result, 'scanners install');
+}

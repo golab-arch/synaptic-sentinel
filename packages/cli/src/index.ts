@@ -9,6 +9,7 @@ import { SEVERITIES, type Severity } from '@synaptic-sentinel/core';
 import { runScanCommand } from './commands/scan.js';
 import { runMarkFpCommand } from './commands/mark-fp.js';
 import { runTriageCommand } from './commands/triage.js';
+import { runScannersInstallCommand } from './commands/scanners-install.js';
 
 const USAGE = `Synaptic Sentinel — CLI
 
@@ -20,11 +21,16 @@ Usage:
                          [--export-sarif <file>] [--fail-on <severity>]
   synaptic-sentinel mark-fp --fingerprint <fp> [--path <dir>] [--reason <text>]
   synaptic-sentinel triage [--path <dir>] [--limit <n>]
+  synaptic-sentinel scanners install [--global]
 
 Commands:
-  scan       Scan a project and persist the findings to colony.db
-  mark-fp    Mark a finding as a false positive (suppressed in future scans)
-  triage     Triage the latest scan's findings with the Brain Layer (BYOK)
+  scan               Scan a project and persist the findings to colony.db
+  mark-fp            Mark a finding as a false positive (suppressed in future scans)
+  triage             Triage the latest scan's findings with the Brain Layer (BYOK)
+  scanners install   Download and verify the OSS scanner binaries pinned in
+                     the manifest. Without --global installs to <cwd>/.scanners
+                     (dev cache); with --global installs to the per-user cache
+                     ~/.synaptic-sentinel/scanners (what an installed .vsix uses)
 
 Options:
   --path <dir>           Project directory (default: the current directory)
@@ -41,6 +47,8 @@ Options:
   --fingerprint <fp>     Fingerprint of the finding to mark (mark-fp command)
   --reason <text>        Reason for the dismissal (mark-fp command)
   --limit <n>            Cap of findings to triage (triage command; default 25)
+  --global               Install scanners to the per-user global cache
+                         (scanners install command)
   -h, --help             Show this help
 
 The triage command requires the ANTHROPIC_API_KEY environment variable (BYOK).
@@ -63,6 +71,7 @@ async function main(): Promise<void> {
       fingerprint: { type: 'string' },
       reason: { type: 'string' },
       limit: { type: 'string' },
+      global: { type: 'boolean' },
       help: { type: 'boolean', short: 'h' },
     },
   });
@@ -129,6 +138,20 @@ async function main(): Promise<void> {
       path: values.path ?? process.cwd(),
       ...(limit !== undefined ? { limit } : {}),
       ...(values['no-color'] === true ? { noColor: true } : {}),
+    });
+    return;
+  }
+
+  if (command === 'scanners') {
+    const subcommand = positionals[1];
+    if (subcommand !== 'install') {
+      console.error(`Unknown scanners subcommand: ${subcommand ?? '(none)'}.\n`);
+      console.log(USAGE);
+      process.exitCode = 1;
+      return;
+    }
+    process.exitCode = await runScannersInstallCommand({
+      global: values.global === true,
     });
     return;
   }

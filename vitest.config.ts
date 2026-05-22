@@ -6,11 +6,7 @@ const workspaceSrc = (name: string): string =>
   fileURLToPath(new URL(`./packages/${name}/src/index.ts`, import.meta.url));
 
 /** Globs de todos los archivos de test del monorepo. */
-const ALL_TESTS = [
-  'packages/*/tests/**/*.test.ts',
-  'packages/*/src/**/*.test.ts',
-  'scripts/**/*.test.ts',
-];
+const ALL_TESTS = ['packages/*/tests/**/*.test.ts', 'packages/*/src/**/*.test.ts'];
 
 /**
  * Tests de integracion: requieren binarios de scanners, red o la CLI
@@ -38,7 +34,7 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reportsDirectory: './coverage',
-      include: ['packages/*/src/**/*.ts', 'scripts/**/*.ts'],
+      include: ['packages/*/src/**/*.ts'],
       exclude: ['**/*.test.ts', '**/index.ts'],
     },
     // Dos proyectos: `vitest run` (sin filtro) corre ambos; `--project unit`

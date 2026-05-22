@@ -11,7 +11,7 @@ import { normalizeTrivyOutput } from './normalizer.js';
 
 /** Opciones de construccion de un `TrivyScout`. */
 export interface TrivyScoutOptions {
-  /** Ruta al binario de Trivy (lo instala scripts/install-scanners.ts). */
+  /** Ruta al binario de Trivy (lo instala `synaptic-sentinel scanners install`). */
   readonly binaryPath: string;
 }
 

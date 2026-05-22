@@ -10,7 +10,13 @@
  */
 import { join } from 'node:path';
 import * as vscode from 'vscode';
-import { defaultCliEntry, runCliMarkFp, runCliScan, runCliTriage } from './cli-runner.js';
+import {
+  defaultCliEntry,
+  runCliMarkFp,
+  runCliScan,
+  runCliScannersInstall,
+  runCliTriage,
+} from './cli-runner.js';
 import {
   findingHoverMarkdown,
   findingToDiagnosticInput,
@@ -35,6 +41,8 @@ const COMMAND_COPY_REMEDIATION = 'synaptic-sentinel.copyRemediation';
 const COMMAND_TRIAGE = 'synaptic-sentinel.triageWorkspace';
 /** Id del comando para configurar la API key de Anthropic (BYOK). */
 const COMMAND_SET_API_KEY = 'synaptic-sentinel.setAnthropicApiKey';
+/** Id del comando que instala los binarios de los scanners (FI-008, DG-059). */
+const COMMAND_INSTALL_SCANNERS = 'synaptic-sentinel.installScanners';
 /** `source` que aparece en cada diagnostico. */
 const DIAGNOSTIC_SOURCE = 'Synaptic Sentinel';
 /** Clave del almacen de secretos de VSCode donde se guarda la API key. */
@@ -96,6 +104,9 @@ export function activate(context: vscode.ExtensionContext): void {
     }),
     vscode.commands.registerCommand(COMMAND_SET_API_KEY, () => {
       void setApiKey(secrets);
+    }),
+    vscode.commands.registerCommand(COMMAND_INSTALL_SCANNERS, () => {
+      void installScanners(extensionRoot, terminal);
     }),
     vscode.languages.registerCodeActionsProvider(
       '*',
@@ -427,6 +438,50 @@ async function triageWorkspace(
         setStatusResult(statusBar, previousCount);
         const message = err instanceof Error ? err.message : String(err);
         void vscode.window.showErrorMessage(`Synaptic Sentinel: the triage failed. ${message}`);
+      }
+    },
+  );
+}
+
+/**
+ * Maneja el comando `Install Scanners`: descarga e instala los binarios de
+ * OpenGrep / Gitleaks / Trivy / Checkov en la cache global por usuario
+ * (`~/.synaptic-sentinel/scanners`) llamando a la CLI bundleada
+ * (`scanners install --global`). El show de la CLI se transmite al
+ * pseudoterminal verbose (FI-008, DG-059).
+ */
+async function installScanners(extensionRoot: string, terminal: SentinelTerminal): Promise<void> {
+  const cliEntry = resolveCliEntry(extensionRoot);
+  // Trae la terminal verbose al frente: el show del install se transmite ahi.
+  terminal.show();
+
+  await vscode.window.withProgress(
+    {
+      location: vscode.ProgressLocation.Notification,
+      title: 'Synaptic Sentinel: installing the scanner binaries...',
+      cancellable: true,
+    },
+    async (_progress, token) => {
+      const controller = new AbortController();
+      token.onCancellationRequested(() => {
+        controller.abort();
+      });
+      try {
+        await runCliScannersInstall({
+          cliEntry,
+          signal: controller.signal,
+          onOutput: (chunk) => {
+            terminal.write(chunk);
+          },
+        });
+        void vscode.window.showInformationMessage(
+          'Synaptic Sentinel: scanners installed. You can run "Scan Workspace" now.',
+        );
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        void vscode.window.showErrorMessage(
+          `Synaptic Sentinel: the scanner install failed. ${message}`,
+        );
       }
     },
   );
