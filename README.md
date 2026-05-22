@@ -49,10 +49,12 @@ node packages/cli/dist/index.js scan --path /ruta/a/tu/proyecto
 
 ```bash
 pnpm build       # tsc -b (project references) + bundle de la extensión
-pnpm test        # suite Vitest
+pnpm test        # suite Vitest completa (unit + integración)
+pnpm test:unit   # solo tests unitarios (rápidos)
 pnpm lint        # ESLint (flat config + typescript-eslint)
 pnpm typecheck   # chequeo de tipos
 pnpm format      # Prettier
+pnpm verify      # gate por ciclo: format:check + lint + build + test:unit
 ```
 
 ## Documentación

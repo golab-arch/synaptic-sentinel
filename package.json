@@ -14,11 +14,13 @@
     "clean": "tsc -b --clean",
     "typecheck": "tsc -b && tsc -p scripts/tsconfig.json",
     "test": "vitest run",
+    "test:unit": "vitest run --project unit",
+    "test:integration": "vitest run --project integration",
     "test:watch": "vitest",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "verify": "pnpm format:check && pnpm lint && pnpm build && pnpm test",
+    "verify": "pnpm format:check && pnpm lint && pnpm build && pnpm test:unit",
     "scanners:install": "node --use-system-ca scripts/install-scanners.ts"
   },
   "devDependencies": {

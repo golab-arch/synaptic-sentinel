@@ -149,16 +149,23 @@ Más detalle en [.synaptic/DESIGN_DOC.md](.synaptic/DESIGN_DOC.md) y
 ## 8. Desarrollo
 
 ```bash
-pnpm build         # compila todo (tsc -b + bundle de la extensión)
-pnpm test          # corre la suite de tests (Vitest)
-pnpm lint          # ESLint
-pnpm typecheck     # chequeo de tipos
-pnpm format        # Prettier
+pnpm build              # compila todo (tsc -b + bundle de la extensión)
+pnpm test               # suite Vitest completa (unit + integración)
+pnpm test:unit          # solo tests unitarios (rápidos, sin binarios)
+pnpm test:integration   # solo tests de integración (binarios reales)
+pnpm lint               # ESLint
+pnpm typecheck          # chequeo de tipos
+pnpm format             # Prettier
+pnpm verify             # gate por ciclo: format:check + lint + build + test:unit
 ```
 
-Los tests de integración ejecutan los binarios reales de los escáneres; los
-tests del Brain Layer contra la API real están _gated_ por `ANTHROPIC_API_KEY`
-(se omiten si la variable no está presente).
+La suite Vitest se divide en dos proyectos: **`unit`** (lógica pura, rápida) e
+**`integration`** (ejecutan los binarios reales de los escáneres y la CLI
+construida; lentos). El gate por ciclo (`pnpm verify`) corre solo `test:unit`;
+`test:integration` se invoca explícitamente antes de un commit de feature y de
+un release. Los tests de integración se identifican por el sufijo
+`*integration.test.ts`. Los tests del Brain Layer contra la API real están
+_gated_ por `ANTHROPIC_API_KEY` (se omiten si la variable no está presente).
 
 ## 9. Troubleshooting
 
