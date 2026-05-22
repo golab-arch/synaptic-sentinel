@@ -1,13 +1,17 @@
+import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { DatabaseSync } from 'node:sqlite';
 import {
   ContextExplanationRecordSchema,
+  LearningRecordSchema,
   PheromoneSchema,
   RemediationSuggestionRecordSchema,
   ScanSchema,
   TriageVerdictRecordSchema,
   type ContextExplanationRecord,
+  type LearningClassification,
+  type LearningRecord,
   type Pheromone,
   type PheromoneType,
   type RemediationSuggestionRecord,
@@ -80,6 +84,18 @@ function rowToContextExplanation(row: unknown): ContextExplanationRecord {
     exposure: r['exposure'],
     agentId: r['agent_id'],
     createdAt: r['created_at'],
+  });
+}
+
+/** Convierte una fila de `learning_records` en un registro validado. */
+function rowToLearningRecord(row: unknown): LearningRecord {
+  const r = row as Record<string, unknown>;
+  return LearningRecordSchema.parse({
+    id: r['id'],
+    patternSignature: r['pattern_signature'],
+    classification: r['classification'],
+    evidenceCount: r['evidence_count'],
+    lastSeenScan: r['last_seen_scan'],
   });
 }
 
@@ -397,6 +413,55 @@ export class ColonyDb {
       .prepare('SELECT * FROM remediation_suggestions ORDER BY created_at')
       .all()
       .map(rowToRemediationSuggestion);
+  }
+
+  /**
+   * Registra un lote de observaciones de aprendizaje (`learning_records`,
+   * v0.4 §3.5), en una unica transaccion. Cada entrada es un upsert por
+   * `(pattern_signature, classification)`: si el patron ya fue clasificado
+   * asi, incrementa `evidence_count`; si no, crea el registro. Repetir el
+   * mismo par en el lote acumula correctamente (cada upsert ve el anterior).
+   */
+  recordLearningBatch(
+    entries: readonly { signature: string; classification: LearningClassification }[],
+    scanId: string,
+  ): void {
+    if (entries.length === 0) return;
+    const selectStmt = this.#db.prepare(
+      'SELECT id FROM learning_records WHERE pattern_signature = ? AND classification = ?',
+    );
+    const updateStmt = this.#db.prepare(
+      'UPDATE learning_records SET evidence_count = evidence_count + 1, ' +
+        'last_seen_scan = ? WHERE id = ?',
+    );
+    const insertStmt = this.#db.prepare(
+      'INSERT INTO learning_records ' +
+        '(id, pattern_signature, classification, evidence_count, last_seen_scan) ' +
+        'VALUES (?, ?, ?, 1, ?)',
+    );
+    this.#db.exec('BEGIN');
+    try {
+      for (const entry of entries) {
+        const existing = selectStmt.get(entry.signature, entry.classification);
+        if (existing) {
+          updateStmt.run(scanId, String((existing as { id: unknown }).id));
+        } else {
+          insertStmt.run(randomUUID(), entry.signature, entry.classification, scanId);
+        }
+      }
+      this.#db.exec('COMMIT');
+    } catch (err) {
+      this.#db.exec('ROLLBACK');
+      throw err;
+    }
+  }
+
+  /** Todos los learning records, ordenados por patron. */
+  getLearningRecords(): LearningRecord[] {
+    return this.#db
+      .prepare('SELECT * FROM learning_records ORDER BY pattern_signature')
+      .all()
+      .map(rowToLearningRecord);
   }
 
   /** Cierra la conexion con la base de datos. */

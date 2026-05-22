@@ -320,6 +320,66 @@ describe('ColonyDb - remediation suggestions (schema v4)', () => {
   });
 });
 
+describe('ColonyDb - learning records (v0.4 §3.5)', () => {
+  it('registra un patron nuevo con evidenceCount 1', () => {
+    const db = ColonyDb.open(':memory:');
+    const scan = makeScan();
+    db.insertScan(scan);
+    db.recordLearningBatch(
+      [{ signature: 'SAST:eval', classification: 'real_pattern' }],
+      String(scan['id']),
+    );
+    const records = db.getLearningRecords();
+    expect(records).toHaveLength(1);
+    expect(records[0]?.patternSignature).toBe('SAST:eval');
+    expect(records[0]?.classification).toBe('real_pattern');
+    expect(records[0]?.evidenceCount).toBe(1);
+    db.close();
+  });
+
+  it('acumula evidenceCount al repetir el mismo patron y clasificacion', () => {
+    const db = ColonyDb.open(':memory:');
+    const scan = makeScan();
+    db.insertScan(scan);
+    const scanId = String(scan['id']);
+    db.recordLearningBatch(
+      [
+        { signature: 'SAST:eval', classification: 'real_pattern' },
+        { signature: 'SAST:eval', classification: 'real_pattern' },
+      ],
+      scanId,
+    );
+    // Segundo lote, como en una corrida de triage posterior.
+    db.recordLearningBatch([{ signature: 'SAST:eval', classification: 'real_pattern' }], scanId);
+    const records = db.getLearningRecords();
+    expect(records).toHaveLength(1);
+    expect(records[0]?.evidenceCount).toBe(3);
+    db.close();
+  });
+
+  it('mantiene registros separados por clasificacion del mismo patron', () => {
+    const db = ColonyDb.open(':memory:');
+    const scan = makeScan();
+    db.insertScan(scan);
+    db.recordLearningBatch(
+      [
+        { signature: 'SAST:eval', classification: 'real_pattern' },
+        { signature: 'SAST:eval', classification: 'fp_pattern' },
+      ],
+      String(scan['id']),
+    );
+    expect(db.getLearningRecords()).toHaveLength(2);
+    db.close();
+  });
+
+  it('un lote vacio es un no-op y getLearningRecords arranca vacio', () => {
+    const db = ColonyDb.open(':memory:');
+    db.recordLearningBatch([], 'scan-x');
+    expect(db.getLearningRecords()).toHaveLength(0);
+    db.close();
+  });
+});
+
 describe('ColonyDb.getPheromonesByFingerprint', () => {
   it('devuelve las feromonas de cualquier tipo con ese fingerprint', () => {
     const db = ColonyDb.open(':memory:');

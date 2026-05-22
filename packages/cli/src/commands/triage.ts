@@ -4,7 +4,10 @@ import { join, resolve } from 'node:path';
 import {
   ColonyDb,
   FindingSchema,
+  patternSignature,
+  triageClassificationToLearning,
   type ContextExplanationRecord,
+  type LearningClassification,
   type RemediationSuggestionRecord,
   type TriageVerdictRecord,
 } from '@synaptic-sentinel/core';
@@ -111,6 +114,9 @@ export async function runTriageCommand(options: TriageCommandOptions): Promise<n
     const verdicts: TriageVerdictRecord[] = [];
     const explanations: ContextExplanationRecord[] = [];
     const remediations: RemediationSuggestionRecord[] = [];
+    // Aprendizaje del enjambre: patrones generalizados de los hallazgos
+    // clasificados, para alimentar `learning_records` (v0.4 §3.5).
+    const learningEntries: { signature: string; classification: LearningClassification }[] = [];
     for (const finding of toTriage) {
       try {
         const verdict = await runAgent(triageAgent, finding, llm);
@@ -129,6 +135,15 @@ export async function runTriageCommand(options: TriageCommandOptions): Promise<n
             `— ${finding.location.path}:${String(finding.location.startLine)} ` +
             `(confianza ${verdict.confidence.toFixed(2)})`,
         );
+        // Aprendizaje del enjambre: solo las clasificaciones decisivas
+        // (un veredicto inconclusive no produce patron).
+        const learning = triageClassificationToLearning(verdict.classification);
+        if (learning !== undefined) {
+          learningEntries.push({
+            signature: patternSignature(finding),
+            classification: learning,
+          });
+        }
         // Stage 4 — Context: solo sobre los verdaderos positivos (v0.4 §3.6).
         if (verdict.classification === 'true_positive') {
           try {
@@ -182,10 +197,12 @@ export async function runTriageCommand(options: TriageCommandOptions): Promise<n
     db.insertTriageVerdicts(verdicts);
     db.insertContextExplanations(explanations);
     db.insertRemediationSuggestions(remediations);
+    db.recordLearningBatch(learningEntries, scanId);
     console.log(
       `Veredictos de triage persistidos: ${String(verdicts.length)}; ` +
         `explicaciones de contexto: ${String(explanations.length)}; ` +
-        `sugerencias de remediacion: ${String(remediations.length)}.`,
+        `sugerencias de remediacion: ${String(remediations.length)}; ` +
+        `patrones aprendidos: ${String(learningEntries.length)}.`,
     );
     return 0;
   } finally {
