@@ -4,7 +4,7 @@
     "fullName": "Synaptic Sentinel",
     "description": "Toolkit OSS de auditoria agentica de seguridad + capa premium LLM, vibe-coding-native, para la era del codigo generado por IA. Tercer producto de la familia Synaptic.",
     "currentPhase": "brain-layer",
-    "overallProgress": "Cycles 1-26 CERRADOS. 5 scouts (OpenGrep SAST, Gitleaks Secrets, Trivy SCA, Checkov IaC, Vibe-Detect VibeCoded) + Coordinator stages 1-2 + CLI + reporters JSON+HTML + extension VSCode + Brain Layer con 3 agentes wired (Triage + Context + Remediation, llamada LLM real verificada contra la API de Anthropic). 241 tests verdes + 3 gated."
+    "overallProgress": "Cycles 1-27 CERRADOS. 5 scouts (OpenGrep SAST, Gitleaks Secrets, Trivy SCA, Checkov IaC, Vibe-Detect VibeCoded) + Coordinator stages 1-2 + CLI + reporters JSON+HTML + extension VSCode (Brain Layer surfaceado: hover con triage/contexto/remediacion + Code Actions) + Brain Layer con 3 agentes wired (Triage + Context + Remediation, llamada LLM real verificada contra la API de Anthropic). 250 tests verdes + 3 gated."
   },
   "decisions": [
     { "id": "DG-001", "title": "Estructura fisica del monorepo OSS/Pro", "selected": "B", "date": "2026-05-20", "summary": "Monorepo unico con workspaces marcados OSS/Pro + publish-oss.ts allowlist", "rationale": "Velocidad solo founder; refactors triviales; anti-filtracion en un script auditable" },
@@ -40,6 +40,7 @@
     { "id": "DG-031", "title": "Proximo paso del roadmap (CheckovScout / IaC)", "selected": "A", "date": "2026-05-21", "summary": "Quinto scout: Checkov (IaC - misconfiguraciones en Dockerfile/Terraform/k8s). Manifest 3.2.529 (binario standalone), normalizer Checkov->Finding IaC, wiring en el CLI (4 scouts); install-scanners gana archiveDir + extraccion .zip en Unix", "rationale": "El Scout Layer cubria SAST+Secrets+SCA pero no IaC; patron de scout probado x4 y el binario standalone de Checkov sortea la observacion 'Python 3.14'" },
     { "id": "DG-032", "title": "Proximo paso del roadmap (VibeDetectScout / VibeCoded)", "selected": "B", "date": "2026-05-21", "summary": "Quinto/sexto scout: Vibe-Detect (VibeCoded - anti-patrones de codigo generado por IA). Deteccion nativa en TypeScript sin binario OSS: 6 detectores heuristicos regex, walker propio; el scout firma del producto vibe-coding-native. Wiring en el CLI (5 scouts). Gap LLM real cerrado con API key del usuario", "rationale": "El Scout Layer cubria SAST/Secrets/SCA/IaC pero no el diferenciador del producto; deteccion determinista = 100% verificable sin API key; la categoria VibeCoded ya existia en el schema sin uso" },
     { "id": "DG-033", "title": "Proximo paso del roadmap (Remediation Agent)", "selected": "A", "date": "2026-05-21", "summary": "Tercer y ultimo agente del Brain Layer: Remediation Agent (BrainAgent<Finding,RemediationSuggestion>). Propone como corregir un verdadero positivo; schema v4 (tabla aditiva remediation_suggestions); wiring en triage + surface en el tomo JSON/HTML. Completa el trio Triage->Context->Remediation", "rationale": "El Brain Layer tenia 2 de 3 agentes; el Remediation Agent reusa el contrato BrainAgent ya probado x2 y con la llamada LLM verificada, riesgo bajo; completa la vision del diferenciador premium" },
+    { "id": "DG-034", "title": "Proximo paso del roadmap (surface del Brain Layer en la extension)", "selected": "B", "date": "2026-05-21", "summary": "La extension VSCode muestra el Brain Layer completo: HoverProvider con triage + contexto + remediacion, Code Action 'copiar remediacion sugerida'. .vscode/launch.json: la extension queda F5-testeable", "rationale": "El Brain Layer completo solo era visible en el tomo/CLI; surfacearlo en el IDE (superficie primaria del producto) y desbloquear el F5 era el paso natural y de riesgo medio" },
     { "id": "Q1", "title": "Package manager", "selected": "pnpm workspaces", "date": "2026-05-20", "summary": "pnpm v10.33.0", "rationale": "Ya instalado; preferencia v0.4 9.5; simple sin overhead" }
   ],
   "roadmap": [
@@ -78,11 +79,11 @@
     }
   ],
   "implementationState": {
-    "lastCompletedTask": "Cycle 26 CERRADO: DG-033 A - Remediation Agent (3.er y ultimo agente del Brain Layer). core/types/remediation.ts (RemediationSuggestion + Record); colony.db schema v4 (tabla aditiva remediation_suggestions); agents/remediation-agent.ts (RemediationAgent implements BrainAgent<Finding,RemediationSuggestion>); wiring en el comando triage (corre sobre los TP junto a Context) + surface en el tomo JSON/HTML. Completa el trio Triage->Context->Remediation. Verificado: RemediationAgent probado contra la API REAL de Anthropic (Haiku 4.5); E2E scan->triage->scan --export-html con el bloque de remediacion en el HTML. 241 tests verdes + 3 gated; commiteado bf98624.",
-    "currentTask": "Cycle 27 abierto. DG-034 a presentar: proximo paso del roadmap.",
+    "lastCompletedTask": "Cycle 27 CERRADO: DG-034 B - surface del Brain Layer completo en la extension VSCode. vscode-extension/tomo.ts (ExtensionFinding gana context + remediation); diagnostics.ts (findingHoverMarkdown + remediationClipboardText, funciones puras); index.ts (HoverProvider con triage/contexto/remediacion + Code Action 'copiar remediacion sugerida'). .vscode/launch.json creado: la extension queda F5-testeable. Decision honesta: la Code Action copia al portapapeles en vez de insertar en el buffer (la remediacion es orientativa, no un patch). 250 tests verdes + 3 gated; commiteado ee59c74.",
+    "currentTask": "Cycle 28 abierto. DG-035 a presentar: proximo paso del roadmap.",
     "pendingTasks": [
-      "Resolver DG-034 - proximo paso del roadmap",
-      "Verificacion de la extension VSCode en vivo (F5 Extension Development Host) - falta crear .vscode/launch.json; no automatizable aqui",
+      "Resolver DG-035 - proximo paso del roadmap",
+      "Verificacion de la extension VSCode en vivo: el usuario ya puede F5 (launch.json creado en DG-034); el primer arranque en vivo puede destapar asperezas",
       "FI-002 (separar test:unit/test:integration - los tests de integracion ya rozan timeouts), FI-008 (.vsix), FI-009 (migracion a @anthropic-ai/sdk)"
     ],
     "blockers": []
@@ -99,8 +100,9 @@
     "Checkov se integro via su binario standalone (PyInstaller onefile): sin interprete Python en el cliente, sorteando la observacion 'Python 3.14 vs Checkov'",
     "Vibe-Detect es un scout nativo (TypeScript puro, sin binario OSS): el contrato ScoutAgent no obliga a spawnear un proceso",
     "La llamada LLM real a Anthropic quedo verificada (Entry #34): los 3 agentes del Brain Layer (Triage/Context/Remediation) tienen test de integracion gated que paso con una API key BYOK del usuario (Haiku 4.5)",
-    "Brain Layer COMPLETO: 3 agentes (Triage, Context, Remediation) wired al comando triage y surfaceados en el tomo",
+    "Brain Layer COMPLETO: 3 agentes (Triage, Context, Remediation) wired al comando triage, surfaceados en el tomo JSON/HTML y en la extension VSCode (hover + Code Actions)",
+    "La extension VSCode ya es F5-testeable: .vscode/launch.json (DG-034) lanza el Extension Development Host; requiere pnpm build previo",
     "Observacion: better-sqlite3 ABI con Electron; exactOptionalPropertyTypes estricto"
   ],
-  "lastUpdated": "2026-05-21T20:15:00.000Z"
+  "lastUpdated": "2026-05-21T20:30:00.000Z"
 }

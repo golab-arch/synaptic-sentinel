@@ -966,7 +966,34 @@ Each entry follows this structure:
 }
 ```
 
+### Entry #36 - DG-034 (B): surface del Brain Layer completo en la extension VSCode
+```json
+{
+  "timestamp": "2026-05-21T20:30:00.000Z",
+  "cycle": 27,
+  "phase": 7,
+  "action": "FEATURE_IMPLEMENTED",
+  "details": {
+    "DG-034": {
+      "title": "Proximo paso del roadmap",
+      "selected": "Option B",
+      "effect": "Surface del Brain Layer completo en la extension VSCode: contexto + remediacion visibles en el hover de los diagnostics, mas una Code Action de remediacion. La extension queda F5-testeable."
+    },
+    "files": "vscode-extension/src/tomo.ts (ExtensionFinding gana context + remediation, forma minima). vscode-extension/src/diagnostics.ts (findingHoverMarkdown + remediationClipboardText, funciones puras). vscode-extension/src/index.ts (HoverProvider + comando interno copyRemediation + Code Action de remediacion). .vscode/launch.json (NUEVO - configuracion Extension Development Host).",
+    "design": "El hover usa un HoverProvider dedicado (Markdown rico) en vez de alargar el mensaje del diagnostic. La Code Action COPIA la remediacion al portapapeles en lugar de insertarla en el buffer: la salida del Remediation Agent es orientativa, no un patch verificado; volcarla al codigo (como codigo o como comentario) seria inseguro o ruido. Decision honesta documentada (no optimismo ilusorio).",
+    "verification_real": "build / typecheck / lint / test verdes. 9 tests nuevos (logica pura del hover, del texto de portapapeles, y captura de context/remediation en parseTomo - el contrato CLI->extension). .vscode/launch.json creado: la extension ya es F5-testeable, cerrando el blocker senalado al usuario.",
+    "verification_gap": "La UI en vivo (HoverProvider y Code Action disparandose en el IDE) no se ejecuto aqui - requiere F5 / Extension Development Host. Ahora desbloqueado por launch.json: el usuario puede probarla.",
+    "tests": "9 nuevos (findingHoverMarkdown 4, remediationClipboardText 3, parseTomo context/remediation 2) - total 250 verdes + 3 gated",
+    "checks": "build / typecheck / lint / test - todos en verde",
+    "commit": "codigo + tests en el commit ee59c74 feat(vscode-extension); el registro SYNAPTIC de cierre del Cycle 27 se asienta en el commit docs siguiente"
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 32,
+  "complianceScore": 100
+}
+```
+
 ---
 
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-21T20:15:00.000Z*
+*Last Updated: 2026-05-21T20:30:00.000Z*
