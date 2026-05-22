@@ -31,6 +31,15 @@
         "category": "Synaptic Sentinel"
       }
     ],
+    "views": {
+      "explorer": [
+        {
+          "id": "synaptic-sentinel.tomo",
+          "name": "Synaptic Sentinel",
+          "type": "webview"
+        }
+      ]
+    },
     "configuration": {
       "title": "Synaptic Sentinel",
       "properties": {

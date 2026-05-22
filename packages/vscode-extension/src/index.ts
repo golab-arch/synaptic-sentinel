@@ -22,6 +22,7 @@ import {
 } from './diagnostics.js';
 import type { ExtensionFinding } from './tomo.js';
 import { SentinelTerminal } from './terminal.js';
+import { SentinelTomoViewProvider } from './tomo-view.js';
 
 /** Id del comando de escaneo contribuido en package.json. */
 const COMMAND_SCAN = 'synaptic-sentinel.scanWorkspace';
@@ -47,6 +48,9 @@ interface ScanState {
 /** Resultado del ultimo scan de la sesion (instancia unica de la extension). */
 let lastScan: ScanState | undefined;
 
+/** Proveedor del webview "tomo vivo"; se asigna en `activate`. */
+let tomoView: SentinelTomoViewProvider | undefined;
+
 /** Punto de entrada de la extension; lo invoca el extension host. */
 export function activate(context: vscode.ExtensionContext): void {
   const diagnostics = vscode.languages.createDiagnosticCollection('synaptic-sentinel');
@@ -59,11 +63,14 @@ export function activate(context: vscode.ExtensionContext): void {
   const secrets = context.secrets;
   // Terminal de solo-lectura para la salida verbose de la CLI (DG-038 B).
   const terminal = new SentinelTerminal();
+  // Webview "tomo vivo": panel lateral con los hallazgos (DG-039 B).
+  tomoView = new SentinelTomoViewProvider();
 
   context.subscriptions.push(
     diagnostics,
     statusBar,
     terminal,
+    vscode.window.registerWebviewViewProvider(SentinelTomoViewProvider.viewId, tomoView),
     vscode.commands.registerCommand(COMMAND_SCAN, () => {
       void runScanCommand(diagnostics, statusBar, extensionRoot, terminal);
     }),
@@ -281,6 +288,7 @@ async function runScanCommand(
         });
         lastScan = { workspacePath, findings: tomo.findings };
         renderDiagnostics(diagnostics, workspacePath, tomo.findings);
+        tomoView?.update(workspacePath, tomo.findings);
         setStatusResult(statusBar, tomo.findings.length);
         void vscode.window.showInformationMessage(
           `Synaptic Sentinel: ${String(tomo.findings.length)} hallazgo(s) en el workspace.`,
@@ -309,6 +317,7 @@ async function markFalsePositive(
     const remaining = lastScan.findings.filter((finding) => finding.fingerprint !== fingerprint);
     lastScan = { workspacePath, findings: remaining };
     renderDiagnostics(diagnostics, workspacePath, remaining);
+    tomoView?.update(workspacePath, remaining);
     setStatusResult(statusBar, remaining.length);
     void vscode.window.showInformationMessage(
       'Synaptic Sentinel: hallazgo marcado como falso positivo.',
@@ -408,6 +417,7 @@ async function triageWorkspace(
         const tomo = await runCliScan({ cliEntry, workspacePath, signal: controller.signal });
         lastScan = { workspacePath, findings: tomo.findings };
         renderDiagnostics(diagnostics, workspacePath, tomo.findings);
+        tomoView?.update(workspacePath, tomo.findings);
         setStatusResult(statusBar, tomo.findings.length);
         void vscode.window.showInformationMessage('Synaptic Sentinel: triage completado.');
       } catch (err) {
