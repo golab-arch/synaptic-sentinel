@@ -14,7 +14,7 @@ const USAGE = `Synaptic Sentinel — CLI
 Uso:
   synaptic-sentinel scan [--path <dir>] [--opengrep-bin <ruta>]
                          [--gitleaks-bin <ruta>] [--trivy-bin <ruta>]
-                         [--checkov-bin <ruta>]
+                         [--checkov-bin <ruta>] [--no-color]
                          [--export <archivo>] [--export-html <archivo>]
   synaptic-sentinel mark-fp --fingerprint <fp> [--path <dir>] [--reason <texto>]
   synaptic-sentinel triage [--path <dir>] [--limit <n>]
@@ -30,6 +30,7 @@ Opciones:
   --gitleaks-bin <ruta>  Ruta explicita al binario de Gitleaks
   --trivy-bin <ruta>     Ruta explicita al binario de Trivy
   --checkov-bin <ruta>   Ruta explicita al binario de Checkov
+  --no-color             Desactiva el color ANSI de la salida del scan
   --export <archivo>     Exporta el tomo del scan en JSON al archivo indicado
   --export-html <arch.>  Exporta el tomo del scan en HTML al archivo indicado
   --fingerprint <fp>     Huella del hallazgo a marcar (comando mark-fp)
@@ -49,6 +50,7 @@ async function main(): Promise<void> {
       'gitleaks-bin': { type: 'string' },
       'trivy-bin': { type: 'string' },
       'checkov-bin': { type: 'string' },
+      'no-color': { type: 'boolean' },
       export: { type: 'string' },
       'export-html': { type: 'string' },
       fingerprint: { type: 'string' },
@@ -71,6 +73,7 @@ async function main(): Promise<void> {
       ...(values['gitleaks-bin'] !== undefined ? { gitleaksBin: values['gitleaks-bin'] } : {}),
       ...(values['trivy-bin'] !== undefined ? { trivyBin: values['trivy-bin'] } : {}),
       ...(values['checkov-bin'] !== undefined ? { checkovBin: values['checkov-bin'] } : {}),
+      ...(values['no-color'] === true ? { noColor: true } : {}),
       ...(values.export !== undefined ? { exportPath: values.export } : {}),
       ...(values['export-html'] !== undefined ? { exportHtmlPath: values['export-html'] } : {}),
     });

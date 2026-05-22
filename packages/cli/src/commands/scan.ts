@@ -1,14 +1,7 @@
 import { existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import {
-  ColonyDb,
-  Coordinator,
-  FindingSchema,
-  type Finding,
-  type ScanOutcome,
-  type ScoutAgent,
-} from '@synaptic-sentinel/core';
+import { ColonyDb, Coordinator, FindingSchema, type ScoutAgent } from '@synaptic-sentinel/core';
 import {
   BASELINE_RULESET_PATH,
   CheckovScout,
@@ -17,7 +10,15 @@ import {
   TrivyScout,
   VibeDetectScout,
 } from '@synaptic-sentinel/scouts';
-import { buildTomo, renderTomoHtml, renderTomoJson } from '@synaptic-sentinel/reporters';
+import {
+  buildTomo,
+  renderBanner,
+  renderScanReveal,
+  renderScoutLine,
+  renderTomoHtml,
+  renderTomoJson,
+} from '@synaptic-sentinel/reporters';
+import { Spinner } from '../spinner.js';
 
 /** Version reportada en los tomos exportados. */
 const SENTINEL_VERSION = '0.0.0';
@@ -38,6 +39,8 @@ export interface ScanCommandOptions {
   readonly exportPath?: string;
   /** Ruta donde exportar el tomo en HTML, si se provee. */
   readonly exportHtmlPath?: string;
+  /** Desactiva el color ANSI (tambien lo desactivan `NO_COLOR` y un stdout no-TTY). */
+  readonly noColor?: boolean;
 }
 
 /** Nombre del ejecutable de un scanner segun la plataforma actual. */
@@ -73,36 +76,16 @@ export function resolveScannerBinary(
   return undefined;
 }
 
-/** Formatea el resultado de un scan para imprimir en consola. */
-export function formatOutcome(outcome: ScanOutcome, findings: readonly Finding[]): string {
-  const lines = [
-    `Scan ${outcome.scanId} — ${outcome.status.toUpperCase()}`,
-    `Hallazgos: ${String(outcome.findingsCount)}`,
-  ];
-  if (outcome.suppressedCount > 0) {
-    // Stage 2: duplicados intra-scan + falsos positivos confirmados (fp_known).
-    lines.push(
-      `Suprimidos: ${String(outcome.suppressedCount)} (duplicados o falsos positivos conocidos)`,
-    );
-  }
-  for (const scout of outcome.scouts) {
-    const detail = scout.error !== undefined ? ` (${scout.error})` : '';
-    lines.push(
-      `  scout ${scout.scoutId}: ${scout.status} — ${String(scout.findings)} hallazgo(s)${detail}`,
-    );
-  }
-  for (const finding of findings) {
-    // Se anota el ciclo de vida salvo `new`: p.ej. `(known)` = hallazgo ya
-    // visto en un scan anterior (stage 2 del Coordinator).
-    const lifecycle = finding.lifecycleState === 'new' ? '' : ` (${finding.lifecycleState})`;
-    // Se muestra `title` (nombre limpio de la regla); `ruleId` crudo puede
-    // traer el prefijo de ruta del --config de OpenGrep (ver FI-005).
-    lines.push(
-      `  [${finding.severity.toUpperCase()}] ${finding.title}${lifecycle} ` +
-        `— ${finding.location.path}:${String(finding.location.startLine)}`,
-    );
-  }
-  return lines.join('\n');
+/**
+ * Decide si la salida usa color ANSI: lo desactiva `--no-color` o la variable
+ * `NO_COLOR`; lo fuerza `FORCE_COLOR` (lo usara la extension VSCode al pipear
+ * la CLI a un pseudoterminal); por defecto, solo si `stdout` es una TTY.
+ */
+export function shouldUseColor(noColorFlag: boolean): boolean {
+  if (noColorFlag) return false;
+  if ((process.env['NO_COLOR'] ?? '') !== '') return false;
+  if ((process.env['FORCE_COLOR'] ?? '') !== '') return true;
+  return process.stdout.isTTY === true;
 }
 
 /**
@@ -207,6 +190,9 @@ export function buildScouts(options: ScanCommandOptions): ScoutAgent[] {
  */
 export async function runScanCommand(options: ScanCommandOptions): Promise<number> {
   const projectRoot = resolve(options.path);
+  const color = shouldUseColor(options.noColor === true);
+  console.log(renderBanner(color));
+
   const scouts = buildScouts(options);
   // Vibe-Detect siempre esta presente; si es el unico scout, los scanners
   // externos no se resolvieron: el scan corre igual pero degradado.
@@ -224,15 +210,27 @@ export async function runScanCommand(options: ScanCommandOptions): Promise<numbe
   const db = ColonyDb.open(join(dbDir, 'colony.db'));
   try {
     const coordinator = new Coordinator(db, scouts);
-    console.log(
-      `Escaneando ${projectRoot} con ${String(scouts.length)} scout(s): ` +
-        `${scouts.map((scout) => scout.id).join(', ')} ...`,
-    );
-    const outcome = await coordinator.runScan({ rootPath: projectRoot, mode: 'full' });
+    console.log(`  target  ${projectRoot}`);
+    console.log(`  scouts  ${scouts.map((scout) => scout.id).join(', ')}`);
+    console.log('');
+
+    // Feedback en vivo: un spinner mientras el enjambre trabaja y una linea
+    // permanente por cada scout a medida que termina (Coordinator.onScoutSettled).
+    const spinner = new Spinner(color);
+    spinner.start('escaneando el enjambre...');
+    const outcome = await coordinator.runScan({
+      rootPath: projectRoot,
+      mode: 'full',
+      onScoutSettled: (scoutOutcome) => {
+        spinner.log(renderScoutLine(scoutOutcome, color));
+      },
+    });
+    spinner.stop();
+
     const findings = db
       .getPheromonesByScan(outcome.scanId)
       .map((pheromone) => FindingSchema.parse(pheromone.payload));
-    console.log(formatOutcome(outcome, findings));
+    console.log(renderScanReveal(outcome, findings, color));
 
     if (options.exportPath !== undefined || options.exportHtmlPath !== undefined) {
       // El tomo se enriquece con los veredictos de triage, las explicaciones

@@ -211,6 +211,45 @@ describe('Coordinator (stage 2 - dedup, fp_known, ciclo de vida)', () => {
   });
 });
 
+describe('Coordinator (onScoutSettled — progreso en vivo)', () => {
+  it('invoca onScoutSettled una vez por cada scout disponible', async () => {
+    const db = ColonyDb.open(':memory:');
+    const coordinator = new Coordinator(db, [
+      fakeScout({ id: 'a', findingCount: 1 }),
+      fakeScout({ id: 'b', findingCount: 2 }),
+      fakeScout({ id: 'c', available: false }),
+    ]);
+
+    const settled: string[] = [];
+    await coordinator.runScan({
+      rootPath: '/p',
+      mode: 'full',
+      onScoutSettled: (outcome) => settled.push(outcome.scoutId),
+    });
+
+    // 'c' no esta disponible: no corre, no notifica.
+    expect(settled.sort()).toEqual(['a', 'b']);
+    db.close();
+  });
+
+  it('un onScoutSettled que lanza no rompe el scan', async () => {
+    const db = ColonyDb.open(':memory:');
+    const coordinator = new Coordinator(db, [fakeScout({ id: 'a', findingCount: 1 })]);
+
+    const outcome = await coordinator.runScan({
+      rootPath: '/p',
+      mode: 'full',
+      onScoutSettled: () => {
+        throw new Error('callback roto');
+      },
+    });
+
+    expect(outcome.status).toBe('ok');
+    expect(outcome.findingsCount).toBe(1);
+    db.close();
+  });
+});
+
 describe('Coordinator (kill-switch — presupuesto de tiempo, v0.4 §9.6)', () => {
   it('cancela un scout que excede su presupuesto y degrada el scan', async () => {
     const db = ColonyDb.open(':memory:');

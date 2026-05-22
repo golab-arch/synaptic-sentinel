@@ -6,9 +6,9 @@ import { randomUUID } from 'node:crypto';
 import {
   buildScouts,
   findScannersRoot,
-  formatOutcome,
   platformBinary,
   resolveScannerBinary,
+  shouldUseColor,
 } from '../src/commands/scan.js';
 
 describe('platformBinary', () => {
@@ -110,74 +110,19 @@ describe('buildScouts', () => {
   });
 });
 
-describe('formatOutcome', () => {
-  it('formatea el resumen del scan, los scouts y los hallazgos', () => {
-    const outcome = {
-      scanId: 'scan-1',
-      status: 'ok' as const,
-      findingsCount: 1,
-      suppressedCount: 0,
-      scouts: [{ scoutId: 'opengrep', status: 'ok' as const, findings: 1 }],
-      startedAt: '2026-05-21T00:00:00.000Z',
-      finishedAt: '2026-05-21T00:00:05.000Z',
-    };
-    const findings = [
-      {
-        id: 'f-1',
-        scanId: 'scan-1',
-        scoutId: 'opengrep',
-        severity: 'high' as const,
-        category: 'SAST' as const,
-        ruleId: 'd.proj.sentinel-js-eval-usage',
-        title: 'sentinel-js-eval-usage',
-        message: 'Uso de eval()',
-        location: { path: 'src/x.js', startLine: 2 },
-        complianceRefs: [],
-        fingerprint: 'fp-1',
-        lifecycleState: 'new' as const,
-        createdAt: '2026-05-21T00:00:00.000Z',
-      },
-    ];
-
-    const text = formatOutcome(outcome, findings);
-    expect(text).toContain('scan-1');
-    expect(text).toContain('OK');
-    expect(text).toContain('scout opengrep: ok');
-    expect(text).toContain('[HIGH] sentinel-js-eval-usage');
-    expect(text).toContain('src/x.js:2');
-    expect(text).not.toContain('Suprimidos'); // sin supresiones no se imprime la linea
+describe('shouldUseColor', () => {
+  it('--no-color desactiva el color', () => {
+    expect(shouldUseColor(true)).toBe(false);
   });
 
-  it('reporta los hallazgos suprimidos y anota el ciclo de vida no-new', () => {
-    const outcome = {
-      scanId: 'scan-2',
-      status: 'ok' as const,
-      findingsCount: 1,
-      suppressedCount: 2,
-      scouts: [{ scoutId: 'opengrep', status: 'ok' as const, findings: 3 }],
-      startedAt: '2026-05-21T00:00:00.000Z',
-      finishedAt: '2026-05-21T00:00:05.000Z',
-    };
-    const findings = [
-      {
-        id: 'f-2',
-        scanId: 'scan-2',
-        scoutId: 'opengrep',
-        severity: 'medium' as const,
-        category: 'SAST' as const,
-        ruleId: 'rule-y',
-        title: 'rule-y',
-        message: 'Hallazgo recurrente',
-        location: { path: 'src/y.js', startLine: 5 },
-        complianceRefs: [],
-        fingerprint: 'fp-2',
-        lifecycleState: 'known' as const,
-        createdAt: '2026-05-21T00:00:00.000Z',
-      },
-    ];
-
-    const text = formatOutcome(outcome, findings);
-    expect(text).toContain('Suprimidos: 2');
-    expect(text).toContain('[MEDIUM] rule-y (known)');
+  it('la variable NO_COLOR desactiva el color', () => {
+    const previous = process.env['NO_COLOR'];
+    process.env['NO_COLOR'] = '1';
+    try {
+      expect(shouldUseColor(false)).toBe(false);
+    } finally {
+      if (previous === undefined) delete process.env['NO_COLOR'];
+      else process.env['NO_COLOR'] = previous;
+    }
   });
 });

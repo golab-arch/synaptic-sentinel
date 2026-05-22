@@ -30,6 +30,12 @@ export interface ScanOptions {
    * (v0.4 §9.6 "Rogue Agents"). Por defecto 5 minutos.
    */
   readonly scoutTimeoutMs?: number;
+  /**
+   * Callback opcional invocado cuando cada scout termina (en el orden en que
+   * van terminando): habilita feedback de progreso en vivo. Best-effort —
+   * un fallo del callback no afecta el scan.
+   */
+  readonly onScoutSettled?: (outcome: ScoutOutcome) => void;
 }
 
 /** Resumen de la ejecucion de un scout dentro de un scan. */
@@ -52,6 +58,16 @@ export interface ScanOutcome {
   readonly scouts: readonly ScoutOutcome[];
   readonly startedAt: string;
   readonly finishedAt: string;
+}
+
+/** Resume el resultado crudo de un scout en un `ScoutOutcome`. */
+function toScoutOutcome(result: ScoutResult): ScoutOutcome {
+  return {
+    scoutId: result.scoutId,
+    status: result.status,
+    findings: result.findings.length,
+    ...(result.error !== undefined ? { error: result.error } : {}),
+  };
 }
 
 /** Convierte un `Finding` en una feromona `finding` para la colony DB. */
@@ -116,7 +132,18 @@ export class Coordinator {
     const timeoutMs = options.scoutTimeoutMs ?? DEFAULT_SCOUT_TIMEOUT_MS;
     const available = await this.#availableScouts();
     const results = await Promise.all(
-      available.map((scout) => this.#runScout(scout, request, timeoutMs)),
+      available.map(async (scout) => {
+        const result = await this.#runScout(scout, request, timeoutMs);
+        if (options.onScoutSettled !== undefined) {
+          // El progreso es best-effort: un callback que lanza no rompe el scan.
+          try {
+            options.onScoutSettled(toScoutOutcome(result));
+          } catch {
+            /* se ignora */
+          }
+        }
+        return result;
+      }),
     );
 
     // Stage 2 — dedup por fingerprint, supresion de falsos positivos
@@ -126,12 +153,7 @@ export class Coordinator {
     this.#db.insertPheromones(persisted.map(findingToPheromone));
 
     const finishedAt = new Date().toISOString();
-    const scouts: ScoutOutcome[] = results.map((result) => ({
-      scoutId: result.scoutId,
-      status: result.status,
-      findings: result.findings.length,
-      ...(result.error !== undefined ? { error: result.error } : {}),
-    }));
+    const scouts: ScoutOutcome[] = results.map(toScoutOutcome);
     const status: 'ok' | 'degraded' = scouts.some((s) => s.status !== 'ok')
       ? 'degraded'
       : 'ok';
