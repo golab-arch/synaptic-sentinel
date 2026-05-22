@@ -1068,7 +1068,34 @@ Each entry follows this structure:
 }
 ```
 
+### Entry #40 - DG-037 (B) increment 1: salida verbose y dinamica de la CLI
+```json
+{
+  "timestamp": "2026-05-21T21:45:00.000Z",
+  "cycle": 30,
+  "phase": 7,
+  "action": "FEATURE_IMPLEMENTED",
+  "details": {
+    "DG-037": {
+      "title": "Salida verbose dinamica del scan (estetica techie/hacker)",
+      "selected": "Option B — increment 1 de 3",
+      "effect": "La CLI emite una salida verbose, coloreada y con feedback en vivo: banner + drip por scout + reveal agrupado por severidad. Es el motor del 'show'; los increments 2 (pseudoterminal en la extension) y 3 (webview 'tomo vivo') lo reusaran."
+    },
+    "files": "reporters/console-reporter.ts (NUEVO - renderizado de consola puro y testeable: banner, glifos/colores por severidad segun v0.4 §4.3, renderScoutLine, renderScanReveal). reporters/index.ts (export). core/coordinator/coordinator.ts (ScanOptions.onScoutSettled - callback best-effort de progreso, invocado al terminar cada scout; un callback que lanza no rompe el scan). cli/spinner.ts (NUEVO - spinner braille; anima en TTY/color, degrada a texto plano en pipe/CI). cli/commands/scan.ts (banner -> drip en vivo -> reveal; shouldUseColor; reemplaza formatOutcome). cli/index.ts (flag --no-color).",
+    "design": "'Un solo show, dos superficies' (discusion de DG-037): el render rico vive en la CLI; la extension VSCode (increment 2) lo pipeara a un pseudoterminal nativo. El color se decide con shouldUseColor: --no-color y NO_COLOR lo apagan, FORCE_COLOR lo fuerza (lo usara la extension). console-reporter es puro; el spinner (timer + stdout) es la unica pieza con estado. Cero dependencias nuevas: ANSI y spinner hand-rolled, coherente con el patron del proyecto (cliente LLM hand-rolled).",
+    "verification_real": "build / typecheck / lint / test verdes. E2E: scan real del fixture vibe-coded muestra banner + drip por scout (✓ a medida que terminan, en orden de finalizacion) + reveal con los 7 hallazgos agrupados por severidad. Precedencia de color verificada: --no-color anula FORCE_COLOR (0 secuencias ANSI); FORCE_COLOR emite color (20 lineas ANSI).",
+    "verification_gap": "El spinner animado (carrera de frames con retorno de carro) no tiene unit test del temporizador: se verifica en la corrida real de la CLI. La animacion fluida en un TTY interactivo real no se ejecuto aqui (el entorno de captura no es TTY).",
+    "tests": "14 nuevos/ajustados (console-reporter 12, coordinator onScoutSettled 2; scan.test reemplaza los tests de formatOutcome por shouldUseColor) - total 267 verdes + 3 gated",
+    "checks": "build / typecheck / lint / test - todos en verde",
+    "commit": "codigo + tests en el commit 1705e8c feat(reporters,cli,core); el registro SYNAPTIC de cierre del Cycle 30 se asienta en el commit docs siguiente"
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 35,
+  "complianceScore": 100
+}
+```
+
 ---
 
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-21T21:30:00.000Z*
+*Last Updated: 2026-05-21T21:45:00.000Z*

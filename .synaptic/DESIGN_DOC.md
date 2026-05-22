@@ -40,6 +40,7 @@
 | DG-034 | Próximo paso del roadmap | **Option B** — surface del Brain Layer completo en la extensión VSCode (hover con triage/contexto/remediación + Code Action de remediación + `.vscode/launch.json`) | 2026-05-21 | El Brain Layer completo solo era visible en el tomo/CLI; surfacearlo en el IDE (superficie primaria) y desbloquear el F5 era el paso natural de riesgo medio |
 | DG-035 | Próximo paso del roadmap | **Option A** — documento de onboarding (`ONBOARDING.md` + README al día + `docs/colony-db.md` v4) | 2026-05-21 | Con la extensión F5-testeable, documentar el uso es un deliverable real del roadmap "Output & Polish" con riesgo mínimo; vuelve el producto usable sin leer el código |
 | DG-036 | Próximo paso del roadmap | **Option B** — kill-switch del Coordinator: presupuesto de tiempo por scout (v0.4 §9.6) | 2026-05-21 | Un scanner colgado bloqueaba el scan entero; el kill-switch es un requisito del threat model ("Rogue Agents") y la inversión correcta en robustez antes del beta |
+| DG-037 | Salida verbose dinámica del scan (UX techie/hacker) | **Option B** — increment 1/3: la CLI emite el "show" (banner + drip por scout + reveal coloreado); increments 2-3 (pseudoterminal en la extensión, webview "tomo vivo") pendientes | 2026-05-21 | La prueba F5 reveló que la extensión no daba feedback del proceso (gap no cubierto por v0.4 §4.3); la CLI como motor del show beneficia también al público OSS/terminal con un solo esfuerzo |
 | Q1 | Package manager / tooling de monorepo | **pnpm workspaces** (v10.33.0) | 2026-05-20 | Ya instalado; preferencia v0.4 §9.5; sin overhead |
 
 **Discovery cerrado. Scaffolding generado, verificado y commiteado** (`f0b5202`, 54 archivos). **Cycle 2 CERRADO.** Siguiente: PASO 4 — Scout Layer.
@@ -94,6 +95,7 @@
 - 2026-05-21 — Cycle 27: surface del Brain Layer en la extensión (DG-034 B) — la extensión VSCode muestra el Brain Layer completo: `HoverProvider` con triage + cadena de contexto + remediación sobre los hallazgos bajo el cursor, y una Code Action "copiar remediación sugerida". `vscode-extension/` (`tomo.ts` — `ExtensionFinding` gana context/remediation; `diagnostics.ts` — `findingHoverMarkdown` + `remediationClipboardText` puras; `index.ts` — HoverProvider + comando + Code Action). **`.vscode/launch.json`** creado: la extensión ya es F5-testeable. Decisión honesta: la Code Action copia al portapapeles, no inserta en el buffer (la remediación es orientativa, no un patch). 250 tests verdes + 3 gated.
 - 2026-05-21 — Cycle 28: documento de onboarding (DG-035 A) — `ONBOARDING.md` (guía completa: instalación, uso de la CLI y la extensión, arquitectura, troubleshooting); `README.md` al día (5 scouts, Brain Layer con 3 agentes, licencias reales); `docs/colony-db.md` con las tablas v2-v4. Hallazgo honesto: `format:check` —fuera del gate de verificación por ciclo— revela drift de Prettier preexistente en ~41 archivos → **FI-010**. Ciclo de documentación, sin cambios de código: 250 tests verdes + 3 gated.
 - 2026-05-21 — Cycle 29: kill-switch del Coordinator (DG-036 B) — presupuesto de tiempo por scout (v0.4 §9.6 "Rogue Agents"). `ScanOptions.scoutTimeoutMs` (default 5 min); cada scout corre con una `AbortSignal` propia —enlazada al `signal` del llamante— y su ejecución compite (`Promise.race`) contra la cancelación: un scout colgado que ignora su signal se cancela igual y se reporta `failed`, sin colgar el scan. Sin cambios en el CLI (usa el presupuesto por defecto). 253 tests verdes + 3 gated.
+- 2026-05-21 — Cycle 30: salida verbose y dinámica de la CLI (DG-037 B, increment 1/3) — tras la prueba F5 del usuario (Entry #39, gap "extensión en vivo" cerrado). `reporters/console-reporter.ts` (render puro: banner, glifos/colores por severidad v0.4 §4.3, `renderScanReveal`); `Coordinator.onScoutSettled` (callback de progreso); `cli/spinner.ts` (spinner braille); el comando `scan` imprime banner → drip en vivo por scout → reveal coloreado, con `--no-color` / `shouldUseColor`. Arquitectura "un show, dos superficies": el motor vive en la CLI, la extensión lo reusará (increment 2). 267 tests verdes + 3 gated.
 
 ---
 
@@ -136,10 +138,10 @@ Items identificados para mejorar más adelante. No bloquean el MVP.
 
 - **Name**: SENTINEL (Synaptic Sentinel)
 - **Description**: Toolkit OSS de auditoría agéntica de seguridad + capa premium LLM, vibe-coding-native.
-- **Phase**: Cycle 30 / Phase 7 — Brain Layer COMPLETO y surfaceado en el IDE; 5 scouts + Coordinator stages 1-2 con kill-switch + 3 agentes; extensión F5-testeable; `ONBOARDING.md` publicado; siguiente: DG-037
+- **Phase**: Cycle 31 / Phase 7 — Brain Layer COMPLETO; 5 scouts + Coordinator con kill-switch + 3 agentes; CLI con salida verbose/dinámica; extensión F5-testeable y probada en vivo; siguiente: DG-038 (increment 2 de la UX verbose)
 
 ---
 
 *Created: 2026-05-20T19:09:00.816Z*
-*Last Updated: 2026-05-21T21:10:00.000Z*
+*Last Updated: 2026-05-21T21:45:00.000Z*
 *SYNAPTIC Protocol v3.0*
