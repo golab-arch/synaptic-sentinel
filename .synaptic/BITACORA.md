@@ -1364,7 +1364,33 @@ Each entry follows this structure:
 }
 ```
 
+### Entry #51 - DG-048 (A): salida de la CLI en ingles (FI-011 etapa 1)
+```json
+{
+  "timestamp": "2026-05-22T16:00:00.000Z",
+  "cycle": 41,
+  "phase": 7,
+  "action": "FEATURE_IMPLEMENTED",
+  "details": {
+    "DG-048": {
+      "title": "Proximo paso del roadmap (FI-011 etapa 1 - salida de la CLI en ingles)",
+      "selected": "Option A",
+      "effect": "Primer increment de FI-011: toda la salida de la CLI al usuario final se migra a ingles. Etapas 2-5 (reglas de scouts, reporters del tomo, extension VSCode, prompts del Brain Layer) quedan para DGs futuros."
+    },
+    "files": "reporters/console-reporter.ts (banner, renderScoutLine, renderScanReveal - el console-reporter es el renderer de la CLI) + su test. cli/index.ts (USAGE/ayuda y mensajes de error). cli/commands/scan.ts (aviso de scanners, spinner, 'Tome exported', mensajes de --fail-on). cli/commands/triage.ts (encabezado, tags, contexto/remediacion, resumen, rationale de veredictos derivados). cli/commands/mark-fp.ts (mensajes de resultado y error).",
+    "design": "Etapa 1 de FI-011. El console-reporter (paquete reporters) entra en esta etapa porque es el renderer de la salida de la CLI, no del tomo. Los prompts de los agentes (etapa 5) NO se tocan: el test de triage los verifica en espanol. Fuera de alcance: comentarios de codigo, .synaptic/, mensajes de commit. 'Tomo' se traduce como 'Tome'.",
+    "verification_real": "pnpm verify verde (test:unit 301) + test:integration verde (9 + 3 gated) + e2e real con la CLI construida: 'synaptic-sentinel --help' y 'scan --fail-on high' muestran toda la salida en ingles.",
+    "tests": "sin tests nuevos (4 aserciones de strings actualizadas en console-reporter.test.ts) — total 310 verdes + 3 gated",
+    "checks": "format:check / lint / build / test:unit + test:integration — todos en verde",
+    "commit": "codigo + tests en el commit cccb834 feat(cli,reporters); el registro SYNAPTIC de cierre del Cycle 41 se asienta en el commit docs siguiente"
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 46,
+  "complianceScore": 100
+}
+```
+
 ---
 
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-22T15:15:00.000Z*
+*Last Updated: 2026-05-22T16:00:00.000Z*
