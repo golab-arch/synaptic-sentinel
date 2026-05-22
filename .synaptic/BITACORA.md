@@ -1311,7 +1311,33 @@ Each entry follows this structure:
 }
 ```
 
+### Entry #49 - DG-046 (A): separa test:unit / test:integration
+```json
+{
+  "timestamp": "2026-05-22T14:30:00.000Z",
+  "cycle": 39,
+  "phase": 7,
+  "action": "FEATURE_IMPLEMENTED",
+  "details": {
+    "DG-046": {
+      "title": "Proximo paso del roadmap (separar test:unit / test:integration)",
+      "selected": "Option A",
+      "effect": "Cierra FI-002: la suite Vitest se divide en dos proyectos (unit / integration). El gate por ciclo (verify) pasa a correr solo test:unit; los tests de integracion lentos se invocan explicitamente."
+    },
+    "files": "vitest.config.ts (test.projects: proyectos 'unit' e 'integration'). package.json (scripts test:unit/test:integration; verify pasa de 'test' a 'test:unit'). cli-runner.test.ts era mixto -> separado en cli-runner.test.ts (unit) y cli-runner.integration.test.ts (NUEVO, scan con la CLI real). ONBOARDING.md / README.md (workflow documentado).",
+    "design": "Split por proyecto Vitest (no por glob en los scripts): 'vitest run --project <name>' es robusto cross-platform, sin problemas de quoting de globs entre cmd y bash. Los tests de integracion se reconocen por el sufijo *integration.test.ts. El gate por ciclo usa test:unit; test:integration se corre explicito ante un commit de feature o un release.",
+    "verification_real": "Verificado SIN perdida de tests: test:unit 42 archivos/300 passed; test:integration 8 archivos/9 passed + 3 gated; total 309 + 3, identico al pre-split. test:unit corre en ~7s (antes el gate completo pesaba ~50-150s segun contencion). pnpm verify (ahora con test:unit) completo en verde.",
+    "tests": "sin tests nuevos (reorganizacion) — total 309 verdes + 3 gated, repartidos 300 unit / 9+3 integration",
+    "checks": "format:check / lint / build / test:unit — todos en verde via 'verify'; test:integration verificado por separado",
+    "commit": "codigo en el commit eef0d32 test(repo); el registro SYNAPTIC de cierre del Cycle 39 se asienta en el commit docs siguiente"
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 44,
+  "complianceScore": 100
+}
+```
+
 ---
 
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-22T13:45:00.000Z*
+*Last Updated: 2026-05-22T14:30:00.000Z*

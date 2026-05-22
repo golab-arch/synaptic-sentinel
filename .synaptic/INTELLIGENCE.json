@@ -4,7 +4,7 @@
     "fullName": "Synaptic Sentinel",
     "description": "Toolkit OSS de auditoria agentica de seguridad + capa premium LLM, vibe-coding-native, para la era del codigo generado por IA. Tercer producto de la familia Synaptic.",
     "currentPhase": "brain-layer",
-    "overallProgress": "Cycles 1-38 CERRADOS. 5 scouts (OpenGrep SAST, Gitleaks Secrets, Trivy SCA, Checkov IaC, Vibe-Detect VibeCoded) + Coordinator stages 1-2 con kill-switch por scout + CLI con salida verbose/dinamica + reporters JSON+HTML+SARIF+consola + extension VSCode (Brain Layer surfaceado, pseudoterminal verbose y webview 'tomo vivo') + Brain Layer con 3 agentes wired (Triage + Context + Remediation, LLM real verificada) + memoria del enjambre COMPLETA (learning_records: escritura + lectura/economia de tokens) + ONBOARDING.md. UX verbose COMPLETA. Repo sin drift de Prettier; gate por ciclo codificado en el script 'verify' (format:check+lint+build+test). Catalogo SAST de OpenGrep ampliado a 11 reglas pattern-based (CWE-95/78/79/502/327). Tomo exportable a JSON+HTML+SARIF 2.1.0 (CI-native) y scan con politica de exit code --fail-on (gate de pipeline). 309 tests verdes + 3 gated."
+    "overallProgress": "Cycles 1-39 CERRADOS. 5 scouts (OpenGrep SAST, Gitleaks Secrets, Trivy SCA, Checkov IaC, Vibe-Detect VibeCoded) + Coordinator stages 1-2 con kill-switch por scout + CLI con salida verbose/dinamica + reporters JSON+HTML+SARIF+consola + extension VSCode (Brain Layer surfaceado, pseudoterminal verbose y webview 'tomo vivo') + Brain Layer con 3 agentes wired (Triage + Context + Remediation, LLM real verificada) + memoria del enjambre COMPLETA (learning_records: escritura + lectura/economia de tokens) + ONBOARDING.md. UX verbose COMPLETA. Repo sin drift de Prettier; gate por ciclo codificado en el script 'verify' (format:check+lint+build+test:unit). Catalogo SAST de OpenGrep ampliado a 11 reglas pattern-based (CWE-95/78/79/502/327). Tomo exportable a JSON+HTML+SARIF 2.1.0 (CI-native) y scan con politica de exit code --fail-on (gate de pipeline). Suite Vitest dividida en proyectos unit/integration (gate por ciclo corre solo unit, ~7s). 309 tests verdes + 3 gated."
   },
   "decisions": [
     { "id": "DG-001", "title": "Estructura fisica del monorepo OSS/Pro", "selected": "B", "date": "2026-05-20", "summary": "Monorepo unico con workspaces marcados OSS/Pro + publish-oss.ts allowlist", "rationale": "Velocidad solo founder; refactors triviales; anti-filtracion en un script auditable" },
@@ -52,6 +52,7 @@
     { "id": "DG-043", "title": "Proximo paso del roadmap (ampliar el catalogo SAST)", "selected": "B", "date": "2026-05-22", "summary": "Atiende FI-003: el ruleset baseline de OpenGrep pasa de 4 a 11 reglas pattern-based deterministas. 7 reglas nuevas — JS/TS: setTimeout/setInterval con string (CWE-95), document.write (CWE-79), innerHTML dinamico (CWE-79); Python: os.system (CWE-78), yaml.load sin SafeLoader (CWE-502), pickle.load/loads (CWE-502), hashlib.md5 (CWE-327). 2 fixtures vulnerables + 2 tests de integracion contra OpenGrep real", "rationale": "El catalogo SAST es el core value prop del scanner; expandirlo mejora directamente lo que el producto encuentra. Solo patrones deterministas de alta confianza (taint analysis diferido); pattern-not excluye formas seguras para acotar falsos positivos" },
     { "id": "DG-044", "title": "Proximo paso del roadmap (reporter SARIF)", "selected": "B", "date": "2026-05-22", "summary": "Reporter SARIF 2.1.0 del tomo (reporters/sarif-reporter.ts, renderTomoSarif) + flag CLI --export-sarif. Reglas deduplicadas por ruleId; severidad -> level + security-severity; fingerprint estable como partialFingerprints. 8 tests unitarios", "rationale": "SARIF es el formato estandar de intercambio de hallazgos de seguridad; el export vuelve a Sentinel CI-native (GitHub Code Scanning, Azure DevOps). SARIF ya estaba previsto como formato OSS en el index.ts del paquete reporters; riesgo acotado por el patron de reporter ya probado y por tests que parsean la salida" },
     { "id": "DG-045", "title": "Proximo paso del roadmap (politica de exit code para CI)", "selected": "B", "date": "2026-05-22", "summary": "Flag scan --fail-on <severidad>: el comando scan termina con exit code 2 si hay hallazgos de severidad >= umbral. countBlockingFindings (helper puro) + validacion del flag en index.ts. 5 tests unitarios + e2e real de los 4 exit codes", "rationale": "Completa la historia CI-native abierta por SARIF (DG-044): un scanner que no puede hacer fallar un pipeline es media herramienta. Exit code 2 distinto del 1 (error); --fail-on opt-in preserva el contrato exit 0 del scan (la extension VSCode no se ve afectada). Riesgo medio asumido y verificado" },
+    { "id": "DG-046", "title": "Proximo paso del roadmap (separar test:unit / test:integration)", "selected": "A", "date": "2026-05-22", "summary": "Cierra FI-002: la suite Vitest se divide en dos proyectos (test.projects 'unit' e 'integration'); el gate por ciclo (verify) pasa de 'test' a 'test:unit'. cli-runner.test.ts (mixto) separado en unit + cli-runner.integration.test.ts. Workflow documentado en ONBOARDING/README", "rationale": "FI-002 senalada 3 ciclos seguidos: la suite de integracion dominaba el verify (~50-150s) y crecia con cada feature. Split por proyecto Vitest (no por glob en scripts) es robusto cross-platform. De-riskea el ciclo de packaging que deberia seguir. Verificado sin perdida de tests" },
     { "id": "Q1", "title": "Package manager", "selected": "pnpm workspaces", "date": "2026-05-20", "summary": "pnpm v10.33.0", "rationale": "Ya instalado; preferencia v0.4 9.5; simple sin overhead" }
   ],
   "roadmap": [
@@ -64,7 +65,6 @@
   ],
   "futureImprovements": [
     { "id": "FI-001", "topic": "Driver SQLite", "detail": "node:sqlite es experimental; si genera friccion (API en un Node mayor futuro, o extension host de VSCode con Node < 22.5), migrar a better-sqlite3 detras de la clase ColonyDb." },
-    { "id": "FI-002", "topic": "Suite de tests", "detail": "Los tests de integracion (OpenGrep, Trivy, Checkov, cli-runner) dominan el tiempo de pnpm test y rozan sus timeouts bajo contencion de CPU (cli-runner subido a 120s en DG-032). Separar en test:unit (rapido) y test:integration." },
     { "id": "FI-003", "topic": "Catalogo de reglas / taint analysis", "detail": "sentinel-baseline.yaml tiene 11 reglas pattern-based tras DG-043 B (CWE-95/78/79/502/327). Lo que resta: analisis con taint (seguir el flujo source->sink) para cubrir inyecciones que un patron sintactico no alcanza y reducir falsos positivos en sinks de uso ambiguo (innerHTML, child_process)." },
     { "id": "FI-004", "topic": "Cache de scanners del producto", "detail": "El CLI resuelve OpenGrep desde .scanners/ relativo al cwd. El producto enviado necesita una cache de scanners propia (global por usuario) y auto-instalacion." },
     { "id": "FI-005", "topic": "ruleId de OpenGrep", "detail": "El check_id de OpenGrep trae el prefijo de ruta cuando --config es un archivo; Finding.ruleId lo hereda. El CLI muestra title (limpio). Evaluar normalizar ruleId a un id canonico en el normalizer." },
@@ -74,7 +74,8 @@
   "resolvedImprovements": [
     { "id": "FI-007", "topic": "Creacion de fp_known", "resolvedBy": "DG-022 B", "detail": "Cerrado: el comando CLI mark-fp y el Code Action 'marcar falso positivo' de la extension crean feromonas fp_known." },
     { "id": "FI-006", "topic": "suppressedCount en el tomo", "resolvedBy": "DG-023 A", "detail": "Cerrado: TomoSummary incluye suppressedCount, tomado de outcome.suppressedCount." },
-    { "id": "FI-010", "topic": "Drift de Prettier", "resolvedBy": "DG-042 A", "detail": "Cerrado: 'pnpm format' sobre 44 archivos con drift; format:check incorporado al gate por ciclo via el nuevo script raiz 'verify'. Se corrigio ademas un comentario inestable de cli-runner.test.ts." }
+    { "id": "FI-010", "topic": "Drift de Prettier", "resolvedBy": "DG-042 A", "detail": "Cerrado: 'pnpm format' sobre 44 archivos con drift; format:check incorporado al gate por ciclo via el nuevo script raiz 'verify'. Se corrigio ademas un comentario inestable de cli-runner.test.ts." },
+    { "id": "FI-002", "topic": "Suite de tests", "resolvedBy": "DG-046 A", "detail": "Cerrado: la suite Vitest se dividio en dos proyectos (test.projects 'unit' e 'integration'); el gate por ciclo corre solo test:unit (~7s). test:integration se invoca explicitamente ante un commit de feature o un release. Los tests de integracion se identifican por el sufijo *integration.test.ts." }
   ],
   "learnings": [
     {
@@ -91,12 +92,12 @@
     }
   ],
   "implementationState": {
-    "lastCompletedTask": "Cycle 38 CERRADO: DG-045 B - politica de exit code --fail-on para CI. cli/scan.ts (flag --fail-on <severidad>: exit code 2 si hay hallazgos >= umbral; countBlockingFindings helper puro; FAIL_ON_EXIT_CODE) + validacion en index.ts. Completa la historia CI-native de SARIF (DG-044). 5 tests unitarios + e2e real de los 4 exit codes (high->2, critical->0, sin flag->0, invalido->1). pnpm verify completo en verde; 309 verdes + 3 gated; commiteado 0e41fcf.",
-    "currentTask": "Cycle 39 abierto. DG-046 a presentar: proximo paso del roadmap.",
+    "lastCompletedTask": "Cycle 39 CERRADO: DG-046 A - separacion test:unit / test:integration (cierra FI-002). vitest.config.ts con test.projects (proyectos 'unit' e 'integration'); package.json con scripts test:unit/test:integration; verify pasa a test:unit. cli-runner.test.ts (mixto) separado en unit + cli-runner.integration.test.ts. Verificado sin perdida de tests (300 unit + 9+3 integration = 309 + 3); test:unit ~7s. pnpm verify completo en verde; commiteado eef0d32.",
+    "currentTask": "Cycle 40 abierto. DG-047 a presentar: proximo paso del roadmap.",
     "pendingTasks": [
-      "Resolver DG-046 - proximo paso del roadmap (candidatos: FI-002 separar test:unit/test:integration; FI-008 .vsix + FI-004 cache de scanners hacia el beta; FI-003 taint analysis)",
+      "Resolver DG-047 - proximo paso del roadmap (candidatos: FI-008 .vsix + FI-004 cache de scanners hacia el beta -Phase 8-; FI-003 taint analysis; FI-005 normalizar ruleId)",
       "Los directorios extranos de packages/vscode-extension/ quedan gitignoreados (DG-038); siguen en disco - el usuario puede eliminarlos",
-      "FI-002 (separar test:unit/test:integration; el verify pesa ~50-150s segun contencion, dominado por integracion), FI-003 (taint analysis - resta del catalogo SAST), FI-004 (cache de scanners del producto), FI-008 (.vsix), FI-009 (migracion a @anthropic-ai/sdk)"
+      "FI-003 (taint analysis - resta del catalogo SAST), FI-004 (cache de scanners del producto), FI-005 (normalizar ruleId de OpenGrep), FI-008 (.vsix), FI-009 (migracion a @anthropic-ai/sdk)"
     ],
     "blockers": []
   },
@@ -123,7 +124,8 @@
     "El tomo se exporta a JSON + HTML + SARIF 2.1.0 (DG-044 B): el reporter SARIF (renderTomoSarif, flag CLI --export-sarif) vuelve la salida CI-native — la consumen GitHub Code Scanning, Azure DevOps y otras herramientas",
     "Historia CI-native COMPLETA: SARIF reporta (DG-044) y scan --fail-on <severidad> bloquea el pipeline con exit code 2 (DG-045 B); --fail-on es opt-in, sin el flag scan sigue en exit 0",
     "Instruccion permanente del usuario (desde DG-045): la seccion 6 de cada DG futuro debe incluir mi recomendacion explicita y razonada sobre las opciones (registrado tambien en memoria persistente)",
+    "Suite Vitest dividida en dos proyectos (DG-046 A, cierra FI-002): 'unit' (logica pura, ~7s) e 'integration' (binarios reales, lento). Gate por ciclo 'verify' -> test:unit; test:integration se corre explicito ante un commit de feature o un release. Integracion = sufijo *integration.test.ts",
     "Observacion: better-sqlite3 ABI con Electron; exactOptionalPropertyTypes estricto"
   ],
-  "lastUpdated": "2026-05-22T13:45:00.000Z"
+  "lastUpdated": "2026-05-22T14:30:00.000Z"
 }
