@@ -2,7 +2,7 @@
   "version": "1.0",
   "projectId": "sentinel-1779304140796",
   "projectName": "SENTINEL",
-  "totalCycles": 50,
+  "totalCycles": 51,
   "currentTomeId": 2,
   "cyclesPerTome": 50,
   "tomes": [
@@ -35,10 +35,10 @@
         "from": "2026-05-22T23:30:00.000Z",
         "to": ""
       },
-      "summary": "Tomo 002 abierto en el Cycle 51, Phase 8 (Distribucion). Continua FI-008 (empaquetado .vsix de la extension) y la deuda tecnica restante (FI-001 driver SQLite, FI-003 taint analysis, FI-009 cliente LLM).",
-      "keyDecisions": [],
-      "cycleCount": 0,
-      "successCount": 0,
+      "summary": "Tomo 002 abierto en el Cycle 51, Phase 8 (Distribucion). Cycle 51 (DG-058 A): el .vsix instalable de la extension producido y validado con vsce. Continua la deuda tecnica restante (FI-008 auto-instalacion on-demand de scanners, FI-001 driver SQLite, FI-003 taint analysis, FI-009 cliente LLM).",
+      "keyDecisions": ["DG-058"],
+      "cycleCount": 1,
+      "successCount": 1,
       "failureCount": 0,
       "jsonPath": "tomes/tome-002.json",
       "mdPath": "tomes/tome-002.md",
@@ -103,12 +103,13 @@
     { "id": "DG-055", "title": "Proximo paso del roadmap (runtime de Node del extension host)", "selected": "A", "cycle": 48, "date": "2026-05-22" },
     { "id": "DG-056", "title": "Proximo paso del roadmap (preparar el manifest de la extension para vsce)", "selected": "A", "cycle": 49, "date": "2026-05-22" },
     { "id": "DG-057", "title": "Proximo paso del roadmap (bundlear la CLI dentro de la extension)", "selected": "B", "cycle": 50, "date": "2026-05-22" },
+    { "id": "DG-058", "title": "Proximo paso del roadmap (producir el .vsix de la extension)", "selected": "A", "cycle": 51, "date": "2026-05-22" },
     { "id": "Q1", "title": "Package manager", "selected": "pnpm", "cycle": 1, "date": "2026-05-20" }
   ],
   "metrics": {
-    "totalDecisions": 58,
+    "totalDecisions": 59,
     "optionDistribution": {
-      "A": 33,
+      "A": 34,
       "B": 24,
       "C": 1
     },
@@ -122,8 +123,8 @@
       "5": 5,
       "6": 4,
       "7": 29,
-      "8": 5
+      "8": 6
     }
   },
-  "lastUpdated": "2026-05-22T23:30:00.000Z"
+  "lastUpdated": "2026-05-22T23:55:00.000Z"
 }

@@ -1652,5 +1652,35 @@ Each entry follows this structure:
 
 ---
 
+### Entry #62 - DG-058 (A): produce el .vsix instalable de la extension (FI-008); cierra Cycle 51
+```json
+{
+  "timestamp": "2026-05-22T23:55:00.000Z",
+  "cycle": 51,
+  "phase": 8,
+  "action": "FEATURE_IMPLEMENTED",
+  "details": {
+    "DG-058": {
+      "title": "Proximo paso del roadmap (producir el .vsix de la extension)",
+      "selected": "Option A",
+      "effect": "Sub-increment final del empaquetado de FI-008: la extension VSCode se empaqueta como un .vsix instalable. 'vsce package' produce synaptic-sentinel-0.0.0.vsix (9 archivos, 83 KB)."
+    },
+    "files": "vscode-extension/package.json (name @synaptic-sentinel/vscode-extension -> synaptic-sentinel; +@vscode/vsce devDependency; +scripts vscode:prepublish y package). package.json raiz (filtro del build -> synaptic-sentinel). vscode-extension/.vscodeignore (endurecido: excluye .synaptic/, .vscode/, context/, tsbuildinfo y los .js/.d.ts sueltos de tsc; el .vsix shippea solo el bundle + package.json/LICENSE/README). vscode-extension/src/runtime-check.ts (NUEVO; checkExtensionHostRuntime, mitigacion FI-001). vscode-extension/src/index.ts (activate() avisa si el Node del host es < 22.5). vscode-extension/tests/runtime-check.test.ts (NUEVO; 7 tests). pnpm-lock.yaml (@vscode/vsce).",
+    "design": "vsce se agrega como devDependency -no via npx- para sortear el cuelgue de descarga de npx (Norton/TLS) que bloqueo la validacion en DG-056; un 'vsce package' exitoso ES la validacion del manifest. El name del paquete debio dejar de ser scoped (vsce rechaza @scope/name; el identificador de marketplace queda golab.synaptic-sentinel).",
+    "honest_deviation": "Respecto del texto de DG-058 A NO se elevo engines.vscode 'al minimo cuyo host trae Node >= 22.5': ese mapeo VSCode<->Node no se pudo verificar offline y un valor adivinado seria una falsa garantia (optimismo ilusorio). La mitigacion de FI-001 se entrega solo como el chequeo en runtime de activate() (runtime-check.ts), que es preciso -lee process.versions.node- e independiente del mapeo. engines.vscode queda en ^1.95.0.",
+    "verification_real": "pnpm verify verde (format:check / lint / build / test:unit 311, +7 de runtime-check). 'vsce package' produjo synaptic-sentinel-0.0.0.vsix (9 archivos, 83.49 KB): [Content_Types].xml, extension.vsixmanifest, extension/{LICENSE.txt,package.json,readme.md} y extension/dist/{extension.cjs,cli.mjs,schema.sql,sentinel-baseline.yaml}. E2E REAL: el .vsix se extrajo y 'node extension/dist/cli.mjs scan' corrio de punta a punta (ColonyDb crea colony.db, OpenGrep 1 finding). El .vsix queda git-ignored (artefacto de build).",
+    "tests": "7 tests nuevos (runtime-check.test.ts) - total 320 verdes + 3 gated",
+    "checks": "format:check / lint / build / test:unit - todos en verde; 'vsce package' exitoso",
+    "commit": "feature en el commit 3e09626 feat(vscode-extension); el registro SYNAPTIC de cierre del Cycle 51 se asienta en el commit docs siguiente",
+    "fi_008_status": "FI-008 casi cerrado: el .vsix instalable esta PRODUCIDO y validado. Resta un unico item - la auto-instalacion on-demand de scanners cuando falten (hoy el usuario corre 'install-scanners --global' una vez tras instalar el .vsix)."
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 56,
+  "complianceScore": 100
+}
+```
+
+---
+
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-22T23:30:00.000Z*
+*Last Updated: 2026-05-22T23:55:00.000Z*
