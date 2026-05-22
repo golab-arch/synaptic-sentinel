@@ -1047,7 +1047,28 @@ Each entry follows this structure:
 }
 ```
 
+### Entry #39 - VERIFICATION: prueba en vivo de la extension (F5) + nuevo requerimiento de UX
+```json
+{
+  "timestamp": "2026-05-21T21:30:00.000Z",
+  "cycle": 30,
+  "phase": 7,
+  "action": "VERIFICATION",
+  "details": {
+    "subject": "Prueba en vivo de la extension VSCode (F5) por el usuario — cierre del gap historico + nuevo requerimiento de UX.",
+    "context": "Desde DG-021 cada entrada de la extension declaro el gap 'la extension en vivo (F5) no se ejecuto aqui'. El usuario abrio el Extension Development Host (F5), cargo un proyecto real (Simulador Hidraulico Parametrico) y corrio los 3 comandos: Scan Workspace, Set Anthropic API Key, Triage Findings.",
+    "result": "La extension FUNCIONA end-to-end: el toast de progreso aparece durante el scan y al terminar. Gap F5 CERRADO. Hallazgo de UX: fuera del toast y los squiggles inline (que solo se ven con un archivo del proyecto abierto), no hay feedback visible del proceso — la experiencia 'durante el scan' es pobre.",
+    "nuevo_requerimiento": "El usuario pide una salida verbose y dinamica del proceso, de estetica techie/hacker, atractiva durante la ejecucion y a la vez intuitiva al entregar los resultados. Comparado con lo planificado: v0.4 §4.3 planeo un webview 'tomo vivo' + tree view (NO construidos) y la Decision #23 prefiere APIs nativas sobre UI custom; el plan NO cubria el feedback dinamico 'durante el proceso' (solo el toast, Decision #25). Es un gap real del diseno.",
+    "decision_pendiente": "DG-037 se reorienta a esta propuesta: como construir la salida verbose dinamica. Investigacion web realizada (Pseudoterminal de VSCode soporta ANSI nativo; el Output Channel no; feedback >1s sin senal = sensacion de 'colgado'; la estetica hacker conecta con devs).",
+    "gap_status": "Gap 'extension en vivo / F5' CERRADO. El gap de UX dinamica del proceso queda abierto; lo atiende DG-037."
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 34,
+  "complianceScore": 100
+}
+```
+
 ---
 
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-21T21:10:00.000Z*
+*Last Updated: 2026-05-21T21:30:00.000Z*

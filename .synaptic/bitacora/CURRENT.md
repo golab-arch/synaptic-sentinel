@@ -50,10 +50,10 @@
 
 ## Decision Gate abierto
 
-- DG-037 — próximo paso del roadmap (a presentar)
+- DG-037 — reorientado: salida verbose dinámica del scan (estética techie/hacker) — a decidir
 
 ## Last Entry
 
-Entry #38 — FEATURE_IMPLEMENTED (DG-036 B) — 2026-05-21 — SUCCESS
+Entry #39 — VERIFICATION (prueba F5 de la extensión + nuevo requerimiento de UX) — 2026-05-21 — SUCCESS
 
 ---
