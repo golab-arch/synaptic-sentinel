@@ -1,11 +1,11 @@
 /**
- * @synaptic-sentinel/agents  [PRO]
+ * @synaptic-sentinel/agents
  *
- * Capa Cerebro: agentes LLM (prompt especializado + parser de salida, NO
+ * Brain Layer: agentes LLM (prompt especializado + parser de salida, NO
  * microservicios) que enriquecen los hallazgos deterministas de los scouts.
  * BYOK del cliente; la frontera con el LLM es la interfaz `LlmClient`.
  *
- * NO se distribuye bajo Apache-2.0 — ver LICENSE-PRO (EULA, Ley 17.336).
+ * Distribuido bajo Apache-2.0 (ver LICENSE en la raiz del repo).
  */
 
 export const PACKAGE_NAME = '@synaptic-sentinel/agents';
