@@ -69,6 +69,11 @@
         "command": "synaptic-sentinel.installScanners",
         "title": "Install Scanners",
         "category": "SYNAPTIC Sentinel"
+      },
+      {
+        "command": "synaptic-sentinel.configureProviders",
+        "title": "Configure Brain Layer Providers",
+        "category": "SYNAPTIC Sentinel"
       }
     ],
     "views": {
@@ -98,11 +103,15 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.40.0",
+    "@synaptic-sentinel/agents": "workspace:*",
+    "@synaptic-sentinel/core": "workspace:*",
+    "js-yaml": "^4.1.0",
     "node-sqlite3-wasm": "^0.8.0",
     "openai": "^6.18.0",
     "zod": "^3.24.0"
   },
   "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
     "@types/vscode": "^1.95.0",
     "@vscode/vsce": "^3.0.0",
     "esbuild": "^0.25.0"

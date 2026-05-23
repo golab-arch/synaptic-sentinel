@@ -119,6 +119,15 @@ importers:
       '@anthropic-ai/sdk':
         specifier: ^0.40.0
         version: 0.40.1
+      '@synaptic-sentinel/agents':
+        specifier: workspace:*
+        version: link:../agents
+      '@synaptic-sentinel/core':
+        specifier: workspace:*
+        version: link:../core
+      js-yaml:
+        specifier: ^4.1.0
+        version: 4.1.1
       node-sqlite3-wasm:
         specifier: ^0.8.0
         version: 0.8.57
@@ -129,6 +138,9 @@ importers:
         specifier: ^3.24.0
         version: 3.25.76
     devDependencies:
+      '@types/js-yaml':
+        specifier: ^4.0.9
+        version: 4.0.9
       '@types/vscode':
         specifier: ^1.95.0
         version: 1.120.0

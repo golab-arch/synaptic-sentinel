@@ -33,6 +33,7 @@ import {
   getProviderApiKey,
   setProviderApiKey,
 } from './secret-storage.js';
+import { SentinelSettingsViewProvider } from './settings-view.js';
 import { SentinelTerminal } from './terminal.js';
 import { SentinelTomoViewProvider } from './tomo-view.js';
 
@@ -48,6 +49,8 @@ const COMMAND_TRIAGE = 'synaptic-sentinel.triageWorkspace';
 const COMMAND_SET_API_KEY = 'synaptic-sentinel.setAnthropicApiKey';
 /** Id del comando que instala los binarios de los scanners (FI-008, DG-059). */
 const COMMAND_INSTALL_SCANNERS = 'synaptic-sentinel.installScanners';
+/** Id del comando que abre el panel multi-provider (Phase 11 DG-074 B). */
+const COMMAND_CONFIGURE_PROVIDERS = SentinelSettingsViewProvider.commandId;
 /** `source` que aparece en cada diagnostico. */
 const DIAGNOSTIC_SOURCE = 'SYNAPTIC Sentinel';
 
@@ -77,6 +80,12 @@ export function activate(context: vscode.ExtensionContext): void {
   const terminal = new SentinelTerminal();
   // Webview "tomo vivo": panel lateral con los hallazgos (DG-039 B).
   tomoView = new SentinelTomoViewProvider();
+  // Panel multi-provider (Phase 11 DG-074 B): provider per agent + Ollama
+  // auto-discovery + managed credentials. La extension lo expone via comando.
+  const settingsView = new SentinelSettingsViewProvider(secrets, () => {
+    const folder = vscode.workspace.workspaceFolders?.[0];
+    return folder?.uri.fsPath;
+  });
 
   context.subscriptions.push(
     diagnostics,
@@ -102,6 +111,9 @@ export function activate(context: vscode.ExtensionContext): void {
     }),
     vscode.commands.registerCommand(COMMAND_INSTALL_SCANNERS, () => {
       void installScanners(extensionRoot, terminal);
+    }),
+    vscode.commands.registerCommand(COMMAND_CONFIGURE_PROVIDERS, () => {
+      void settingsView.open();
     }),
     vscode.languages.registerCodeActionsProvider(
       '*',
