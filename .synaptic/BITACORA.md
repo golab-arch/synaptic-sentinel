@@ -2188,5 +2188,37 @@ Each entry follows this structure:
 
 ---
 
+### Entry #77 - DG-072 (B): extraer OllamaLlmClient con XGrammar opt-in; cierra Cycle 65
+```json
+{
+  "timestamp": "2026-05-23T19:30:00.000Z",
+  "cycle": 65,
+  "phase": 11,
+  "action": "FEATURE_IMPLEMENTED",
+  "details": {
+    "DG-072": {
+      "title": "Phase 11 sub-increment 3 - extraer OllamaLlmClient con XGrammar opt-in (cierra los 3 adapters del Modo D)",
+      "selected": "Option B",
+      "effect": "Tercer y ultimo adapter de Phase 11. Adapter Ollama-especifico (~170 lineas + 15 unit tests) que usa la API NATIVA de Ollama (/api/chat) en vez de la OpenAI-compat (/v1/chat/completions). La diferencia es el unlock real del posicionamiento 'Ollama recommended con ~99% JSON validity' decidido en DG-070: solo la API nativa soporta structured outputs constrained-by-grammar (XGrammar desde Ollama v0.5+) via el param `format`. Incluye dos helpers exportados para auto-discovery (Opcion B sobre A): isOllamaAvailable() con timeout 1s via AbortController, y listOllamaModels() que devuelve la lista de modelos pulled. 3 de 3 adapters del Modo D extraidos (AnthropicLlmClient + OpenAiCompatibleLlmClient + OllamaLlmClient). Cliente queda DORMANT - ningun command del CLI lo invoca, el wiring viene en DG-073."
+    },
+    "files_changed": "3 archivos. NEW packages/agents/src/ollama-client.ts (~170 lineas). NEW packages/agents/tests/ollama-client.test.ts (15 unit tests). packages/agents/src/index.ts (re-exporta el cliente + helpers).",
+    "design": "Patron consistente con los otros 2 adapters: helper parser puro (parseOllamaResponse) + clase implements LlmClient + tests con fakeFetch capturando URL/method/body. Diferencias funcionales especificas de Ollama: (1) endpoint /api/chat NO /v1/chat/completions (porque solo el nativo soporta XGrammar); (2) sin apiKey en options (Ollama es local sin auth); (3) body shape distinta - options.num_predict en vez de max_tokens, options.temperature en vez de temperature top-level, stream:false explicit; (4) format opt-in al constructor (no en complete()) - acepta JSON Schema object para XGrammar, 'json' literal para modo legacy, o undefined para texto libre; (5) NO usa SDK npm (fetch global de Node 20+) para evitar dependencia que no aporta + el bundle de la extension NO va a necesitar --external:ollama (a diferencia de openai en DG-073). URL normalize: strip trailing slashes antes de joinear /api/chat.",
+    "helpers_de_auto_discovery": "(1) isOllamaAvailable(baseUrl?, fetchImpl?): GET /api/tags con timeout 1s via AbortController; devuelve boolean. Usa try/catch/finally pattern para garantizar clearTimeout siempre. La UI de DG-074 va a mostrar 'Found / Not found' badge basado en esto. (2) listOllamaModels(baseUrl?, fetchImpl?): GET /api/tags + parsea models[].name; devuelve readonly string[]; devuelve [] en cualquier error (no lanza). La UI de DG-074 va a poblar el dropdown de modelos con esto + boton 'Refresh' para reintentar.",
+    "out_of_scope_explicit": "(1) Provider registry + schema .sentinel/agents.yaml + carga config + SecretStorage namespaceado + --agent-provider flag CLI + bundle externals - DG-073. (2) Zod -> JSON Schema bridge (necesario para que OllamaLlmClient reciba el format derivado del agente Triage/Context/Remediation) - DG-073. (3) UI panel que invoca isOllamaAvailable + listOllamaModels - DG-074. (4) Ground truth + benchmark contra Ollama real con XGrammar - DG-075/DG-076.",
+    "verification_real": "pnpm verify VERDE: format:check + lint + build + test:unit. 44 test files (43 previos + 1 nuevo), 325 tests pasados (310 previos + 15 nuevos del adapter + helpers). Prettier auto-fix sobre ollama-client.test.ts (column wrapping; sin cambios funcionales). Cero regresiones; cero cambios al AnthropicLlmClient, OpenAiCompatibleLlmClient, contrato LlmClient, ni los 3 agentes consumidores. Sin nueva dependency en package.json (fetch global de Node 20+).",
+    "tests": "+15 nuevos: 4 del parser (extrae content, lanza sin message, lanza con content null, lanza con content empty); 5 del cliente (POST /api/chat default con body completo, baseUrl override con trailing slash + model + maxTokens custom, format JSON Schema activa XGrammar, format 'json' legacy mode, lanza en 404); 3 de isOllamaAvailable (true en 200, false en ECONNREFUSED, false en 500); 3 de listOllamaModels (extrae nombres, [] cuando rechaza, [] cuando shape inesperado). Total cumulative: 325 verdes.",
+    "checks": "format:check / lint / build / test:unit - todos en verde",
+    "modo_d_architectural_status": "3 de 3 adapters del Modo D extraidos. (1) AnthropicLlmClient @ packages/agents/src/anthropic-client.ts (existente desde DG-024 B, refactored a SDK oficial en DG-064 A). (2) OpenAiCompatibleLlmClient @ packages/agents/src/openai-compatible-client.ts (DG-071 A). (3) OllamaLlmClient @ packages/agents/src/ollama-client.ts (este commit DG-072 B). DG-073 ahora puede componerlos via el provider registry sin gaps de implementacion.",
+    "anti_optimismo_explicito": "Este ciclo NO declara Ollama funcionando end-to-end. El cliente queda DORMANT igual que el OpenAiCompatibleLlmClient. CAVEAT CRITICO sobre XGrammar: en versiones de Ollama anteriores a v0.5 el campo `format` se IGNORA SILENCIOSAMENTE - el modelo devuelve JSON pero NO constrained. Esto es INDETECTABLE client-side - el cliente igual recibe un string con JSON que parsea correctamente. La validez sigue dependiendo del modelo + del extractor extractJsonObject (que ya tolera el caso). El benchmark DG-076 va a revelar empiricamente si XGrammar funciona en la version del usuario. CAVEAT del timeout: 1s puede dar false-negative si el sistema esta saturado - la UI de DG-074 va a tener boton 'Refresh' para reintentar manualmente. NO se corrieron integration tests reales contra Ollama (requeriria Ollama corriendo con un modelo ~7GB pulled).",
+    "commits_split": "feat en commit 52420e3 feat(agents); este registro SYNAPTIC se asienta en el commit docs siguiente."
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 70,
+  "complianceScore": 100
+}
+```
+
+---
+
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-23T18:30:00.000Z*
+*Last Updated: 2026-05-23T19:30:00.000Z*
