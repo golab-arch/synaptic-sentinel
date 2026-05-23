@@ -139,7 +139,7 @@ export function renderTomoSarif(tomo: Tomo): string {
       {
         tool: {
           driver: {
-            name: 'Synaptic Sentinel',
+            name: 'SYNAPTIC Sentinel',
             version: tomo.metadata.sentinelVersion,
             rules,
           },

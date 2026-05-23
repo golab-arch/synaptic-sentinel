@@ -263,7 +263,7 @@ export async function runScannersInstall(
     ? globalScannerCacheDir()
     : join(cwd, SCANNERS_MANIFEST.installDir);
 
-  log('Synaptic Sentinel - OSS scanner installation');
+  log('SYNAPTIC Sentinel - OSS scanner installation');
   log(`  target: ${installDir} ${options.global ? '(global cache)' : '(repo cache)'}`);
 
   const outcomes: InstallOutcome[] = [];

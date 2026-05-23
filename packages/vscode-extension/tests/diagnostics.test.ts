@@ -83,7 +83,7 @@ describe('findingToDiagnosticInput', () => {
 describe('findingHoverMarkdown', () => {
   it('incluye titulo, severidad, categoria y regla del hallazgo', () => {
     const md = findingHoverMarkdown(makeFinding());
-    expect(md).toContain('Synaptic Sentinel');
+    expect(md).toContain('SYNAPTIC Sentinel');
     expect(md).toContain('rule-x');
     expect(md).toContain('high');
     expect(md).toContain('SAST');

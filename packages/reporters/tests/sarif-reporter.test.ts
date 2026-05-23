@@ -92,7 +92,7 @@ describe('renderTomoSarif', () => {
     expect(log.version).toBe('2.1.0');
     expect(log.$schema).toContain('sarif-schema-2.1.0');
     expect(log.runs).toHaveLength(1);
-    expect(log.runs[0]?.tool.driver.name).toBe('Synaptic Sentinel');
+    expect(log.runs[0]?.tool.driver.name).toBe('SYNAPTIC Sentinel');
     expect(log.runs[0]?.tool.driver.version).toBe('0.0.0');
   });
 

@@ -1,5 +1,5 @@
 /**
- * Tipos compartidos de Synaptic Sentinel.
+ * Tipos compartidos de SYNAPTIC Sentinel.
  *
  * Cada tipo de datos se define como un schema `zod` (fuente unica de verdad)
  * del que se infiere el tipo TypeScript, de modo que la validacion en runtime

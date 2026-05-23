@@ -143,7 +143,7 @@ export function renderTomoWebviewHtml(
 <style>${STYLE}</style>
 </head>
 <body>
-<h2>Synaptic Sentinel</h2>
+<h2>SYNAPTIC Sentinel</h2>
 ${body}
 <script nonce="${options.nonce}">${script}</script>
 </body>

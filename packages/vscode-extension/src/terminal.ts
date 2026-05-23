@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { toCrlf } from './terminal-format.js';
 
 /**
- * Terminal de solo-lectura "Synaptic Sentinel".
+ * Terminal de solo-lectura "SYNAPTIC Sentinel".
  *
  * Envuelve un `Pseudoterminal` nativo de VSCode al que se transmite la salida
  * ANSI de la CLI (spawneada con `FORCE_COLOR=1`): banner, progreso en vivo y
@@ -55,7 +55,7 @@ export class SentinelTerminal {
       },
     };
     this.#emitter = emitter;
-    this.#terminal = vscode.window.createTerminal({ name: 'Synaptic Sentinel', pty });
+    this.#terminal = vscode.window.createTerminal({ name: 'SYNAPTIC Sentinel', pty });
   }
 
   /** Reinicia el estado interno (el terminal ya no existe). */

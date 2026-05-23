@@ -1,8 +1,8 @@
-# Synaptic Sentinel
+# SYNAPTIC Sentinel
 
 **Agentic security auditing for the era of AI-generated code. Five scouts scan your repo; a Brain Layer (BYOK) decides what really matters and how to fix it — all in the IDE.**
 
-Synaptic Sentinel is the security companion of the SYNAPTIC family (sibling of [SYNAPTIC Expert](https://marketplace.visualstudio.com/items?itemName=RealGoLab.synaptic-expert)). Where Expert helps you _write_ AI-assisted code with traceability, Sentinel audits _what gets written_ — your own code, your AI's code, your dependencies, your config — and explains why it matters.
+SYNAPTIC Sentinel is the security companion of the SYNAPTIC family (sibling of [SYNAPTIC Expert](https://marketplace.visualstudio.com/items?itemName=RealGoLab.synaptic-expert)). Where Expert helps you _write_ AI-assisted code with traceability, Sentinel audits _what gets written_ — your own code, your AI's code, your dependencies, your config — and explains why it matters.
 
 Built for three kinds of users:
 
@@ -41,8 +41,8 @@ Bring Your Own Key (Anthropic). The key is stored encrypted in your OS secret st
 ### Turnkey from install to first scan
 
 1. Install the extension from the marketplace.
-2. **Command Palette → "Synaptic Sentinel: Install Scanners"** — downloads and verifies the five scout binaries to a per-user cache (`~/.synaptic-sentinel/scanners`). Once.
-3. **Command Palette → "Synaptic Sentinel: Scan Workspace"** — findings appear as inline diagnostics, in the _Problems_ panel, and in the **living tome** side view.
+2. **Command Palette → "SYNAPTIC Sentinel: Install Scanners"** — downloads and verifies the five scout binaries to a per-user cache (`~/.synaptic-sentinel/scanners`). Once.
+3. **Command Palette → "SYNAPTIC Sentinel: Scan Workspace"** — findings appear as inline diagnostics, in the _Problems_ panel, and in the **living tome** side view.
 4. _(Optional, BYOK)_ **Set Anthropic API Key** → **Triage Findings (Brain Layer)** to enrich findings with classification + context + remediation.
 
 ---
@@ -51,10 +51,10 @@ Bring Your Own Key (Anthropic). The key is stored encrypted in your OS secret st
 
 | Command                                            | What                                                                 |
 | -------------------------------------------------- | -------------------------------------------------------------------- |
-| `Synaptic Sentinel: Scan Workspace`                | Runs the five scouts and paints findings as diagnostics.             |
-| `Synaptic Sentinel: Triage Findings (Brain Layer)` | Runs the three Brain Layer agents over the last scan. Requires BYOK. |
-| `Synaptic Sentinel: Set Anthropic API Key (BYOK)`  | Stores the key encrypted in `SecretStorage`.                         |
-| `Synaptic Sentinel: Install Scanners`              | One-time download of the scout binaries to the per-user cache.       |
+| `SYNAPTIC Sentinel: Scan Workspace`                | Runs the five scouts and paints findings as diagnostics.             |
+| `SYNAPTIC Sentinel: Triage Findings (Brain Layer)` | Runs the three Brain Layer agents over the last scan. Requires BYOK. |
+| `SYNAPTIC Sentinel: Set Anthropic API Key (BYOK)`  | Stores the key encrypted in `SecretStorage`.                         |
+| `SYNAPTIC Sentinel: Install Scanners`              | One-time download of the scout binaries to the per-user cache.       |
 
 Plus Code Actions on each finding: **mark as false positive** (suppressed in future scans), and **copy suggested remediation**.
 

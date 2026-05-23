@@ -1,12 +1,12 @@
 # Changelog
 
-All notable changes to the Synaptic Sentinel extension will be documented in this file.
+All notable changes to the SYNAPTIC Sentinel extension will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [0.1.0] - 2026-05-22
 
-First marketplace-ready release. Synaptic Sentinel is the security companion of the SYNAPTIC family (sibling of SYNAPTIC Expert), focused on shipping AI-assisted code with traceable audits: deterministic scanners catch the syntactic problems, a Brain Layer (BYOK Anthropic) decides what really matters and how to fix it, and everything happens in the IDE — and over CI, via SARIF.
+First marketplace-ready release. SYNAPTIC Sentinel is the security companion of the SYNAPTIC family (sibling of SYNAPTIC Expert), focused on shipping AI-assisted code with traceable audits: deterministic scanners catch the syntactic problems, a Brain Layer (BYOK Anthropic) decides what really matters and how to fix it, and everything happens in the IDE — and over CI, via SARIF.
 
 ### Added
 

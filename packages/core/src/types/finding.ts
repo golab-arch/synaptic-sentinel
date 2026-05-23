@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { SeveritySchema } from './severity.js';
 
-/** Categorias de hallazgo cubiertas por Synaptic Sentinel (v0.4 §2.5, §4.2). */
+/** Categorias de hallazgo cubiertas por SYNAPTIC Sentinel (v0.4 §2.5, §4.2). */
 export const FINDING_CATEGORIES = [
   'SAST',
   'Secrets',

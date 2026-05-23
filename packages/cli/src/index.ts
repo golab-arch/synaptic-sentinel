@@ -11,7 +11,7 @@ import { runMarkFpCommand } from './commands/mark-fp.js';
 import { runTriageCommand } from './commands/triage.js';
 import { runScannersInstallCommand } from './commands/scanners-install.js';
 
-const USAGE = `Synaptic Sentinel — CLI
+const USAGE = `SYNAPTIC Sentinel — CLI
 
 Usage:
   synaptic-sentinel scan [--path <dir>] [--opengrep-bin <path>]

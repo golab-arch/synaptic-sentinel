@@ -269,7 +269,7 @@ export async function runScanCommand(options: ScanCommandOptions): Promise<numbe
       'Warning: no external scanner found (OpenGrep / Gitleaks / Trivy / ' +
         'Checkov). Only Vibe-Detect will run. Install the scanners with ' +
         '"synaptic-sentinel scanners install --global" (or the VS Code command ' +
-        '"Synaptic Sentinel: Install Scanners"), or pass the paths with ' +
+        '"SYNAPTIC Sentinel: Install Scanners"), or pass the paths with ' +
         '--opengrep-bin / --gitleaks-bin / --trivy-bin / --checkov-bin.',
     );
   }

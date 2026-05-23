@@ -1,11 +1,11 @@
 {
   "name": "synaptic-sentinel",
-  "displayName": "Synaptic Sentinel",
+  "displayName": "SYNAPTIC Sentinel",
   "version": "0.1.0",
   "description": "Agentic security auditing for the era of AI-generated code. Five scouts (OpenGrep, Gitleaks, Trivy, Checkov, Vibe-Detect) + a Brain Layer that triages, explains and remediates — all in the IDE, BYOK.",
   "license": "Apache-2.0",
   "private": true,
-  "publisher": "RealGoLab",
+  "publisher": "GoLab",
   "icon": "media/icon.png",
   "galleryBanner": {
     "color": "#1a1a2e",
@@ -51,35 +51,35 @@
       {
         "command": "synaptic-sentinel.scanWorkspace",
         "title": "Scan Workspace",
-        "category": "Synaptic Sentinel"
+        "category": "SYNAPTIC Sentinel"
       },
       {
         "command": "synaptic-sentinel.triageWorkspace",
         "title": "Triage Findings (Brain Layer)",
-        "category": "Synaptic Sentinel"
+        "category": "SYNAPTIC Sentinel"
       },
       {
         "command": "synaptic-sentinel.setAnthropicApiKey",
         "title": "Set Anthropic API Key (BYOK)",
-        "category": "Synaptic Sentinel"
+        "category": "SYNAPTIC Sentinel"
       },
       {
         "command": "synaptic-sentinel.installScanners",
         "title": "Install Scanners",
-        "category": "Synaptic Sentinel"
+        "category": "SYNAPTIC Sentinel"
       }
     ],
     "views": {
       "explorer": [
         {
           "id": "synaptic-sentinel.tomo",
-          "name": "Synaptic Sentinel",
+          "name": "SYNAPTIC Sentinel",
           "type": "webview"
         }
       ]
     },
     "configuration": {
-      "title": "Synaptic Sentinel",
+      "title": "SYNAPTIC Sentinel",
       "properties": {
         "synaptic-sentinel.cliPath": {
           "type": "string",

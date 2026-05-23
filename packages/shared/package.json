@@ -1,7 +1,7 @@
 {
   "name": "@synaptic-sentinel/shared",
   "version": "0.0.0",
-  "description": "Utilidades comunes de Synaptic Sentinel (paths, logging, git).",
+  "description": "Utilidades comunes de SYNAPTIC Sentinel (paths, logging, git).",
   "license": "Apache-2.0",
   "private": true,
   "type": "module",

@@ -1,7 +1,7 @@
 {
   "name": "@synaptic-sentinel/cli",
   "version": "0.0.0",
-  "description": "CLI de Synaptic Sentinel (synaptic-sentinel scan / publish / init).",
+  "description": "CLI de SYNAPTIC Sentinel (synaptic-sentinel scan / triage / mark-fp / scanners install).",
   "license": "Apache-2.0",
   "private": true,
   "type": "module",

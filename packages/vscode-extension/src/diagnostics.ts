@@ -73,7 +73,7 @@ export function findingToDiagnosticInput(finding: ExtensionFinding): DiagnosticI
  */
 export function findingHoverMarkdown(finding: ExtensionFinding): string {
   const lines: string[] = [
-    `**Synaptic Sentinel** — ${finding.title}`,
+    `**SYNAPTIC Sentinel** — ${finding.title}`,
     '',
     `Severity: \`${finding.severity}\` · Category: \`${finding.category}\` · ` +
       `Rule: \`${finding.ruleId}\``,
@@ -115,7 +115,7 @@ export function remediationClipboardText(finding: ExtensionFinding): string | un
   if (remediation === undefined) return undefined;
   const loc = `${finding.location.path}:${String(finding.location.startLine)}`;
   const parts = [
-    'Remediation suggested by Synaptic Sentinel',
+    'Remediation suggested by SYNAPTIC Sentinel',
     `Finding: ${finding.title} (${loc})`,
     '',
     remediation.summary,

@@ -1,4 +1,4 @@
-# Synaptic Sentinel - ruleset baseline de OpenGrep.
+# SYNAPTIC Sentinel - ruleset baseline de OpenGrep.
 #
 # Catalogo curado de reglas SAST para los lenguajes LOCKED del MVP
 # (JS/TS + Python). Combina reglas basadas en patrones sintacticos
