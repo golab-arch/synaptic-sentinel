@@ -1829,5 +1829,35 @@ Each entry follows this structure:
 
 ---
 
+### Entry #68 - DG-064 (A): AnthropicLlmClient a @anthropic-ai/sdk (CIERRA FI-009); cierra Cycle 57
+```json
+{
+  "timestamp": "2026-05-23T03:00:00.000Z",
+  "cycle": 57,
+  "phase": 8,
+  "action": "FEATURE_IMPLEMENTED",
+  "details": {
+    "DG-064": {
+      "title": "Proximo paso del roadmap (FI-009 - migrar AnthropicLlmClient a @anthropic-ai/sdk)",
+      "selected": "Option A",
+      "effect": "AnthropicLlmClient migrado del cliente fetch propio al SDK oficial @anthropic-ai/sdk@^0.40 detras del contrato LlmClient. Gana: retries automaticos en 429/5xx (configurables via maxRetries), manejo nativo de rate-limiting, soporte de streaming cuando se necesite. FI-009 RESUELTO - el proyecto queda con CERO deuda OPEN registrada en futureImprovements."
+    },
+    "files": "packages/agents/package.json (+@anthropic-ai/sdk@^0.40). agents/src/anthropic-client.ts (reescrito: import default 'Anthropic', new Anthropic({apiKey, baseURL?, fetch?, maxRetries?}) en el constructor, client.messages.create({model, max_tokens, system, messages}) en complete(); drop de buildAnthropicRequest y AnthropicHttpRequest; parseAnthropicResponse intacto - la forma de Message.content del SDK es identica al JSON crudo). agents/tests/anthropic-client.test.ts (drop de los 2 tests de buildAnthropicRequest; 4 tests de parseAnthropicResponse intactos; 2 tests de complete adaptados al SDK - fakeFetch pasado al constructor + body verificado del init.body capturado). vscode-extension/package.json (+@anthropic-ai/sdk dep, bundle script +--external:@anthropic-ai/sdk). vscode-extension/scripts/copy-cli-assets.mjs (refactor: ahora resuelve la clausura transitiva con findPackageRoot - walk-up desde el main entry para sortear packages cuyo package.json esta bloqueado por el campo exports, caso del SDK).",
+    "design": "Migracion bounded gracias al contrato LlmClient (DG-024 B desde Cycle 17) que aislo el cliente concreto. Cero cambios para los 3 agentes (Triage / Context / Remediation): siguen viendo solo el contrato. Two bundle gotchas absorbidos en este ciclo: (1) inlining inicial del SDK fallo en runtime - esbuild bundleo node-fetch (transitive del SDK) y su CJS interop con la cli.mjs ESM rompio (__require2 a un node-fetch index.js); fix: --external:@anthropic-ai/sdk como hicimos con node-sqlite3-wasm. (2) `require.resolve('@anthropic-ai/sdk/package.json')` falla por el campo exports del SDK; fix: helper findPackageRoot que resuelve el main entry y camina hacia arriba buscando package.json cuyo name coincida.",
+    "verification_real": "pnpm verify verde (test:unit 302; -2 por buildAnthropicRequest drop). pnpm test:integration verde (11 passed; el cli-runner.integration vuelve a verde tras el fix del bundle). E2E REAL: CLI bundleada (node dist/cli.mjs scan) corre fin a fin y CLI EXTRAIDA del .vsix tambien (autocontenida; las 14 deps SDK + transitives estan en dist/node_modules/). El comando `triage` de la CLI -unico consumidor real del SDK- mantiene su contrato externo.",
+    "tests": "-2 unit (buildAnthropicRequest), +0 net en integration - total 313 verdes + 3 gated (302 unit / 11+3 integration)",
+    "checks": "format:check / lint / build / test:unit / test:integration / vsce package - todos en verde; e2e doble (dist/ + .vsix extraido) exitoso",
+    "commit": "feature en el commit 1f454a7 feat(agents,vscode-extension); el registro SYNAPTIC se asienta en el commit docs siguiente",
+    "fi_009_close": "FI-009 RESUELTO. Era la unica deuda OPEN remanente tras DG-063. La lista futureImprovements queda VACIA por primera vez en la historia del proyecto. Hito: producto sin deuda tecnica registrada.",
+    "vsix_growth": "El .vsix paso de 621 KB a 1.25 MB por la clausura completa del SDK (14 paquetes: @anthropic-ai/sdk + abort-controller + agentkeepalive + event-target-shim + form-data-encoder + formdata-node + humanize-ms + ms + node-domexception + node-fetch + tr46 + web-streams-polyfill + webidl-conversions + whatwg-url). Costo aceptable por el valor (retries, rate-limiting nativos)."
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 62,
+  "complianceScore": 100
+}
+```
+
+---
+
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-23T02:30:00.000Z*
+*Last Updated: 2026-05-23T03:00:00.000Z*
