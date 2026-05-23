@@ -169,8 +169,16 @@ export interface RunCliTriageOptions {
   readonly cliEntry: string;
   /** Carpeta del proyecto a triar. */
   readonly workspacePath: string;
-  /** API key de Anthropic (BYOK). Se pasa por entorno, nunca por argumentos. */
-  readonly apiKey: string;
+  /**
+   * Env vars con las API keys de cada provider (BYOK). Se pasan al child
+   * process por entorno, nunca por argumentos. Multi-provider (Phase 11
+   * DG-073 B): cada provider con apiKey configurada va como
+   * `SENTINEL_<PROVIDER>_API_KEY`; la legacy `ANTHROPIC_API_KEY` se
+   * duplica si Anthropic esta configurada (retro-compat con la CLI
+   * v0.2.0). El helper `collectAllApiKeysAsEnv` en `secret-storage.ts`
+   * arma este map desde `vscode.SecretStorage`.
+   */
+  readonly apiKeyEnv: Readonly<Record<string, string>>;
   /** Ejecutable de Node a usar. Por defecto el del extension host (`process.execPath`). */
   readonly nodePath?: string;
   /** Senal de cancelacion. */
@@ -184,9 +192,12 @@ export interface RunCliTriageOptions {
 
 /**
  * Corre el triage del Brain Layer llamando a la CLI (`synaptic-sentinel
- * triage`). La API key se entrega via `ANTHROPIC_API_KEY` en el entorno del
- * child process — nunca como argumento (no debe aparecer en la lista de
- * procesos). Lanza si la CLI no termina con codigo 0.
+ * triage`). Las API keys de cada provider se entregan via env vars
+ * `SENTINEL_<PROVIDER>_API_KEY` (multi-provider, DG-073 B); la
+ * `ANTHROPIC_API_KEY` legacy queda duplicada cuando Anthropic esta
+ * configurada (retro-compat). Las keys nunca van como argumentos (no
+ * deben aparecer en la lista de procesos). Lanza si la CLI no termina
+ * con codigo 0.
  */
 export async function runCliTriage(options: RunCliTriageOptions): Promise<void> {
   const result = await spawnCli({
@@ -194,7 +205,7 @@ export async function runCliTriage(options: RunCliTriageOptions): Promise<void> 
     cwd: options.workspacePath,
     args: ['triage', '--path', options.workspacePath],
     env: {
-      ANTHROPIC_API_KEY: options.apiKey,
+      ...options.apiKeyEnv,
       ...(options.onOutput !== undefined ? { FORCE_COLOR: '1' } : {}),
     },
     ...(options.onOutput !== undefined ? { onOutput: options.onOutput } : {}),

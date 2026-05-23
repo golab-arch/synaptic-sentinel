@@ -27,6 +27,12 @@ import {
   type DiagnosticLevel,
 } from './diagnostics.js';
 import type { ExtensionFinding } from './tomo.js';
+import {
+  collectAllApiKeysAsEnv,
+  deleteProviderApiKey,
+  getProviderApiKey,
+  setProviderApiKey,
+} from './secret-storage.js';
 import { SentinelTerminal } from './terminal.js';
 import { SentinelTomoViewProvider } from './tomo-view.js';
 
@@ -44,8 +50,6 @@ const COMMAND_SET_API_KEY = 'synaptic-sentinel.setAnthropicApiKey';
 const COMMAND_INSTALL_SCANNERS = 'synaptic-sentinel.installScanners';
 /** `source` que aparece en cada diagnostico. */
 const DIAGNOSTIC_SOURCE = 'SYNAPTIC Sentinel';
-/** Clave del almacen de secretos de VSCode donde se guarda la API key. */
-const SECRET_API_KEY = 'synaptic-sentinel.anthropicApiKey';
 
 /** Estado del ultimo scan; alimenta los Code Actions de "marcar falso positivo". */
 interface ScanState {
@@ -339,8 +343,14 @@ async function markFalsePositive(
 
 /**
  * Maneja el comando `Set Anthropic API Key`: guarda (o borra) la API key
- * BYOK en el almacen de secretos de VSCode — cifrado por el sistema
- * operativo, nunca en texto plano ni en la configuracion.
+ * de Anthropic (BYOK) en el almacen de secretos de VSCode — cifrado por
+ * el sistema operativo, nunca en texto plano. La key se almacena bajo el
+ * slot namespaceado `sentinel.anthropic.apiKey` (Phase 11 DG-073 B); la
+ * legacy `synaptic-sentinel.anthropicApiKey` se migra automaticamente la
+ * primera vez que cualquier flow del Brain Layer lee la key. El comando
+ * sigue exponiendose con su titulo historico para no romper la UX de
+ * usuarios v0.2.0; el panel multi-provider que permite configurar otros
+ * providers (OpenAI, Groq, DeepSeek, etc.) llega en DG-074.
  */
 async function setApiKey(secrets: vscode.SecretStorage): Promise<void> {
   const key = await vscode.window.showInputBox({
@@ -352,11 +362,11 @@ async function setApiKey(secrets: vscode.SecretStorage): Promise<void> {
   if (key === undefined) return; // el usuario cancelo
   const trimmed = key.trim();
   if (trimmed === '') {
-    await secrets.delete(SECRET_API_KEY);
+    await deleteProviderApiKey(secrets, 'anthropic');
     void vscode.window.showInformationMessage('SYNAPTIC Sentinel: API key deleted.');
     return;
   }
-  await secrets.store(SECRET_API_KEY, trimmed);
+  await setProviderApiKey(secrets, 'anthropic', trimmed);
   void vscode.window.showInformationMessage('SYNAPTIC Sentinel: API key saved.');
 }
 
@@ -379,14 +389,22 @@ async function triageWorkspace(
     );
     return;
   }
-  const apiKey = await secrets.get(SECRET_API_KEY);
-  if (apiKey === undefined || apiKey === '') {
-    const pick = await vscode.window.showWarningMessage(
-      'SYNAPTIC Sentinel: the Anthropic API key (BYOK) is missing.',
-      'Configure API key',
-    );
-    if (pick === 'Configure API key') await setApiKey(secrets);
-    return;
+  // Phase 11 DG-073 B: recolecta TODAS las apiKeys configuradas (no solo
+  // Anthropic). Las pasa al child process como env vars SENTINEL_<PROVIDER>
+  // _API_KEY + la legacy ANTHROPIC_API_KEY duplicada para retro-compat.
+  // La CLI las resuelve via resolveApiKeyFromEnv segun el provider de
+  // cada agente (.sentinel/agents.yaml o ANTHROPIC fallback).
+  const apiKeyEnv = await collectAllApiKeysAsEnv(secrets);
+  if (Object.keys(apiKeyEnv).length === 0) {
+    const anthropicKey = await getProviderApiKey(secrets, 'anthropic');
+    if (anthropicKey === undefined) {
+      const pick = await vscode.window.showWarningMessage(
+        'SYNAPTIC Sentinel: no LLM provider API key is configured.',
+        'Configure Anthropic API key',
+      );
+      if (pick === 'Configure Anthropic API key') await setApiKey(secrets);
+      return;
+    }
   }
 
   const workspacePath = folder.uri.fsPath;
@@ -411,7 +429,7 @@ async function triageWorkspace(
         await runCliTriage({
           cliEntry,
           workspacePath,
-          apiKey,
+          apiKeyEnv,
           signal: controller.signal,
           onOutput: (chunk) => {
             terminal.write(chunk);

@@ -9,6 +9,7 @@ import { SEVERITIES, type Severity } from '@synaptic-sentinel/core';
 import { runScanCommand } from './commands/scan.js';
 import { runMarkFpCommand } from './commands/mark-fp.js';
 import { runTriageCommand } from './commands/triage.js';
+import { parseAgentProviderFlags } from './commands/agent-provider-flag.js';
 import { runScannersInstallCommand } from './commands/scanners-install.js';
 
 const USAGE = `SYNAPTIC Sentinel — CLI
@@ -21,6 +22,7 @@ Usage:
                          [--export-sarif <file>] [--fail-on <severity>]
   synaptic-sentinel mark-fp --fingerprint <fp> [--path <dir>] [--reason <text>]
   synaptic-sentinel triage [--path <dir>] [--limit <n>]
+                          [--agent-provider <agent>=<provider>/<model>]...
   synaptic-sentinel scanners install [--global]
 
 Commands:
@@ -47,11 +49,24 @@ Options:
   --fingerprint <fp>     Fingerprint of the finding to mark (mark-fp command)
   --reason <text>        Reason for the dismissal (mark-fp command)
   --limit <n>            Cap of findings to triage (triage command; default 25)
+  --agent-provider <a>=<p>/<m>
+                         Override the LLM provider/model used by an agent in
+                         the triage command (repeatable). Example:
+                           --agent-provider triage=deepseek/deepseek-v3.2
+                           --agent-provider remediation=ollama/mistral-nemo:12b
+                         CLI > .sentinel/agents.yaml > ANTHROPIC_API_KEY fallback.
   --global               Install scanners to the per-user global cache
                          (scanners install command)
   -h, --help             Show this help
 
-The triage command requires the ANTHROPIC_API_KEY environment variable (BYOK).
+The triage command resolves each agent's LLM via (in order of precedence):
+  1. --agent-provider CLI flag (per agent)
+  2. .sentinel/agents.yaml in the project root
+  3. ANTHROPIC_API_KEY env var fallback (retro-compat with v0.2.0 behavior)
+
+API keys are read from SENTINEL_<PROVIDER>_API_KEY env vars (or
+ANTHROPIC_API_KEY for the legacy Anthropic path). Keys never appear in
+command-line arguments.
 `;
 
 async function main(): Promise<void> {
@@ -71,6 +86,7 @@ async function main(): Promise<void> {
       fingerprint: { type: 'string' },
       reason: { type: 'string' },
       limit: { type: 'string' },
+      'agent-provider': { type: 'string', multiple: true },
       global: { type: 'boolean' },
       help: { type: 'boolean', short: 'h' },
     },
@@ -134,9 +150,21 @@ async function main(): Promise<void> {
         return;
       }
     }
+    // Parseo del flag repeatable --agent-provider <agent>=<provider>/<model>.
+    let agentProviderOverrides: ReturnType<typeof parseAgentProviderFlags> | undefined;
+    if (values['agent-provider'] !== undefined && values['agent-provider'].length > 0) {
+      try {
+        agentProviderOverrides = parseAgentProviderFlags(values['agent-provider']);
+      } catch (err) {
+        console.error(err instanceof Error ? err.message : String(err));
+        process.exitCode = 1;
+        return;
+      }
+    }
     process.exitCode = await runTriageCommand({
       path: values.path ?? process.cwd(),
       ...(limit !== undefined ? { limit } : {}),
+      ...(agentProviderOverrides !== undefined ? { agentProviderOverrides } : {}),
       ...(values['no-color'] === true ? { noColor: true } : {}),
     });
     return;

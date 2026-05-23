@@ -4,7 +4,7 @@ import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 
 /*
- * Post-bundle asset copy (FI-008).
+ * Post-bundle asset copy (FI-008 + Phase 11 DG-073 B).
  *
  * The bundled CLI (`dist/cli.mjs`) resolves its runtime assets relative to its
  * own location via `new URL(..., import.meta.url)`. esbuild does NOT process
@@ -12,14 +12,21 @@ import { fileURLToPath } from 'node:url';
  * to `cli.mjs`; `colony-db.ts` and `rules.ts` fall back to that sibling path
  * when the canonical `src/` path does not exist (i.e. when bundled).
  *
- * External CJS deps (FI-001 + FI-009): `node-sqlite3-wasm` (WASM SQLite driver,
- * DG-062 B) and `@anthropic-ai/sdk` (Anthropic SDK, DG-064 A) are marked as
- * `--external` en el bundle esbuild porque la interop CJS de esbuild con sus
- * deps transitivas (node-fetch, etc.) falla en runtime. Recolectamos cada
- * paquete + toda su clausura transitiva de deps de runtime y los volcamos
- * en un layout PLANO en `dist/node_modules/` — cuando la CLI bundleada hace
- * `require(<pkg>)`, Node camina hacia arriba desde `dist/cli.mjs` y los
- * encuentra ahi.
+ * External CJS deps (FI-001 + FI-009 + DG-073 B): `node-sqlite3-wasm` (WASM
+ * SQLite driver, DG-062 B), `@anthropic-ai/sdk` (Anthropic SDK, DG-064 A) and
+ * `openai` (OpenAI-compatible adapter, DG-071 A wired in DG-073 B) are marked
+ * as `--external` en el bundle esbuild porque la interop CJS de esbuild con
+ * sus deps transitivas (node-fetch, form-data, etc.) falla en runtime.
+ * Recolectamos cada paquete + toda su clausura transitiva de deps de runtime
+ * y los volcamos en un layout PLANO en `dist/node_modules/` — cuando la CLI
+ * bundleada hace `require(<pkg>)`, Node camina hacia arriba desde
+ * `dist/cli.mjs` y los encuentra ahi.
+ *
+ * `node-sqlite3-wasm` y `js-yaml` quedan inlineados (no en externalDeps):
+ * el primero ya esta external por defecto (lo declaramos arriba); el
+ * segundo es pure JS chico (~50KB) y esbuild lo inlinea sin problemas.
+ * `ollama` NO esta en externalDeps porque el OllamaLlmClient usa fetch
+ * global de Node — no requiere SDK.
  */
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const packageDir = dirname(scriptDir);
@@ -46,7 +53,7 @@ const distNodeModules = join(distDir, 'node_modules');
 rmSync(distNodeModules, { recursive: true, force: true });
 mkdirSync(distNodeModules, { recursive: true });
 
-const externalDeps = ['node-sqlite3-wasm', '@anthropic-ai/sdk'];
+const externalDeps = ['node-sqlite3-wasm', '@anthropic-ai/sdk', 'openai'];
 const visited = new Set();
 
 /**
