@@ -6,11 +6,11 @@
 
 ## Current Cycle
 
-- **Cycle:** 56 — pendiente DG-063 (próximo paso del roadmap)
-- **Phase:** 8 — Distribución **COMPLETA** (FI-008 + FI-001 cerrados)
-- **Status:** Cycle 55 CERRADO; awaiting DG-063 (el usuario también va a re-probar el `.vsix` nuevo en VSCode)
+- **Cycle:** 57 — pendiente DG-064 (próximo paso del roadmap)
+- **Phase:** 8 — Distribución **COMPLETA** (FI-008 + FI-001 + FI-003 cerrados)
+- **Status:** Cycle 56 CERRADO; awaiting DG-064
 - **Compliance:** 100%
-- **Synaptic Strength:** 60
+- **Synaptic Strength:** 61
 
 ## Cycles cerrados
 
@@ -24,9 +24,10 @@
 - **Cycle 46-47** — Phase 8 abierta: cache de scanners global por usuario (FI-004 cerrado) ✅
 - **Cycle 48-50** — FI-008: Node del extension host (DG-055) · manifest vsce (DG-056) · CLI bundleada (DG-057) ✅
 - **Cycle 51-52** — FI-008 cerrado: `.vsix` producido (DG-058) + sub-comando turnkey "Install Scanners" (DG-059) → **Phase 8 COMPLETA** ✅
-- **Cycle 53** — FI-001 migración inicial a `better-sqlite3` NAPI (DG-060 B) ✅ (corregida en Cycle 55)
+- **Cycle 53** — FI-001 migración inicial a `better-sqlite3` NAPI (DG-060 B) — corregida en Cycle 55 ✅
 - **Cycle 54** — FI-003 etapa 1 (JS/TS): 3 reglas `mode: taint` (DG-061 B) ✅
-- **Cycle 55** — Pivot a `node-sqlite3-wasm` (DG-062 B): la prueba del usuario reveló `NODE_MODULE_VERSION` mismatch de `better-sqlite3` en Electron + FP de la regla SQL taint sobre `child_process.exec`; ambos bugs cerrados; `.vsix` 3.65 MB → **620 KB** ✅
+- **Cycle 55** — Pivot a `node-sqlite3-wasm` + fix FP SQL (DG-062 B): cierra FI-001 de raíz tras la prueba del usuario ✅
+- **Cycle 56** — FI-003 etapa 2 (Python): 3 reglas `mode: taint` (DG-063 B) → **FI-003 cerrado entero** ✅
 
 ## Tomo 001 — CERRADO
 
@@ -35,28 +36,27 @@
 
 ## Estado del repo
 
-- 88 commits · `origin` → `github.com/golab-arch/synaptic-sentinel` (**privado**, en sync) · push por ciclo activo
+- 90 commits · `origin` → `github.com/golab-arch/synaptic-sentinel` (**privado**, en sync) · push por ciclo activo
 - **Producto íntegramente en inglés** (FI-011 cerrado) · **cache de scanners global operativa** (FI-004 cerrado)
-- **5 scouts**: OpenGrep (**14 reglas SAST** — 11 pattern-based + 3 taint, FP SQL fixed) + Gitleaks + Trivy + Checkov + Vibe-Detect + `colony.db` (v4, **node-sqlite3-wasm**) + `Coordinator` + `reporters`
+- **5 scouts**: OpenGrep (**17 reglas SAST** — 11 pattern-based + 6 taint, JS/TS + Python) + Gitleaks + Trivy + Checkov + Vibe-Detect + `colony.db` (v4, **node-sqlite3-wasm**) + `Coordinator` + `reporters`
 - CLI: `scan` (export **JSON / HTML / SARIF**, **`--fail-on`**) · `triage` · `mark-fp` · `scanners install [--global]`
-- Extensión VSCode: comandos/hover/Code Actions/status bar/pseudoterminal/webview + comando "Install Scanners" turnkey; **`.vsix` 620 KB** (`synaptic-sentinel-0.0.0.vsix`, sin binario nativo, id `golab.synaptic-sentinel`)
-- **Brain Layer (Pro) COMPLETO** · **UX verbose COMPLETA** · **memoria del enjambre COMPLETA** · **CI-native COMPLETA** · **Distribución COMPLETA**
-- `verify` (format:check / lint / build / **test:unit**) verde · 314 tests + 3 gated (304 unit / 10+3 integration)
+- Extensión VSCode: comandos/hover/Code Actions/status bar/pseudoterminal/webview + comando "Install Scanners" turnkey; **`.vsix` 621 KB** (sin binario nativo, id `golab.synaptic-sentinel`)
+- **Brain Layer (Pro) COMPLETO** · **UX verbose COMPLETA** · **memoria del enjambre COMPLETA** · **CI-native COMPLETA** · **Distribución COMPLETA** · **Detección con taint COMPLETA**
+- `verify` (format:check / lint / build / **test:unit**) verde · 315 tests + 3 gated (304 unit / 11+3 integration)
 
 ## Notas / deuda
 
-- **PETICIÓN DE RE-PRUEBA AL USUARIO**: cargar el `.vsix` nuevo (620 KB, sin binario nativo) en VSCode y confirmar que el `NODE_MODULE_VERSION` error desapareció. Eso cierra definitivamente el caveat de FI-001 que arrastrábamos desde DG-060.
-- **FI-003 etapa 2 (Python) pendiente** — replicar el patrón taint a `subprocess.*`, `cursor.execute` concatenado, path traversal. Mismo patrón probado, scope bounded, low risk.
-- FI abiertos: FI-003 etapa 2 (Python), FI-009 (cliente LLM).
-- **Lección honesta del ciclo 55**: la prueba del usuario reveló dos bugs que mi entorno no hubiera detectado (ABI mismatch y FP SQL). El protocolo STRICT "no caer en optimismo ilusorio" se materializó: DG-060 reclamé "NAPI cross-Electron"; DG-062 me retracté con WASM.
+- **FI-003 cerrado entero** — taint analysis cubierto en ambos lenguajes del MVP (JS/TS + Python). El producto detecta inyecciones por flujo `source → sink`, no solo por patrón sintáctico, con sanitizers conocidos.
+- **Única deuda OPEN remanente: FI-009** (cliente LLM). `AnthropicLlmClient` es un cliente mínimo vía `fetch`; migrar a `@anthropic-ai/sdk` agregaría retries automáticos, streaming, rate-limiting nativo.
+- FI abiertos: **solo FI-009** (cliente LLM).
 - **Instrucciones permanentes**: cada DG incluye mi recomendación explícita (DG-045); commit + push por ciclo (DG-055).
 
 ## Decision Gate abierto
 
-- DG-063 — próximo paso del roadmap (a presentar)
+- DG-064 — próximo paso del roadmap (a presentar)
 
 ## Last Entry
 
-Entry #66 — FEATURE_IMPLEMENTED (DG-062 B) — 2026-05-22 — SUCCESS · FI-001 *re*-cerrado + FP SQL fixed
+Entry #67 — FEATURE_IMPLEMENTED (DG-063 B) — 2026-05-22 — SUCCESS · CIERRA FI-003 entero
 
 ---

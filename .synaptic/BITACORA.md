@@ -1800,5 +1800,34 @@ Each entry follows this structure:
 
 ---
 
+### Entry #67 - DG-063 (B): taint analysis Python (3 reglas, CIERRA FI-003); cierra Cycle 56
+```json
+{
+  "timestamp": "2026-05-23T02:30:00.000Z",
+  "cycle": 56,
+  "phase": 8,
+  "action": "FEATURE_IMPLEMENTED",
+  "details": {
+    "DG-063": {
+      "title": "Proximo paso del roadmap (taint analysis Python - FI-003 etapa 2, cierra FI-003)",
+      "selected": "Option B",
+      "effect": "Segunda y ultima etapa de FI-003: 3 reglas mode: taint para Python replicando el patron de DG-061 (JS/TS). Cobertura del ruleset: 14 -> 17 reglas (11 pattern-based + 6 taint). FI-003 CERRADO entero."
+    },
+    "files": "scouts/src/opengrep/rules/sentinel-baseline.yaml (header doc actualizado a 17 reglas; +3 reglas Python taint - sentinel-py-taint-command-injection (CWE-78), sentinel-py-taint-sql-injection (CWE-89), sentinel-py-taint-path-traversal (CWE-22, con sanitizers secure_filename/werkzeug.utils.secure_filename/os.path.basename)). scouts/tests/opengrep/fixtures/vulnerable/python/taint-vuln.py (NUEVO; 4 funciones - run_user_command/delete_temp_file/lookup_user/read_user_file - con flujos source->sink intencionales). scouts/tests/opengrep/integration.test.ts (+1 test 'detecta inyecciones via taint analysis ... en Python' que asegura las 3 reglas).",
+    "design": "Sources Python adaptados al ecosistema: Flask (request.args/form/json/values/headers/cookies), Django (request.GET/POST/body), CLI/env (sys.argv, os.environ). Sinks por categoria: subprocess.* + os.system/popen para command-injection; $CURSOR.execute/executemany/executescript para sql-injection (el patron $CURSOR.X es Pythonic - cualquier cursor de DB-API 2.0); open + pathlib.Path + os.remove/unlink + shutil.rmtree/copy para path-traversal. Sanitizers de path traversal: secure_filename de werkzeug (Flask), os.path.basename. Patron de la etapa 1 reusado sin sorpresas - el unknown ya estaba resuelto en DG-061.",
+    "verification_real": "pnpm verify verde (test:unit 304). pnpm test:integration verde: 11 passed (era 10 + el test Python taint nuevo). E2E REAL: 'node packages/vscode-extension/dist/cli.mjs scan' del fixture Python -> las 3 reglas taint Python disparan en lineas correctas (subprocess.run line 24, os.system line 30, cursor.execute line 36, open line 42); las pattern-based existentes (sentinel-py-subprocess-shell, sentinel-py-os-system) tambien disparan en complemento. NO se detectaron FPs. .vsix repackageo a 621.59 KB (vs 620.95 KB - crecimiento minimo por las 3 reglas adicionales en el YAML).",
+    "tests": "+1 test de integracion (Python taint) - total 315 verdes + 3 gated (304 unit / 11+3 integration)",
+    "checks": "format:check / lint / build / test:unit / test:integration / vsce package - todos en verde; e2e contra OpenGrep real confirmado",
+    "commit": "feature en el commit fabdab9 feat(scouts); el registro SYNAPTIC se asienta en el commit docs siguiente",
+    "fi_003_close": "FI-003 RESUELTO entero. Sub-incrementacion limpia en 2 etapas: DG-061 B (JS/TS, 3 reglas) + DG-063 B (Python, 3 reglas). El catalogo SAST de OpenGrep tiene ahora 17 reglas (11 pattern-based + 6 taint cubriendo CWE-22/78/79/89). Unico frente OPEN remanente: FI-009 (cliente LLM)."
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 61,
+  "complianceScore": 100
+}
+```
+
+---
+
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-23T02:00:00.000Z*
+*Last Updated: 2026-05-23T02:30:00.000Z*
