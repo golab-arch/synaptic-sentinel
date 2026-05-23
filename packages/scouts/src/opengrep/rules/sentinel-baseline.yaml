@@ -5,20 +5,26 @@
 # deterministas (high recall) y reglas de TAINT ANALYSIS (high precision:
 # solo cuando datos no confiables fluyen a un sink peligroso).
 #
-# Cobertura (14 reglas):
+# Cobertura (17 reglas):
 #   - Pattern-based (11): ejecucion dinamica de codigo (CWE-95), inyeccion
 #     de comandos del SO (CWE-78), Cross-Site Scripting (CWE-79),
 #     deserializacion insegura (CWE-502), criptografia debil (CWE-327).
-#   - Taint (3, solo JS/TS por ahora; Python diferido): command injection
-#     (CWE-78), XSS via DOM (CWE-79), SQL injection (CWE-89). Cada regla
-#     declara `pattern-sources` (inputs no confiables: req.body, req.query,
-#     etc.) y `pattern-sinks` (sinks peligrosos). El motor solo reporta
-#     cuando un flujo source->sink llega sin saneo.
+#   - Taint JS/TS (3): command injection (CWE-78), XSS via DOM (CWE-79),
+#     SQL injection (CWE-89). Sources: req.body, req.query, etc.
+#   - Taint Python (3): command injection (CWE-78), SQL injection (CWE-89),
+#     path traversal (CWE-22). Sources: Flask (request.args/form/json/...),
+#     Django (request.GET/POST/body), CLI/env (sys.argv, os.environ).
+#   Cada regla taint declara `pattern-sources` (inputs no confiables) y
+#   `pattern-sinks` (sinks peligrosos); reporta solo cuando un flujo
+#   source->sink llega sin saneo.
 #
 # Historial:
 #   - DG-043 (Cycle 36): 4 -> 11 reglas pattern-based.
 #   - DG-049 (Cycle 42, FI-011 etapa 2): mensajes a ingles.
 #   - DG-061 (Cycle 54, FI-003 etapa 1): 3 reglas taint para JS/TS.
+#   - DG-062 (Cycle 55): drop del sink $DB.exec de sql-injection (FP vs
+#     child_process.exec descubierto en la prueba del usuario).
+#   - DG-063 (Cycle 56, FI-003 etapa 2): 3 reglas taint para Python (CIERRA FI-003).
 #
 # Licencia: Apache-2.0 (OSS).
 rules:
@@ -322,3 +328,118 @@ rules:
         - "A02:2021 - Cryptographic Failures"
       category: security
     pattern: hashlib.md5(...)
+
+  # --- Python: taint analysis (FI-003 etapa 2, DG-063) ------------------------
+  # Sources comunes a las 3 reglas: convencion Flask (request.args, .form,
+  # .json, .values, .headers, .cookies), Django (request.GET, .POST, .body),
+  # CLI/env (sys.argv, os.environ). Estos son los puntos clasicos por donde
+  # entra input no confiable en aplicaciones Python.
+
+  - id: sentinel-py-taint-command-injection
+    languages:
+      - python
+    severity: ERROR
+    mode: taint
+    message: >-
+      User-controlled data flows to a command-execution sink without
+      sanitization (taint analysis). This is OS command injection: an
+      attacker can inject shell commands via the source.
+    metadata:
+      cwe:
+        - "CWE-78: Improper Neutralization of Special Elements used in an OS Command"
+      owasp:
+        - "A03:2021 - Injection"
+      category: security
+    pattern-sources:
+      - pattern-either:
+          - pattern: request.args
+          - pattern: request.form
+          - pattern: request.json
+          - pattern: request.values
+          - pattern: request.headers
+          - pattern: request.cookies
+          - pattern: request.GET
+          - pattern: request.POST
+          - pattern: request.body
+          - pattern: sys.argv
+          - pattern: os.environ
+    pattern-sinks:
+      - pattern-either:
+          - pattern: subprocess.run($CMD, ...)
+          - pattern: subprocess.call($CMD, ...)
+          - pattern: subprocess.check_call($CMD, ...)
+          - pattern: subprocess.check_output($CMD, ...)
+          - pattern: subprocess.Popen($CMD, ...)
+          - pattern: os.system($CMD)
+          - pattern: os.popen($CMD)
+
+  - id: sentinel-py-taint-sql-injection
+    languages:
+      - python
+    severity: ERROR
+    mode: taint
+    message: >-
+      User-controlled data flows to a SQL execution sink as part of a string
+      (taint analysis). This is SQL injection. Use parameterized queries
+      (placeholders + parameters) instead of building the SQL by string
+      concatenation or f-strings.
+    metadata:
+      cwe:
+        - "CWE-89: Improper Neutralization of Special Elements used in an SQL Command"
+      owasp:
+        - "A03:2021 - Injection"
+      category: security
+    pattern-sources:
+      - pattern-either:
+          - pattern: request.args
+          - pattern: request.form
+          - pattern: request.json
+          - pattern: request.values
+          - pattern: request.GET
+          - pattern: request.POST
+          - pattern: sys.argv
+          - pattern: os.environ
+    pattern-sinks:
+      - pattern-either:
+          - pattern: $CURSOR.execute($SQL, ...)
+          - pattern: $CURSOR.executemany($SQL, ...)
+          - pattern: $CURSOR.executescript($SQL, ...)
+
+  - id: sentinel-py-taint-path-traversal
+    languages:
+      - python
+    severity: ERROR
+    mode: taint
+    message: >-
+      User-controlled data flows to a file path sink without sanitization
+      (taint analysis). This is path traversal (CWE-22): an attacker can
+      escape the intended directory with `../` segments. Sanitize with
+      werkzeug.utils.secure_filename() or os.path.basename().
+    metadata:
+      cwe:
+        - "CWE-22: Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')"
+      owasp:
+        - "A01:2021 - Broken Access Control"
+      category: security
+    pattern-sources:
+      - pattern-either:
+          - pattern: request.args
+          - pattern: request.form
+          - pattern: request.json
+          - pattern: request.values
+          - pattern: request.GET
+          - pattern: request.POST
+          - pattern: sys.argv
+    pattern-sinks:
+      - pattern-either:
+          - pattern: open($PATH, ...)
+          - pattern: pathlib.Path($PATH)
+          - pattern: os.remove($PATH)
+          - pattern: os.unlink($PATH)
+          - pattern: shutil.rmtree($PATH)
+          - pattern: shutil.copy($SRC, $PATH)
+    pattern-sanitizers:
+      - pattern-either:
+          - pattern: secure_filename(...)
+          - pattern: werkzeug.utils.secure_filename(...)
+          - pattern: os.path.basename(...)
