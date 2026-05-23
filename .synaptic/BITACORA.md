@@ -2090,5 +2090,72 @@ Each entry follows this structure:
 
 ---
 
+### Entry #75 - DG-070 (A): apertura de Phase 11 — Multi-Provider Brain Layer; cierra Cycle 63
+```json
+{
+  "timestamp": "2026-05-23T17:30:00.000Z",
+  "cycle": 63,
+  "phase": 11,
+  "action": "PHASE_TRANSITION",
+  "details": {
+    "DG-070": {
+      "title": "Apertura de Phase 11 - Multi-Provider Brain Layer (bookkeeping puro, sin codigo)",
+      "selected": "Option A",
+      "effect": "Phase 11 (Multi-Provider Brain Layer) ABIERTA tras un viaje exploratorio extenso (2 rounds de discovery, 6 agentes web). El producto deja de ser Anthropic-only y se reposiciona como provider-agnostic-by-design: cualquier LLM provider (cloud o local) puede correr cada agente del Brain Layer independientemente. La 'capa Cerebro' deja de tener un primary; el usuario elige por agente. Phase 10 (vsce publish v0.2.0 Anthropic-only al marketplace) queda DEFERIDA y renumerada como Phase 12 (post Phase 11 con release v0.3.0 multi-provider)."
+    },
+    "discovery_journey": {
+      "rounds_completados": 2,
+      "agentes_web_lanzados": 6,
+      "round_1_focus": ["librerias de abstraccion (Vercel AI SDK, LiteLLM, LangChain.js, OpenRouter, OpenAI SDK + baseURL, hand-rolled, Ollama)", "feature parity por provider (Anthropic, OpenAI, Google, xAI, DeepSeek, Mistral, Groq, Qwen, Cohere, Ollama, LM Studio)", "protocolo OpenAI-compatible como lingua franca (que providers nativamente, quirks, Anthropic compat-layer beta, Gemini OpenAI-compat GA, Bedrock OpenAI-compat 2025, Azure v1)"],
+      "round_gamma_focus": ["benchmarks externos LLM en security tasks (SecVulEval, Sifting the Noise, RealVuln, SWE-Bench, LiveCodeBench, CyberSecEval, PATCHEVAL, PromptBridge)", "Ollama deep dive (Mistral Nemo 12B / Qwen 2.5 Coder 32B / DeepSeek Coder V2 Lite 16B en RTX 4090 / RTX 3060 / M2 Max; XGrammar structured outputs nativo desde v0.5; JSON validity empirica)", "UX patterns multi-provider (Cline / Roo Code / Continue.dev / Aider / Cursor / GitHub Copilot / JetBrains AI / Zed / Goose / OpenRouter / LiteLLM)"],
+      "caveat_honesto": "Algunas URLs de arxiv que un agente reporto tienen prefijos de fecha sospechosos (2601.xxxxx, 2604.xxxxx) - sustancia cualitativa cross-valida con multiples fuentes pero los IDs especificos requieren verificacion manual antes de citar."
+    },
+    "decisiones_consolidadas_del_usuario": {
+      "1_modelo_comercial": "provider-agnostic-by-design (NO Anthropic-default)",
+      "2_granularidad": "provider-por-agente (Triage / Context / Remediation independientes)",
+      "3_sequencing": "Phase 11 (multi-provider) -> Phase 12 (marketplace v0.3.0) -> posible Phase 13 (announcement materials)",
+      "4_local_LLM": "Ollama prioridad de feature - recommended status con XGrammar para ~99% JSON validity (NO experimental)",
+      "5_arquitectura": "Modo D refinado = 3 adapters (AnthropicLlmClient + OpenAiCompatibleLlmClient + OllamaLlmClient)",
+      "6_config_pattern": "YAML versionable .sentinel/agents.yaml + VSCode UI panel + CLI flags (Continue.dev pattern)",
+      "7_credentials": "vscode.SecretStorage namespaceado por provider (sentinel.{provider}.apiKey); env vars como fallback CLI (SENTINEL_{PROVIDER}_API_KEY)",
+      "8_json_validity": "constrained decoding donde sea posible (Anthropic native, OpenAI strict:true opt-in, Ollama XGrammar); regex extractor extractJsonObject como fallback universal",
+      "9_quality_bar": "benchmark empirico obligatorio (DG-076) antes de publicar v0.3.0 - PromptBridge probo 20-30% degradation sin re-tuning",
+      "10_marketplace_timing": "listing GoLab.synaptic-sentinel debut con v0.3.0 multi-provider; .vsix v0.2.0 queda como GitHub Release historico (no se retracta)"
+    },
+    "phase_11_roadmap": {
+      "alcance": "Cycles 63-72 (10 sub-increments balanceados)",
+      "sub_increments": [
+        "DG-070 (CERRADO) - Phase 11 opener (bookkeeping puro)",
+        "DG-071 - extraer OpenAiCompatibleLlmClient (~120 lineas + tests; dep openai agregada a packages/agents)",
+        "DG-072 - extraer OllamaLlmClient con XGrammar opt-in; auto-detect endpoint localhost:11434",
+        "DG-073 - provider registry + schema .sentinel/agents.yaml + carga de config (CLI + extension); SecretStorage namespaceado; --agent-provider flag CLI",
+        "DG-074 - UI panel del VSCode extension (Settings webview con per-agent picker + Ollama auto-discovery + Test buttons)",
+        "DG-075 - ground truth set sobre los 11 fixtures actuales (manual humano, ~2-4 horas)",
+        "DG-076 - empirical benchmark (495 calls: 3 agentes * 5 providers * 11 fixtures * 3 runs); matriz quality + cost + latency + JSON validity",
+        "DG-077 - per-provider prompt tuning si DG-076 muestra >15% degradation; variantes opcionales",
+        "DG-078 - cost visibility (tokens + USD por sesion; sidebar webview + CLI summary; pricing table commiteada)",
+        "DG-079 - cierre Phase 11: bump v0.3.0 + CHANGELOG headline multi-provider + regenerar .vsix v0.3.0 + GitHub Release"
+      ]
+    },
+    "phase_12_deferred": {
+      "que_era": "Phase 10 - Launch v0.2.0 al marketplace (vsce publish runbook + script alias publish:marketplace) - lo que originalmente fue DG-070 antes del giro multi-provider",
+      "que_es_ahora": "Phase 12 - Launch v0.3.0 (post Phase 11): publication runbook + vsce publish con PAT del usuario en Azure DevOps Marketplace; first impression del marketplace = multi-provider, no Anthropic-only",
+      "justificacion": "Decision explicita del usuario: el primer screenshot del marketplace debe ser coherente con el posicionamiento provider-agnostic-by-design. Publicar v0.2.0 Anthropic-only y reemplazar con v0.3.0 multi-provider luego dejaria una first impression equivocada que pesaria en el largo plazo mas que el tiempo extra a marketplace (~3-4 semanas adicionales)."
+    },
+    "scope_note_anti_optimism": "Este ciclo NO produce nada user-visible: ni codigo, ni release, ni feature nueva. Su valor es ARQUITECTONICO-DE-PROTOCOLO: declara formalmente la direccion de Phase 11 para que los 9 ciclos siguientes (DG-071..DG-079) corran sobre base estable. NO declaramos victoria; declaramos intencion. El producto sigue siendo el mismo .vsix v0.2.0 ya publicado como GitHub Release; el roadmap es ahora visible publicamente porque el repo es publico desde DG-068 - sirve como signal de proyecto activo + commitment publico al multi-provider.",
+    "files_changed_in_repo": "0 - este DG no toca ningun archivo del producto. Solo bookkeeping en .synaptic/.",
+    "verification_real": "node -e parse de INTELLIGENCE.json + session.json verde; ningun cambio funcional al producto (no codigo, no tests nuevos).",
+    "tests": "0 nuevos, 0 modificados - total 302 unit verdes + 11+3 gated integration intactos.",
+    "checks": "(no aplica - sin cambios al producto; el gate por ciclo solo se corre cuando hay codigo cambiado)",
+    "commits_split": "Solo commit docs(synaptic) - no hay feat commit porque no hay codigo nuevo."
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 68,
+  "complianceScore": 100
+}
+```
+
+---
+
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-23T15:30:00.000Z*
+*Last Updated: 2026-05-23T17:30:00.000Z*

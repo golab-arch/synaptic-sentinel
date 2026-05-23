@@ -6,11 +6,11 @@
 
 ## Current Cycle
 
-- **Cycle:** 63 — pendiente DG-070 (apertura de Phase 10 — `vsce publish` runbook al marketplace)
-- **Phase:** **9 CERRADA** → **Phase 10 — Launch v0.2.0** (a abrir con DG-070) · Phase 8 sigue COMPLETA funcionalmente · 🏁 **Cero deuda OPEN** · **Apache-2.0 + "The vibe-coding security sentinel" + repo PÚBLICO + release v0.2.0 publicado**
-- **Status:** Cycle 62 CERRADO (DG-069 B — release v0.2.0 + GitHub Release público con `.vsix` descargable, SHA-256 expuesto); **Phase 9 (Strategic Pivot) CERRADA en 4 sub-increments balanceados (DG-066..DG-069)**; awaiting DG-070
+- **Cycle:** 64 — pendiente DG-071 (extracción `OpenAiCompatibleLlmClient` — Phase 11 sub-increment 2 de 10)
+- **Phase:** **9 CERRADA · Phase 11 — Multi-Provider Brain Layer ABIERTA** (Phase 10 deferida y renumerada como Phase 12) · Phase 8 sigue COMPLETA funcionalmente · 🏁 **Cero deuda OPEN** · **provider-agnostic-by-design declarado**
+- **Status:** Cycle 63 CERRADO (DG-070 A — Phase 11 opener: bookkeeping puro tras viaje exploratorio extenso de 2 rounds + 6 agentes web; 10 decisiones consolidadas del usuario; Modo D arquitectónico con 3 adapters); awaiting DG-071
 - **Compliance:** 100%
-- **Synaptic Strength:** 67
+- **Synaptic Strength:** 68
 
 ## Cycles cerrados
 
@@ -34,6 +34,7 @@
 - **Cycle 60** — **Phase 9 sub-increment 2: re-positioning textual** (DG-067 B): tagline elegida por el usuario "**The vibe-coding security sentinel**" (tone conservador — no "world's best"). 5 archivos user-visible reescritos: `README.md` raíz, `packages/vscode-extension/README.md`, `CHANGELOG.md` (nueva entrada `[0.2.0] - _Unreleased — to be cut in DG-069_`), `ONBOARDING.md`, `packages/vscode-extension/package.json` (description + keywords `ai-generated-code`/`llm-security`). Apache-2.0 declarado en todas las superficies user-visible; Brain Layer sin "Pro/proprietary" ✅
 - **Cycle 61** — 🌐 **Phase 9 sub-increment 3: repo PÚBLICO** (DG-068 B): primera acción outward-facing real del proyecto. Pre-flight `gitleaks` sobre historia completa PASS (único hit en fixture deliberadamente vulnerable de `tests/.../fixtures/secrets/`, excluido por guardrail). Metadata refresh (description + homepage al marketplace listing + 10 topics: `vibe-coding`/`security`/`sast`/`taint-analysis`/`ai-coding`/`ai-generated-code`/`llm-security`/`byok`/`vscode-extension`/`synaptic`). `gh repo edit --visibility public --accept-visibility-change-consequences` ejecutado; `gh repo view` confirma `visibility: PUBLIC` + `licenseInfo: Apache-2.0` (detectado automáticamente por GitHub desde `LICENSE` en raíz) ✅
 - **Cycle 62** — 🚀 **Phase 9 sub-increment 4 (cierra Phase 9): release `v0.2.0`** (DG-069 B): bump `package.json` `0.1.0` → `0.2.0`; cut CHANGELOG date `[0.2.0] - 2026-05-23`; `pnpm verify` verde; `vsce package` → `synaptic-sentinel-0.2.0.vsix` (429 archivos, 1.27 MB, manifest validado). Annotated tag `v0.2.0` push. `gh release create v0.2.0` con asset `.vsix` descargable: [github.com/golab-arch/synaptic-sentinel/releases/tag/v0.2.0](https://github.com/golab-arch/synaptic-sentinel/releases/tag/v0.2.0) · `isDraft=false` · SHA-256 expuesto por GitHub vía `digest` ✅ — **Phase 9 CERRADA**
+- **Cycle 63** — 🧭 **Apertura de Phase 11 — Multi-Provider Brain Layer** (DG-070 A): bookkeeping puro tras viaje exploratorio extenso (2 rounds de discovery, 6 agentes web cubriendo librerías de abstracción + landscape de providers + protocolo OpenAI-compatible + benchmarks externos + Ollama deep dive + UX patterns). El producto se reposiciona como **provider-agnostic-by-design**. 10 decisiones consolidadas del usuario: Modo D arquitectónico (3 adapters: Anthropic native + OpenAI-compat genérico + Ollama-específico con XGrammar), YAML `.sentinel/agents.yaml` (Continue.dev pattern), provider-por-agente, benchmark empírico obligatorio antes de v0.3.0. **Phase 10 (vsce publish v0.2.0) DEFERIDA y renumerada como Phase 12**. Roadmap Phase 11: 10 sub-increments DG-070..DG-079. NO toca código ✅
 
 ## Tomo 001 — CERRADO
 
@@ -56,17 +57,18 @@
 - 🔀 **Phase 9 abierta** — pivot estratégico a **OSS full Apache-2.0** ratificado por el usuario (DG-066 B). El producto se reposiciona como **"the world's best security sentinel for vibe-coded projects"** con todas las capacidades en un solo SKU bajo Apache-2.0 (la "capa premium" deja de existir como tier diferenciado). Monetización **diferida** (sponsors / consulting / hosted version a posteriori).
 - 🏁 **`futureImprovements` sigue vacía** — cero deuda técnica registrada.
 - **DG-001 B amendado** — `publish-oss.ts` allowlist obsoleto bajo el giro (no hay código Pro que filtrar). La decisión arquitectónica fue correcta para la estrategia de entonces; el cambio es estratégico, no arquitectónico.
-- 🏁 **Phase 9 (Strategic Pivot) CERRADA** en 4 sub-increments balanceados (DG-066..DG-069). El producto unificado bajo Apache-2.0 con posicionamiento "The vibe-coding security sentinel" es ahora **real, público, descargable e instalable** desde el repo público (independiente del marketplace).
-- **Próxima Phase 10 — Launch v0.2.0 al marketplace**: DG-070 abre con `docs/PUBLISHING.md` runbook + script alias `publish:marketplace` + verificación post-publish. El `vsce publish` efectivo lo dispara el usuario con su PAT de Azure DevOps Marketplace.
-- **Anti-optimismo ilusorio activo**: el `v0.2.0` publicado es funcionalmente IDÉNTICO al `v0.1.0` (cero cambios de código en Phase 9); cambian licencia + posicionamiento + visibilidad + distribución. NO promete features nuevas; el marketplace `GoLab.synaptic-sentinel` sigue retornando 404 hasta Phase 10.
+- 🏁 **Phase 9 (Strategic Pivot) CERRADA** en 4 sub-increments balanceados (DG-066..DG-069). El producto unificado bajo Apache-2.0 con posicionamiento "The vibe-coding security sentinel" es **real, público, descargable e instalable** desde el repo público (independiente del marketplace).
+- 🧭 **Phase 11 (Multi-Provider Brain Layer) ABIERTA** en Cycle 63 (DG-070 A) — el producto se reposiciona como **provider-agnostic-by-design**. Roadmap formal: 10 sub-increments (DG-070..DG-079) para extracción de adapters (OpenAI-compat + Ollama con XGrammar) + config registry YAML + UI panel + ground truth + benchmark empírico + prompt tuning + cost visibility + release v0.3.0.
+- **Phase 10 (vsce publish v0.2.0 Anthropic-only) DEFERIDA y renumerada como Phase 12**: el primer screenshot del marketplace debe ser coherente con el posicionamiento provider-agnostic-by-design, no Anthropic-only. Marketplace listing `GoLab.synaptic-sentinel` debut con v0.3.0 multi-provider.
+- **Anti-optimismo ilusorio activo**: DG-070 NO toca código del producto. El `.vsix v0.2.0` ya publicado como GitHub Release sigue intacto. Phase 11 va a tomar ~10 ciclos (3-4 semanas en la cadencia establecida). El benchmark empírico (DG-076) puede revelar que algún provider necesita re-tuning de prompts (PromptBridge probó 20-30% degradation sin esto).
 - **Instrucciones permanentes**: cada DG incluye mi recomendación explícita (DG-045); commit + push por ciclo (DG-055).
 
 ## Decision Gate abierto
 
-- DG-070 — apertura de Phase 10 (Launch v0.2.0): publication runbook + script alias `publish:marketplace` (a presentar)
+- DG-071 — extraer `OpenAiCompatibleLlmClient` (Phase 11 sub-increment 2 de 10) — a presentar
 
 ## Last Entry
 
-Entry #74 — RELEASE_CUT (DG-069 B) — 2026-05-23 — SUCCESS · release `v0.2.0` cortado + GitHub Release público con asset `.vsix` descargable · **Phase 9 CERRADA**
+Entry #75 — PHASE_TRANSITION (DG-070 A) — 2026-05-23 — SUCCESS · **Phase 11 (Multi-Provider Brain Layer) ABIERTA** · Phase 10 DEFERIDA→Phase 12 · 10 decisiones consolidadas del usuario tras 2 rounds de discovery + 6 agentes web
 
 ---
