@@ -207,6 +207,12 @@ rules:
       owasp:
         - "A03:2021 - Injection"
       category: security
+    # Sinks intencionalmente acotados a metodos especificos de drivers SQL:
+    # `query`, `execute`, `raw`. NO incluimos `$DB.exec($SQL, ...)` aunque
+    # algunos drivers (sqlite3) lo expongan: OpenGrep matchea `child_process`'s
+    # destructured `exec(...)` contra `$DB.exec(...)` y genera un falso positivo
+    # (descubierto al probar el .vsix tras DG-061; el sqlite3 driver es minoria
+    # frente a la colision con child_process). DG-062 B.
     pattern-sources:
       - pattern-either:
           - pattern: req.body
@@ -220,7 +226,6 @@ rules:
       - pattern-either:
           - pattern: $DB.query($SQL, ...)
           - pattern: $DB.execute($SQL, ...)
-          - pattern: $DB.exec($SQL, ...)
           - pattern: $KNEX.raw($SQL, ...)
 
   # --- Python ------------------------------------------------------------------

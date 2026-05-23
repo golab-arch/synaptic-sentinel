@@ -1,10 +1,16 @@
 import { randomUUID } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
-import Database from 'better-sqlite3';
-
-/** Instance type of better-sqlite3 (namespace-qualified to disambiguate the class). */
-type DatabaseInstance = Database.Database;
+// node-sqlite3-wasm es CJS. Bajo Node ESM, `import * as ... from` puede no
+// extraer los named exports si cjs-module-lexer no los detecta (verificado
+// en el bundle: `sqliteWasm.Database` quedaba undefined). Usamos createRequire
+// para forzar resolucion CJS limpia, y un type-only import para las firmas.
+import type * as sqliteWasmTypes from 'node-sqlite3-wasm';
+const requireCjs = createRequire(import.meta.url);
+const sqliteWasm = requireCjs('node-sqlite3-wasm') as typeof sqliteWasmTypes;
+type Database = InstanceType<typeof sqliteWasm.Database>;
+type Statement = ReturnType<Database['prepare']>;
 import {
   ContextExplanationRecordSchema,
   LearningRecordSchema,
@@ -40,6 +46,25 @@ function resolveSchemaPath(): string {
 }
 
 const SCHEMA_PATH = resolveSchemaPath();
+
+/**
+ * Helper: prepara un statement, lo usa, y lo finaliza en `finally`.
+ *
+ * `node-sqlite3-wasm` NO finaliza statements automaticamente al cerrar la DB
+ * (a diferencia de node:sqlite/better-sqlite3): hay que llamar `.finalize()`
+ * explicitamente o el handle queda colgando en el WASM heap y el siguiente
+ * `Database.open` sobre el mismo archivo falla con "database is locked".
+ * Este helper centraliza el patron try/finally para los inserts en lote
+ * (donde reusamos un mismo statement preparado en un loop).
+ */
+function withStmt<T>(db: Database, sql: string, fn: (stmt: Statement) => T): T {
+  const stmt = db.prepare(sql);
+  try {
+    return fn(stmt);
+  } finally {
+    stmt.finalize();
+  }
+}
 
 /** Convierte una fila de la tabla `scans` en un objeto `Scan` validado. */
 function rowToScan(row: unknown): Scan {
@@ -131,20 +156,27 @@ function rowToRemediationSuggestion(row: unknown): RemediationSuggestionRecord {
 /**
  * Memoria compartida del enjambre — wrapper de la colony DB (SQLite local).
  *
- * Usa `better-sqlite3` (DG-060 B, FI-001 cerrado). La eleccion inicial fue
- * `node:sqlite` (DG-013 A) que requiere Node >= 22.5; el .vsix instalable
- * (DG-058) ya no impone ese piso al runtime del extension host, porque
- * `better-sqlite3` viaja como modulo nativo prebuilt con la extension.
- * Toda la persistencia pasa por esta clase para poder cambiar de driver sin
- * tocar el resto del sistema.
+ * Usa `node-sqlite3-wasm` (DG-062 B, FI-001 *re*-cerrado): port WASM puro de
+ * SQLite3. La opcion previa fue `better-sqlite3` (DG-060 B), pero la prueba
+ * del usuario en el .vsix revelo el problema clasico de ABI con Electron
+ * (NODE_MODULE_VERSION mismatch). WASM no tiene ABI -> el .vsix corre en
+ * cualquier runtime Node-compatible. Toda la persistencia pasa por esta
+ * clase para poder cambiar de driver sin tocar el resto del sistema.
+ *
+ * API notes (diferencias importantes vs los drivers previos):
+ *  - Binds: un solo argumento ARRAY (o objeto nombrado), no spread positional.
+ *  - Statements: `prepare()` requiere `finalize()` EXPLICITO (no hay GC
+ *    automatica). Para evitar leaks y "database is locked" en reopens, los
+ *    one-shots usan `db.run/get/all` (que finalizan internamente) y los
+ *    batches reusan un stmt envuelto en {@link withStmt}.
  *
  * Las escrituras validan su entrada con los schemas `zod` antes de tocar la
  * base de datos: defensa en profundidad contra Memory Poisoning (v0.4 §9.6).
  */
 export class ColonyDb {
-  readonly #db: DatabaseInstance;
+  readonly #db: Database;
 
-  private constructor(db: DatabaseInstance) {
+  private constructor(db: Database) {
     this.#db = db;
   }
 
@@ -153,7 +185,7 @@ export class ColonyDb {
    * idempotente. Usar `:memory:` para una base efimera en tests.
    */
   static open(path: string): ColonyDb {
-    const db = new Database(path);
+    const db = new sqliteWasm.Database(path);
     db.exec(readFileSync(SCHEMA_PATH, 'utf8'));
     // Migraciones aditivas (v2: triage_verdicts, v3: context_explanations,
     // v4: remediation_suggestions): las tablas se crean via CREATE TABLE IF
@@ -165,37 +197,38 @@ export class ColonyDb {
 
   /** Version del schema registrada en la tabla `meta`. */
   getSchemaVersion(): string | undefined {
-    const row = this.#db.prepare('SELECT value FROM meta WHERE key = ?').get('schema_version');
+    const row = this.#db.get('SELECT value FROM meta WHERE key = ?', ['schema_version']);
     return row ? String((row as { value: unknown }).value) : undefined;
   }
 
   /** Inserta un nuevo scan. */
   insertScan(scan: Scan): void {
     const valid = ScanSchema.parse(scan);
-    this.#db
-      .prepare(
-        'INSERT INTO scans (id, started_at, finished_at, git_sha, agent_summary) ' +
-          'VALUES (?, ?, ?, ?, ?)',
-      )
-      .run(
+    this.#db.run(
+      'INSERT INTO scans (id, started_at, finished_at, git_sha, agent_summary) ' +
+        'VALUES (?, ?, ?, ?, ?)',
+      [
         valid.id,
         valid.startedAt,
         valid.finishedAt ?? null,
         valid.gitSha ?? null,
         valid.agentSummary != null ? JSON.stringify(valid.agentSummary) : null,
-      );
+      ],
+    );
   }
 
   /** Marca un scan como finalizado y guarda su resumen por agente. */
   completeScan(id: string, finishedAt: string, agentSummary?: Record<string, unknown>): void {
-    this.#db
-      .prepare('UPDATE scans SET finished_at = ?, agent_summary = ? WHERE id = ?')
-      .run(finishedAt, agentSummary != null ? JSON.stringify(agentSummary) : null, id);
+    this.#db.run('UPDATE scans SET finished_at = ?, agent_summary = ? WHERE id = ?', [
+      finishedAt,
+      agentSummary != null ? JSON.stringify(agentSummary) : null,
+      id,
+    ]);
   }
 
   /** Devuelve un scan por id, o `undefined` si no existe. */
   getScan(id: string): Scan | undefined {
-    const row = this.#db.prepare('SELECT * FROM scans WHERE id = ?').get(id);
+    const row = this.#db.get('SELECT * FROM scans WHERE id = ?', [id]);
     return row ? rowToScan(row) : undefined;
   }
 
@@ -207,40 +240,42 @@ export class ColonyDb {
   /** Inserta un lote de feromonas dentro de una unica transaccion. */
   insertPheromones(pheromones: readonly Pheromone[]): void {
     if (pheromones.length === 0) return;
-    const stmt = this.#db.prepare(
+    withStmt(
+      this.#db,
       'INSERT INTO pheromones ' +
         '(id, type, agent_id, scan_id, target_path, payload, confidence, decay_rate, created_at, expires_at) ' +
         'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      (stmt) => {
+        this.#db.exec('BEGIN');
+        try {
+          for (const raw of pheromones) {
+            const p = PheromoneSchema.parse(raw);
+            stmt.run([
+              p.id,
+              p.type,
+              p.agentId,
+              p.scanId,
+              p.targetPath ?? null,
+              JSON.stringify(p.payload),
+              p.confidence ?? null,
+              p.decayRate,
+              p.createdAt,
+              p.expiresAt ?? null,
+            ]);
+          }
+          this.#db.exec('COMMIT');
+        } catch (err) {
+          this.#db.exec('ROLLBACK');
+          throw err;
+        }
+      },
     );
-    this.#db.exec('BEGIN');
-    try {
-      for (const raw of pheromones) {
-        const p = PheromoneSchema.parse(raw);
-        stmt.run(
-          p.id,
-          p.type,
-          p.agentId,
-          p.scanId,
-          p.targetPath ?? null,
-          JSON.stringify(p.payload),
-          p.confidence ?? null,
-          p.decayRate,
-          p.createdAt,
-          p.expiresAt ?? null,
-        );
-      }
-      this.#db.exec('COMMIT');
-    } catch (err) {
-      this.#db.exec('ROLLBACK');
-      throw err;
-    }
   }
 
   /** Feromonas de un scan, ordenadas por fecha de creacion. */
   getPheromonesByScan(scanId: string): Pheromone[] {
     return this.#db
-      .prepare('SELECT * FROM pheromones WHERE scan_id = ? ORDER BY created_at')
-      .all(scanId)
+      .all('SELECT * FROM pheromones WHERE scan_id = ? ORDER BY created_at', [scanId])
       .map(rowToPheromone);
   }
 
@@ -253,12 +288,11 @@ export class ColonyDb {
    * confirmados. Una feromona sin `fingerprint` en su payload se ignora.
    */
   getKnownFingerprints(type: PheromoneType): Set<string> {
-    const rows = this.#db
-      .prepare(
-        "SELECT DISTINCT json_extract(payload, '$.fingerprint') AS fingerprint " +
-          'FROM pheromones WHERE type = ?',
-      )
-      .all(type);
+    const rows = this.#db.all(
+      "SELECT DISTINCT json_extract(payload, '$.fingerprint') AS fingerprint " +
+        'FROM pheromones WHERE type = ?',
+      [type],
+    );
     const fingerprints = new Set<string>();
     for (const row of rows) {
       const value = (row as { fingerprint: unknown }).fingerprint;
@@ -274,8 +308,9 @@ export class ColonyDb {
    */
   getPheromonesByFingerprint(fingerprint: string): Pheromone[] {
     return this.#db
-      .prepare("SELECT * FROM pheromones WHERE json_extract(payload, '$.fingerprint') = ?")
-      .all(fingerprint)
+      .all("SELECT * FROM pheromones WHERE json_extract(payload, '$.fingerprint') = ?", [
+        fingerprint,
+      ])
       .map(rowToPheromone);
   }
 
@@ -283,47 +318,51 @@ export class ColonyDb {
   getPheromonesByTarget(targetPath: string, type?: PheromoneType): Pheromone[] {
     const rows =
       type === undefined
-        ? this.#db.prepare('SELECT * FROM pheromones WHERE target_path = ?').all(targetPath)
-        : this.#db
-            .prepare('SELECT * FROM pheromones WHERE target_path = ? AND type = ?')
-            .all(targetPath, type);
+        ? this.#db.all('SELECT * FROM pheromones WHERE target_path = ?', [targetPath])
+        : this.#db.all('SELECT * FROM pheromones WHERE target_path = ? AND type = ?', [
+            targetPath,
+            type,
+          ]);
     return rows.map(rowToPheromone);
   }
 
   /** Id del scan mas reciente, o `undefined` si no hay ninguno. */
   getLatestScanId(): string | undefined {
-    const row = this.#db.prepare('SELECT id FROM scans ORDER BY started_at DESC LIMIT 1').get();
+    const row = this.#db.get('SELECT id FROM scans ORDER BY started_at DESC LIMIT 1');
     return row ? String((row as { id: unknown }).id) : undefined;
   }
 
   /** Inserta un lote de veredictos de triage en una unica transaccion. */
   insertTriageVerdicts(records: readonly TriageVerdictRecord[]): void {
     if (records.length === 0) return;
-    const stmt = this.#db.prepare(
+    withStmt(
+      this.#db,
       'INSERT INTO triage_verdicts ' +
         '(id, scan_id, fingerprint, classification, confidence, rationale, agent_id, created_at) ' +
         'VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      (stmt) => {
+        this.#db.exec('BEGIN');
+        try {
+          for (const raw of records) {
+            const r = TriageVerdictRecordSchema.parse(raw);
+            stmt.run([
+              r.id,
+              r.scanId,
+              r.fingerprint,
+              r.classification,
+              r.confidence,
+              r.rationale,
+              r.agentId,
+              r.createdAt,
+            ]);
+          }
+          this.#db.exec('COMMIT');
+        } catch (err) {
+          this.#db.exec('ROLLBACK');
+          throw err;
+        }
+      },
     );
-    this.#db.exec('BEGIN');
-    try {
-      for (const raw of records) {
-        const r = TriageVerdictRecordSchema.parse(raw);
-        stmt.run(
-          r.id,
-          r.scanId,
-          r.fingerprint,
-          r.classification,
-          r.confidence,
-          r.rationale,
-          r.agentId,
-          r.createdAt,
-        );
-      }
-      this.#db.exec('COMMIT');
-    } catch (err) {
-      this.#db.exec('ROLLBACK');
-      throw err;
-    }
   }
 
   /**
@@ -333,7 +372,7 @@ export class ColonyDb {
    * vuelve a gastar tokens en hallazgos ya triados.
    */
   getTriagedFingerprints(): Set<string> {
-    const rows = this.#db.prepare('SELECT DISTINCT fingerprint FROM triage_verdicts').all();
+    const rows = this.#db.all('SELECT DISTINCT fingerprint FROM triage_verdicts');
     const fingerprints = new Set<string>();
     for (const row of rows) {
       const value = (row as { fingerprint: unknown }).fingerprint;
@@ -345,85 +384,88 @@ export class ColonyDb {
   /** Todos los veredictos de triage, ordenados por fecha de creacion. */
   getTriageVerdicts(): TriageVerdictRecord[] {
     return this.#db
-      .prepare('SELECT * FROM triage_verdicts ORDER BY created_at')
-      .all()
+      .all('SELECT * FROM triage_verdicts ORDER BY created_at')
       .map(rowToTriageVerdict);
   }
 
   /** Inserta un lote de explicaciones de contexto en una unica transaccion. */
   insertContextExplanations(records: readonly ContextExplanationRecord[]): void {
     if (records.length === 0) return;
-    const stmt = this.#db.prepare(
+    withStmt(
+      this.#db,
       'INSERT INTO context_explanations ' +
         '(id, scan_id, fingerprint, summary, entry_point, sink, exposure, agent_id, created_at) ' +
         'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      (stmt) => {
+        this.#db.exec('BEGIN');
+        try {
+          for (const raw of records) {
+            const r = ContextExplanationRecordSchema.parse(raw);
+            stmt.run([
+              r.id,
+              r.scanId,
+              r.fingerprint,
+              r.summary,
+              r.entryPoint,
+              r.sink,
+              r.exposure,
+              r.agentId,
+              r.createdAt,
+            ]);
+          }
+          this.#db.exec('COMMIT');
+        } catch (err) {
+          this.#db.exec('ROLLBACK');
+          throw err;
+        }
+      },
     );
-    this.#db.exec('BEGIN');
-    try {
-      for (const raw of records) {
-        const r = ContextExplanationRecordSchema.parse(raw);
-        stmt.run(
-          r.id,
-          r.scanId,
-          r.fingerprint,
-          r.summary,
-          r.entryPoint,
-          r.sink,
-          r.exposure,
-          r.agentId,
-          r.createdAt,
-        );
-      }
-      this.#db.exec('COMMIT');
-    } catch (err) {
-      this.#db.exec('ROLLBACK');
-      throw err;
-    }
   }
 
   /** Todas las explicaciones de contexto, ordenadas por fecha de creacion. */
   getContextExplanations(): ContextExplanationRecord[] {
     return this.#db
-      .prepare('SELECT * FROM context_explanations ORDER BY created_at')
-      .all()
+      .all('SELECT * FROM context_explanations ORDER BY created_at')
       .map(rowToContextExplanation);
   }
 
   /** Inserta un lote de sugerencias de remediacion en una unica transaccion. */
   insertRemediationSuggestions(records: readonly RemediationSuggestionRecord[]): void {
     if (records.length === 0) return;
-    const stmt = this.#db.prepare(
+    withStmt(
+      this.#db,
       'INSERT INTO remediation_suggestions ' +
         '(id, scan_id, fingerprint, summary, recommendation, fixed_snippet, agent_id, created_at) ' +
         'VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      (stmt) => {
+        this.#db.exec('BEGIN');
+        try {
+          for (const raw of records) {
+            const r = RemediationSuggestionRecordSchema.parse(raw);
+            stmt.run([
+              r.id,
+              r.scanId,
+              r.fingerprint,
+              r.summary,
+              r.recommendation,
+              r.fixedSnippet ?? null,
+              r.agentId,
+              r.createdAt,
+            ]);
+          }
+          this.#db.exec('COMMIT');
+        } catch (err) {
+          this.#db.exec('ROLLBACK');
+          throw err;
+        }
+      },
     );
-    this.#db.exec('BEGIN');
-    try {
-      for (const raw of records) {
-        const r = RemediationSuggestionRecordSchema.parse(raw);
-        stmt.run(
-          r.id,
-          r.scanId,
-          r.fingerprint,
-          r.summary,
-          r.recommendation,
-          r.fixedSnippet ?? null,
-          r.agentId,
-          r.createdAt,
-        );
-      }
-      this.#db.exec('COMMIT');
-    } catch (err) {
-      this.#db.exec('ROLLBACK');
-      throw err;
-    }
   }
 
   /** Todas las sugerencias de remediacion, ordenadas por fecha de creacion. */
   getRemediationSuggestions(): RemediationSuggestionRecord[] {
     return this.#db
-      .prepare('SELECT * FROM remediation_suggestions ORDER BY created_at')
-      .all()
+      .all('SELECT * FROM remediation_suggestions ORDER BY created_at')
       .map(rowToRemediationSuggestion);
   }
 
@@ -439,40 +481,50 @@ export class ColonyDb {
     scanId: string,
   ): void {
     if (entries.length === 0) return;
-    const selectStmt = this.#db.prepare(
+    // Tres statements reusados en el loop: prepare + finalize via withStmt
+    // anidados para garantizar el cleanup incluso si una run() falla.
+    withStmt(
+      this.#db,
       'SELECT id FROM learning_records WHERE pattern_signature = ? AND classification = ?',
+      (selectStmt) => {
+        withStmt(
+          this.#db,
+          'UPDATE learning_records SET evidence_count = evidence_count + 1, ' +
+            'last_seen_scan = ? WHERE id = ?',
+          (updateStmt) => {
+            withStmt(
+              this.#db,
+              'INSERT INTO learning_records ' +
+                '(id, pattern_signature, classification, evidence_count, last_seen_scan) ' +
+                'VALUES (?, ?, ?, 1, ?)',
+              (insertStmt) => {
+                this.#db.exec('BEGIN');
+                try {
+                  for (const entry of entries) {
+                    const existing = selectStmt.get([entry.signature, entry.classification]);
+                    if (existing) {
+                      updateStmt.run([scanId, String((existing as { id: unknown }).id)]);
+                    } else {
+                      insertStmt.run([randomUUID(), entry.signature, entry.classification, scanId]);
+                    }
+                  }
+                  this.#db.exec('COMMIT');
+                } catch (err) {
+                  this.#db.exec('ROLLBACK');
+                  throw err;
+                }
+              },
+            );
+          },
+        );
+      },
     );
-    const updateStmt = this.#db.prepare(
-      'UPDATE learning_records SET evidence_count = evidence_count + 1, ' +
-        'last_seen_scan = ? WHERE id = ?',
-    );
-    const insertStmt = this.#db.prepare(
-      'INSERT INTO learning_records ' +
-        '(id, pattern_signature, classification, evidence_count, last_seen_scan) ' +
-        'VALUES (?, ?, ?, 1, ?)',
-    );
-    this.#db.exec('BEGIN');
-    try {
-      for (const entry of entries) {
-        const existing = selectStmt.get(entry.signature, entry.classification);
-        if (existing) {
-          updateStmt.run(scanId, String((existing as { id: unknown }).id));
-        } else {
-          insertStmt.run(randomUUID(), entry.signature, entry.classification, scanId);
-        }
-      }
-      this.#db.exec('COMMIT');
-    } catch (err) {
-      this.#db.exec('ROLLBACK');
-      throw err;
-    }
   }
 
   /** Todos los learning records, ordenados por patron. */
   getLearningRecords(): LearningRecord[] {
     return this.#db
-      .prepare('SELECT * FROM learning_records ORDER BY pattern_signature')
-      .all()
+      .all('SELECT * FROM learning_records ORDER BY pattern_signature')
       .map(rowToLearningRecord);
   }
 

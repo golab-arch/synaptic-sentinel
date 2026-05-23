@@ -12,13 +12,11 @@ import { fileURLToPath } from 'node:url';
  * to `cli.mjs`; `colony-db.ts` and `rules.ts` fall back to that sibling path
  * when the canonical `src/` path does not exist (i.e. when bundled).
  *
- * Native modules (FI-001, DG-060 B): `better-sqlite3` is `--external` in the
- * esbuild bundle because esbuild cannot bundle `.node` binaries. We copy the
- * resolved package plus its runtime dep chain into `dist/node_modules/` so
- * Node's resolver walks up from `dist/cli.mjs` and finds them when the .vsix
- * runs. pnpm's strict isolation requires resolving each dep from its parent
- * package's context (`bindings` only resolves from `better-sqlite3`, not from
- * vscode-extension). Install-only deps like `prebuild-install` are skipped.
+ * SQLite driver (FI-001, DG-062 B): `node-sqlite3-wasm` is `--external` in
+ * the esbuild bundle because the package loads its own `.wasm` blob via
+ * `fs.readFile` (esbuild can't bundle that). It has NO transitive runtime
+ * deps -> one cp into `dist/node_modules/`. WASM is ABI-stable across Node
+ * versions and Electron, so no rebuild ceremony for the .vsix.
  */
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const packageDir = dirname(scriptDir);
@@ -37,25 +35,15 @@ for (const asset of flatAssets) {
   copyFileSync(asset, join(distDir, basename(asset)));
 }
 
-// Native package + its runtime dep chain. Each entry resolves from its
-// parent's require() context to navigate pnpm's strict-isolated layout.
+// Native-via-WASM SQLite driver: ship the resolved package (no deps).
 const distNodeModules = join(distDir, 'node_modules');
 rmSync(distNodeModules, { recursive: true, force: true });
 mkdirSync(distNodeModules, { recursive: true });
 
-const requireFromExt = createRequire(import.meta.url);
-const bsqlEntry = requireFromExt.resolve('better-sqlite3/package.json');
-const requireFromBsql = createRequire(bsqlEntry);
-const bindingsEntry = requireFromBsql.resolve('bindings/package.json');
-const requireFromBindings = createRequire(bindingsEntry);
-const fileUriEntry = requireFromBindings.resolve('file-uri-to-path/package.json');
-
-const runtimeDeps = [
-  ['better-sqlite3', dirname(bsqlEntry)],
-  ['bindings', dirname(bindingsEntry)],
-  ['file-uri-to-path', dirname(fileUriEntry)],
-];
-
-for (const [name, source] of runtimeDeps) {
-  cpSync(source, join(distNodeModules, name), { recursive: true, dereference: true });
-}
+const requireFromHere = createRequire(import.meta.url);
+const sqliteEntry = requireFromHere.resolve('node-sqlite3-wasm/package.json');
+const sqliteSource = dirname(sqliteEntry);
+cpSync(sqliteSource, join(distNodeModules, 'node-sqlite3-wasm'), {
+  recursive: true,
+  dereference: true,
+});

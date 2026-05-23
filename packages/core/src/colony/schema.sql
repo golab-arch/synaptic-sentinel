@@ -3,7 +3,12 @@
 -- Vive en el proyecto del cliente: .synaptic-sentinel/colony.db
 -- Ver docs/colony-db.md
 
-PRAGMA journal_mode = WAL;
+-- journal_mode: DELETE (default) en vez de WAL. node-sqlite3-wasm (DG-062 B)
+-- mantiene locks WASM-VFS sobre los archivos -shm/-wal entre instancias
+-- secuenciales dentro del mismo proceso (rompe los tests de vitest que abren
+-- y cierran la DB varias veces); con DELETE el journal se borra al COMMIT y
+-- el siguiente open no encuentra lock. CLI es single-process -> WAL no
+-- aportaba concurrencia real.
 PRAGMA foreign_keys = ON;
 
 -- Versionado de schema (habilita migraciones futuras).

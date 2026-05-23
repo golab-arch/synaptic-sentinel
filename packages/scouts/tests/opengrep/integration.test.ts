@@ -105,6 +105,15 @@ suite('OpenGrepScout - integracion con el binario real de OpenGrep', () => {
     expect(ruleIds.some((r) => r.includes('taint-command-injection'))).toBe(true);
     expect(ruleIds.some((r) => r.includes('taint-xss'))).toBe(true);
     expect(ruleIds.some((r) => r.includes('taint-sql-injection'))).toBe(true);
+
+    // Regresion DG-062 B: la regla SQL solo debe dispararse en la linea real
+    // `db.query('SELECT ... ' + id)`, no contra `child_process.exec(...)` que
+    // genero el FP descubierto en la prueba post-DG-061 (el sink `$DB.exec`
+    // matcheaba `exec(...)` destructurado). El fixture tiene UN solo flujo
+    // hacia SQL (lookupUser), asi que esperamos exactamente 1 hallazgo de
+    // taint-sql-injection.
+    const sqlFindings = result.findings.filter((f) => f.ruleId.includes('taint-sql-injection'));
+    expect(sqlFindings).toHaveLength(1);
   }, 60_000);
 
   it('detecta APIs inseguras (comandos, deserializacion, MD5) en Python', async () => {
