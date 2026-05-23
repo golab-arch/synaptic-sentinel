@@ -6,11 +6,11 @@
 
 ## Current Cycle
 
-- **Cycle:** 61 — pendiente DG-068 (apertura del repo a público)
-- **Phase:** **9 — Strategic Pivot** · Phase 8 sigue COMPLETA funcionalmente · 🏁 **Cero deuda OPEN** · **Producto unificado bajo Apache-2.0 + discurso "The vibe-coding security sentinel"**
-- **Status:** Cycle 60 CERRADO (DG-067 B — re-positioning textual: README + CHANGELOG + ONBOARDING + package.json keywords); awaiting DG-068
+- **Cycle:** 62 — pendiente DG-069 (bump `v0.2.0` + `.vsix` nuevo + tag git · cierra Phase 9)
+- **Phase:** **9 — Strategic Pivot** · Phase 8 sigue COMPLETA funcionalmente · 🏁 **Cero deuda OPEN** · **Apache-2.0 unificado + "The vibe-coding security sentinel" + repo PÚBLICO**
+- **Status:** Cycle 61 CERRADO (DG-068 B — repo `golab-arch/synaptic-sentinel` ahora **PUBLIC** con 10 topics + Apache-2.0 detectado por GitHub); awaiting DG-069
 - **Compliance:** 100%
-- **Synaptic Strength:** 65
+- **Synaptic Strength:** 66
 
 ## Cycles cerrados
 
@@ -32,6 +32,7 @@
 - **Cycle 58** — Marketplace polish v0.1.0 alineado con la familia SYNAPTIC (DG-065 A): publisher, icono, galleryBanner, CHANGELOG, README marketplace-ready ✅ · _follow-up Entry #70 (commit `9f44a82`): tras feedback visual del usuario — logo OFICIAL de la familia GoLab (sustituye al Sentinel-específico, removidos `icon.svg` + `render-icon.mjs`), publisher `RealGoLab`→`GoLab` (id `golab.synaptic-sentinel`), casing `Synaptic Sentinel`→`SYNAPTIC Sentinel` en toda la superficie user-visible_
 - **Cycle 59** — 🔀 **Apertura de Phase 9 — Strategic Pivot** (DG-066 B): giro estratégico ratificado por el usuario a **OSS full Apache-2.0** ("lanzar full capabilities como el mejor sentinela del mundo enfocado en vibe-coding"). Sub-increment atómico de sustrato legal: `LICENSE-PRO` eliminado, `packages/agents` re-licenciado a `Apache-2.0`, header `[PRO]` retirado. DG-001 B **amendado** (`publish-oss.ts` allowlist obsoleto bajo el giro) ✅
 - **Cycle 60** — **Phase 9 sub-increment 2: re-positioning textual** (DG-067 B): tagline elegida por el usuario "**The vibe-coding security sentinel**" (tone conservador — no "world's best"). 5 archivos user-visible reescritos: `README.md` raíz, `packages/vscode-extension/README.md`, `CHANGELOG.md` (nueva entrada `[0.2.0] - _Unreleased — to be cut in DG-069_`), `ONBOARDING.md`, `packages/vscode-extension/package.json` (description + keywords `ai-generated-code`/`llm-security`). Apache-2.0 declarado en todas las superficies user-visible; Brain Layer sin "Pro/proprietary" ✅
+- **Cycle 61** — 🌐 **Phase 9 sub-increment 3: repo PÚBLICO** (DG-068 B): primera acción outward-facing real del proyecto. Pre-flight `gitleaks` sobre historia completa PASS (único hit en fixture deliberadamente vulnerable de `tests/.../fixtures/secrets/`, excluido por guardrail). Metadata refresh (description + homepage al marketplace listing + 10 topics: `vibe-coding`/`security`/`sast`/`taint-analysis`/`ai-coding`/`ai-generated-code`/`llm-security`/`byok`/`vscode-extension`/`synaptic`). `gh repo edit --visibility public --accept-visibility-change-consequences` ejecutado; `gh repo view` confirma `visibility: PUBLIC` + `licenseInfo: Apache-2.0` (detectado automáticamente por GitHub desde `LICENSE` en raíz) ✅
 
 ## Tomo 001 — CERRADO
 
@@ -40,7 +41,7 @@
 
 ## Estado del repo
 
-- 96 commits · `origin` → `github.com/golab-arch/synaptic-sentinel` (**privado**, en sync · apertura pública agendada para DG-068) · push por ciclo activo
+- 100 commits · `origin` → `github.com/golab-arch/synaptic-sentinel` 🌐 **PÚBLICO** (DG-068 B · Apache-2.0 detectado por GitHub · 10 topics) · push por ciclo activo
 - **Licencia unificada Apache-2.0** (DG-066 B — `LICENSE-PRO` eliminado, `packages/agents` re-licenciado) · **Producto íntegramente en inglés** (FI-011 cerrado) · **cache de scanners global operativa** (FI-004 cerrado)
 - **5 scouts**: OpenGrep (**17 reglas SAST** — 11 pattern-based + 6 taint, JS/TS + Python) + Gitleaks + Trivy + Checkov + Vibe-Detect + `colony.db` (v4, **node-sqlite3-wasm**) + `Coordinator` + `reporters`
 - CLI: `scan` (export **JSON / HTML / SARIF**, **`--fail-on`**) · `triage` · `mark-fp` · `scanners install [--global]`
@@ -54,15 +55,16 @@
 - 🔀 **Phase 9 abierta** — pivot estratégico a **OSS full Apache-2.0** ratificado por el usuario (DG-066 B). El producto se reposiciona como **"the world's best security sentinel for vibe-coded projects"** con todas las capacidades en un solo SKU bajo Apache-2.0 (la "capa premium" deja de existir como tier diferenciado). Monetización **diferida** (sponsors / consulting / hosted version a posteriori).
 - 🏁 **`futureImprovements` sigue vacía** — cero deuda técnica registrada.
 - **DG-001 B amendado** — `publish-oss.ts` allowlist obsoleto bajo el giro (no hay código Pro que filtrar). La decisión arquitectónica fue correcta para la estrategia de entonces; el cambio es estratégico, no arquitectónico.
-- **Próximos sub-increments de Phase 9**: DG-068 (repo público — scan secretos en historia + `gh repo edit --visibility public`) → DG-069 (release `v0.2.0` + `.vsix` nuevo + tagging git).
+- **Último sub-increment de Phase 9**: DG-069 (release `v0.2.0` — bump `package.json` 0.1.0→0.2.0 + regenerar `.vsix v0.2.0` con todos los strings nuevos + tag git `v0.2.0`). Cierra Phase 9.
+- **Phase 10** (post Phase 9 cerrada): Launch v0.2.0 al marketplace — publication runbook + `vsce publish` con PAT del usuario.
 - **Instrucciones permanentes**: cada DG incluye mi recomendación explícita (DG-045); commit + push por ciclo (DG-055).
 
 ## Decision Gate abierto
 
-- DG-068 — apertura del repo a público (a presentar)
+- DG-069 — bump `v0.2.0` + `.vsix` nuevo + tag git (a presentar)
 
 ## Last Entry
 
-Entry #72 — FEATURE_IMPLEMENTED (DG-067 B) — 2026-05-23 — SUCCESS · re-positioning textual "The vibe-coding security sentinel" + Apache-2.0 declarado en superficies user-visible
+Entry #73 — REPO_VISIBILITY_CHANGED (DG-068 B) — 2026-05-23 — SUCCESS · `golab-arch/synaptic-sentinel` PRIVATE → **PUBLIC** · Apache-2.0 detectado por GitHub · 10 topics + description + homepage
 
 ---

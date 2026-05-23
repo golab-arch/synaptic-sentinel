@@ -1980,5 +1980,48 @@ Each entry follows this structure:
 
 ---
 
+### Entry #73 - DG-068 (B): apertura del repo a publico; cierra Cycle 61
+```json
+{
+  "timestamp": "2026-05-23T14:30:00.000Z",
+  "cycle": 61,
+  "phase": 9,
+  "action": "REPO_VISIBILITY_CHANGED",
+  "details": {
+    "DG-068": {
+      "title": "Phase 9 sub-increment 3 - apertura del repo a publico",
+      "selected": "Option B",
+      "effect": "Repo golab-arch/synaptic-sentinel paso de PRIVATE a PUBLIC en github.com tras pre-flight limpio (gitleaks + manual review + gitignore check). Primera accion outward-facing real del proyecto - el contenido del monorepo es ahora indexable, clonable y forkable por terceros. Metadata refreshed (description, homepage al marketplace listing, 10 topics).",
+      "url_publica": "https://github.com/golab-arch/synaptic-sentinel"
+    },
+    "preflight_results": {
+      "gitleaks_full_history": "1 hit, ubicado en packages/scouts/tests/gitleaks/fixtures/secrets/leaked-config.js (fixture deliberadamente vulnerable de DG-018 B con awsAccessKey de prueba 'AKIAZ7Q2KL9XW3RV8TYB' - no es una credencial real, es el fixture que valida la deteccion del GitleaksScout). Excluido por el guardrail de la opcion B (matches en tests/**/fixtures/** son aceptables).",
+      "second_sweep_real_keys": "Patrones sk-ant-/AKIA*/ghp_/xox_ buscados explicitamente FUERA de tests/**/fixtures/** -> sin hits adicionales (el unico hit secundario fue la assertion del integration test que verifica que el snippet redacted NO contiene la clave del fixture).",
+      "personal_info_review": "Hits LOW severity todos anticipados en mis caveats de la opcion B: (1) 'Pedro A. Fernandez Weigert' como author en context/Synaptic_Sentinel_v0.4.md linea 4 y mencion como 'founder (Pedro)' en linea 575 y kickoff prompt - author credit estandar en OSS, mantenida. (2) golab.develop@gmail.com en una entrada antigua de BITACORA (entry de git init) - ya discoverable en perfil GitHub de golab-arch, mantenida. (3) Paths locales D:\\GoLAB\\PROYECTOS\\SENTINEL en BITACORA, DESIGN_DOC, INTELLIGENCE.json, context/*.md - operational metadata sin valor para attacker, mantenida. Usuario no pidio redaccion al autorizar la opcion B; los hits estaban listados explicitamente en mis caveats como items opt-out.",
+      "gitignore_check": ".gitignore well-configured (node_modules/, dist/, .scanners/, .synaptic-sentinel/colony.db*, .env*, *.vsix, .vscode/synaptic/audit/, .DS_Store, Thumbs.db, .claude/, packages/*/.synaptic|.vscode|context). git ls-files | grep -E '(node_modules|dist|.scanners|.vsix$|.env$|coverage)' -> 0 resultados. Bien.",
+      "tracked_inventory": "184 archivos tracked en main. Top-level dirs sensatos: .synaptic/, .vscode/ (solo launch.json), context/, docs/, packages/, configs (.editorconfig, .gitattributes, .gitignore, .npmrc, .prettierrc*.json, eslint.config.mjs, tsconfig*.json, vitest.config.ts), package.json, pnpm-workspace.yaml, pnpm-lock.yaml, LICENSE, ONBOARDING.md, README.md.",
+      "verdict": "PASS - guardrail satisfecho, sin hits reales fuera de fixtures, sin secretos en historia."
+    },
+    "gh_operations": {
+      "auth_check": "gh auth status -> Logged in to github.com as 'golab-arch' (keyring). Token scopes: gist, read:org, repo, workflow. Active account.",
+      "metadata_update": "gh repo edit golab-arch/synaptic-sentinel --description '...' --homepage 'https://marketplace.visualstudio.com/items?itemName=GoLab.synaptic-sentinel' --add-topic vibe-coding/security/sast/taint-analysis/ai-coding/ai-generated-code/llm-security/byok/vscode-extension/synaptic (10 topics).",
+      "visibility_change": "gh repo edit golab-arch/synaptic-sentinel --visibility public --accept-visibility-change-consequences. La flag --accept-visibility-change-consequences es obligatoria desde gh v2.x para esta operacion especificamente porque GitHub reconoce que el cambio public->private no revierte clones/forks/archivos web que hayan ocurrido durante la ventana publica.",
+      "verification_post": "gh repo view --json visibility,licenseInfo -> {visibility:'PUBLIC', licenseInfo:{key:'apache-2.0', name:'Apache License 2.0'}, ...}. GitHub detecto automaticamente el LICENSE en la raiz como Apache-2.0."
+    },
+    "files_changed_in_repo": "0 - este DG no tocó ningún archivo del producto. Las únicas operaciones fueron gh CLI calls a la API de GitHub.",
+    "design": "Sub-increment 3 de Phase 9 acotado a la operacion outward-facing (visibility + metadata). Es el primer DG del proyecto con impacto externo real - todos los anteriores tocaban codigo o bookkeeping interno. Anti-optimismo ilusorio activado: el guardrail del gitleaks scan ANTES de tocar visibilidad fue ejecutado (no se asumio que el repo estaba limpio - se verifico). La irreversibilidad parcial del cambio (clones/forks ya ocurridos sobreviven a un eventual repo edit --visibility private) fue reconocida via --accept-visibility-change-consequences que gh CLI exige explicitamente.",
+    "out_of_scope_explicit": "(1) Bump v0.2.0 + regenerar .vsix v0.2.0 + tagging git v0.2.0 (queda para DG-069, cierra Phase 9). (2) vsce publish al marketplace (es Phase 10 con runbook + PAT del usuario). (3) Announcement materials (CONTRIBUTING.md, Discussions, issues iniciales) - rechazado de la opcion C porque genera fricción de mantenimiento sin demanda de usuarios pre-1.0. (4) Redaccion de personal info en historia git (Pedro/email/paths) - usuario no la pidio; si la quiere despues, es DG aparte con git filter-repo (operacion destructiva sobre historia).",
+    "verification_real_marketplace_id": "El homepage URL apunta al item GoLab.synaptic-sentinel del marketplace; ese listing AUN NO EXISTE (.vsix v0.1.0 ya esta empaquetado pero no publicado; vsce publish es Phase 10). Anti-optimismo ilusorio: el link va a 404 hasta que se publique - el repo public refleja la intencion declarativa del posicionamiento, no un estado completo.",
+    "scope_note_irreversibility": "Cualquier persona que clone o forke el repo durante la ventana publica conserva la copia. Si en algun ciclo futuro el usuario decide volver a privado (gh repo edit --visibility private), las copias que se hayan tomado en este intermedio sobreviven - es por eso que el guardrail del gitleaks scan tenia que ser exhaustivo y no opcional. Resultado: el scan paso limpio, las copias publicas son seguras.",
+    "commit": "este registro SYNAPTIC se asienta en el commit docs siguiente (no hay commit feat porque el cambio fue operacional en GitHub, no en el codigo)."
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 66,
+  "complianceScore": 100
+}
+```
+
+---
+
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-23T13:30:00.000Z*
+*Last Updated: 2026-05-23T14:30:00.000Z*
