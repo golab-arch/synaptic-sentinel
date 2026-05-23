@@ -1917,5 +1917,37 @@ Each entry follows this structure:
 
 ---
 
+### Entry #71 - DG-066 (B): apertura de Phase 9 — Strategic Pivot a OSS full Apache-2.0; cierra Cycle 59
+```json
+{
+  "timestamp": "2026-05-23T12:30:00.000Z",
+  "cycle": 59,
+  "phase": 9,
+  "action": "STRATEGIC_PIVOT",
+  "details": {
+    "DG-066": {
+      "title": "Apertura de Phase 9 (Strategic Pivot) - unificacion legal del producto",
+      "selected": "Option B",
+      "effect": "Sub-increment atomico del pivot: solo el sustrato legal. LICENSE-PRO eliminado, packages/agents re-licenciado a Apache-2.0, header [PRO] retirado de packages/agents/src/index.ts. El producto unifica su licenciamiento; la 'capa premium' deja de existir como tier diferenciado. Re-positioning textual de README/CHANGELOG/ONBOARDING queda para DG-067; visibilidad del repo y bump v0.2.0 quedan para DG-068/DG-069."
+    },
+    "trigger": "Usuario indico: 'quiero darle todo el potencial (incluido el que habiamos reservado para la version comercial) y lanzarlo full capabilities como el mejor sentinela de software del mundo enfocado en proyectos de vibe-coding'. Modelo elegido por AskUserQuestion: OSS full (Apache-2.0 todo); BYOK Anthropic; monetizacion DIFERIDA (sponsors/consulting/hosted version a posteriori); repo a abrir publico en Phase 9.",
+    "files_changed": "3 archivos. LICENSE-PRO (eliminado; era placeholder EULA Ley 17.336 CL nunca finalizado). packages/agents/package.json (license SEE LICENSE IN LICENSE-PRO -> Apache-2.0; description 'Capa Cerebro (Pro): ...' -> 'Brain Layer: LLM-driven agents - Triage, Context, Remediation. BYOK Anthropic.'). packages/agents/src/index.ts (header JSDoc: drop tag [PRO] + reemplazo de 'NO se distribuye bajo Apache-2.0 - ver LICENSE-PRO' por 'Distribuido bajo Apache-2.0').",
+    "design": "Sub-increment B atomico - solo sustrato legal, bounded y mecanico. Razones de la granularidad: (1) el README/CHANGELOG/ONBOARDING que dirian 'Apache-2.0 todo' serian literalmente falsos mientras packages/agents/package.json siguiera diciendo SEE LICENSE IN LICENSE-PRO; el sustrato legal precede al texto que lo cita (anti-optimismo ilusorio textbook). (2) Patron probado: FI-008 cerro en 5 sub-increments balanceados (DG-055..DG-059), FI-011 en 5 etapas (DG-048..DG-052); Phase 9 sigue el mismo patron (DG-066 sustrato -> DG-067 texto -> DG-068 repo -> DG-069 release v0.2.0). (3) Verificable mecanicamente con grep + pnpm verify, no depende de gustos sobre marketing copy. (4) Reversible trivial via git revert.",
+    "DG-001_amendment": "DG-001 B (monorepo unico con publish-oss.ts allowlist) queda AMENDADO bajo el giro: no hay codigo Pro que filtrar; el script publish-oss.ts (diferido, nunca implementado) queda obsoleto. La decision arquitectonica de DG-001 fue correcta para la estrategia de entonces (OSS+Pro split) - el cambio es estrategico, no arquitectonico. No se anula DG-001; se anota como amended con referencia a DG-066.",
+    "phase_transition": "Phase 8 (Distribucion) sigue COMPLETA - el .vsix v0.1.0 producido en Cycle 58 sigue siendo valido funcionalmente. Phase 9 (Strategic Pivot) ABRE con este DG: cubre Cycles 59-62 segun la hoja de ruta presentada al usuario (DG-066 sustrato legal -> DG-067 re-positioning textual -> DG-068 repo publico -> DG-069 release v0.2.0). Phase 10 (Launch v0.2.0) queda agendada para post Phase 9.",
+    "verification_real": "grep -E 'LICENSE-PRO|\\[PRO\\]|capa premium|Capa Cerebro \\(Pro\\)' en packages/agents -> vacio (post-cambios). pnpm verify verde: format:check (prettier --check .) + lint (eslint .) + build (tsc -b && esbuild bundle de la extension + CLI) + test:unit (302 tests pasados en 7.18s). Cero cambios funcionales detectables por tests porque el JSON metadata + comentarios no son ejecutables.",
+    "tests": "0 nuevos, 0 modificados - total 302 unit verdes + 11+3 gated integration sin tocar",
+    "checks": "format:check / lint / build / test:unit - todos en verde",
+    "scope_note_no_marketplace_impact": "Este ciclo NO produce un .vsix nuevo; NO publica al marketplace; NO abre el repo. El usuario NO vera diferencia user-visible aun. El valor es legal/estructural - el ladrillo de base sobre el que descansaran DG-067/DG-068/DG-069. Anti-optimismo ilusorio: NO declaramos el lanzamiento hecho, declaramos solo que el sustrato legal esta puesto.",
+    "commits_split": "Feature en commit 0e299e3 feat(agents); este registro SYNAPTIC se asienta en el commit docs siguiente."
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 64,
+  "complianceScore": 100
+}
+```
+
+---
+
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-23T11:30:00.000Z*
+*Last Updated: 2026-05-23T12:30:00.000Z*
