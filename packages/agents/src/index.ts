@@ -12,6 +12,7 @@ export const PACKAGE_NAME = '@synaptic-sentinel/agents';
 
 export * from './llm-client.js';
 export * from './anthropic-client.js';
+export * from './openai-compatible-client.js';
 export * from './brain-agent.js';
 export * from './triage-agent.js';
 export * from './context-agent.js';
