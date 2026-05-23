@@ -29,7 +29,7 @@
 - **Cycle 55** — Pivot a `node-sqlite3-wasm` + fix FP SQL (DG-062 B): cierra FI-001 de raíz tras la prueba del usuario ✅
 - **Cycle 56** — FI-003 etapa 2 (Python): 3 reglas `mode: taint` (DG-063 B) → **FI-003 cerrado entero** ✅
 - **Cycle 57** — FI-009: `AnthropicLlmClient` → `@anthropic-ai/sdk` oficial (DG-064 A) → 🏁 **`futureImprovements` vacía por primera vez** ✅
-- **Cycle 58** — Marketplace polish v0.1.0 alineado con la familia SYNAPTIC (DG-065 A): publisher `RealGoLab`, icono Sentinel-específico, galleryBanner, CHANGELOG, README marketplace-ready ✅
+- **Cycle 58** — Marketplace polish v0.1.0 alineado con la familia SYNAPTIC (DG-065 A): publisher, icono, galleryBanner, CHANGELOG, README marketplace-ready ✅ · _follow-up Entry #70 (commit `9f44a82`): tras feedback visual del usuario — logo OFICIAL de la familia GoLab (sustituye al Sentinel-específico, removidos `icon.svg` + `render-icon.mjs`), publisher `RealGoLab`→`GoLab` (id `golab.synaptic-sentinel`), casing `Synaptic Sentinel`→`SYNAPTIC Sentinel` en toda la superficie user-visible_
 
 ## Tomo 001 — CERRADO
 
@@ -43,7 +43,7 @@
 - **5 scouts**: OpenGrep (**17 reglas SAST** — 11 pattern-based + 6 taint, JS/TS + Python) + Gitleaks + Trivy + Checkov + Vibe-Detect + `colony.db` (v4, **node-sqlite3-wasm**) + `Coordinator` + `reporters`
 - CLI: `scan` (export **JSON / HTML / SARIF**, **`--fail-on`**) · `triage` · `mark-fp` · `scanners install [--global]`
 - Brain Layer (Pro): 3 agentes via **`@anthropic-ai/sdk` oficial** detrás del contrato `LlmClient`
-- Extensión VSCode: comandos/hover/Code Actions/status bar/pseudoterminal/webview + comando "Install Scanners" turnkey; **`.vsix v0.1.0` marketplace-ready** (`synaptic-sentinel-0.1.0.vsix`, 1.26 MB, id `RealGoLab.synaptic-sentinel`, icono + galleryBanner alineados con la familia SYNAPTIC)
+- Extensión VSCode: comandos/hover/Code Actions/status bar/pseudoterminal/webview + comando "SYNAPTIC Sentinel: Install Scanners" turnkey; **`.vsix v0.1.0` marketplace-ready** (`synaptic-sentinel-0.1.0.vsix`, 1.27 MB, id `golab.synaptic-sentinel`, logo OFICIAL GoLab + galleryBanner alineados con la familia SYNAPTIC)
 - **Brain Layer (Pro) COMPLETO** · **UX verbose COMPLETA** · **memoria del enjambre COMPLETA** · **CI-native COMPLETA** · **Distribución COMPLETA** · **Detección con taint COMPLETA** · **Cliente LLM oficial COMPLETO** · **Marketplace polish COMPLETO**
 - `verify` (format:check / lint / build / **test:unit**) verde · 313 tests + 3 gated (302 unit / 11+3 integration)
 
@@ -60,6 +60,6 @@
 
 ## Last Entry
 
-Entry #69 — FEATURE_IMPLEMENTED (DG-065 A) — 2026-05-22 — SUCCESS · `.vsix v0.1.0` marketplace-ready
+Entry #70 — DEVIATION_CORRECTED (follow-up DG-065) — 2026-05-23 — SUCCESS · logo familia GoLab + publisher `GoLab` + casing `SYNAPTIC Sentinel`
 
 ---

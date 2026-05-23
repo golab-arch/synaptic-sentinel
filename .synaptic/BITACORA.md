@@ -1888,5 +1888,34 @@ Each entry follows this structure:
 
 ---
 
+### Entry #70 - DEVIATION_CORRECTED — follow-up de DG-065 (logo + publisher + casing) tras feedback visual del usuario
+```json
+{
+  "timestamp": "2026-05-23T11:30:00.000Z",
+  "cycle": 58,
+  "phase": 8,
+  "action": "DEVIATION_CORRECTED",
+  "linkedDecision": "DG-065",
+  "details": {
+    "trigger": "Usuario comparo visualmente las marketplace cards de SYNAPTIC Expert vs Synaptic Sentinel tras DG-065 y solicito tres correcciones explicitas para alineacion con la familia.",
+    "corrections": {
+      "logo": "media/icon.png ya no es el diseño Sentinel-especifico (escudo + glifo de neurona) generado por el render-icon.mjs. Reemplazado por el logo OFICIAL de la familia GoLab (D:\\\\GoLAB\\\\PROYECTOS\\\\SYNAPTIC_VSC_EXTENSION\\\\landing\\\\images\\\\GoLab_Aplicac_Fondo_Negro_120.png, 120x120 RGBA, 8.45 KB). El icono de Sentinel queda visualmente IDENTICO al de Expert: el branding de familia prima sobre la diferenciacion por producto.",
+      "publisher": "RealGoLab -> GoLab. El id de marketplace pasa de RealGoLab.synaptic-sentinel a golab.synaptic-sentinel (slug case-insensitive). Sin impacto practico (pre-publication).",
+      "casing": "'Synaptic Sentinel' -> 'SYNAPTIC Sentinel' en TODAS las superficies user-visible: displayName, 4 command categories, view name, configuration title, status bar (3 estados), Code Actions, notifications (info/warning/error), hover markdown, clipboard label, terminal name, webview h2, tomo-view warning, SARIF tool name, HTML reporter title+footer, CLI USAGE banner, CLI scanners install log, CLI scan warning. Tests con assertions hard-coded actualizados (sarif-reporter.test.ts asercion del driver.name; diagnostics.test.ts asercion del hover). package descriptions y comentarios tambien migrados para consistencia. Bookkeeping en .synaptic/ NO se toca - es historico."
+    },
+    "removed": "media/icon.svg (era la fuente del icono Sentinel-especifico que ya no aplica) y scripts/render-icon.mjs (encoder PNG pure-Node que generaba el icono propio).",
+    "verification_real": "pnpm verify verde (test:unit 302; sin cambios funcionales). vsce package produjo synaptic-sentinel-0.1.0.vsix (429 archivos, 1.27 MB) con icon.png nuevo + manifest validado al extraer la copia (publisher=GoLab, displayName=SYNAPTIC Sentinel, todas las command categories = SYNAPTIC Sentinel, viewName=SYNAPTIC Sentinel, configTitle=SYNAPTIC Sentinel, galleryBanner intacto).",
+    "files_changed": "23 archivos (incluye 2 deleciones - icon.svg y render-icon.mjs).",
+    "commit": "fix en el commit 9f44a82 fix(vscode-extension); este registro SYNAPTIC se asienta en el commit docs siguiente.",
+    "scope_note": "No se incrementa el cycle (Cycle 58 quedo cerrado con DG-065). Esta entry es un follow-up: una sola sesion de correcciones que no tienen entidad de DG propio (sin 3 opciones, sin recomendacion estrategica - el usuario indico las 3 correcciones puntuales y se ejecutaron literal). El siguiente cycle nuevo es 59 con DG-066."
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 63,
+  "complianceScore": 100
+}
+```
+
+---
+
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-23T03:30:00.000Z*
+*Last Updated: 2026-05-23T11:30:00.000Z*
