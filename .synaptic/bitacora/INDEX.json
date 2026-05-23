@@ -2,7 +2,7 @@
   "version": "1.0",
   "projectId": "sentinel-1779304140796",
   "projectName": "SENTINEL",
-  "totalCycles": 54,
+  "totalCycles": 55,
   "currentTomeId": 2,
   "cyclesPerTome": 50,
   "tomes": [
@@ -35,10 +35,10 @@
         "from": "2026-05-22T23:30:00.000Z",
         "to": ""
       },
-      "summary": "Tomo 002 abierto en el Cycle 51, Phase 8 (Distribucion). Cycles 51-52: el .vsix instalable producido y validado (DG-058) y el sub-comando turnkey 'scanners install' integrado en la extension (DG-059) - FI-008 CERRADO, Phase 8 COMPLETA. Cycle 53: ColonyDb migrado de node:sqlite a better-sqlite3 (DG-060) - FI-001 CERRADO. Cycle 54: taint analysis JS/TS con 3 reglas (DG-061, FI-003 etapa 1; Python diferido a etapa 2). Continua la deuda restante: FI-003 etapa 2 (Python), FI-009 cliente LLM.",
-      "keyDecisions": ["DG-058", "DG-059", "DG-060", "DG-061"],
-      "cycleCount": 4,
-      "successCount": 4,
+      "summary": "Tomo 002 abierto en el Cycle 51, Phase 8 (Distribucion). Cycles 51-52: .vsix instalable + sub-comando turnkey 'scanners install' (DG-058/DG-059) - FI-008 CERRADO, Phase 8 COMPLETA. Cycle 53: ColonyDb migrado de node:sqlite a better-sqlite3 (DG-060) - FI-001 cerrado en codigo. Cycle 54: taint analysis JS/TS con 3 reglas (DG-061, FI-003 etapa 1). Cycle 55: la prueba del usuario revelo ABI mismatch de better-sqlite3 con Electron + FP del sink SQL; DG-062 pivot a node-sqlite3-wasm (WASM puro sin ABI) + drop del sink $DB.exec - FI-001 *re*-cerrado de raiz. Continua la deuda restante: FI-003 etapa 2 (Python), FI-009 cliente LLM.",
+      "keyDecisions": ["DG-058", "DG-059", "DG-060", "DG-061", "DG-062"],
+      "cycleCount": 5,
+      "successCount": 5,
       "failureCount": 0,
       "jsonPath": "tomes/tome-002.json",
       "mdPath": "tomes/tome-002.md",
@@ -107,13 +107,14 @@
     { "id": "DG-059", "title": "Proximo paso del roadmap (sub-comando scanners install turnkey - cierra FI-008)", "selected": "A", "cycle": 52, "date": "2026-05-22" },
     { "id": "DG-060", "title": "Proximo paso del roadmap (migracion de ColonyDb a better-sqlite3 - cierra FI-001)", "selected": "B", "cycle": 53, "date": "2026-05-22" },
     { "id": "DG-061", "title": "Proximo paso del roadmap (taint analysis JS/TS - FI-003 etapa 1)", "selected": "B", "cycle": 54, "date": "2026-05-22" },
+    { "id": "DG-062", "title": "Proximo paso del roadmap (fix de FP SQL + pivot del driver SQLite a WASM)", "selected": "B", "cycle": 55, "date": "2026-05-22" },
     { "id": "Q1", "title": "Package manager", "selected": "pnpm", "cycle": 1, "date": "2026-05-20" }
   ],
   "metrics": {
-    "totalDecisions": 62,
+    "totalDecisions": 63,
     "optionDistribution": {
       "A": 35,
-      "B": 26,
+      "B": 27,
       "C": 1
     },
     "overallSuccessRate": 100,
@@ -126,8 +127,8 @@
       "5": 5,
       "6": 4,
       "7": 29,
-      "8": 9
+      "8": 10
     }
   },
-  "lastUpdated": "2026-05-23T01:30:00.000Z"
+  "lastUpdated": "2026-05-23T02:00:00.000Z"
 }

@@ -1771,5 +1771,34 @@ Each entry follows this structure:
 
 ---
 
+### Entry #66 - DG-062 (B): pivot a SQLite WASM + fix FP de SQL taint; cierra Cycle 55
+```json
+{
+  "timestamp": "2026-05-23T02:00:00.000Z",
+  "cycle": 55,
+  "phase": 8,
+  "action": "FEATURE_IMPLEMENTED",
+  "details": {
+    "DG-062": {
+      "title": "Proximo paso del roadmap (fix de FP SQL + pivot del driver SQLite a WASM)",
+      "selected": "Option B",
+      "effect": "Cierra los dos bugs descubiertos al probar el .vsix tras DG-061: (1) FI-001 *re*-cerrado pivoteando de better-sqlite3 (NAPI prebuilts ABI-incompatibles con Electron) a node-sqlite3-wasm (WASM puro, sin ABI). (2) FP del sink $DB.exec en la regla taint SQL eliminado (matcheaba child_process.exec)."
+    },
+    "files": "packages/core/package.json (better-sqlite3 -> node-sqlite3-wasm@^0.8; drop @types/better-sqlite3). packages/core/src/colony/colony-db.ts (driver pivot via createRequire por interop CJS; binds via array; statements finalizados via helper withStmt para batches; one-shots via db.run/get/all; comentarios). packages/core/src/colony/schema.sql (drop PRAGMA WAL - causaba lock issues en reopens secuenciales de node-sqlite3-wasm; CLI single-process no necesitaba WAL). packages/scouts/src/opengrep/rules/sentinel-baseline.yaml (sentinel-js-taint-sql-injection: drop sink $DB.exec, comentario explica el por que). packages/scouts/tests/opengrep/integration.test.ts (+asercion regresion: sqlFindings length 1 - antes habia FP en linea 18). packages/vscode-extension/package.json (deps swap; bundle --external:node-sqlite3-wasm). packages/vscode-extension/scripts/copy-cli-assets.mjs (copia node-sqlite3-wasm, sin transitive deps). package.json raiz (drop better-sqlite3 de pnpm.onlyBuiltDependencies).",
+    "design": "Tres descubrimientos a lo largo del ciclo, todos honestos: (a) better-sqlite3 v12 prebuilts NO son NAPI universal sino ABI-especificos (mi reclamo de DG-060 era incorrecto); la prueba del usuario en VSCode hizo aparecer el NODE_MODULE_VERSION mismatch que evite. (b) node-sqlite3-wasm es CJS sin namedExports detectables por cjs-module-lexer -> `import { Database }` y `import * as` ambos fallan en Node ESM runtime; el bundle exigio createRequire para CJS interop limpia. (c) node-sqlite3-wasm NO finaliza statements al close (documentado pero olvidado al migrar) -> 4 tests de triage fallaron con 'database is locked' al reabrir; fix con helper withStmt para batches y migracion de one-shots a db.run/get/all (que finalizan internamente). El FP del sink SQL es un caso clasico de over-specification del pattern: $DB.exec matchea cualquier metodo .exec, no solo SQL.",
+    "verification_real": "pnpm verify verde (test:unit 304). pnpm test:integration verde (10 passed - el test taint nuevo afirma sqlFindings.length === 1, prueba EMPIRICA de que la FP no se reactiva). E2E REAL: la CLI bundleada en dist/cli.mjs y la CLI extraida del .vsix corren ambas con node-sqlite3-wasm cargado correctamente desde dist/node_modules/; 9 hallazgos contra el fixture vulnerable (era 10 con FP), las 3 reglas taint dispararon en lugares correctos. El .vsix repackageo en 620.95 KB (vs 3.65 MB con better-sqlite3 + bindings + file-uri-to-path). CAVEAT: la carga del .vsix en el extension host de VSCode Electron no se reverifico, pero la clase de bug entera desaparece - WASM no tiene ABI.",
+    "tests": "+1 asercion de regresion en el test taint existente; 0 tests nuevos - total 314 verdes + 3 gated (304 unit / 10+3 integration)",
+    "checks": "format:check / lint / build / test:unit / test:integration / vsce package - todos en verde; e2e doble (dist/ y .vsix extraido) exitoso",
+    "commit": "feature en el commit 6f44dce feat(core,scouts,vscode-extension); el registro SYNAPTIC se asienta en el commit docs siguiente",
+    "honest_journey": "DG-060 B (better-sqlite3 NAPI) fue una decision tomada con informacion incompleta - dije 'NAPI ABI-estable cross-Electron' confiando en una propiedad de NAPI que en la practica no se cumple cuando prebuild-install elige builds ABI-especificos. El caveat que documente como 'no verificado end-to-end' resulto ser un bug real. El usuario lo expuso. DG-062 lo cierra de raiz con WASM."
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 60,
+  "complianceScore": 100
+}
+```
+
+---
+
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-23T01:30:00.000Z*
+*Last Updated: 2026-05-23T02:00:00.000Z*
