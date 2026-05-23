@@ -6,11 +6,11 @@
 
 ## Current Cycle
 
-- **Cycle:** 66 — pendiente DG-073 (provider registry + `.sentinel/agents.yaml` + SecretStorage + Zod→JSON Schema bridge + bundle externals — Phase 11 sub-increment 4 de 10)
-- **Phase:** **9 CERRADA · Phase 11 — Multi-Provider Brain Layer** (Phase 10 deferida y renumerada como Phase 12) · Phase 8 sigue COMPLETA funcionalmente · 🏁 **Cero deuda OPEN** · **provider-agnostic-by-design declarado · 3 de 3 adapters extraídos**
-- **Status:** Cycle 65 CERRADO (DG-072 B — `OllamaLlmClient` extraído ~170 líneas + 15 tests; API nativa `/api/chat` con XGrammar opt-in; helpers `isOllamaAvailable` + `listOllamaModels`; sin nueva dep; cliente **dormant** hasta DG-073); awaiting DG-073
+- **Cycle:** 67 — pendiente DG-074 (UI panel VSCode extension con per-agent picker + Ollama auto-discovery — Phase 11 sub-increment 5 de 10)
+- **Phase:** **9 CERRADA · Phase 11 — Multi-Provider Brain Layer** (5 de 10 sub-increments cerrados; Phase 10 deferida y renumerada como Phase 12) · Phase 8 sigue COMPLETA funcionalmente · 🏁 **Cero deuda OPEN** · **provider-agnostic-by-design · 3 de 3 adapters extraídos · multi-provider FUNCIONAL end-to-end vía CLI**
+- **Status:** Cycle 66 CERRADO (DG-073 B — el sub-increment más grande de Phase 11 y el PRIMER ciclo con valor user-visible real: provider registry + `.sentinel/agents.yaml` + wiring runtime al CLI + SecretStorage namespaceado + bundle externals; 2 feat commits `5656e2d` + `e9ca983`; 375 tests verde +50 funcionalmente; retro-compat v0.2.0 preservada); awaiting DG-074
 - **Compliance:** 100%
-- **Synaptic Strength:** 70
+- **Synaptic Strength:** 71
 
 ## Cycles cerrados
 
@@ -37,6 +37,7 @@
 - **Cycle 63** — 🧭 **Apertura de Phase 11 — Multi-Provider Brain Layer** (DG-070 A): bookkeeping puro tras viaje exploratorio extenso (2 rounds de discovery, 6 agentes web cubriendo librerías de abstracción + landscape de providers + protocolo OpenAI-compatible + benchmarks externos + Ollama deep dive + UX patterns). El producto se reposiciona como **provider-agnostic-by-design**. 10 decisiones consolidadas del usuario: Modo D arquitectónico (3 adapters: Anthropic native + OpenAI-compat genérico + Ollama-específico con XGrammar), YAML `.sentinel/agents.yaml` (Continue.dev pattern), provider-por-agente, benchmark empírico obligatorio antes de v0.3.0. **Phase 10 (vsce publish v0.2.0) DEFERIDA y renumerada como Phase 12**. Roadmap Phase 11: 10 sub-increments DG-070..DG-079. NO toca código ✅
 - **Cycle 64** — 🧩 **Phase 11 sub-increment 2: `OpenAiCompatibleLlmClient` extraído** (DG-071 A): adapter genérico (~120 líneas + 8 unit tests con `fakeFetch`) que sirve a **14+ providers** vía `baseURL` override (OpenAI / Groq / DeepSeek / Mistral / Together / Fireworks / Perplexity / xAI Grok / Gemini-via-OpenAI-compat / AWS Bedrock Mantle / Azure OpenAI v1 / Ollama-sin-grammar / LM Studio / vLLM). Patrón replicado del `AnthropicLlmClient`: `#client` privado + helper parser puro + `temperature=0` hardcoded para determinism cross-provider. Dep `openai@^6.18.0` agregada; `pnpm install` con `NODE_OPTIONS=--use-system-ca` (L-001). Cliente queda **dormant** (re-exportado pero ningún command lo invoca todavía — wiring en DG-073). `pnpm verify` verde: 43 test files / 310 tests (+8 nuevos). Cero cambios al `AnthropicLlmClient`, al contrato `LlmClient`, ni a los 3 agentes consumidores ✅
 - **Cycle 65** — 🦙 **Phase 11 sub-increment 3: `OllamaLlmClient` con XGrammar opt-in** (DG-072 B): tercer y último adapter del Modo D. ~170 líneas + 15 unit tests con `fakeFetch`. Usa la **API nativa** de Ollama (`/api/chat`, no `/v1/chat/completions`) porque sólo la nativa soporta XGrammar constrained-by-grammar vía el param `format` desde v0.5+. Acepta `format` opt-in en constructor: JSON Schema object para XGrammar, `"json"` literal legacy, o undefined para texto libre. **Sin nueva dep** (`fetch` global Node 20+). Helpers exportados de auto-discovery: `isOllamaAvailable()` con timeout 1s vía `AbortController`, `listOllamaModels()` devuelve `readonly string[]` (vacío en cualquier error, no lanza). `pnpm verify` verde: 44 test files / 325 tests (+15 nuevos). Cliente **dormant**. **3 de 3 adapters del Modo D extraídos** ✅
+- **Cycle 66** — 🔌 **Phase 11 sub-increment 4: provider registry + wiring runtime + bundle externals — PRIMER CICLO CON VALOR USER-VISIBLE** (DG-073 B): el sub-increment más grande de Phase 11. Compone los 3 adapters extraídos en un provider registry funcional + schema YAML versionable `.sentinel/agents.yaml` + 3 JSON Schemas hand-written para XGrammar + wiring runtime al CLI (`commands/triage.ts` refactored con `resolveAgentLlmClients` y precedencia `injected > CLI flag > yaml > Anthropic fallback`) + flag `--agent-provider <agent>=<provider>/<model>` repeatable + SecretStorage namespaceado con migración legacy + bundle `--external:openai`. **Multi-provider FUNCIONAL end-to-end vía CLI** — usuario puede crear `.sentinel/agents.yaml` con per-agent provider + setear `SENTINEL_<PROVIDER>_API_KEY` + correr `synaptic-sentinel triage`. **Retro-compat v0.2.0 PRESERVADA**: `ANTHROPIC_API_KEY`-only users siguen funcionando idéntico (fallback implícito a Anthropic Haiku 4.5). 2 feat commits (`5656e2d` core+agents + `e9ca983` cli+vscode-extension) + 1 docs commit. `pnpm verify` verde 48 test files / 375 tests (+50 funcionalmente). Smoke `vsce package` verde 1838 archivos / 3.08 MB (vs 1.27 MB; +143% por SDK openai) ✅
 
 ## Tomo 001 — CERRADO
 
@@ -67,10 +68,10 @@
 
 ## Decision Gate abierto
 
-- DG-073 — provider registry + `.sentinel/agents.yaml` + SecretStorage namespaceado + `--agent-provider` flag + Zod→JSON Schema bridge + bundle `--external:openai` (Phase 11 sub-increment 4 de 10) — a presentar
+- DG-074 — UI panel del VSCode extension (Settings webview con per-agent picker + Ollama auto-discovery + Test buttons per provider) — Phase 11 sub-increment 5 de 10 — a presentar
 
 ## Last Entry
 
-Entry #77 — FEATURE_IMPLEMENTED (DG-072 B) — 2026-05-23 — SUCCESS · `OllamaLlmClient` extraído con XGrammar opt-in (`/api/chat` nativo); helpers `isOllamaAvailable` + `listOllamaModels`; sin nueva dep; cliente **dormant** · **3 de 3 adapters del Modo D extraídos**
+Entry #78 — FEATURE_IMPLEMENTED (DG-073 B) — 2026-05-23 — SUCCESS · **PRIMER CICLO DE PHASE 11 CON VALOR USER-VISIBLE REAL** · provider registry + `.sentinel/agents.yaml` + wiring runtime al CLI + SecretStorage namespaceado + bundle externals · multi-provider FUNCIONAL end-to-end vía CLI · 2 feat commits · retro-compat v0.2.0 preservada
 
 ---
