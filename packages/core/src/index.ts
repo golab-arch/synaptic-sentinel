@@ -13,3 +13,5 @@ export const PACKAGE_NAME = '@synaptic-sentinel/core';
 export * from './types/index.js';
 export * from './colony/colony-db.js';
 export * from './coordinator/coordinator.js';
+export * from './config/agents-config.js';
+export * from './config/agent-output-schemas.js';

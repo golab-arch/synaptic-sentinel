@@ -15,6 +15,7 @@ export * from './anthropic-client.js';
 export * from './openai-compatible-client.js';
 export * from './ollama-client.js';
 export * from './brain-agent.js';
+export * from './provider-registry.js';
 export * from './triage-agent.js';
 export * from './context-agent.js';
 export * from './remediation-agent.js';
