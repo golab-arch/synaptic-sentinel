@@ -91,6 +91,22 @@ suite('OpenGrepScout - integracion con el binario real de OpenGrep', () => {
     expect(ruleIds.some((r) => r.includes('settimeout-string'))).toBe(true);
   }, 60_000);
 
+  it('detecta inyecciones via taint analysis (req -> exec / innerHTML / sql) en JavaScript', async () => {
+    const result = await scout.scan({
+      scanId: 'it-js-taint',
+      rootPath: fixturesRoot,
+      targetPaths: ['javascript'],
+      mode: 'full',
+    });
+    expect(result.status).toBe('ok');
+    const ruleIds = result.findings.map((f) => f.ruleId);
+    // Las 3 reglas taint nuevas (FI-003 etapa 1, DG-061): se activan solo
+    // cuando un source (req.*, process.argv, etc.) llega a un sink peligroso.
+    expect(ruleIds.some((r) => r.includes('taint-command-injection'))).toBe(true);
+    expect(ruleIds.some((r) => r.includes('taint-xss'))).toBe(true);
+    expect(ruleIds.some((r) => r.includes('taint-sql-injection'))).toBe(true);
+  }, 60_000);
+
   it('detecta APIs inseguras (comandos, deserializacion, MD5) en Python', async () => {
     const result = await scout.scan({
       scanId: 'it-py-unsafe',

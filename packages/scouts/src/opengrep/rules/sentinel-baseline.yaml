@@ -1,15 +1,24 @@
 # Synaptic Sentinel - ruleset baseline de OpenGrep.
 #
 # Catalogo curado de reglas SAST para los lenguajes LOCKED del MVP
-# (JS/TS + Python). Reglas basadas en patrones sintacticos deterministas y de
-# alta confianza; el analisis con taint queda para una fase posterior (FI-003).
+# (JS/TS + Python). Combina reglas basadas en patrones sintacticos
+# deterministas (high recall) y reglas de TAINT ANALYSIS (high precision:
+# solo cuando datos no confiables fluyen a un sink peligroso).
 #
-# Cobertura (11 reglas): ejecucion dinamica de codigo (CWE-95), inyeccion de
-# comandos del SO (CWE-78), Cross-Site Scripting (CWE-79), deserializacion
-# insegura (CWE-502) y criptografia debil (CWE-327).
+# Cobertura (14 reglas):
+#   - Pattern-based (11): ejecucion dinamica de codigo (CWE-95), inyeccion
+#     de comandos del SO (CWE-78), Cross-Site Scripting (CWE-79),
+#     deserializacion insegura (CWE-502), criptografia debil (CWE-327).
+#   - Taint (3, solo JS/TS por ahora; Python diferido): command injection
+#     (CWE-78), XSS via DOM (CWE-79), SQL injection (CWE-89). Cada regla
+#     declara `pattern-sources` (inputs no confiables: req.body, req.query,
+#     etc.) y `pattern-sinks` (sinks peligrosos). El motor solo reporta
+#     cuando un flujo source->sink llega sin saneo.
 #
-# Ampliado en DG-043 (Cycle 36): 4 -> 11 reglas.
-# Mensajes en ingles desde DG-049 (Cycle 42, FI-011 etapa 2).
+# Historial:
+#   - DG-043 (Cycle 36): 4 -> 11 reglas pattern-based.
+#   - DG-049 (Cycle 42, FI-011 etapa 2): mensajes a ingles.
+#   - DG-061 (Cycle 54, FI-003 etapa 1): 3 reglas taint para JS/TS.
 #
 # Licencia: Apache-2.0 (OSS).
 rules:
@@ -99,6 +108,120 @@ rules:
     patterns:
       - pattern: $EL.innerHTML = $VAL
       - pattern-not: $EL.innerHTML = "..."
+
+  # --- JavaScript / TypeScript: taint analysis (FI-003 etapa 1, DG-061) -------
+  # Sources comunes a las 3 reglas: convencion Express (req.body, req.query,
+  # req.params, req.headers, req.cookies) + process.argv / process.env (CLI).
+  # XSS agrega ademas window.location y document.URL (browser-side).
+
+  - id: sentinel-js-taint-command-injection
+    languages:
+      - javascript
+      - typescript
+    severity: ERROR
+    mode: taint
+    message: >-
+      User-controlled data flows to a command-execution sink without
+      sanitization (taint analysis). This is OS command injection: an
+      attacker can inject shell commands via the source.
+    metadata:
+      cwe:
+        - "CWE-78: Improper Neutralization of Special Elements used in an OS Command"
+      owasp:
+        - "A03:2021 - Injection"
+      category: security
+    pattern-sources:
+      - pattern-either:
+          - pattern: req.body
+          - pattern: req.query
+          - pattern: req.params
+          - pattern: req.headers
+          - pattern: req.cookies
+          - pattern: request.body
+          - pattern: request.query
+          - pattern: request.params
+          - pattern: process.argv
+          - pattern: process.env
+    pattern-sinks:
+      - pattern-either:
+          - pattern: exec($CMD, ...)
+          - pattern: execSync($CMD, ...)
+          - pattern: execFile($CMD, ...)
+          - pattern: spawn($CMD, ...)
+          - pattern: spawnSync($CMD, ...)
+
+  - id: sentinel-js-taint-xss
+    languages:
+      - javascript
+      - typescript
+    severity: ERROR
+    mode: taint
+    message: >-
+      User-controlled data flows to a DOM HTML sink without sanitization
+      (taint analysis). This is Cross-Site Scripting (XSS): an attacker can
+      inject HTML/JS via the source. Use textContent or sanitize the HTML.
+    metadata:
+      cwe:
+        - "CWE-79: Improper Neutralization of Input During Web Page Generation"
+      owasp:
+        - "A03:2021 - Injection"
+      category: security
+    pattern-sources:
+      - pattern-either:
+          - pattern: req.body
+          - pattern: req.query
+          - pattern: req.params
+          - pattern: req.headers
+          - pattern: request.body
+          - pattern: request.query
+          - pattern: window.location.search
+          - pattern: window.location.hash
+          - pattern: document.URL
+          - pattern: document.referrer
+    pattern-sinks:
+      - pattern-either:
+          - pattern: $EL.innerHTML = $X
+          - pattern: $EL.outerHTML = $X
+          - pattern: document.write($X)
+          - pattern: document.writeln($X)
+    pattern-sanitizers:
+      - pattern-either:
+          - pattern: DOMPurify.sanitize(...)
+          - pattern: escapeHtml(...)
+          - pattern: sanitizeHtml(...)
+
+  - id: sentinel-js-taint-sql-injection
+    languages:
+      - javascript
+      - typescript
+    severity: ERROR
+    mode: taint
+    message: >-
+      User-controlled data flows to a SQL execution sink as part of a string
+      (taint analysis). This is SQL injection. Use parameterized queries
+      (placeholders + a values array) instead of building the SQL by
+      concatenation or template literals.
+    metadata:
+      cwe:
+        - "CWE-89: Improper Neutralization of Special Elements used in an SQL Command"
+      owasp:
+        - "A03:2021 - Injection"
+      category: security
+    pattern-sources:
+      - pattern-either:
+          - pattern: req.body
+          - pattern: req.query
+          - pattern: req.params
+          - pattern: req.headers
+          - pattern: request.body
+          - pattern: request.query
+          - pattern: request.params
+    pattern-sinks:
+      - pattern-either:
+          - pattern: $DB.query($SQL, ...)
+          - pattern: $DB.execute($SQL, ...)
+          - pattern: $DB.exec($SQL, ...)
+          - pattern: $KNEX.raw($SQL, ...)
 
   # --- Python ------------------------------------------------------------------
 
