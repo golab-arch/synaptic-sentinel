@@ -1,39 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  AnthropicLlmClient,
-  buildAnthropicRequest,
-  parseAnthropicResponse,
-} from '../src/anthropic-client.js';
-
-describe('buildAnthropicRequest', () => {
-  it('construye la peticion a la Messages API con headers y body correctos', () => {
-    const req = buildAnthropicRequest(
-      { apiKey: 'sk-test' },
-      { system: 'eres un analista', user: 'tria esto' },
-    );
-    expect(req.url).toBe('https://api.anthropic.com/v1/messages');
-    expect(req.headers['x-api-key']).toBe('sk-test');
-    expect(req.headers['anthropic-version']).toBe('2023-06-01');
-    expect(req.headers['content-type']).toBe('application/json');
-
-    const body = JSON.parse(req.body) as Record<string, unknown>;
-    expect(body['model']).toBe('claude-haiku-4-5-20251001');
-    expect(body['system']).toBe('eres un analista');
-    expect(body['max_tokens']).toBe(1024);
-    expect(body['messages']).toEqual([{ role: 'user', content: 'tria esto' }]);
-  });
-
-  it('respeta el modelo, la URL base y el maxTokens cuando se proveen', () => {
-    const req = buildAnthropicRequest(
-      { apiKey: 'k', model: 'claude-opus-4-7', baseUrl: 'http://localhost/x' },
-      { system: 's', user: 'u', maxTokens: 256 },
-    );
-    expect(req.url).toBe('http://localhost/x');
-    const body = JSON.parse(req.body) as Record<string, unknown>;
-    expect(body['model']).toBe('claude-opus-4-7');
-    expect(body['max_tokens']).toBe(256);
-  });
-});
+import { AnthropicLlmClient, parseAnthropicResponse } from '../src/anthropic-client.js';
 
 describe('parseAnthropicResponse', () => {
   it('extrae y concatena los bloques de texto', () => {
@@ -67,32 +33,63 @@ describe('parseAnthropicResponse', () => {
   });
 });
 
-describe('AnthropicLlmClient.complete', () => {
-  it('envia la peticion y devuelve el texto de la respuesta', async () => {
+describe('AnthropicLlmClient.complete (vs @anthropic-ai/sdk)', () => {
+  it('envia la peticion via el SDK y devuelve el texto de la respuesta', async () => {
     let capturedUrl = '';
-    let capturedInit: RequestInit | undefined;
-    const fakeFetch = ((url: string, init?: RequestInit): Promise<Response> => {
-      capturedUrl = url;
-      capturedInit = init;
+    let capturedMethod = '';
+    let capturedBody: unknown;
+    const fakeFetch = ((url: string | URL, init?: RequestInit): Promise<Response> => {
+      capturedUrl = String(url);
+      capturedMethod = init?.method ?? '';
+      capturedBody = init?.body !== undefined ? JSON.parse(String(init.body)) : undefined;
       return Promise.resolve(
-        new Response(JSON.stringify({ content: [{ type: 'text', text: 'veredicto' }] }), {
-          status: 200,
-        }),
+        new Response(
+          JSON.stringify({
+            id: 'msg_x',
+            type: 'message',
+            role: 'assistant',
+            model: 'claude-haiku-4-5-20251001',
+            content: [{ type: 'text', text: 'veredicto' }],
+            stop_reason: 'end_turn',
+            usage: { input_tokens: 1, output_tokens: 1 },
+          }),
+          { status: 200, headers: { 'content-type': 'application/json' } },
+        ),
       );
     }) as typeof fetch;
 
-    const client = new AnthropicLlmClient({ apiKey: 'sk-x', fetchImpl: fakeFetch });
+    const client = new AnthropicLlmClient({
+      apiKey: 'sk-x',
+      fetchImpl: fakeFetch,
+      maxRetries: 0,
+    });
     const text = await client.complete({ system: 's', user: 'u' });
 
     expect(text).toBe('veredicto');
-    expect(capturedUrl).toBe('https://api.anthropic.com/v1/messages');
-    expect(capturedInit?.method).toBe('POST');
+    expect(capturedUrl).toContain('api.anthropic.com');
+    expect(capturedUrl).toContain('/v1/messages');
+    expect(capturedMethod).toBe('POST');
+    // El cuerpo es el JSON que el SDK construye a partir de la peticion.
+    const body = capturedBody as Record<string, unknown>;
+    expect(body['model']).toBe('claude-haiku-4-5-20251001');
+    expect(body['system']).toBe('s');
+    expect(body['max_tokens']).toBe(1024);
+    expect(body['messages']).toEqual([{ role: 'user', content: 'u' }]);
   });
 
-  it('lanza si el endpoint responde con un estado de error', async () => {
+  it('lanza si el endpoint responde con un estado de error (sin reintentos)', async () => {
     const fakeFetch = ((): Promise<Response> =>
-      Promise.resolve(new Response('rate limited', { status: 429 }))) as typeof fetch;
-    const client = new AnthropicLlmClient({ apiKey: 'k', fetchImpl: fakeFetch });
+      Promise.resolve(
+        new Response(JSON.stringify({ error: { message: 'rate limited' } }), {
+          status: 429,
+          headers: { 'content-type': 'application/json' },
+        }),
+      )) as typeof fetch;
+    const client = new AnthropicLlmClient({
+      apiKey: 'k',
+      fetchImpl: fakeFetch,
+      maxRetries: 0,
+    });
     await expect(client.complete({ system: 's', user: 'u' })).rejects.toThrow(/429/);
   });
 });

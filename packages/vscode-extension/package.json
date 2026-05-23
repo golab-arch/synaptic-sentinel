@@ -77,11 +77,12 @@
     }
   },
   "scripts": {
-    "bundle": "esbuild src/index.ts --bundle --platform=node --format=cjs --target=node20 --external:vscode --outfile=dist/extension.cjs --sourcemap && esbuild ../cli/src/index.ts --bundle --platform=node --format=esm --target=node20 --external:node-sqlite3-wasm --outfile=dist/cli.mjs --sourcemap && node scripts/copy-cli-assets.mjs",
+    "bundle": "esbuild src/index.ts --bundle --platform=node --format=cjs --target=node20 --external:vscode --outfile=dist/extension.cjs --sourcemap && esbuild ../cli/src/index.ts --bundle --platform=node --format=esm --target=node20 --external:node-sqlite3-wasm --external:@anthropic-ai/sdk --outfile=dist/cli.mjs --sourcemap && node scripts/copy-cli-assets.mjs",
     "vscode:prepublish": "pnpm -w run build",
     "package": "vsce package --no-dependencies"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.40.0",
     "node-sqlite3-wasm": "^0.8.0",
     "zod": "^3.24.0"
   },

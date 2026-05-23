@@ -1,9 +1,6 @@
+import Anthropic from '@anthropic-ai/sdk';
 import type { LlmClient, LlmCompletionRequest } from './llm-client.js';
 
-/** Endpoint de la Messages API de Anthropic. */
-const ANTHROPIC_MESSAGES_URL = 'https://api.anthropic.com/v1/messages';
-/** Version de la API de Anthropic (header obligatorio). */
-const ANTHROPIC_VERSION = '2023-06-01';
 /** Modelo por defecto: Haiku — rapido y barato, adecuado para triage masivo. */
 const DEFAULT_MODEL = 'claude-haiku-4-5-20251001';
 /** Tope de tokens por defecto de una respuesta. */
@@ -15,38 +12,15 @@ export interface AnthropicClientOptions {
   readonly apiKey: string;
   /** Modelo a usar. Por defecto Haiku 4.5. */
   readonly model?: string;
-  /** URL del endpoint (override para tests). */
+  /** URL del endpoint (override para tests o proxies). */
   readonly baseUrl?: string;
-  /** Implementacion de `fetch` (override para tests). */
+  /** Implementacion de `fetch` (override para tests). Se pasa al SDK. */
   readonly fetchImpl?: typeof fetch;
-}
-
-/** Forma de una peticion HTTP a la Messages API. */
-export interface AnthropicHttpRequest {
-  readonly url: string;
-  readonly headers: Readonly<Record<string, string>>;
-  readonly body: string;
-}
-
-/** Construye la peticion HTTP a la Messages API de Anthropic (funcion pura). */
-export function buildAnthropicRequest(
-  options: AnthropicClientOptions,
-  request: LlmCompletionRequest,
-): AnthropicHttpRequest {
-  return {
-    url: options.baseUrl ?? ANTHROPIC_MESSAGES_URL,
-    headers: {
-      'content-type': 'application/json',
-      'x-api-key': options.apiKey,
-      'anthropic-version': ANTHROPIC_VERSION,
-    },
-    body: JSON.stringify({
-      model: options.model ?? DEFAULT_MODEL,
-      max_tokens: request.maxTokens ?? DEFAULT_MAX_TOKENS,
-      system: request.system,
-      messages: [{ role: 'user', content: request.user }],
-    }),
-  };
+  /**
+   * Cuantas veces el SDK reintenta automaticamente en errores transitorios
+   * (429s + 5xx). Default del SDK: 2. Tests inyectan 0 para evitar esperas.
+   */
+  readonly maxRetries?: number;
 }
 
 /** Bloque de texto de una respuesta de la Messages API. */
@@ -60,8 +34,11 @@ function isTextBlock(block: unknown): block is { type: 'text'; text: string } {
 }
 
 /**
- * Extrae el texto de la respuesta JSON de la Messages API (funcion pura).
- * Lanza si la forma es inesperada — defensa contra respuestas corruptas.
+ * Extrae el texto del payload de respuesta de la Messages API (funcion pura).
+ *
+ * Acepta tanto un `Message` tipado del SDK como un objeto JSON crudo (la
+ * forma del campo `content` es identica). Lanza si la forma es inesperada
+ * — defensa contra respuestas corruptas / drift del API.
  */
 export function parseAnthropicResponse(payload: unknown): string {
   const content = (payload as { content?: unknown }).content;
@@ -79,40 +56,41 @@ export function parseAnthropicResponse(payload: unknown): string {
 }
 
 /**
- * Cliente LLM contra la Messages API de Anthropic (BYOK).
+ * Cliente LLM contra la Messages API de Anthropic via `@anthropic-ai/sdk`
+ * (BYOK, FI-009 cerrado en DG-064 A).
  *
- * Cliente minimo basado en `fetch`: `buildAnthropicRequest` y
- * `parseAnthropicResponse` son funciones puras y testeables; solo el
- * round-trip de red queda fuera de los unit tests (ver el test de
- * integracion, gated por `ANTHROPIC_API_KEY`).
+ * Migrado desde un cliente `fetch` propio al SDK oficial: aporta retries
+ * automaticos en errores transitorios (429s + 5xx), manejo nativo de
+ * rate-limiting y soporte para streaming (cuando se necesite). Los
+ * consumidores no ven la libreria — toda la API queda detras del contrato
+ * `LlmClient`, que sigue siendo el unico punto no-deterministico del
+ * Brain Layer (los unit tests inyectan un cliente falso).
  *
- * Desviacion informada del v0.4 (linea 695, `@anthropic-ai/sdk`): se
- * prioriza testabilidad total y cero dependencias de red. Cuando se
- * necesiten retries / streaming / rate-limiting (v0.4 §rate-limiting LLM)
- * se evaluara migrar al SDK oficial — el contrato `LlmClient` aisla el
- * cambio.
+ * `parseAnthropicResponse` se mantiene como helper puro: la forma de
+ * `Message.content` es identica entre el JSON crudo de la API y el `Message`
+ * tipado que devuelve el SDK.
  */
 export class AnthropicLlmClient implements LlmClient {
-  readonly #options: AnthropicClientOptions;
-  readonly #fetch: typeof fetch;
+  readonly #client: Anthropic;
+  readonly #model: string;
 
   constructor(options: AnthropicClientOptions) {
-    this.#options = options;
-    this.#fetch = options.fetchImpl ?? globalThis.fetch;
+    this.#client = new Anthropic({
+      apiKey: options.apiKey,
+      ...(options.baseUrl !== undefined ? { baseURL: options.baseUrl } : {}),
+      ...(options.fetchImpl !== undefined ? { fetch: options.fetchImpl } : {}),
+      ...(options.maxRetries !== undefined ? { maxRetries: options.maxRetries } : {}),
+    });
+    this.#model = options.model ?? DEFAULT_MODEL;
   }
 
   async complete(request: LlmCompletionRequest): Promise<string> {
-    const http = buildAnthropicRequest(this.#options, request);
-    const response = await this.#fetch(http.url, {
-      method: 'POST',
-      headers: { ...http.headers },
-      body: http.body,
+    const message = await this.#client.messages.create({
+      model: this.#model,
+      max_tokens: request.maxTokens ?? DEFAULT_MAX_TOKENS,
+      system: request.system,
+      messages: [{ role: 'user', content: request.user }],
     });
-    if (!response.ok) {
-      const detail = await response.text().catch(() => '');
-      throw new Error(`Anthropic respondio ${String(response.status)}. ${detail.slice(0, 500)}`);
-    }
-    const payload: unknown = await response.json();
-    return parseAnthropicResponse(payload);
+    return parseAnthropicResponse(message);
   }
 }
