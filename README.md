@@ -1,35 +1,43 @@
-# Synaptic Sentinel
+# SYNAPTIC Sentinel
 
-> Toolkit OSS de auditoría agéntica de seguridad + capa premium de inteligencia LLM, diseñado nativamente para la era del _vibe-coding_.
+> **The vibe-coding security sentinel.** An Apache-2.0 agentic security toolkit for projects where most of the code is written by AI. Five deterministic scouts catch the syntactic problems; a Brain Layer (BYOK Anthropic) decides what really matters and how to fix it — all inside the IDE.
 
-**Synaptic Sentinel** audita la seguridad de un proyecto **dentro del perímetro del cliente** — el código nunca sale del entorno del cliente — y produce hallazgos inline para el desarrollador y un _tomo_ de auditoría (evidence package) para compliance.
+**SYNAPTIC Sentinel** audits a project **inside the client's perimeter** — your code never leaves your machine — and produces inline findings for the developer plus an audit _tome_ (evidence package) for compliance and CI.
 
-Tercer producto de la familia Synaptic, sibling de Synaptic Expert.
+Third product in the SYNAPTIC family, sibling of [SYNAPTIC Expert](https://marketplace.visualstudio.com/items?itemName=GoLab.synaptic-expert).
 
-## Estado
+## Status
 
-🚧 **En desarrollo activo (pre-1.0).** Operativos: la capa Scout (5 escáneres), el Coordinator, los reporters (tomo JSON/HTML), la CLI y la extensión VSCode; la capa Cerebro (Pro) con 3 agentes. Monorepo privado hasta el MVP; el núcleo OSS (Apache-2.0) y la capa Pro se lanzan simultáneamente.
+🚧 **Active development (pre-1.0).** Operational: the Scout Layer (5 scanners), the Coordinator, the reporters (JSON/HTML/SARIF tome), the CLI, and the VSCode extension; the Brain Layer with 3 agents (Triage / Context / Remediation). **All packages under Apache-2.0** — no premium tier, no proprietary gating. The `.vsix v0.1.0` is marketplace-ready (`golab.synaptic-sentinel`); `v0.2.0` rebranded release lands in DG-069.
 
-## Cómo funciona
+## How it works
 
-- **Capa Scout (OSS, determinista)** — 5 escáneres que corren como procesos locales y normalizan sus hallazgos: OpenGrep (SAST), Gitleaks (secrets), Trivy (SCA), Checkov (IaC) y Vibe-Detect (anti-patrones de código generado por IA).
-- **Coordinator** — orquesta los scouts, deduplica los hallazgos y los persiste en `colony.db`.
-- **Capa Cerebro (Pro, LLM)** — agentes que trían, contextualizan y proponen remediación de los hallazgos, con **BYOK** (la API key del cliente va directo a Anthropic).
-- **Superficies** — una CLI y una extensión VSCode (la superficie primaria).
+- **Scout Layer (deterministic, parallel)** — five auditors that run as local processes and normalize their findings: **OpenGrep** (SAST, 17 curated rules with taint-flow), **Gitleaks** (secrets), **Trivy** (SCA), **Checkov** (IaC), and **Vibe-Detect** (anti-patterns specific to AI-generated code).
+- **Coordinator** — orchestrates the scouts with a per-scout kill-switch, deduplicates findings, and persists them in `colony.db`.
+- **Brain Layer (LLM, BYOK Anthropic)** — agents that triage, contextualize, and propose remediation for findings. Your Anthropic API key goes **directly** to the model; there is no Synaptic backend.
+- **Memory of the swarm** — patterns the Brain Layer has classified with strong evidence are pre-resolved on subsequent scans without spending an LLM token.
+- **Surfaces** — a CLI and a VSCode extension (primary surface).
 
-## Estructura del monorepo
+## What makes it the vibe-coding security sentinel
 
-| Paquete                     | Licencia   | Descripción                                              |
-| --------------------------- | ---------- | -------------------------------------------------------- |
-| `packages/shared`           | Apache-2.0 | Utilidades comunes                                       |
-| `packages/core`             | Apache-2.0 | Coordinator, `colony.db`, tipos (zod)                    |
-| `packages/scouts`           | Apache-2.0 | Contrato `ScoutAgent` + los 5 scouts                     |
-| `packages/reporters`        | Apache-2.0 | Modelo del tomo + export JSON/HTML                       |
-| `packages/cli`              | Apache-2.0 | CLI `synaptic-sentinel`                                  |
-| `packages/vscode-extension` | Apache-2.0 | Extensión VSCode (shell delgado, arquitectura spawn-CLI) |
-| `packages/agents`           | Pro (EULA) | Capa Cerebro — agentes LLM                               |
+- **Vibe-Detect scout** — a built-in scout dedicated to anti-patterns specific to AI-generated code: hallucinated APIs, plausible-looking but broken control flow, sycophantic comments, unbounded eval-of-user-input patterns. Native TypeScript, runs offline, no binary required.
+- **Taint analysis tuned for AI-assisted code** — `request.*` / `req.*` / `sys.argv` / `os.environ` followed to dangerous sinks (`exec`, `innerHTML`, `cursor.execute`, `open`), with the sanitizers an LLM-coded project will _actually_ use (`DOMPurify`, `escapeHtml`, `secure_filename`, `os.path.basename`).
+- **LLM-driven triage** — when a scout fires, the Brain Layer decides if the finding is a true positive in this codebase, not just a textbook pattern match. Three agents, three perspectives: **Triage** (true / false / inconclusive), **Context** (entry → propagation → sink → exposure), **Remediation** (concrete fix + code snippet).
+- **CI-native** — SARIF 2.1.0 export for GitHub Code Scanning / Azure DevOps; `scan --fail-on <severity>` turns the scan into a CI gate (exit code 2 above threshold).
 
-## Requisitos
+## Monorepo structure
+
+| Package                     | License    | Description                                               |
+| --------------------------- | ---------- | --------------------------------------------------------- |
+| `packages/shared`           | Apache-2.0 | Common utilities                                          |
+| `packages/core`             | Apache-2.0 | Coordinator, `colony.db`, types (zod)                     |
+| `packages/scouts`           | Apache-2.0 | `ScoutAgent` contract + the 5 scouts                      |
+| `packages/reporters`        | Apache-2.0 | Tome model + JSON/HTML/SARIF export                       |
+| `packages/cli`              | Apache-2.0 | The `synaptic-sentinel` CLI                               |
+| `packages/vscode-extension` | Apache-2.0 | VSCode extension (thin shell, spawn-CLI architecture)     |
+| `packages/agents`           | Apache-2.0 | Brain Layer — LLM agents (Triage / Context / Remediation) |
+
+## Requirements
 
 - Node.js ≥ 20
 - pnpm ≥ 10
@@ -37,35 +45,41 @@ Tercer producto de la familia Synaptic, sibling de Synaptic Expert.
 ## Quickstart
 
 ```bash
-pnpm install              # instala dependencias y enlaza los workspaces
-pnpm scanners:install     # descarga los binarios de los escáneres OSS
-pnpm build                # compila los paquetes + bundle de la extensión
-node packages/cli/dist/index.js scan --path /ruta/a/tu/proyecto
+pnpm install              # install dependencies and link workspaces
+pnpm scanners:install     # download the OSS scanner binaries
+pnpm build                # build packages + bundle the extension
+node packages/cli/dist/index.js scan --path /path/to/your/project
 ```
 
-**Guía completa de instalación y uso: [ONBOARDING.md](ONBOARDING.md).**
+**Full installation and usage guide: [ONBOARDING.md](ONBOARDING.md).**
 
-## Desarrollo
+## Development
 
 ```bash
-pnpm build       # tsc -b (project references) + bundle de la extensión
-pnpm test        # suite Vitest completa (unit + integración)
-pnpm test:unit   # solo tests unitarios (rápidos)
+pnpm build       # tsc -b (project references) + extension bundle
+pnpm test        # full Vitest suite (unit + integration)
+pnpm test:unit   # unit tests only (fast)
 pnpm lint        # ESLint (flat config + typescript-eslint)
-pnpm typecheck   # chequeo de tipos
+pnpm typecheck   # type check
 pnpm format      # Prettier
-pnpm verify      # gate por ciclo: format:check + lint + build + test:unit
+pnpm verify      # per-cycle gate: format:check + lint + build + test:unit
 ```
 
-## Documentación
+## Privacy and data flow
 
-- [ONBOARDING.md](ONBOARDING.md) — instalación, uso de la CLI y la extensión
-- [docs/colony-db.md](docs/colony-db.md) — la base de datos de feromonas
-- [.synaptic/DESIGN_DOC.md](.synaptic/DESIGN_DOC.md) — diseño y decisiones
-- `context/Synaptic_Sentinel_v0.4.md` — documento maestro de diseño
+- **Your code never leaves your machine for the deterministic scans.** The 5 scouts run locally as child processes.
+- **For the Brain Layer (optional), each finding's snippet goes directly to Anthropic** — no proxy, no middleman, no Synaptic backend. BYOK.
+- **The audit memory (`colony.db`) lives in your repo's `.synaptic-sentinel/` directory.** You decide whether to commit it.
 
-## Licencia
+## Documentation
 
-Núcleo OSS bajo **Apache 2.0** ([LICENSE](LICENSE)). Componentes Pro (el paquete `agents`) bajo EULA comercial ([LICENSE-PRO](LICENSE-PRO)).
+- [ONBOARDING.md](ONBOARDING.md) — installation, CLI and extension usage
+- [docs/colony-db.md](docs/colony-db.md) — the pheromone database
+- [.synaptic/DESIGN_DOC.md](.synaptic/DESIGN_DOC.md) — design and decisions log
+- `context/Synaptic_Sentinel_v0.4.md` — master design document
+
+## License
+
+All packages are licensed under **Apache License 2.0** — see [LICENSE](LICENSE).
 
 © 2026 GoLab SpA.

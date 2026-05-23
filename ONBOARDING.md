@@ -1,16 +1,23 @@
-# Onboarding — Synaptic Sentinel
+# Onboarding — SYNAPTIC Sentinel
 
-Guía para instalar, usar y desarrollar Synaptic Sentinel.
+Guía para instalar, usar y desarrollar SYNAPTIC Sentinel — **the vibe-coding
+security sentinel**.
 
 ## 1. Qué es
 
-Synaptic Sentinel es un toolkit de **auditoría agéntica de seguridad** pensado
-para la era del código generado por IA (_vibe-coding_). Combina:
+SYNAPTIC Sentinel es un toolkit **Apache-2.0** de **auditoría agéntica de
+seguridad** pensado para la era del código generado por IA (_vibe-coding_).
+Combina:
 
-- una **capa Scout** determinista (OSS): wrappers de escáneres de seguridad que
+- una **capa Scout** determinista: wrappers de escáneres de seguridad que
   corren como procesos locales y normalizan sus hallazgos a un formato común;
-- una **capa Cerebro** premium (Pro): agentes LLM que trían, contextualizan y
-  proponen remediación de los hallazgos — **BYOK** (Bring Your Own Key).
+- una **capa Cerebro** con agentes LLM que trían, contextualizan y proponen
+  remediación de los hallazgos — **BYOK** (Bring Your Own Key, Anthropic).
+
+**Todas las capas son Apache-2.0** — no hay versión premium ni código
+proprietario gated. El usuario obtiene el producto completo bajo una sola
+licencia; la única dependencia externa opcional es su propia API key de
+Anthropic para el Brain Layer.
 
 Es **VSCode-primary**: la superficie principal es la extensión, respaldada por
 una CLI.
@@ -126,18 +133,18 @@ evidencia de no-manipulación.
 
 Monorepo pnpm con 7 paquetes:
 
-| Paquete            | Rol                                     | Licencia |
-| ------------------ | --------------------------------------- | -------- |
-| `shared`           | utilidades comunes                      | OSS      |
-| `core`             | tipos (zod), `Coordinator`, `colony.db` | OSS      |
-| `scouts`           | los 5 scouts deterministas              | OSS      |
-| `reporters`        | modelo del tomo + export JSON/HTML      | OSS      |
-| `cli`              | la CLI `synaptic-sentinel`              | OSS      |
-| `vscode-extension` | la extensión                            | OSS      |
-| `agents`           | Brain Layer (agentes LLM)               | **Pro**  |
+| Paquete            | Rol                                     | Licencia   |
+| ------------------ | --------------------------------------- | ---------- |
+| `shared`           | utilidades comunes                      | Apache-2.0 |
+| `core`             | tipos (zod), `Coordinator`, `colony.db` | Apache-2.0 |
+| `scouts`           | los 5 scouts deterministas              | Apache-2.0 |
+| `reporters`        | modelo del tomo + export JSON/HTML      | Apache-2.0 |
+| `cli`              | la CLI `synaptic-sentinel`              | Apache-2.0 |
+| `vscode-extension` | la extensión                            | Apache-2.0 |
+| `agents`           | Brain Layer (agentes LLM)               | Apache-2.0 |
 
 Flujo: los **scouts** producen `Finding[]` → el **Coordinator** los deduplica y
-persiste en `colony.db` → los **reporters** arman el tomo → los **agents** (Pro)
+persiste en `colony.db` → los **reporters** arman el tomo → los **agents**
 enriquecen los hallazgos con triage / contexto / remediación.
 
 Los 5 scouts: OpenGrep (SAST), Gitleaks (Secrets), Trivy (SCA), Checkov (IaC) y

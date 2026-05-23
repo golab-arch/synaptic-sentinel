@@ -4,6 +4,27 @@ All notable changes to the SYNAPTIC Sentinel extension will be documented in thi
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - _Unreleased — to be cut in DG-069_
+
+Strategic pivot: SYNAPTIC Sentinel is repositioned as **"the vibe-coding security sentinel"** and all capabilities are unified under a single open-source license. No more dual OSS / premium tiering.
+
+### Changed
+
+- **All packages are now Apache-2.0**, including `packages/agents` (the three LLM Brain Layer agents). The previous "Pro" framing is dropped: there is no premium tier, no proprietary gating, no separate commercial license. Source code is fully redistributable.
+- **Positioning sharpened around vibe-coding security:** the README, the marketplace pitch, and the onboarding now lead with the vibe-coding lens — Vibe-Detect scout, taint analysis tuned for AI-assisted code, LLM-driven triage of AI-generated anti-patterns.
+
+### Removed
+
+- `LICENSE-PRO` (placeholder commercial EULA that was never finalized).
+- `[PRO]` marker from `packages/agents/src/index.ts` JSDoc header.
+- Mentions of "Brain Layer is proprietary" / "premium tier" / "Pro components" from public-facing documentation.
+
+### Notes
+
+- No code or feature changes in this release — every capability shipped in `v0.1.0` is preserved exactly. The change is **legal and editorial**: the same product, with the legal substrate aligned and the discourse honest about what the user gets.
+- BYOK Anthropic remains the model: your API key goes directly to the model provider; there is no Synaptic backend.
+- The Brain Layer's three agents (Triage / Context / Remediation) are unchanged and continue to run inside the `.vsix` bundle.
+
 ## [0.1.0] - 2026-05-22
 
 First marketplace-ready release. SYNAPTIC Sentinel is the security companion of the SYNAPTIC family (sibling of SYNAPTIC Expert), focused on shipping AI-assisted code with traceable audits: deterministic scanners catch the syntactic problems, a Brain Layer (BYOK Anthropic) decides what really matters and how to fix it, and everything happens in the IDE — and over CI, via SARIF.
@@ -16,7 +37,7 @@ First marketplace-ready release. SYNAPTIC Sentinel is the security companion of 
   - **Trivy** (SCA) — vulnerable dependencies.
   - **Checkov** (IaC) — Dockerfile / Terraform / k8s misconfigurations, runs as a standalone binary (no Python toolchain needed on the client).
   - **Vibe-Detect** (native TypeScript, no binary) — six heuristic detectors for AI-generated code anti-patterns.
-- **Brain Layer (Pro, BYOK Anthropic):** three LLM agents wired into the scan flow — **Triage** (true / false positive / inconclusive + confidence + rationale), **Context** (entry point → propagation → sink → exposure), **Remediation** (proposed fix + code snippet).
+- **Brain Layer (BYOK Anthropic):** three LLM agents wired into the scan flow — **Triage** (true / false positive / inconclusive + confidence + rationale), **Context** (entry point → propagation → sink → exposure), **Remediation** (proposed fix + code snippet).
 - **Memory of the swarm:** a learning store (`learning_records` in `colony.db`) pre-classifies known patterns on subsequent scans without spending an LLM token (evidence threshold of 3, no self-feeding loop).
 - **Living tome side panel:** findings grouped by severity, clickable to jump straight to the code.
 - **Inline UX:** diagnostics in the editor, hover with the full Brain Layer detail, Code Actions for "mark false positive" and "copy suggested remediation".
@@ -45,5 +66,4 @@ First marketplace-ready release. SYNAPTIC Sentinel is the security companion of 
 
 ### Licenses
 
-- The extension UI, the CLI, the Scout Layer and the deterministic pipeline are **Apache-2.0** (OSS).
-- The Brain Layer (the three LLM agents) is **proprietary** (LICENSE-PRO). Source code is not redistributed; the binary is shipped inside this extension.
+- The extension UI, the CLI, the Scout Layer, the deterministic pipeline, and the three Brain Layer agents (`packages/agents`) are all licensed under **Apache-2.0** as of v0.2.0 (see strategic pivot above). In v0.1.0 the Brain Layer was framed as a proprietary tier; that framing was retired in DG-066 B (2026-05-23).

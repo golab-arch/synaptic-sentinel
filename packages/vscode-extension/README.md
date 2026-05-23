@@ -1,8 +1,8 @@
 # SYNAPTIC Sentinel
 
-**Agentic security auditing for the era of AI-generated code. Five scouts scan your repo; a Brain Layer (BYOK) decides what really matters and how to fix it — all in the IDE.**
+**The vibe-coding security sentinel. Apache-2.0. Five deterministic scouts scan your repo; a Brain Layer (BYOK Anthropic) decides what really matters and how to fix it — all in the IDE.**
 
-SYNAPTIC Sentinel is the security companion of the SYNAPTIC family (sibling of [SYNAPTIC Expert](https://marketplace.visualstudio.com/items?itemName=RealGoLab.synaptic-expert)). Where Expert helps you _write_ AI-assisted code with traceability, Sentinel audits _what gets written_ — your own code, your AI's code, your dependencies, your config — and explains why it matters.
+SYNAPTIC Sentinel is the security companion of the SYNAPTIC family (sibling of [SYNAPTIC Expert](https://marketplace.visualstudio.com/items?itemName=GoLab.synaptic-expert)). Where Expert helps you _write_ AI-assisted code with traceability, Sentinel audits _what gets written_ — your own code, your AI's code, your dependencies, your config — and explains why it matters. **All capabilities are open under Apache-2.0; there is no premium tier and no proprietary gating.**
 
 Built for three kinds of users:
 
@@ -26,7 +26,7 @@ The Scout Layer runs five auditors in parallel, each best-in-class for its categ
 | **Checkov**     | IaC       | [bridgecrewio/checkov](https://github.com/bridgecrewio/checkov) | Misconfigurations in Dockerfiles, Terraform, Kubernetes manifests.                                                                                                                                                                                                                             |
 | **Vibe-Detect** | VibeCoded | (native, no binary)                                             | Anti-patterns specific to AI-generated code — 6 heuristic detectors, runs offline.                                                                                                                                                                                                             |
 
-### Brain Layer (Pro, BYOK)
+### Brain Layer (BYOK Anthropic)
 
 Three LLM agents wired into the scan flow:
 
@@ -74,11 +74,10 @@ Sentinel's CLI bundle ships with the extension and is also runnable standalone. 
 
 ---
 
-## Licenses
+## License
 
-- The extension and the Scout Layer are **Apache-2.0** (OSS).
-- The Brain Layer (the three LLM agents) is **proprietary** (LICENSE-PRO). Source code is not redistributed; the binary is shipped inside this extension.
+All packages — extension, Scout Layer, Brain Layer — are licensed under **Apache License 2.0**. Source code, including the three LLM agents, is open and redistributable.
 
 ---
 
-_Part of the [SYNAPTIC](https://github.com/golab-arch) family — toolkit for engineers shipping AI-assisted code with traceability._
+_Part of the [SYNAPTIC](https://github.com/golab-arch) family — Apache-2.0 toolkit for engineers shipping AI-assisted code with traceability._

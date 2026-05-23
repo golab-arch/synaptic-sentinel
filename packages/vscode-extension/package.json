@@ -2,7 +2,7 @@
   "name": "synaptic-sentinel",
   "displayName": "SYNAPTIC Sentinel",
   "version": "0.1.0",
-  "description": "Agentic security auditing for the era of AI-generated code. Five scouts (OpenGrep, Gitleaks, Trivy, Checkov, Vibe-Detect) + a Brain Layer that triages, explains and remediates — all in the IDE, BYOK.",
+  "description": "The vibe-coding security sentinel. Apache-2.0 agentic auditing for AI-assisted projects: five scouts (OpenGrep, Gitleaks, Trivy, Checkov, Vibe-Detect) + a Brain Layer (BYOK Anthropic) that triages, explains and remediates — all in the IDE.",
   "license": "Apache-2.0",
   "private": true,
   "publisher": "GoLab",
@@ -30,6 +30,8 @@
     "code-scanning",
     "vibe-coding",
     "ai-coding",
+    "ai-generated-code",
+    "llm-security",
     "appsec",
     "byok"
   ],
