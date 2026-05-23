@@ -1741,5 +1741,35 @@ Each entry follows this structure:
 
 ---
 
+### Entry #65 - DG-061 (B): taint analysis JS/TS (3 reglas, FI-003 etapa 1); cierra Cycle 54
+```json
+{
+  "timestamp": "2026-05-23T01:30:00.000Z",
+  "cycle": 54,
+  "phase": 8,
+  "action": "FEATURE_IMPLEMENTED",
+  "details": {
+    "DG-061": {
+      "title": "Proximo paso del roadmap (taint analysis JS/TS - FI-003 etapa 1)",
+      "selected": "Option B",
+      "effect": "El ruleset baseline de OpenGrep gana 3 reglas en mode: taint para JS/TS. Cada una declara pattern-sources (req.body/query/params/headers, window.location, document.URL, process.argv) y pattern-sinks (sinks peligrosos); reportan solo cuando el motor de taint encuentra un flujo source -> sink sin sanitizer. Cobertura del ruleset: 11 -> 14 reglas. Python diferido a la etapa 2."
+    },
+    "files": "scouts/src/opengrep/rules/sentinel-baseline.yaml (header doc actualizado a 14 reglas con desglose pattern/taint; +3 reglas taint - sentinel-js-taint-command-injection (CWE-78), sentinel-js-taint-xss (CWE-79, con sanitizers DOMPurify/escapeHtml/sanitizeHtml), sentinel-js-taint-sql-injection (CWE-89)). scouts/tests/opengrep/fixtures/vulnerable/javascript/taint-vuln.js (NUEVO; 4 funciones - listFiles/deleteFileSync/renderName/lookupUser - con flujos source->sink intencionales). scouts/tests/opengrep/integration.test.ts (+1 test 'detecta inyecciones via taint analysis' que asegura las 3 reglas).",
+    "design": "Reglas taint complementan -no reemplazan- las pattern-based: pattern catches all (high recall), taint catches confirmed source->sink (high precision). Sources de Express (req.*) y CLI (process.argv/env); sinks de Node (child_process.exec family), DOM (innerHTML/outerHTML/document.write) y SQL (db.query/execute, knex.raw). Sanitizers conocidos (XSS): DOMPurify.sanitize / escapeHtml / sanitizeHtml. Source patterns LITERALES (no $REQ.body sino req.body) para evitar over-tainting de cualquier .body. Sub-incrementacion explicita: etapa 1 = JS/TS; etapa 2 = Python (mismo patron, sub-increment de bajo riesgo).",
+    "verification_real": "pnpm verify verde (test:unit 304). pnpm test:integration verde: 10 passed (era 9 + el test taint nuevo). El test taint corre contra el BINARIO REAL de OpenGrep, que detecta las 3 reglas dispararse - prueba EMPIRICA de que `mode: taint` y la sintaxis pattern-sources/pattern-sinks funcionan en OpenGrep y que la propagacion intra-procedural conecta los sources con los sinks en el fixture.",
+    "tests": "+1 test de integracion (taint) - total 314 verdes + 3 gated (304 unit / 10 integration / 3 gated)",
+    "checks": "format:check / lint / build / test:unit / test:integration - todos en verde; e2e contra OpenGrep real confirmado",
+    "commit": "feature en el commit efbd2cb feat(scouts); el registro SYNAPTIC se asienta en el commit docs siguiente",
+    "fi_003_status": "FI-003 etapa 1 RESUELTA. Etapa 2 PENDIENTE: replicar el patron taint a Python (sentinel-py-taint-command-injection, etc.). El FI sigue abierto pero acotado a un sub-increment claro y de bajo riesgo (mismo patron probado en JS/TS).",
+    "pause_for_user_test": "Per instruccion del usuario, NO se presenta DG-062 al cierre de este ciclo. El usuario va a probar el producto con las nuevas reglas taint antes de continuar."
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 59,
+  "complianceScore": 100
+}
+```
+
+---
+
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-23T01:00:00.000Z*
+*Last Updated: 2026-05-23T01:30:00.000Z*
