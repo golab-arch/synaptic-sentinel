@@ -1,11 +1,16 @@
 {
   "name": "synaptic-sentinel",
   "displayName": "Synaptic Sentinel",
-  "version": "0.0.0",
-  "description": "VSCode extension for Synaptic Sentinel — agentic security auditing in the IDE.",
+  "version": "0.1.0",
+  "description": "Agentic security auditing for the era of AI-generated code. Five scouts (OpenGrep, Gitleaks, Trivy, Checkov, Vibe-Detect) + a Brain Layer that triages, explains and remediates — all in the IDE, BYOK.",
   "license": "Apache-2.0",
   "private": true,
-  "publisher": "golab",
+  "publisher": "RealGoLab",
+  "icon": "media/icon.png",
+  "galleryBanner": {
+    "color": "#1a1a2e",
+    "theme": "dark"
+  },
   "type": "module",
   "engines": {
     "vscode": "^1.95.0",
@@ -13,15 +18,23 @@
   },
   "categories": [
     "Linters",
+    "Testing",
     "Other"
   ],
   "keywords": [
+    "synaptic",
     "security",
     "sast",
+    "taint-analysis",
     "sarif",
     "code-scanning",
     "vibe-coding",
-    "appsec"
+    "ai-coding",
+    "appsec",
+    "byok"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
   ],
   "repository": {
     "type": "git",
