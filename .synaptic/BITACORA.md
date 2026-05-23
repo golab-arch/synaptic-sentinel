@@ -1859,5 +1859,34 @@ Each entry follows this structure:
 
 ---
 
+### Entry #69 - DG-065 (A): marketplace polish v0.1.0 alineado con la familia SYNAPTIC; cierra Cycle 58
+```json
+{
+  "timestamp": "2026-05-23T03:30:00.000Z",
+  "cycle": 58,
+  "phase": 8,
+  "action": "FEATURE_IMPLEMENTED",
+  "details": {
+    "DG-065": {
+      "title": "Proximo paso del roadmap (marketplace polish: icono + galleryBanner + CHANGELOG + README + family alignment)",
+      "selected": "Option A",
+      "effect": "Extension marketplace-ready en v0.1.0: alineada con el sibling SYNAPTIC Expert (publisher RealGoLab, galleryBanner #1a1a2e dark, glifo de neurona de la familia + escudo Sentinel-especifico), con icono PNG, CHANGELOG inicial y README rehecho como pagina de marketplace. El .vsix queda listo para vsce publish - la decision de timing y el PAT son del usuario."
+    },
+    "files": "vscode-extension/package.json (version 0.0.0->0.1.0; publisher golab->RealGoLab; +icon, +galleryBanner, +activationEvents; description endurecida; categories +Testing; keywords +synaptic +taint-analysis +ai-coding +byok). media/icon.svg (NUEVO; reusa glifo de neurona de la familia + escudo Sentinel-especifico, colores #1a1a2e/#6c7fbd/#a8c5ff). media/icon.png (NUEVO; 128x128 RGBA, 653 bytes). scripts/render-icon.mjs (NUEVO; encoder PNG pure-Node con zlib+Buffer, sin deps - magick/inkscape/rsvg-convert no estaban en el entorno y agregar sharp/resvg reintroduciria riesgo ABI nativa que FI-001 ya cerro). CHANGELOG.md (NUEVO; formato Keep a Changelog, entry 0.1.0 con cuerpo completo: 5 scouts, Brain Layer, memoria, UX, CI, arquitectura, privacy, known constraints, licencias). README.md (rewritten como pagina de marketplace al estilo del sibling: pitch + tabla de scouts con CWEs + 3 agentes Brain Layer + 4 pasos turnkey + CI-native + privacy + licencias + family link).",
+    "design": "Referencia explicita del usuario: 'Synaptic Sentinel es parte de la familia de SYNAPTIC Expert, revisa el proyecto D:\\\\GoLAB\\\\PROYECTOS\\\\SYNAPTIC_VSC_EXTENSION'. Inspeccione el sibling y extraje: publisher RealGoLab (Sentinel divergia con 'golab' - corregido), galleryBanner color #1a1a2e dark, activationEvents onStartupFinished, formato del README (pitch + 3 pilares estilo), formato del CHANGELOG (Keep a Changelog), icono SVG con currentColor neuron glyph. Para Sentinel: NO clone el icono (productos distintos en marketplace) pero reuse el glifo de neurona de la familia para mostrar lineaje + sume un contorno tipo escudo de 4 trazos para distinguirlo. PNG generado por un encoder propio (zlib + Buffer) para no introducir dependencias nativas - consistente con la decision de WASM de FI-001.",
+    "verification_real": "pnpm verify verde (test:unit 302; sin cambios funcionales). vsce package produjo synaptic-sentinel-0.1.0.vsix de 1.26 MB (430 archivos) con icon.png + media/icon.svg + galleryBanner declarado y package.json marketplace-ready. La estructura del .vsix se inspecciono extraida (LICENSE.txt + changelog.md + readme.md + dist/ + media/), todos los campos clave de package.json verificados en la copia shippeada (publisher RealGoLab, icon media/icon.png, etc.).",
+    "tests": "0 nuevos, 0 modificados - total 313 verdes + 3 gated (302 unit / 11+3 integration)",
+    "checks": "format:check / lint / build / test:unit / vsce package - todos en verde; e2e del icon.png como PNG valido confirmado ('PNG image data, 128x128, 8-bit/color RGBA, non-interlaced')",
+    "commit": "feature en el commit 153074a feat(vscode-extension); el registro SYNAPTIC se asienta en el commit docs siguiente",
+    "marketplace_id_change": "BREAKING para identidad marketplace: golab.synaptic-sentinel -> RealGoLab.synaptic-sentinel. Sin impacto practico (pre-publication, no hay usuarios)."
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 63,
+  "complianceScore": 100
+}
+```
+
+---
+
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-23T03:00:00.000Z*
+*Last Updated: 2026-05-23T03:30:00.000Z*

@@ -2,7 +2,7 @@
   "version": "1.0",
   "projectId": "sentinel-1779304140796",
   "projectName": "SENTINEL",
-  "totalCycles": 57,
+  "totalCycles": 58,
   "currentTomeId": 2,
   "cyclesPerTome": 50,
   "tomes": [
@@ -35,10 +35,10 @@
         "from": "2026-05-22T23:30:00.000Z",
         "to": ""
       },
-      "summary": "Tomo 002 abierto en el Cycle 51, Phase 8 (Distribucion). Cycles 51-52: .vsix + sub-comando 'scanners install' (DG-058/DG-059) - FI-008 CERRADO, Phase 8 COMPLETA. Cycle 53: ColonyDb migrado a better-sqlite3 (DG-060) - FI-001 cerrado en codigo. Cycle 54: taint JS/TS con 3 reglas (DG-061, FI-003 etapa 1). Cycle 55: pivot a node-sqlite3-wasm + drop del sink $DB.exec (DG-062) - FI-001 re-cerrado de raiz, FP SQL fixed. Cycle 56: taint Python con 3 reglas adicionales (DG-063) - FI-003 CERRADO entero. Cycle 57: AnthropicLlmClient migrado a @anthropic-ai/sdk (DG-064) - FI-009 CERRADO. Cobertura del ruleset: 17 reglas (11 pattern-based + 6 taint). LA LISTA futureImprovements QUEDA VACIA por primera vez.",
-      "keyDecisions": ["DG-058", "DG-059", "DG-060", "DG-061", "DG-062", "DG-063", "DG-064"],
-      "cycleCount": 7,
-      "successCount": 7,
+      "summary": "Tomo 002 abierto en el Cycle 51, Phase 8 (Distribucion). Cycles 51-52: .vsix + sub-comando 'scanners install' (DG-058/DG-059) - FI-008 CERRADO, Phase 8 COMPLETA. Cycle 53-55: FI-001 cerrado en dos pasos (DG-060 better-sqlite3, DG-062 pivot a WASM tras prueba del usuario). Cycle 54+56: FI-003 cerrado en dos etapas (DG-061 taint JS/TS + DG-063 taint Python). Cycle 57: FI-009 cerrado (DG-064 SDK oficial) - futureImprovements VACIA por primera vez. Cycle 58: marketplace polish v0.1.0 (DG-065) - publisher RealGoLab alineado con la familia SYNAPTIC, icono Sentinel-especifico, galleryBanner, CHANGELOG, README marketplace-ready. .vsix queda listo para vsce publish.",
+      "keyDecisions": ["DG-058", "DG-059", "DG-060", "DG-061", "DG-062", "DG-063", "DG-064", "DG-065"],
+      "cycleCount": 8,
+      "successCount": 8,
       "failureCount": 0,
       "jsonPath": "tomes/tome-002.json",
       "mdPath": "tomes/tome-002.md",
@@ -110,12 +110,13 @@
     { "id": "DG-062", "title": "Proximo paso del roadmap (fix de FP SQL + pivot del driver SQLite a WASM)", "selected": "B", "cycle": 55, "date": "2026-05-22" },
     { "id": "DG-063", "title": "Proximo paso del roadmap (taint analysis Python - FI-003 etapa 2, cierra FI-003)", "selected": "B", "cycle": 56, "date": "2026-05-22" },
     { "id": "DG-064", "title": "Proximo paso del roadmap (FI-009 - migrar AnthropicLlmClient a @anthropic-ai/sdk)", "selected": "A", "cycle": 57, "date": "2026-05-22" },
+    { "id": "DG-065", "title": "Proximo paso del roadmap (marketplace polish: icono + galleryBanner + CHANGELOG + README + family alignment)", "selected": "A", "cycle": 58, "date": "2026-05-22" },
     { "id": "Q1", "title": "Package manager", "selected": "pnpm", "cycle": 1, "date": "2026-05-20" }
   ],
   "metrics": {
-    "totalDecisions": 65,
+    "totalDecisions": 66,
     "optionDistribution": {
-      "A": 36,
+      "A": 37,
       "B": 28,
       "C": 1
     },
@@ -129,8 +130,8 @@
       "5": 5,
       "6": 4,
       "7": 29,
-      "8": 12
+      "8": 13
     }
   },
-  "lastUpdated": "2026-05-23T03:00:00.000Z"
+  "lastUpdated": "2026-05-23T03:30:00.000Z"
 }

@@ -6,11 +6,11 @@
 
 ## Current Cycle
 
-- **Cycle:** 58 — pendiente DG-065 (próximo paso del roadmap)
-- **Phase:** 8 — Distribución **COMPLETA** · 🏁 **Cero deuda OPEN registrada**
-- **Status:** Cycle 57 CERRADO; awaiting DG-065
+- **Cycle:** 59 — pendiente DG-066 (próximo paso del roadmap)
+- **Phase:** 8 — Distribución **COMPLETA** · 🏁 **Cero deuda OPEN** · **`.vsix v0.1.0` marketplace-ready**
+- **Status:** Cycle 58 CERRADO; awaiting DG-066
 - **Compliance:** 100%
-- **Synaptic Strength:** 62
+- **Synaptic Strength:** 63
 
 ## Cycles cerrados
 
@@ -29,6 +29,7 @@
 - **Cycle 55** — Pivot a `node-sqlite3-wasm` + fix FP SQL (DG-062 B): cierra FI-001 de raíz tras la prueba del usuario ✅
 - **Cycle 56** — FI-003 etapa 2 (Python): 3 reglas `mode: taint` (DG-063 B) → **FI-003 cerrado entero** ✅
 - **Cycle 57** — FI-009: `AnthropicLlmClient` → `@anthropic-ai/sdk` oficial (DG-064 A) → 🏁 **`futureImprovements` vacía por primera vez** ✅
+- **Cycle 58** — Marketplace polish v0.1.0 alineado con la familia SYNAPTIC (DG-065 A): publisher `RealGoLab`, icono Sentinel-específico, galleryBanner, CHANGELOG, README marketplace-ready ✅
 
 ## Tomo 001 — CERRADO
 
@@ -37,28 +38,28 @@
 
 ## Estado del repo
 
-- 92 commits · `origin` → `github.com/golab-arch/synaptic-sentinel` (**privado**, en sync) · push por ciclo activo
+- 94 commits · `origin` → `github.com/golab-arch/synaptic-sentinel` (**privado**, en sync) · push por ciclo activo
 - **Producto íntegramente en inglés** (FI-011 cerrado) · **cache de scanners global operativa** (FI-004 cerrado)
 - **5 scouts**: OpenGrep (**17 reglas SAST** — 11 pattern-based + 6 taint, JS/TS + Python) + Gitleaks + Trivy + Checkov + Vibe-Detect + `colony.db` (v4, **node-sqlite3-wasm**) + `Coordinator` + `reporters`
 - CLI: `scan` (export **JSON / HTML / SARIF**, **`--fail-on`**) · `triage` · `mark-fp` · `scanners install [--global]`
-- Brain Layer (Pro): 3 agentes via **`@anthropic-ai/sdk` oficial** (retries / rate-limiting / streaming) detrás del contrato `LlmClient`
-- Extensión VSCode: comandos/hover/Code Actions/status bar/pseudoterminal/webview + comando "Install Scanners" turnkey; **`.vsix` 1.25 MB** (sin binario nativo gracias a WASM, con la cadena del SDK; id `golab.synaptic-sentinel`)
-- **Brain Layer (Pro) COMPLETO** · **UX verbose COMPLETA** · **memoria del enjambre COMPLETA** · **CI-native COMPLETA** · **Distribución COMPLETA** · **Detección con taint COMPLETA** · **Cliente LLM oficial COMPLETO**
+- Brain Layer (Pro): 3 agentes via **`@anthropic-ai/sdk` oficial** detrás del contrato `LlmClient`
+- Extensión VSCode: comandos/hover/Code Actions/status bar/pseudoterminal/webview + comando "Install Scanners" turnkey; **`.vsix v0.1.0` marketplace-ready** (`synaptic-sentinel-0.1.0.vsix`, 1.26 MB, id `RealGoLab.synaptic-sentinel`, icono + galleryBanner alineados con la familia SYNAPTIC)
+- **Brain Layer (Pro) COMPLETO** · **UX verbose COMPLETA** · **memoria del enjambre COMPLETA** · **CI-native COMPLETA** · **Distribución COMPLETA** · **Detección con taint COMPLETA** · **Cliente LLM oficial COMPLETO** · **Marketplace polish COMPLETO**
 - `verify` (format:check / lint / build / **test:unit**) verde · 313 tests + 3 gated (302 unit / 11+3 integration)
 
 ## Notas / deuda
 
-- 🏁 **`futureImprovements` está vacía** — todas las FIs registradas a lo largo del proyecto (FI-001 a FI-011, 11 en total) están cerradas. Hito.
-- El producto está en un punto inédito de **cero deuda técnica registrada**: turnkey-instalable, detección rica (17 reglas, taint en 2 lenguajes), Brain Layer con SDK oficial, memoria del enjambre, CI-native.
-- **Próxima dirección abierta** — sin FIs que cerrar, las opciones de DG-065 se abren a frentes nuevos: publicación al marketplace de VSCode, polish público de la parte OSS, nuevos scouts, hardening, etc.
+- 🏁 **`futureImprovements` sigue vacía** — cero deuda técnica registrada.
+- **`.vsix v0.1.0` listo para `vsce publish`** — el timing y el PAT del marketplace son del usuario.
+- **Próxima decisión abierta** — DG-066 entre: publicar al marketplace (runbook + PAT del usuario), publish-oss.ts allowlist (DG-001 deferred), sexto scout, o feedback del usuario.
 - **Instrucciones permanentes**: cada DG incluye mi recomendación explícita (DG-045); commit + push por ciclo (DG-055).
 
 ## Decision Gate abierto
 
-- DG-065 — próximo paso del roadmap (a presentar)
+- DG-066 — próximo paso del roadmap (a presentar)
 
 ## Last Entry
 
-Entry #68 — FEATURE_IMPLEMENTED (DG-064 A) — 2026-05-22 — SUCCESS · CIERRA FI-009 · 🏁 cero deuda OPEN
+Entry #69 — FEATURE_IMPLEMENTED (DG-065 A) — 2026-05-22 — SUCCESS · `.vsix v0.1.0` marketplace-ready
 
 ---
