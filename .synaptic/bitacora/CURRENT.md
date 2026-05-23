@@ -6,11 +6,11 @@
 
 ## Current Cycle
 
-- **Cycle:** 64 — pendiente DG-071 (extracción `OpenAiCompatibleLlmClient` — Phase 11 sub-increment 2 de 10)
-- **Phase:** **9 CERRADA · Phase 11 — Multi-Provider Brain Layer ABIERTA** (Phase 10 deferida y renumerada como Phase 12) · Phase 8 sigue COMPLETA funcionalmente · 🏁 **Cero deuda OPEN** · **provider-agnostic-by-design declarado**
-- **Status:** Cycle 63 CERRADO (DG-070 A — Phase 11 opener: bookkeeping puro tras viaje exploratorio extenso de 2 rounds + 6 agentes web; 10 decisiones consolidadas del usuario; Modo D arquitectónico con 3 adapters); awaiting DG-071
+- **Cycle:** 65 — pendiente DG-072 (extracción `OllamaLlmClient` con XGrammar opt-in — Phase 11 sub-increment 3 de 10)
+- **Phase:** **9 CERRADA · Phase 11 — Multi-Provider Brain Layer** (Phase 10 deferida y renumerada como Phase 12) · Phase 8 sigue COMPLETA funcionalmente · 🏁 **Cero deuda OPEN** · **provider-agnostic-by-design declarado · 2 de 3 adapters extraídos**
+- **Status:** Cycle 64 CERRADO (DG-071 A — `OpenAiCompatibleLlmClient` extraído ~120 líneas + 8 tests; dep `openai@^6.18.0`; cliente **dormant** hasta DG-073; cero cambios al `AnthropicLlmClient` o al contrato); awaiting DG-072
 - **Compliance:** 100%
-- **Synaptic Strength:** 68
+- **Synaptic Strength:** 69
 
 ## Cycles cerrados
 
@@ -35,6 +35,7 @@
 - **Cycle 61** — 🌐 **Phase 9 sub-increment 3: repo PÚBLICO** (DG-068 B): primera acción outward-facing real del proyecto. Pre-flight `gitleaks` sobre historia completa PASS (único hit en fixture deliberadamente vulnerable de `tests/.../fixtures/secrets/`, excluido por guardrail). Metadata refresh (description + homepage al marketplace listing + 10 topics: `vibe-coding`/`security`/`sast`/`taint-analysis`/`ai-coding`/`ai-generated-code`/`llm-security`/`byok`/`vscode-extension`/`synaptic`). `gh repo edit --visibility public --accept-visibility-change-consequences` ejecutado; `gh repo view` confirma `visibility: PUBLIC` + `licenseInfo: Apache-2.0` (detectado automáticamente por GitHub desde `LICENSE` en raíz) ✅
 - **Cycle 62** — 🚀 **Phase 9 sub-increment 4 (cierra Phase 9): release `v0.2.0`** (DG-069 B): bump `package.json` `0.1.0` → `0.2.0`; cut CHANGELOG date `[0.2.0] - 2026-05-23`; `pnpm verify` verde; `vsce package` → `synaptic-sentinel-0.2.0.vsix` (429 archivos, 1.27 MB, manifest validado). Annotated tag `v0.2.0` push. `gh release create v0.2.0` con asset `.vsix` descargable: [github.com/golab-arch/synaptic-sentinel/releases/tag/v0.2.0](https://github.com/golab-arch/synaptic-sentinel/releases/tag/v0.2.0) · `isDraft=false` · SHA-256 expuesto por GitHub vía `digest` ✅ — **Phase 9 CERRADA**
 - **Cycle 63** — 🧭 **Apertura de Phase 11 — Multi-Provider Brain Layer** (DG-070 A): bookkeeping puro tras viaje exploratorio extenso (2 rounds de discovery, 6 agentes web cubriendo librerías de abstracción + landscape de providers + protocolo OpenAI-compatible + benchmarks externos + Ollama deep dive + UX patterns). El producto se reposiciona como **provider-agnostic-by-design**. 10 decisiones consolidadas del usuario: Modo D arquitectónico (3 adapters: Anthropic native + OpenAI-compat genérico + Ollama-específico con XGrammar), YAML `.sentinel/agents.yaml` (Continue.dev pattern), provider-por-agente, benchmark empírico obligatorio antes de v0.3.0. **Phase 10 (vsce publish v0.2.0) DEFERIDA y renumerada como Phase 12**. Roadmap Phase 11: 10 sub-increments DG-070..DG-079. NO toca código ✅
+- **Cycle 64** — 🧩 **Phase 11 sub-increment 2: `OpenAiCompatibleLlmClient` extraído** (DG-071 A): adapter genérico (~120 líneas + 8 unit tests con `fakeFetch`) que sirve a **14+ providers** vía `baseURL` override (OpenAI / Groq / DeepSeek / Mistral / Together / Fireworks / Perplexity / xAI Grok / Gemini-via-OpenAI-compat / AWS Bedrock Mantle / Azure OpenAI v1 / Ollama-sin-grammar / LM Studio / vLLM). Patrón replicado del `AnthropicLlmClient`: `#client` privado + helper parser puro + `temperature=0` hardcoded para determinism cross-provider. Dep `openai@^6.18.0` agregada; `pnpm install` con `NODE_OPTIONS=--use-system-ca` (L-001). Cliente queda **dormant** (re-exportado pero ningún command lo invoca todavía — wiring en DG-073). `pnpm verify` verde: 43 test files / 310 tests (+8 nuevos). Cero cambios al `AnthropicLlmClient`, al contrato `LlmClient`, ni a los 3 agentes consumidores ✅
 
 ## Tomo 001 — CERRADO
 
@@ -65,10 +66,10 @@
 
 ## Decision Gate abierto
 
-- DG-071 — extraer `OpenAiCompatibleLlmClient` (Phase 11 sub-increment 2 de 10) — a presentar
+- DG-072 — extraer `OllamaLlmClient` con XGrammar opt-in (Phase 11 sub-increment 3 de 10) — a presentar
 
 ## Last Entry
 
-Entry #75 — PHASE_TRANSITION (DG-070 A) — 2026-05-23 — SUCCESS · **Phase 11 (Multi-Provider Brain Layer) ABIERTA** · Phase 10 DEFERIDA→Phase 12 · 10 decisiones consolidadas del usuario tras 2 rounds de discovery + 6 agentes web
+Entry #76 — FEATURE_IMPLEMENTED (DG-071 A) — 2026-05-23 — SUCCESS · `OpenAiCompatibleLlmClient` extraído (14+ providers via `baseURL`); dep `openai@^6.18.0`; cliente **dormant** hasta DG-073; cero regresiones
 
 ---

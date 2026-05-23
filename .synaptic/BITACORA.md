@@ -2157,5 +2157,36 @@ Each entry follows this structure:
 
 ---
 
+### Entry #76 - DG-071 (A): extraer OpenAiCompatibleLlmClient; cierra Cycle 64
+```json
+{
+  "timestamp": "2026-05-23T18:30:00.000Z",
+  "cycle": 64,
+  "phase": 11,
+  "action": "FEATURE_IMPLEMENTED",
+  "details": {
+    "DG-071": {
+      "title": "Phase 11 sub-increment 2 - extraer OpenAiCompatibleLlmClient (adapter generico para 14+ providers)",
+      "selected": "Option A",
+      "effect": "Segundo ladrillo de Phase 11 (tras el opener DG-070). Un adapter generico OpenAI-compatible que sirve a 14+ providers (OpenAI, Groq, DeepSeek, Mistral, Together, Fireworks, Perplexity, xAI Grok, Gemini-via-OpenAI-compat, AWS Bedrock Mantle, Azure OpenAI v1, Ollama sin grammar, LM Studio, vLLM) cambiando solo baseURL. El cliente queda DORMANT - exportado del paquete agents pero ningun command del CLI lo invoca todavia (el wiring viene en DG-073 con el registry + .sentinel/agents.yaml). El AnthropicLlmClient existente NO se toca; sigue siendo la implementacion canonica para Claude (la OpenAI-compat de Anthropic es beta y pierde caching/vision/thinking)."
+    },
+    "files_changed": "5 archivos. NEW packages/agents/src/openai-compatible-client.ts (~120 lineas: OpenAiCompatibleClientOptions, parseOpenAiCompatibleResponse helper puro, clase OpenAiCompatibleLlmClient implements LlmClient con temperature=0 hardcoded para determinism cross-provider). NEW packages/agents/tests/openai-compatible-client.test.ts (8 unit tests: 5 del parser + 3 del cliente con fakeFetch capturando URL/method/body/Authorization). packages/agents/src/index.ts (re-exporta el nuevo cliente). packages/agents/package.json (dep openai @^6.18.0 agregada). pnpm-lock.yaml (clausura de ~17 paquetes nuevos resueltos via NODE_OPTIONS=--use-system-ca por L-001 Norton TLS).",
+    "design": "Patron replicado del AnthropicLlmClient (97 lineas, FI-009 cerrado en DG-064 A): #client privado, opciones via constructor, helper parser puro, tests con fakeFetch determinista. La unica diferencia funcional es: (1) el SDK es openai en vez de @anthropic-ai/sdk; (2) la forma de la respuesta es choices[0].message.content en vez de content[].text; (3) el primer mensaje es role:system role:user en vez de system separado del messages array (el SDK openai usa el patron standardizado). temperature=0 hardcoded internamente en vez de exponerlo en el contrato LlmCompletionRequest porque: (a) Sentinel es security tool y prefiere determinism cross-provider; (b) extender el contrato significaria tocar AnthropicLlmClient + todos los tests existentes; (c) si DG-076 benchmark revela que algun provider necesita temperature distinta, se abre un sub-DG para exponerla. Decision conservadora consistente con el patron 'sub-increment atomico bounded' de los DGs previos.",
+    "out_of_scope_explicit": "(1) Ollama con XGrammar - DG-072 (proximo). El OpenAiCompatibleLlmClient puede apuntar a localhost:11434/v1 pero sin aprovechar XGrammar constrained decoding. (2) Provider registry + schema .sentinel/agents.yaml + carga de config + SecretStorage namespaceado + --agent-provider CLI flag - DG-073. (3) UI panel - DG-074. (4) Ground truth - DG-075. (5) Empirical benchmark - DG-076. (6) Per-provider prompt tuning - DG-077. (7) Cost visibility - DG-078. (8) Release v0.3.0 - DG-079.",
+    "verification_real": "pnpm verify VERDE: format:check (prettier --check .) + lint (eslint .) + build (tsc -b + esbuild bundle) + test:unit. 43 test files (42 previos + 1 nuevo), 310 tests pasados (302 previos + 8 nuevos del cliente + parser). Sin regresiones; cero cambios al AnthropicLlmClient, al contrato LlmClient, ni a los 3 agentes consumidores. pnpm install tuvo que correrse con NODE_OPTIONS=--use-system-ca (L-001 Norton TLS interception) - primer install fallo con UNABLE_TO_VERIFY_LEAF_SIGNATURE; con la flag se completo en 25.2s descargando openai + clausura transitiva.",
+    "tests": "+8 nuevos: 5 del parser (extrae content, lanza sin choices, lanza con choices vacio, lanza con content null = solo tool_calls, lanza con content empty string) + 3 del cliente (envia request al default endpoint api.openai.com con model + max_tokens + temperature=0 + Authorization Bearer; respeta baseUrl Groq + custom model + custom maxTokens; lanza en 429 sin reintentos). Total cumulative: 310 verdes.",
+    "checks": "format:check / lint / build / test:unit - todos en verde",
+    "caveat_dg_073_bundle": "Cuando DG-073 wiree el cliente al CLI, el bundle de la extension (esbuild) va a necesitar --external:openai (mismo patron que @anthropic-ai/sdk y node-sqlite3-wasm hoy) y agregar la clausura transitiva del SDK openai al scripts/copy-cli-assets.mjs (~17 paquetes nuevos: openai + form-data-encoder + formdata-node + node-domexception + node-fetch + abort-controller + agentkeepalive + etc - igual familia que el SDK Anthropic). Sin ese paso el .vsix fallaria al cargar el cliente openai en runtime. Anti-optimismo: NO se ataca en este DG (deferido honestamente a DG-073 cuando haya algo que wireear).",
+    "anti_optimismo_explicito": "Este ciclo NO declara multi-provider funcionando end-to-end. Declara solo que el adapter generico existe, esta testeado con mocks deterministas y exportado del paquete agents. NINGUN usuario puede invocarlo todavia - no hay registry, no hay UI, no hay flag CLI que lo seleccione. El producto que corre hoy (el .vsix v0.2.0 ya publicado como GitHub Release) es identico - el AnthropicLlmClient sigue siendo lo unico instanciado. Integration tests reales contra Groq/DeepSeek NO se corrieron en este DG (opcion B los hubiera incluido gated por env var) - la validacion e2e cross-provider esta deferida al benchmark empirico DG-076.",
+    "commits_split": "feat en commit 5ee0975 feat(agents); este registro SYNAPTIC se asienta en el commit docs siguiente."
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 69,
+  "complianceScore": 100
+}
+```
+
+---
+
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-23T17:30:00.000Z*
+*Last Updated: 2026-05-23T18:30:00.000Z*
