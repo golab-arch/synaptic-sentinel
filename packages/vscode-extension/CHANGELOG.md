@@ -4,7 +4,7 @@ All notable changes to the SYNAPTIC Sentinel extension will be documented in thi
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.2.0] - _Unreleased — to be cut in DG-069_
+## [0.2.0] - 2026-05-23
 
 Strategic pivot: SYNAPTIC Sentinel is repositioned as **"the vibe-coding security sentinel"** and all capabilities are unified under a single open-source license. No more dual OSS / premium tiering.
 
