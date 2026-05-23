@@ -6,11 +6,11 @@
 
 ## Current Cycle
 
-- **Cycle:** 67 — pendiente DG-074 (UI panel VSCode extension con per-agent picker + Ollama auto-discovery — Phase 11 sub-increment 5 de 10)
-- **Phase:** **9 CERRADA · Phase 11 — Multi-Provider Brain Layer** (5 de 10 sub-increments cerrados; Phase 10 deferida y renumerada como Phase 12) · Phase 8 sigue COMPLETA funcionalmente · 🏁 **Cero deuda OPEN** · **provider-agnostic-by-design · 3 de 3 adapters extraídos · multi-provider FUNCIONAL end-to-end vía CLI**
-- **Status:** Cycle 66 CERRADO (DG-073 B — el sub-increment más grande de Phase 11 y el PRIMER ciclo con valor user-visible real: provider registry + `.sentinel/agents.yaml` + wiring runtime al CLI + SecretStorage namespaceado + bundle externals; 2 feat commits `5656e2d` + `e9ca983`; 375 tests verde +50 funcionalmente; retro-compat v0.2.0 preservada); awaiting DG-074
+- **Cycle:** 68 — pendiente DG-075 (ground truth set manual sobre 11 fixtures — Phase 11 sub-increment 6 de 10)
+- **Phase:** **9 CERRADA · Phase 11 — Multi-Provider Brain Layer** (6 de 10 sub-increments cerrados; Phase 10 deferida y renumerada como Phase 12) · Phase 8 sigue COMPLETA funcionalmente · 🏁 **Cero deuda OPEN** · **provider-agnostic-by-design · 3 de 3 adapters extraídos · multi-provider FUNCIONAL end-to-end vía CLI Y vía UI extension**
+- **Status:** Cycle 67 CERRADO (DG-074 B — Settings panel multi-provider del VSCode extension: comando "Configure Brain Layer Providers" + webview con 3 secciones + renderer puro testeable + las API keys NUNCA cruzan al webview; commit feat `7198a2f`; 403 tests verde +28 funcionalmente; bundle 3.16 MB); awaiting DG-075
 - **Compliance:** 100%
-- **Synaptic Strength:** 71
+- **Synaptic Strength:** 72
 
 ## Cycles cerrados
 
@@ -38,6 +38,7 @@
 - **Cycle 64** — 🧩 **Phase 11 sub-increment 2: `OpenAiCompatibleLlmClient` extraído** (DG-071 A): adapter genérico (~120 líneas + 8 unit tests con `fakeFetch`) que sirve a **14+ providers** vía `baseURL` override (OpenAI / Groq / DeepSeek / Mistral / Together / Fireworks / Perplexity / xAI Grok / Gemini-via-OpenAI-compat / AWS Bedrock Mantle / Azure OpenAI v1 / Ollama-sin-grammar / LM Studio / vLLM). Patrón replicado del `AnthropicLlmClient`: `#client` privado + helper parser puro + `temperature=0` hardcoded para determinism cross-provider. Dep `openai@^6.18.0` agregada; `pnpm install` con `NODE_OPTIONS=--use-system-ca` (L-001). Cliente queda **dormant** (re-exportado pero ningún command lo invoca todavía — wiring en DG-073). `pnpm verify` verde: 43 test files / 310 tests (+8 nuevos). Cero cambios al `AnthropicLlmClient`, al contrato `LlmClient`, ni a los 3 agentes consumidores ✅
 - **Cycle 65** — 🦙 **Phase 11 sub-increment 3: `OllamaLlmClient` con XGrammar opt-in** (DG-072 B): tercer y último adapter del Modo D. ~170 líneas + 15 unit tests con `fakeFetch`. Usa la **API nativa** de Ollama (`/api/chat`, no `/v1/chat/completions`) porque sólo la nativa soporta XGrammar constrained-by-grammar vía el param `format` desde v0.5+. Acepta `format` opt-in en constructor: JSON Schema object para XGrammar, `"json"` literal legacy, o undefined para texto libre. **Sin nueva dep** (`fetch` global Node 20+). Helpers exportados de auto-discovery: `isOllamaAvailable()` con timeout 1s vía `AbortController`, `listOllamaModels()` devuelve `readonly string[]` (vacío en cualquier error, no lanza). `pnpm verify` verde: 44 test files / 325 tests (+15 nuevos). Cliente **dormant**. **3 de 3 adapters del Modo D extraídos** ✅
 - **Cycle 66** — 🔌 **Phase 11 sub-increment 4: provider registry + wiring runtime + bundle externals — PRIMER CICLO CON VALOR USER-VISIBLE** (DG-073 B): el sub-increment más grande de Phase 11. Compone los 3 adapters extraídos en un provider registry funcional + schema YAML versionable `.sentinel/agents.yaml` + 3 JSON Schemas hand-written para XGrammar + wiring runtime al CLI (`commands/triage.ts` refactored con `resolveAgentLlmClients` y precedencia `injected > CLI flag > yaml > Anthropic fallback`) + flag `--agent-provider <agent>=<provider>/<model>` repeatable + SecretStorage namespaceado con migración legacy + bundle `--external:openai`. **Multi-provider FUNCIONAL end-to-end vía CLI** — usuario puede crear `.sentinel/agents.yaml` con per-agent provider + setear `SENTINEL_<PROVIDER>_API_KEY` + correr `synaptic-sentinel triage`. **Retro-compat v0.2.0 PRESERVADA**: `ANTHROPIC_API_KEY`-only users siguen funcionando idéntico (fallback implícito a Anthropic Haiku 4.5). 2 feat commits (`5656e2d` core+agents + `e9ca983` cli+vscode-extension) + 1 docs commit. `pnpm verify` verde 48 test files / 375 tests (+50 funcionalmente). Smoke `vsce package` verde 1838 archivos / 3.08 MB (vs 1.27 MB; +143% por SDK openai) ✅
+- **Cycle 67** — 🎛️ **Phase 11 sub-increment 5: Settings panel multi-provider del VSCode extension** (DG-074 B): cierra el gap UX dejado por DG-073 B. Comando nuevo **"SYNAPTIC Sentinel: Configure Brain Layer Providers"** abre un webview con 3 secciones: **Active Configuration** (provider/modelo resuelto por agente), **Managed Credentials** (12 providers con auth - Anthropic + 11 OpenAI-compat - con password input + Save/Delete/Test + badges), **Local Models** (Ollama auto-discovery via ping a `localhost:11434/api/tags` + lista de modelos pulled + Refresh). Patrón replicado de DG-039 B "tomo vivo": **renderer puro testeable** (`settings-content.ts` ~280 líneas con CSP+nonce+escapeHtml anti-inyección) + **provider con message passing** (`settings-view.ts` ~270 líneas). Las API keys NUNCA cruzan al webview en texto plano (state = `configured: boolean` por provider). `agents-yaml-writer.ts` con `agentsYamlHasComments` (special-case del header autogenerado) + `renderAgentsYaml` serializer. **Multi-provider FUNCIONAL end-to-end vía CLI y vía UI extension**. Deps workspace `@synaptic-sentinel/core` + `@synaptic-sentinel/agents` + `js-yaml` agregadas. Commit feat `7198a2f`. `pnpm verify` verde 50 test files / **403 tests** (+28 nuevos). Smoke `vsce package` verde 1838 archivos / 3.16 MB (+80 KB vs DG-073 B) ✅
 
 ## Tomo 001 — CERRADO
 
@@ -68,10 +69,10 @@
 
 ## Decision Gate abierto
 
-- DG-074 — UI panel del VSCode extension (Settings webview con per-agent picker + Ollama auto-discovery + Test buttons per provider) — Phase 11 sub-increment 5 de 10 — a presentar
+- DG-075 — ground truth set manual sobre los 11 fixtures actuales (trabajo humano: TP/FP/inconclusive + summary + remediation aceptable por finding) — Phase 11 sub-increment 6 de 10 — a presentar
 
 ## Last Entry
 
-Entry #78 — FEATURE_IMPLEMENTED (DG-073 B) — 2026-05-23 — SUCCESS · **PRIMER CICLO DE PHASE 11 CON VALOR USER-VISIBLE REAL** · provider registry + `.sentinel/agents.yaml` + wiring runtime al CLI + SecretStorage namespaceado + bundle externals · multi-provider FUNCIONAL end-to-end vía CLI · 2 feat commits · retro-compat v0.2.0 preservada
+Entry #79 — FEATURE_IMPLEMENTED (DG-074 B) — 2026-05-23 — SUCCESS · Settings panel multi-provider (Configure Brain Layer Providers) · webview con 3 secciones + renderer puro + Ollama auto-discovery + API keys nunca cruzan al webview · commit feat `7198a2f` · 403 tests verde · bundle 3.16 MB · multi-provider FUNCIONAL vía CLI y UI extension
 
 ---
