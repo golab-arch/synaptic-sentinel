@@ -6,11 +6,11 @@
 
 ## Current Cycle
 
-- **Cycle:** 60 — pendiente DG-067 (re-positioning textual de Phase 9)
-- **Phase:** **9 — Strategic Pivot** (abierta) · Phase 8 sigue COMPLETA funcionalmente · 🏁 **Cero deuda OPEN** · **Producto unificado bajo Apache-2.0**
-- **Status:** Cycle 59 CERRADO (DG-066 B — sustrato legal Apache-2.0 unificado); awaiting DG-067
+- **Cycle:** 61 — pendiente DG-068 (apertura del repo a público)
+- **Phase:** **9 — Strategic Pivot** · Phase 8 sigue COMPLETA funcionalmente · 🏁 **Cero deuda OPEN** · **Producto unificado bajo Apache-2.0 + discurso "The vibe-coding security sentinel"**
+- **Status:** Cycle 60 CERRADO (DG-067 B — re-positioning textual: README + CHANGELOG + ONBOARDING + package.json keywords); awaiting DG-068
 - **Compliance:** 100%
-- **Synaptic Strength:** 64
+- **Synaptic Strength:** 65
 
 ## Cycles cerrados
 
@@ -31,6 +31,7 @@
 - **Cycle 57** — FI-009: `AnthropicLlmClient` → `@anthropic-ai/sdk` oficial (DG-064 A) → 🏁 **`futureImprovements` vacía por primera vez** ✅
 - **Cycle 58** — Marketplace polish v0.1.0 alineado con la familia SYNAPTIC (DG-065 A): publisher, icono, galleryBanner, CHANGELOG, README marketplace-ready ✅ · _follow-up Entry #70 (commit `9f44a82`): tras feedback visual del usuario — logo OFICIAL de la familia GoLab (sustituye al Sentinel-específico, removidos `icon.svg` + `render-icon.mjs`), publisher `RealGoLab`→`GoLab` (id `golab.synaptic-sentinel`), casing `Synaptic Sentinel`→`SYNAPTIC Sentinel` en toda la superficie user-visible_
 - **Cycle 59** — 🔀 **Apertura de Phase 9 — Strategic Pivot** (DG-066 B): giro estratégico ratificado por el usuario a **OSS full Apache-2.0** ("lanzar full capabilities como el mejor sentinela del mundo enfocado en vibe-coding"). Sub-increment atómico de sustrato legal: `LICENSE-PRO` eliminado, `packages/agents` re-licenciado a `Apache-2.0`, header `[PRO]` retirado. DG-001 B **amendado** (`publish-oss.ts` allowlist obsoleto bajo el giro) ✅
+- **Cycle 60** — **Phase 9 sub-increment 2: re-positioning textual** (DG-067 B): tagline elegida por el usuario "**The vibe-coding security sentinel**" (tone conservador — no "world's best"). 5 archivos user-visible reescritos: `README.md` raíz, `packages/vscode-extension/README.md`, `CHANGELOG.md` (nueva entrada `[0.2.0] - _Unreleased — to be cut in DG-069_`), `ONBOARDING.md`, `packages/vscode-extension/package.json` (description + keywords `ai-generated-code`/`llm-security`). Apache-2.0 declarado en todas las superficies user-visible; Brain Layer sin "Pro/proprietary" ✅
 
 ## Tomo 001 — CERRADO
 
@@ -53,15 +54,15 @@
 - 🔀 **Phase 9 abierta** — pivot estratégico a **OSS full Apache-2.0** ratificado por el usuario (DG-066 B). El producto se reposiciona como **"the world's best security sentinel for vibe-coded projects"** con todas las capacidades en un solo SKU bajo Apache-2.0 (la "capa premium" deja de existir como tier diferenciado). Monetización **diferida** (sponsors / consulting / hosted version a posteriori).
 - 🏁 **`futureImprovements` sigue vacía** — cero deuda técnica registrada.
 - **DG-001 B amendado** — `publish-oss.ts` allowlist obsoleto bajo el giro (no hay código Pro que filtrar). La decisión arquitectónica fue correcta para la estrategia de entonces; el cambio es estratégico, no arquitectónico.
-- **Próximos sub-increments de Phase 9**: DG-067 (re-positioning textual: README + CHANGELOG + ONBOARDING) → DG-068 (repo público) → DG-069 (release `v0.2.0` + `.vsix` nuevo).
+- **Próximos sub-increments de Phase 9**: DG-068 (repo público — scan secretos en historia + `gh repo edit --visibility public`) → DG-069 (release `v0.2.0` + `.vsix` nuevo + tagging git).
 - **Instrucciones permanentes**: cada DG incluye mi recomendación explícita (DG-045); commit + push por ciclo (DG-055).
 
 ## Decision Gate abierto
 
-- DG-067 — re-positioning textual del producto en alineación con el giro (a presentar)
+- DG-068 — apertura del repo a público (a presentar)
 
 ## Last Entry
 
-Entry #71 — STRATEGIC_PIVOT (DG-066 B) — 2026-05-23 — SUCCESS · Phase 9 abierta · sustrato legal Apache-2.0 unificado
+Entry #72 — FEATURE_IMPLEMENTED (DG-067 B) — 2026-05-23 — SUCCESS · re-positioning textual "The vibe-coding security sentinel" + Apache-2.0 declarado en superficies user-visible
 
 ---
