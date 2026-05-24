@@ -4,6 +4,54 @@ All notable changes to the SYNAPTIC Sentinel extension will be documented in thi
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-05-24
+
+**Phase 11 closes: SYNAPTIC Sentinel is now provider-agnostic by design.** The Brain Layer no longer assumes Anthropic — every agent (Triage / Context / Remediation) can run against any of 14+ providers via a config file, a CLI flag, or the new in-IDE Settings panel. BYOK any provider you trust, switch between them per-agent, and see exactly how much each session costs.
+
+### Added — Multi-provider Brain Layer
+
+- **Three LLM adapters covering 14+ providers**: `AnthropicLlmClient` (native, with prompt caching/extended thinking preserved), `OpenAiCompatibleLlmClient` (generic adapter for OpenAI / Groq / DeepSeek / Mistral / Together / Fireworks / Perplexity / xAI / Gemini / Bedrock / Azure / LM Studio / vLLM), and `OllamaLlmClient` (Ollama-native `/api/chat` with XGrammar opt-in for `~99%` JSON validity on local models).
+- **`.sentinel/agents.yaml`** — versionable per-agent config. Triage can run on DeepSeek v4-flash (cheap), Context on Anthropic Haiku (quality), Remediation on Ollama locally. Mix-and-match by cost / quality / privacy.
+- **`SYNAPTIC Sentinel: Configure Brain Layer Providers`** — new in-IDE Settings panel with three sections: Active Configuration (which provider runs each agent), Managed Credentials (Save/Delete/Test for 12 providers, keys never cross to the webview in plain text), and Local Models with Ollama auto-discovery.
+- **CLI flag `--agent-provider <agent>=<provider>/<model>`** — repeatable override for the `triage` command.
+- **`vscode.SecretStorage` namespaced per provider** — `sentinel.anthropic.apiKey` / `sentinel.openai.apiKey` / ... with automatic migration from the legacy `synaptic-sentinel.anthropicApiKey` slot.
+
+### Added — Cost visibility
+
+- **Summary block at the end of every `triage` session** — tokens consumed + estimated USD + average latency, grouped by `(provider/model, agent)`. The 25x cost difference between Anthropic Haiku and DeepSeek v4-flash on your own findings becomes visible.
+- **New sub-command `synaptic-sentinel cost-history [--limit N]`** — rollup of the last N triage sessions across provider+agent, total tokens, total estimated USD.
+- **New `colony.db` table `triage_token_usage`** (schema v5, additive) persists every LLM call with `triage_session_id` + provider label + agent id + token counts + estimated USD + latency.
+
+### Added — Cross-provider benchmark plumbing
+
+- **`pnpm benchmark:run` CLI script** — runs the three Brain Layer agents against a ground truth dataset of 26 entries covering 13 deliberately-vulnerable fixtures (SAST / Secrets / IaC / Vibe-Coded), measures JSON validity, classification accuracy, latency, tokens (proxy), estimated USD and cross-run determinism.
+- **Verbose / filter flags** — `--verbose` (one log line per LLM call with 200-char raw sample), `--entries <ruleIds>` (filter ground truth), `--providers <names>` (filter providers). Useful for manual single-call probes when debugging prompt failures.
+- **AI-draft ground truth dataset** at `tests/benchmark/ground-truth.json`. Keywords support synonym arrays (`["code injection", "RCE", "remote code execution", "arbitrary code"]`) so the scorer matches what real LLMs actually say. **Caveat**: all 26 entries are `reviewedBy: "ai-draft"` — not authoritative for external claims until human-AppSec review.
+
+### Changed
+
+- **OpenAI-compatible adapter quirks for gpt-5\* family**: switches automatically to `max_completion_tokens` and omits `temperature` (gpt-5\* only accepts default=1). Sends `response_format: { type: "json_object" }` to every OpenAI-compat backend — dramatically improves Gemini JSON adherence without harming other providers.
+- **DeepSeek default model `v3.2` → `v4-flash`** in the benchmark runner (`v3.2` is now deprecated by DeepSeek).
+- **Pricing table** moved from `tests/benchmark/pricing.json` (deleted) to `packages/core/src/config/pricing.ts` as a TypeScript const — single source of truth between the benchmark and the cost visibility summary. Includes 16 cloud models and 3 local providers ($0).
+- **Backward compatibility preserved**: users with only `ANTHROPIC_API_KEY` set continue to work identically (implicit fallback to Anthropic Haiku 4.5 for all three agents — the v0.2.0 behavior).
+
+### Known Issues
+
+The first real benchmark runs against five cloud providers + Ollama exposed several limitations. These are documented in `tests/benchmark/README.md` and tracked as sub-DGs for future cycles:
+
+1. **Synthetic finding paths leak the fixture origin** — `buildSyntheticFinding` uses real paths like `tests/.../fixtures/vulnerable/eval.js`. LLMs read the path, notice the word "vulnerable" + "fixtures", and meta-reason "this looks like a test fixture, probably intentional" → classify as `inconclusive` instead of `true_positive`. The cost visibility and ranking by quality work; the Triage PASS rates in the benchmark report are an artifact of this path leak. Real user code is unaffected — only the synthetic benchmark.
+2. **OpenAI gpt-5\* reasoning-token budget** — `max_completion_tokens=1024` is too small for gpt-5-nano's internal reasoning + visible JSON output; the model returns empty content. Raise the cap or wait for a future cycle that does so per-model.
+3. **Local LLM batching can saturate RAM** — Gemma 4 (9.6 GB) and gpt-oss:20b (13 GB) on consumer hardware freeze after long sequential inference batches. Use models ≤3 GB (e.g. `gemma3:4b`, `qwen2.5:3b`, `llama3.2:3b`) for benchmark batches; for normal `triage` sessions on a handful of findings the larger models are fine.
+4. **Free-tier quotas** — Groq's TPD limit (100K tokens/day) and Gemini's RPM limit get exhausted after one full benchmark + one recalibration run on the free tier. Not a code issue; for production benchmark runs use the paid tier or wait 24h.
+5. **Tokens are proxies (`chars/4`)** — the contract `LlmClient.complete()` returns only text; the cost visibility summary estimates tokens with `Math.ceil(text.length / 4)` (±15-20% vs the provider's billed `usage`). Cost numbers are marked `~estimated` everywhere they appear.
+6. **Ground truth is AI-draft** — all 26 entries were written by Claude based on reading the fixtures + the OpenGrep ruleset. Not authoritative for external claims. The benchmark report carries a strong disclaimer.
+
+### Notes
+
+- This release wraps **Phase 11 — Multi-Provider Brain Layer** (cycles 63 → 72, ten sub-increments DG-070 → DG-079). The product is now provider-agnostic at the architecture level, with three adapters, a config registry, an in-IDE Settings panel, an empirical benchmark and cost visibility, all shipped under Apache-2.0.
+- BYOK any provider you trust. Keys never leave the user's machine — direct provider calls, no Synaptic backend.
+- The marketplace listing `GoLab.synaptic-sentinel` is updated by Phase 12 (`vsce publish`); meanwhile, the `.vsix` is downloadable as a GitHub Release asset.
+
 ## [0.2.0] - 2026-05-23
 
 Strategic pivot: SYNAPTIC Sentinel is repositioned as **"the vibe-coding security sentinel"** and all capabilities are unified under a single open-source license. No more dual OSS / premium tiering.
