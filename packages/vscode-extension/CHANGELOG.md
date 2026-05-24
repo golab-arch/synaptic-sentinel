@@ -4,6 +4,19 @@ All notable changes to the SYNAPTIC Sentinel extension will be documented in thi
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.2] - 2026-05-24
+
+**Second hotfix**: v0.3.1 was insufficient. The bundle externals fix from `DG-079.1` reduced the bundle size and the inlined SDK refs from 178 → 2, but **`activate()` was still throwing silently** because of a different root cause inside `@synaptic-sentinel/core`: `colony-db.ts` used `createRequire(import.meta.url)` (an ESM pattern), which esbuild leaves as `createRequire(undefined)` when bundling to CJS — and `createRequire(undefined)` throws `TypeError: The argument 'filename' must be a file URL object, file URL string, or absolute path string. Received undefined`. The exception killed `activate()` at module-load time, before any command could register.
+
+### Fixed
+
+- **`packages/core/src/colony/colony-db.ts`** is now bundle-safe. New helper `bundleSafeModuleUrl()` tries `import.meta.url` first (ESM context), and falls back to reading `__filename` from the CJS module wrapper via `eval` when running inside a CJS bundle. Both `createRequire(...)` and `new URL('./schema.sql', ...)` now use this helper instead of `import.meta.url` directly. The headless test (`node -e "...mock vscode... require('dist/extension.cjs')"`) used to find this regression now reports `SUCCESS — activate completed`.
+
+### Notes
+
+- v0.3.0 and v0.3.1 are **both superseded by v0.3.2**. The v0.3.0 release had the externals bug (`DG-079.1`). The v0.3.1 release fixed that but had this second bug surfaced at runtime. v0.3.2 fixes both classes. Users should download v0.3.2.
+- Anti-optimismo lesson: this is the second consecutive cycle where the verify gate (format + lint + build + 463 unit tests) and `vsce package` validation green-lit a `.vsix` that **cannot activate inside VSCode**. The fix this time was found by writing a **headless extension-host simulator** (mock `vscode` module + `require(dist/extension.cjs)` + invoke `activate()`) — a one-line diagnostic that reproduced the user's bug in seconds. This pattern is what a `vscode-test` integration would automate, and is now the highest-priority sub-DG for the next cycle.
+
 ## [0.3.1] - 2026-05-24
 
 **Hotfix**: the v0.3.0 `.vsix` installed but **no extension command was reachable** (`Command 'synaptic-sentinel.installScanners' not found`). Root cause discovered during local validation of v0.3.0 (DG-079.1).

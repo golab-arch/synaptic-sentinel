@@ -7,7 +7,48 @@ import { fileURLToPath } from 'node:url';
 // en el bundle: `sqliteWasm.Database` quedaba undefined). Usamos createRequire
 // para forzar resolucion CJS limpia, y un type-only import para las firmas.
 import type * as sqliteWasmTypes from 'node-sqlite3-wasm';
-const requireCjs = createRequire(import.meta.url);
+
+/**
+ * Bundle-safe URL para esta unidad de codigo (DG-079.2 hotfix).
+ *
+ * En ejecucion ESM nativa (cli.mjs, vitest, tests), `import.meta.url` es
+ * un `file://...` valido. Pero cuando este modulo se bundlea como parte
+ * de un bundle CJS (`extension.cjs` que importa `@synaptic-sentinel/core`
+ * vía el barrel desde `settings-view.ts`), esbuild deja `import.meta.url`
+ * como `undefined` — y `createRequire(undefined)` lanza, matando
+ * `activate()` antes de registrar comandos (root cause descubierto en
+ * DG-079.2 al validar el .vsix v0.3.1 localmente).
+ *
+ * Estrategia: si `import.meta.url` esta disponible, usarlo (ESM path).
+ * Si no, leer `__filename` desde el scope local del CJS module wrapper
+ * via `eval` (la unica forma de acceder a variables del wrapper desde
+ * codigo bundleado — `globalThis.__filename` no esta seteado).
+ */
+function bundleSafeModuleUrl(): string {
+  // ESM path: import.meta.url existe y es valido
+  try {
+    const url = (import.meta as { url?: string }).url;
+    if (typeof url === 'string' && url.length > 0) return url;
+  } catch {
+    // import.meta no soportado en este contexto — caer al CJS path
+  }
+  // CJS bundle path: __filename existe en el scope local del wrapper
+  try {
+    // eslint-disable-next-line no-eval
+    const filename = eval('typeof __filename === "string" ? __filename : null') as string | null;
+    if (typeof filename === 'string' && filename.length > 0) {
+      return `file://${filename.replace(/\\/g, '/')}`;
+    }
+  } catch {
+    /* fall through */
+  }
+  throw new Error(
+    'colony-db: cannot resolve module URL — neither ESM import.meta.url nor CJS __filename available.',
+  );
+}
+
+const __moduleUrl = bundleSafeModuleUrl();
+const requireCjs = createRequire(__moduleUrl);
 const sqliteWasm = requireCjs('node-sqlite3-wasm') as typeof sqliteWasmTypes;
 type Database = InstanceType<typeof sqliteWasm.Database>;
 type Statement = ReturnType<Database['prepare']>;
@@ -43,9 +84,10 @@ import {
  * `cli.mjs`, asi que caemos al fallback `./schema.sql`.
  */
 function resolveSchemaPath(): string {
-  const canonical = fileURLToPath(new URL('../../src/colony/schema.sql', import.meta.url));
+  // Reusa el bundle-safe URL para los dos casos (igual que requireCjs arriba).
+  const canonical = fileURLToPath(new URL('../../src/colony/schema.sql', __moduleUrl));
   if (existsSync(canonical)) return canonical;
-  return fileURLToPath(new URL('./schema.sql', import.meta.url));
+  return fileURLToPath(new URL('./schema.sql', __moduleUrl));
 }
 
 const SCHEMA_PATH = resolveSchemaPath();
