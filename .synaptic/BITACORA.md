@@ -2469,5 +2469,36 @@ Each entry follows this structure:
 
 ---
 
+### Entry #85 - DG-080 (B): Phase 12 opener — preparación marketplace (README polish + runbook + vsix re-pack); vsce publish diferido al usuario (bloqueado por PAT)
+
+```json
+{
+  "timestamp": "2026-05-24T15:00:00.000Z",
+  "cycle": 73,
+  "phase": 12,
+  "action": "PHASE_OPENED_PARTIAL",
+  "details": {
+    "DG-080": {
+      "title": "Phase 12 opener (sub-increment 1) - preparación marketplace para v0.3.0 publish: README polish multi-provider + docs/PUBLISHING.md runbook + .vsix re-empaquetado con README actualizado; vsce publish queda como step manual del usuario",
+      "selected": "Option B (Polish README + vsce publish; usuario eligió 'runbook ahora + publish después yo mismo' en la sub-pregunta sobre PAT status)",
+      "effect": "Abre Phase 12 — Marketplace launch v0.3.0 con la preparación COMPLETA del lado código: (1) packages/vscode-extension/README.md REESCRITO de v0.2.0-era a multi-provider explícito (~14 KB vs ~5 KB original) con tabla de 7 filas de providers soportados (Anthropic native + OpenAI + DeepSeek + Groq + Gemini + Mistral/Together/Fireworks/Perplexity/xAI + AWS Bedrock/Azure + Ollama/LMStudio/vLLM), sección 'Cost visibility' con ejemplo del summary block, sección 'Configuring providers' con 3 paths equivalentes (IDE Settings panel + .sentinel/agents.yaml + CLI flag --agent-provider), sección 'Known Limitations' honesta con 4 items (gpt-5* reasoning tokens + Ollama RAM + free tier quotas + tokens proxy chars/4), command list actualizada incluyendo 'Configure Brain Layer Providers'. (2) NEW docs/PUBLISHING.md runbook (~10 KB) con: prerequisitos one-time (Azure DevOps account + Marketplace publisher GoLab + PAT con scope 'Marketplace > Manage' en 'All accessible organizations' + verificación de vsce instalado), 4 steps de publish (set VSCE_PAT + vsce publish --packagePath + verify listing público + announce optional), guía para releases subsiguientes (v0.4.0+), tabla de 6 failure modes con causes + fixes (PAT expirado, Publisher not found, Version already exists, ERR_PNPM_RECURSIVE_RUN, Manifest validation, Norton TLS interception), sección Unpublishing emergency-only con caveats de irreversibilidad parcial. (3) RE-EMPAQUETADO synaptic-sentinel-0.3.0.vsix (3.18 MB / 1838 archivos) con el README actualizado bundleado dentro — SHA-256 nuevo DA07CA79CB8632C19037C16AAA7175E9504EA727CBF223585AA35B0B29A22185 distinto del GitHub Release (5EA050B1...) que queda histórico inmutable. (4) vsce publish NO ejecutado en este DG — usuario eligió ejecutarlo él mismo cuando tenga el PAT listo siguiendo el runbook. DG-080 cierra PARCIAL: preparación done, publish pendiente.",
+      "files_changed": "3 archivos: (1) packages/vscode-extension/README.md REESCRITO con multi-provider; (2) NEW docs/PUBLISHING.md runbook completo; (3) packages/vscode-extension/synaptic-sentinel-0.3.0.vsix RE-EMPAQUETADO (NO commiteado al repo — es artefacto generado, .gitignore lo excluye).",
+      "verification_real": "pnpm verify VERDE 56 test files / 463 tests pasados — mismo conteo (cambios son solo en README + docs, no toca código ni tests). pnpm -F synaptic-sentinel package EXITOSO: synaptic-sentinel-0.3.0.vsix 3.18 MB / 1838 archivos. Manifest re-validado al extraer: version 0.3.0 + publisher GoLab + license Apache-2.0 (sin cambios). README size 14206 bytes (vs ~5 KB en .vsix anterior). SHA-256 nuevo DA07CA79CB8632C19037C16AAA7175E9504EA727CBF223585AA35B0B29A22185 distinto del original (esperado: cambia el contenido del README).",
+      "pasos_usuario_pendientes": "El usuario ejecuta cuando tenga tiempo + PAT siguiendo docs/PUBLISHING.md: (1) crear cuenta Azure DevOps + publisher 'GoLab' en marketplace.visualstudio.com/manage; (2) generar PAT con scope 'Marketplace > Manage' en 'All accessible organizations'; (3) $env:VSCE_PAT = '<pat>'; (4) pnpm -F synaptic-sentinel exec vsce publish --packagePath packages/vscode-extension/synaptic-sentinel-0.3.0.vsix; (5) verificar listing público en https://marketplace.visualstudio.com/items?itemName=GoLab.synaptic-sentinel; (6) avisarme cuando esté publicado para cerrar DG-080 completamente con bookkeeping de éxito.",
+      "tests": "0 tests nuevos (DG-080 es preparación + runbook, no toca código de producto).",
+      "checks": "format:check / lint / build / test:unit todo VERDE. vsce package EXITOSO. Manifest del .vsix re-validado mecánicamente. SHA-256 del nuevo asset divergente del histórico — esperado y documentado.",
+      "out_of_scope_explicit": "(1) vsce publish ejecutado por Claude - el usuario eligió hacerlo manualmente con su PAT. (2) Announcement materials (Show HN, X, LinkedIn copy, GitHub Discussions setup) - explícitamente diferidos hasta resolver los Known Issues en sub-DGs futuros (anti-optimismo: hype prematuro con caveats abiertos es invitar a feedback negativo viral). (3) Re-upload del .vsix de GitHub Release para que sea el mismo SHA que el del marketplace - innecesario, GitHub Release queda como release histórico inmutable de Phase 9/11; marketplace tiene su propio README polish-bound. (4) 6 sub-DGs heredados abiertos: path leak fix, gpt-5 reasoning tokens, Ollama batching, exponer usage real del provider, sidebar webview Cost Visibility, ground truth human-AppSec review.",
+      "anti_optimismo_explicito": "DG-080 NO completa Phase 12 en este ciclo. Lo que cierra: preparación reproducible y documentada. Lo que NO: la publicación al marketplace propiamente dicha, que requiere acción manual del usuario (PAT + ejecución del runbook). El listing GoLab.synaptic-sentinel SIGUE retornando 404 hasta que el usuario ejecute vsce publish. El SHA del .vsix re-empaquetado es DA07CA79... que es DISTINTO del SHA del asset en GitHub Release v0.3.0 (5EA050B1...) — son artefactos divergentes por content del README, NO porque haya regresión. El bookkeeping documenta esa divergencia honestamente para que no se confunda. Cuando el usuario publique, DG-080 se cierra completamente con un follow-up Entry en BITACORA (no necesita nuevo DG — es continuación operacional del mismo).",
+      "commits_split": "feat en commit a venir (README polish + PUBLISHING.md runbook); este registro SYNAPTIC se asienta en el commit docs siguiente. El .vsix re-empaquetado NO se commitea (gitignored)."
+    }
+  },
+  "outcome": "SUCCESS_PARTIAL_AWAITING_USER_ACTION",
+  "synapticStrength": 78,
+  "complianceScore": 100
+}
+```
+
+---
+
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-24T14:30:00.000Z*
+*Last Updated: 2026-05-24T15:00:00.000Z*
