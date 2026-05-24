@@ -1,7 +1,7 @@
 {
   "name": "synaptic-sentinel",
   "displayName": "SYNAPTIC Sentinel",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "The vibe-coding security sentinel. Apache-2.0 agentic auditing for AI-assisted projects: five scouts (OpenGrep, Gitleaks, Trivy, Checkov, Vibe-Detect) + a Brain Layer (BYOK Anthropic) that triages, explains and remediates — all in the IDE.",
   "license": "Apache-2.0",
   "private": true,
@@ -97,7 +97,7 @@
     }
   },
   "scripts": {
-    "bundle": "esbuild src/index.ts --bundle --platform=node --format=cjs --target=node20 --external:vscode --outfile=dist/extension.cjs --sourcemap && esbuild ../cli/src/index.ts --bundle --platform=node --format=esm --target=node20 --external:node-sqlite3-wasm --external:@anthropic-ai/sdk --external:openai --outfile=dist/cli.mjs --sourcemap && node scripts/copy-cli-assets.mjs",
+    "bundle": "esbuild src/index.ts --bundle --platform=node --format=cjs --target=node20 --external:vscode --external:node-sqlite3-wasm --external:@anthropic-ai/sdk --external:openai --outfile=dist/extension.cjs --sourcemap && esbuild ../cli/src/index.ts --bundle --platform=node --format=esm --target=node20 --external:node-sqlite3-wasm --external:@anthropic-ai/sdk --external:openai --outfile=dist/cli.mjs --sourcemap && node scripts/copy-cli-assets.mjs",
     "vscode:prepublish": "pnpm -w run build",
     "package": "vsce package --no-dependencies"
   },

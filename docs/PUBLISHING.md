@@ -40,7 +40,7 @@ Expected: `>= 3.0.0` (or whatever version the lockfile pins).
 
 ## Publish a release
 
-Assuming you already have the `.vsix` produced (e.g. `synaptic-sentinel-0.3.0.vsix` from `DG-079 A` / Phase 11 closure):
+Assuming you already have the `.vsix` produced (e.g. `synaptic-sentinel-0.3.1.vsix` — the v0.3.0 `.vsix` had a bundle-externals bug that prevented commands from registering; **always publish v0.3.1 or later**, not v0.3.0). See `DG-079.1` / Entry #86 in `BITACORA.md` for context.
 
 ### Step 1: set the PAT in your shell
 
@@ -63,14 +63,14 @@ The PAT lives in the env var only for this shell session — it is **not** persi
 From the repo root:
 
 ```sh
-pnpm -F synaptic-sentinel exec vsce publish --packagePath packages/vscode-extension/synaptic-sentinel-0.3.0.vsix
+pnpm -F synaptic-sentinel exec vsce publish --packagePath packages/vscode-extension/synaptic-sentinel-0.3.1.vsix
 ```
 
 Expected output:
 
 ```text
-INFO  Publishing 'GoLab.synaptic-sentinel v0.3.0' from package...
-INFO  Published GoLab.synaptic-sentinel v0.3.0.
+INFO  Publishing 'GoLab.synaptic-sentinel v0.3.1' from package...
+INFO  Published GoLab.synaptic-sentinel v0.3.1.
 ```
 
 The publish takes ~10-30 seconds. The listing becomes searchable on the marketplace within a few minutes (the marketplace runs an indexer pass).
@@ -86,10 +86,10 @@ https://marketplace.visualstudio.com/items?itemName=GoLab.synaptic-sentinel
 Verify:
 
 - ✅ The page loads (no 404).
-- ✅ The version is `0.3.0` (or the version you published).
+- ✅ The version is `0.3.1` (or later — do **not** publish `0.3.0`, see `DG-079.1` for context).
 - ✅ The README rendered matches `packages/vscode-extension/README.md`.
 - ✅ The icon is the official GoLab logo (`media/icon.png`).
-- ✅ The CHANGELOG tab shows the `[0.3.0]` entry with the Multi-provider Brain Layer section + Known Issues.
+- ✅ The CHANGELOG tab shows the `[0.3.1]` hotfix entry (and `[0.3.0]` as superseded) with the Multi-provider Brain Layer section + Known Issues.
 - ✅ The categories and keywords match `package.json`.
 - ✅ The Apache-2.0 license badge is detected.
 
@@ -113,7 +113,7 @@ or by clicking **Install** in the marketplace page.
 
 Optionally announce via:
 
-- GitHub Release notes (already done by `DG-079 A` for `v0.3.0`).
+- GitHub Release notes for `v0.3.0` were created by `DG-079 A`; the `v0.3.1` hotfix Release (with the bundle fix) is the one users should download.
 - Show HN / X / LinkedIn (only after the Known Issues are resolved in future sub-DGs — see `CHANGELOG.md`).
 - GitHub Discussions on `golab-arch/synaptic-sentinel` (categories `Announcements` / `Show & Tell`).
 

@@ -4,6 +4,20 @@ All notable changes to the SYNAPTIC Sentinel extension will be documented in thi
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1] - 2026-05-24
+
+**Hotfix**: the v0.3.0 `.vsix` installed but **no extension command was reachable** (`Command 'synaptic-sentinel.installScanners' not found`). Root cause discovered during local validation of v0.3.0 (DG-079.1).
+
+### Fixed
+
+- **Bundle externals**: the extension bundle script in `package.json` only marked `vscode` as `--external`. The new dependency on `@synaptic-sentinel/agents` (added in DG-073 B / DG-074 B for the multi-provider Settings panel) transitively pulled `@anthropic-ai/sdk`, `openai` and `node-sqlite3-wasm` into the extension bundle. esbuild **inlined** those SDKs into `dist/extension.cjs`, but they contain dynamic `require()` patterns that throw when the VSCode extension host evaluates them. The exception killed `activate()` silently **before** any `vscode.commands.registerCommand(...)` ran — so the extension appeared "installed" but every command returned `Command not found`. The fix adds `--external:@anthropic-ai/sdk --external:openai --external:node-sqlite3-wasm` to the extension bundle script (same externals the CLI bundle already had); these packages are resolved at runtime from `dist/node_modules/` (already shipped in the `.vsix`).
+
+### Notes
+
+- v0.3.0 is **superseded by v0.3.1**. Anyone who downloaded the v0.3.0 `.vsix` from GitHub Release should upgrade.
+- All v0.3.0 features (multi-provider Brain Layer, Settings panel, cost visibility, benchmark plumbing, the 6 Known Issues) are unchanged in v0.3.1 — this release is bundle-only.
+- Anti-optimismo lesson: the `pnpm verify` gate (format + lint + build + unit tests) and `vsce package` validation are necessary but not sufficient for VSCode extensions. The extension activation in a real VSCode host is the only test that catches this class of bundling bug. Future cycles may add a `vscode-test` integration step to the verify gate.
+
 ## [0.3.0] - 2026-05-24
 
 **Phase 11 closes: SYNAPTIC Sentinel is now provider-agnostic by design.** The Brain Layer no longer assumes Anthropic — every agent (Triage / Context / Remediation) can run against any of 14+ providers via a config file, a CLI flag, or the new in-IDE Settings panel. BYOK any provider you trust, switch between them per-agent, and see exactly how much each session costs.
