@@ -195,15 +195,17 @@ function resolveProvidersFromEnv(env: Readonly<Record<string, string | undefined
     });
   }
 
-  // DeepSeek V3.2 — 10x cheaper.
+  // DeepSeek V4 Flash — cost-killer. (Empíricamente verificado en el PILOT
+  // de DG-077: deepseek-v3.2 ya no existe en el API; los names actuales son
+  // `deepseek-v4-flash` y `deepseek-v4-pro`. Flash es el cheap-tier.)
   if (resolveApiKeyFromEnv('deepseek', env) !== undefined) {
     configured.push({
-      label: 'deepseek/deepseek-v3.2',
-      config: { provider: 'deepseek', model: 'deepseek-v3.2' },
+      label: 'deepseek/deepseek-v4-flash',
+      config: { provider: 'deepseek', model: 'deepseek-v4-flash' },
     });
   } else {
     notRun.push({
-      providerLabel: 'deepseek/deepseek-v3.2',
+      providerLabel: 'deepseek/deepseek-v4-flash',
       reason: 'SENTINEL_DEEPSEEK_API_KEY not set.',
     });
   }
@@ -221,6 +223,20 @@ function resolveProvidersFromEnv(env: Readonly<Record<string, string | undefined
     });
   }
 
+  // Gemini 2.5 Flash — cheap-tier de Google via su layer OpenAI-compat
+  // (baseUrl default en el provider registry). Comparable a Haiku/gpt-5-nano.
+  if (resolveApiKeyFromEnv('gemini', env) !== undefined) {
+    configured.push({
+      label: 'gemini/gemini-2.5-flash',
+      config: { provider: 'gemini', model: 'gemini-2.5-flash' },
+    });
+  } else {
+    notRun.push({
+      providerLabel: 'gemini/gemini-2.5-flash',
+      reason: 'SENTINEL_GEMINI_API_KEY not set.',
+    });
+  }
+
   // Ollama local — primary recommended local (DG-070).
   // Modelo configurable via env `SENTINEL_OLLAMA_MODEL` (default mistral-nemo:12b).
   // El usuario eligio Gemma 4 que esta descargando — al correr esto, exporta
@@ -234,7 +250,14 @@ function resolveProvidersFromEnv(env: Readonly<Record<string, string | undefined
   return { configured, notRun };
 }
 
-/** Mide UNA sola llamada al LLM + scoring contra ground truth. */
+/**
+ * Mide UNA sola llamada al LLM + scoring contra ground truth.
+ *
+ * Devuelve también `rawSample` (primeros ~200 chars del raw response, sin
+ * newlines) cuando hay raw disponible. Lo usa el modo `--verbose` para
+ * mostrar visibilidad por call. `undefined` si la llamada falló antes de
+ * obtener raw.
+ */
 async function measureOnce<TOutput>(
   llm: LlmClient,
   buildPrompt: () => { system: string; user: string; maxTokens: number },
@@ -247,6 +270,7 @@ async function measureOnce<TOutput>(
   inputTokens: number;
   outputTokens: number;
   error?: string;
+  rawSample?: string;
 }> {
   const prompt = buildPrompt();
   const start = Date.now();
@@ -269,6 +293,9 @@ async function measureOnce<TOutput>(
     };
   }
   const latencyMs = Date.now() - start;
+  // Sample del raw para verbose mode: 200 chars con newlines collapsed
+  // (\n y \t → espacios) para que cada call quede en una sola línea de log.
+  const rawSample = raw.replace(/[\n\r\t]+/g, ' ').slice(0, 200);
   let parsed: TOutput;
   try {
     parsed = parseOutput(raw);
@@ -280,6 +307,7 @@ async function measureOnce<TOutput>(
       inputTokens: 0, // no podemos extraer del raw fallido
       outputTokens: 0,
       error: err instanceof Error ? err.message : String(err),
+      rawSample,
     };
   }
   // Tokens: el contrato LlmClient.complete devuelve solo `string`, asi que
@@ -296,7 +324,33 @@ async function measureOnce<TOutput>(
     latencyMs,
     inputTokens,
     outputTokens,
+    rawSample,
   };
+}
+
+/** Imprime una línea verbose para una sola medición (--verbose mode). */
+function emitVerboseLine(
+  providerLabel: string,
+  agent: BrainAgentId,
+  entry: GroundTruthEntry,
+  runIdx: number,
+  measurement: {
+    jsonValid: boolean;
+    passed: boolean;
+    latencyMs: number;
+    error?: string;
+    rawSample?: string;
+  },
+): void {
+  const status = measurement.error !== undefined ? 'ERR' : measurement.passed ? 'PASS' : 'FAIL';
+  const validity = measurement.jsonValid ? 'JSON' : 'NOJSON';
+  const tail =
+    measurement.error !== undefined
+      ? `error="${measurement.error.slice(0, 160)}"`
+      : `raw="${measurement.rawSample ?? ''}"`;
+  console.log(
+    `[verbose] ${providerLabel} | ${agent} | ${entry.ruleId} | run=${String(runIdx)} | ${status} ${validity} | ${String(measurement.latencyMs)}ms | ${tail}`,
+  );
 }
 
 /** Corre el benchmark contra un solo provider sobre todas las entries × runs. */
@@ -306,6 +360,7 @@ async function runProvider(args: {
   entries: readonly GroundTruthEntry[];
   runsPerEntry: number;
   dryRun: boolean;
+  verbose: boolean;
   fetchImpl?: typeof fetch;
 }): Promise<ProviderResult> {
   const errors: string[] = [];
@@ -354,6 +409,9 @@ async function runProvider(args: {
       if (triageMeasurement.error !== undefined) {
         errors.push(`${entry.ruleId} triage: ${triageMeasurement.error}`);
       }
+      if (args.verbose) {
+        emitVerboseLine(args.providerLabel, 'triage', entry, run, triageMeasurement);
+      }
       triage = accumulate(triage, triageMeasurement);
       completedRuns += 1;
 
@@ -391,6 +449,9 @@ async function runProvider(args: {
       if (contextMeasurement.error !== undefined) {
         errors.push(`${entry.ruleId} context: ${contextMeasurement.error}`);
       }
+      if (args.verbose) {
+        emitVerboseLine(args.providerLabel, 'context', entry, run, contextMeasurement);
+      }
       context = accumulate(context, contextMeasurement);
 
       // === Remediation ===
@@ -419,6 +480,9 @@ async function runProvider(args: {
       );
       if (remediationMeasurement.error !== undefined) {
         errors.push(`${entry.ruleId} remediation: ${remediationMeasurement.error}`);
+      }
+      if (args.verbose) {
+        emitVerboseLine(args.providerLabel, 'remediation', entry, run, remediationMeasurement);
       }
       remediation = accumulate(remediation, remediationMeasurement);
     }
@@ -472,6 +536,9 @@ async function main(): Promise<void> {
       'dry-run': { type: 'boolean', default: false },
       runs: { type: 'string', default: '3' },
       output: { type: 'string', default: 'docs/benchmark/v0.3.0-DRAFT.md' },
+      verbose: { type: 'boolean', default: false },
+      entries: { type: 'string' },
+      providers: { type: 'string' },
       help: { type: 'boolean', short: 'h' },
     },
     allowPositionals: false,
@@ -479,8 +546,31 @@ async function main(): Promise<void> {
 
   if (values.help === true) {
     console.log(
-      `Brain Layer cross-provider benchmark runner (DG-076 B).\n\n` +
-        `Usage:\n  pnpm benchmark:run [-- --dry-run] [-- --runs <n>] [-- --output <path>]\n`,
+      `Brain Layer cross-provider benchmark runner (DG-076 B + DG-077 B verbose mode).
+
+Usage:
+  pnpm benchmark:run [-- --dry-run] [-- --runs <n>] [-- --output <path>]
+                     [-- --verbose] [-- --entries <ruleId,ruleId,...>]
+                     [-- --providers <name,name,...>]
+
+Flags:
+  --dry-run                Mock LLM clients (no network calls). Smoke test.
+  --runs <n>               Runs per entry. Default 3.
+  --output <path>          Output Markdown path. Default docs/benchmark/v0.3.0-DRAFT.md.
+  --verbose                Emit one log line per LLM call (provider | agent |
+                           ruleId | run | PASS/FAIL/ERR | JSON/NOJSON | latency |
+                           200-char raw sample). Useful for manual debugging.
+  --entries <ids>          Comma-separated ruleIds to include. Filters the ground
+                           truth before running. Useful for single-entry testing.
+                           Example: --entries sentinel-js-eval-usage,vibe-fixme-security
+  --providers <names>      Comma-separated provider names to include. Filters from
+                           the env-resolved set. Skip providers not in this list.
+                           Example: --providers anthropic,deepseek
+
+Manual single-call probe:
+  pnpm benchmark:run -- --verbose --runs 1 --providers anthropic \\
+                        --entries sentinel-js-eval-usage --output /tmp/probe.md
+`,
     );
     return;
   }
@@ -492,6 +582,26 @@ async function main(): Promise<void> {
     return;
   }
   const dryRun = values['dry-run'] === true;
+  const verbose = values.verbose === true;
+  // Filtros opcionales: vienen como "id1,id2,id3" — los partimos y trimeamos.
+  const entriesFilter =
+    typeof values.entries === 'string'
+      ? new Set(
+          values.entries
+            .split(',')
+            .map((s) => s.trim())
+            .filter((s) => s.length > 0),
+        )
+      : null;
+  const providersFilter =
+    typeof values.providers === 'string'
+      ? new Set(
+          values.providers
+            .split(',')
+            .map((s) => s.trim().toLowerCase())
+            .filter((s) => s.length > 0),
+        )
+      : null;
 
   const repoRoot = findRepoRoot(resolve(process.cwd()));
   const groundTruthPath = join(repoRoot, GROUND_TRUTH_PATH);
@@ -500,11 +610,32 @@ async function main(): Promise<void> {
   );
   const pricing = loadPricing(repoRoot);
 
+  // Aplicar filtro de entries (--entries): si está activo, retener solo las que matchean.
+  const filteredEntries =
+    entriesFilter === null
+      ? groundTruth.entries
+      : groundTruth.entries.filter((e) => entriesFilter.has(e.ruleId));
+  if (entriesFilter !== null && filteredEntries.length === 0) {
+    console.error(
+      `--entries filter "${[...entriesFilter].join(',')}" matched 0 entries. Aborting.`,
+    );
+    process.exitCode = 1;
+    return;
+  }
+
   console.log(
-    `Brain Layer benchmark — ${groundTruth.entries.length} entries × ${String(runsPerEntry)} runs.`,
+    `Brain Layer benchmark — ${filteredEntries.length} entries × ${String(runsPerEntry)} runs.`,
   );
+  if (entriesFilter !== null) {
+    console.log(
+      `Entries filter active: ${String(filteredEntries.length)}/${String(groundTruth.entries.length)} entries selected.`,
+    );
+  }
   if (dryRun) {
     console.log('Mode: --dry-run (mock providers, no network calls).');
+  }
+  if (verbose) {
+    console.log('Mode: --verbose (per-call log lines).');
   }
 
   const env = process.env;
@@ -523,21 +654,41 @@ async function main(): Promise<void> {
     notRun.length = 0; // limpia warning en dry-run
   }
 
-  console.log(`Configured providers (${String(configured.length)}):`);
-  for (const p of configured) console.log(`  - ${p.label}`);
+  // Aplicar filtro de providers (--providers): si está activo, retener solo
+  // los que matchean por su `provider` (no por label completo).
+  const finalProviders =
+    providersFilter === null
+      ? configured
+      : configured.filter((p) => providersFilter.has(p.config.provider.toLowerCase()));
+  if (providersFilter !== null && finalProviders.length === 0) {
+    console.error(
+      `--providers filter "${[...providersFilter].join(',')}" matched 0 configured providers. Aborting.`,
+    );
+    process.exitCode = 1;
+    return;
+  }
+
+  console.log(`Configured providers (${String(finalProviders.length)}):`);
+  for (const p of finalProviders) console.log(`  - ${p.label}`);
+  if (providersFilter !== null && configured.length > finalProviders.length) {
+    console.log(
+      `(filtered out ${String(configured.length - finalProviders.length)} configured but not in --providers list)`,
+    );
+  }
   if (notRun.length > 0) {
     console.log(`Not run (${String(notRun.length)}):`);
     for (const p of notRun) console.log(`  - ${p.providerLabel}: ${p.reason}`);
   }
 
   const providers: ProviderResult[] = [];
-  for (const { label, config } of configured) {
+  for (const { label, config } of finalProviders) {
     console.log(`\n=== Running ${label} ===`);
     const result = await runProvider({
       providerLabel: label,
       config,
-      entries: groundTruth.entries,
+      entries: filteredEntries,
       runsPerEntry,
+      verbose,
       dryRun,
     });
     const cost = estimateCostUsd(
@@ -557,7 +708,8 @@ async function main(): Promise<void> {
     generatedAt: new Date().toISOString(),
     groundTruthVersion: groundTruth.version,
     groundTruthReviewStatus: countByReviewStatus(groundTruth),
-    totalEntries: groundTruth.entries.length,
+    // totalEntries refleja las entries efectivamente corridas (post --entries filter).
+    totalEntries: filteredEntries.length,
     runsPerEntry,
     providers,
     notRun,

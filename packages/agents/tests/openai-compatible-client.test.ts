@@ -88,8 +88,15 @@ describe('OpenAiCompatibleLlmClient.complete (vs openai SDK)', () => {
 
     const body = capturedBody as Record<string, unknown>;
     expect(body['model']).toBe('gpt-5-nano');
-    expect(body['max_tokens']).toBe(1024);
-    expect(body['temperature']).toBe(0); // determinism hardcoded
+    // gpt-5* exige max_completion_tokens (descubierto en el PILOT de DG-077);
+    // el adapter hace el switch automatico por prefijo del model name.
+    expect(body['max_completion_tokens']).toBe(1024);
+    expect(body['max_tokens']).toBeUndefined();
+    // gpt-5* tambien rechaza temperature=0 — solo acepta el default (1).
+    // Por eso para gpt-5* el adapter OMITE el campo temperature y deja que el
+    // modelo use su default. Caveat documentado en el adapter.
+    expect(body['temperature']).toBeUndefined();
+    expect(body['response_format']).toEqual({ type: 'json_object' });
     expect(body['messages']).toEqual([
       { role: 'system', content: 's' },
       { role: 'user', content: 'u' },
@@ -126,7 +133,10 @@ describe('OpenAiCompatibleLlmClient.complete (vs openai SDK)', () => {
 
     const body = capturedBody as Record<string, unknown>;
     expect(body['model']).toBe('llama-3.3-70b-versatile');
+    // Llama (no gpt-5*) sigue usando max_tokens clasico.
     expect(body['max_tokens']).toBe(256);
+    expect(body['max_completion_tokens']).toBeUndefined();
+    expect(body['response_format']).toEqual({ type: 'json_object' });
   });
 
   it('lanza si el endpoint responde con un estado de error (sin reintentos)', async () => {

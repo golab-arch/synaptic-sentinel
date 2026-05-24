@@ -3,6 +3,7 @@ import type {
   ContextGroundTruth,
   Finding,
   GroundTruthEntry,
+  KeywordOrAlternatives,
   RemediationGroundTruth,
   RemediationSuggestion,
   TriageGroundTruth,
@@ -34,10 +35,16 @@ function normalize(text: string): string {
   return text.toLowerCase().replace(/\s+/g, ' ');
 }
 
-/** Verifica que `haystack` (normalizado) contenga todos los `keywords` (normalizados). */
+/**
+ * Verifica que `haystack` (normalizado) contenga todos los `keywords`
+ * (normalizados). Cada keyword puede ser un string (literal) o un array
+ * de sinónimos (cualquiera del array cuenta como hit — recalibración de
+ * DG-077). Reporta el "label" del keyword faltante (primer elemento del
+ * array, o el string).
+ */
 function containsAll(
   haystack: string,
-  keywords: readonly string[],
+  keywords: readonly KeywordOrAlternatives[],
 ): {
   ok: boolean;
   missing: readonly string[];
@@ -45,8 +52,17 @@ function containsAll(
   const hay = normalize(haystack);
   const missing: string[] = [];
   for (const keyword of keywords) {
-    if (!hay.includes(normalize(keyword))) {
-      missing.push(keyword);
+    if (typeof keyword === 'string') {
+      if (!hay.includes(normalize(keyword))) {
+        missing.push(keyword);
+      }
+    } else {
+      // Array de sinónimos: pasa si cualquiera está presente.
+      const matched = keyword.some((syn) => hay.includes(normalize(syn)));
+      if (!matched) {
+        // Label del missing = primer sinónimo (representativo).
+        missing.push(keyword[0] ?? '(empty alternatives)');
+      }
     }
   }
   return { ok: missing.length === 0, missing };

@@ -24,6 +24,19 @@ import { z } from 'zod';
 export const REVIEW_STATUSES = ['ai-draft', 'human-confirmed', 'human-corrected'] as const;
 export type ReviewStatus = (typeof REVIEW_STATUSES)[number];
 
+/**
+ * Un keyword del ground truth: o bien un string literal, o bien un arreglo
+ * de sinónimos donde CUALQUIERA presente cuenta como hit (recalibración
+ * de DG-077 tras descubrir en el PILOT que el ai-draft pedía términos
+ * únicos rígidos — el LLM legítimamente usa sinónimos: "code injection"
+ * vs "RCE" vs "arbitrary code execution").
+ */
+export const KeywordOrAlternativesSchema = z.union([
+  z.string().min(1),
+  z.array(z.string().min(1)).min(1),
+]);
+export type KeywordOrAlternatives = z.infer<typeof KeywordOrAlternativesSchema>;
+
 /** Criterio objetivo de PASS para el Triage Agent. */
 export const TriageGroundTruthSchema = z.object({
   /** Veredicto esperado (los fixtures vulnerables son TP by design). */
@@ -35,31 +48,31 @@ export const TriageGroundTruthSchema = z.object({
    */
   minConfidence: z.number().min(0).max(1),
   /**
-   * Lista de keywords que el `rationale` del LLM debe contener (todos).
-   * El benchmark lo valida como string contains, case-insensitive.
-   * Diseñado para ser tolerante: 2-3 keywords core, no parafrasis literales.
+   * Lista de keywords que el `rationale` del LLM debe contener. Cada item
+   * es o un string o un array de sinónimos (cualquiera del array hace
+   * match). Validación case-insensitive substring containment.
    */
-  requiredKeywords: z.array(z.string().min(1)).min(1),
+  requiredKeywords: z.array(KeywordOrAlternativesSchema).min(1),
 });
 
 /** Criterio objetivo de PASS para el Context Agent (solo aplica si Triage = TP). */
 export const ContextGroundTruthSchema = z.object({
   /** Keywords requeridos en `summary` (case-insensitive contains). */
-  summaryKeywords: z.array(z.string().min(1)).min(1),
+  summaryKeywords: z.array(KeywordOrAlternativesSchema).min(1),
   /** Keywords requeridos en `entryPoint`. */
-  entryPointKeywords: z.array(z.string().min(1)).min(1),
+  entryPointKeywords: z.array(KeywordOrAlternativesSchema).min(1),
   /** Keywords requeridos en `sink`. */
-  sinkKeywords: z.array(z.string().min(1)).min(1),
+  sinkKeywords: z.array(KeywordOrAlternativesSchema).min(1),
   /** Keywords requeridos en `exposure`. */
-  exposureKeywords: z.array(z.string().min(1)).min(1),
+  exposureKeywords: z.array(KeywordOrAlternativesSchema).min(1),
 });
 
 /** Criterio objetivo de PASS para el Remediation Agent (solo aplica si Triage = TP). */
 export const RemediationGroundTruthSchema = z.object({
   /** Keywords requeridos en `summary` (case-insensitive contains). */
-  summaryKeywords: z.array(z.string().min(1)).min(1),
+  summaryKeywords: z.array(KeywordOrAlternativesSchema).min(1),
   /** Keywords requeridos en `recommendation`. */
-  recommendationKeywords: z.array(z.string().min(1)).min(1),
+  recommendationKeywords: z.array(KeywordOrAlternativesSchema).min(1),
   /**
    * Si la remediation incluye `fixedSnippet`, este NO debe contener
    * ninguno de estos patrones (el sink original o llamadas vulnerables

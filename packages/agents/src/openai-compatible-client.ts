@@ -114,10 +114,30 @@ export class OpenAiCompatibleLlmClient implements LlmClient {
   }
 
   async complete(request: LlmCompletionRequest): Promise<string> {
+    // gpt-5* family tiene dos quirks descubiertos empíricamente en el PILOT
+    // benchmark de DG-077: (1) rechaza `max_tokens` y exige
+    // `max_completion_tokens`; (2) rechaza `temperature: 0` con
+    // "Unsupported value: 'temperature' does not support 0 with this model.
+    // Only the default (1) value is supported" — solo acepta su default 1.
+    // Eso degrada determinism cross-provider para gpt-5* (caveat aceptado;
+    // el resto de providers mantienen determinism con temperature=0).
+    const tokens = request.maxTokens ?? DEFAULT_MAX_TOKENS;
+    const isGpt5 = this.#model.startsWith('gpt-5');
+    const tokensParam = isGpt5 ? { max_completion_tokens: tokens } : { max_tokens: tokens };
+    // Para gpt-5* omitimos `temperature` y dejamos que el modelo use su
+    // default (1). Para el resto fijamos 0 para determinism.
+    const temperatureParam = isGpt5 ? {} : { temperature: DETERMINISTIC_TEMPERATURE };
+    // `response_format: json_object` mejora dramáticamente la JSON adherence
+    // en providers que la respetan (OpenAI / Groq / DeepSeek / Gemini-compat /
+    // Mistral). Para los que no la soportan / la ignoran, no daña — el
+    // adapter sigue obteniendo el `content` y `parseOpenAiCompatibleResponse`
+    // lo extrae igual. Los system prompts de los 3 agentes ya mencionan
+    // "json" — requisito de OpenAI para esta opción.
     const completion = await this.#client.chat.completions.create({
       model: this.#model,
-      max_tokens: request.maxTokens ?? DEFAULT_MAX_TOKENS,
-      temperature: DETERMINISTIC_TEMPERATURE,
+      ...tokensParam,
+      ...temperatureParam,
+      response_format: { type: 'json_object' },
       messages: [
         { role: 'system', content: request.system },
         { role: 'user', content: request.user },

@@ -9,3 +9,8 @@ context/
 # Fixtures de tests y reglas de scanners: se mantienen tal cual se escriben.
 **/tests/**/fixtures/
 **/opengrep/rules/
+
+# Reportes generados por `pnpm benchmark:run` (markdown del renderer; las
+# tablas largas chocan con max-width de prettier — mismo patron que
+# .synaptic/BITACORA.md / la documentacion legacy).
+docs/benchmark/

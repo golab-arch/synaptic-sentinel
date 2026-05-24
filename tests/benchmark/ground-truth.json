@@ -13,17 +13,26 @@
       "triage": {
         "classification": "true_positive",
         "minConfidence": 0.85,
-        "requiredKeywords": ["eval", "code injection"]
+        "requiredKeywords": [
+          "eval",
+          ["code injection", "RCE", "remote code execution", "arbitrary code"]
+        ]
       },
       "context": {
-        "summaryKeywords": ["eval", "user", "input"],
-        "entryPointKeywords": ["userInput", "parameter"],
+        "summaryKeywords": [
+          "eval",
+          ["user", "untrusted", "external"],
+          ["input", "parameter", "argument"]
+        ],
+        "entryPointKeywords": [["userInput", "user input", "parameter", "argument"]],
         "sinkKeywords": ["eval"],
-        "exposureKeywords": ["code execution", "arbitrary"]
+        "exposureKeywords": [["code execution", "arbitrary code", "RCE", "remote code"]]
       },
       "remediation": {
-        "summaryKeywords": ["eval", "replace"],
-        "recommendationKeywords": ["JSON.parse", "parser", "safe"],
+        "summaryKeywords": ["eval", ["replace", "remove", "avoid", "eliminate"]],
+        "recommendationKeywords": [
+          ["JSON.parse", "json.parse", "parser", "safe", "switch", "lookup"]
+        ],
         "forbiddenInSnippet": ["eval(userInput)", "eval(user_input)"]
       },
       "reviewedBy": "ai-draft"
@@ -38,17 +47,23 @@
       "triage": {
         "classification": "true_positive",
         "minConfidence": 0.85,
-        "requiredKeywords": ["document.write", "XSS"]
+        "requiredKeywords": [
+          "document.write",
+          ["XSS", "cross-site scripting", "cross site scripting"]
+        ]
       },
       "context": {
-        "summaryKeywords": ["XSS", "document.write"],
-        "entryPointKeywords": ["userInput"],
+        "summaryKeywords": [
+          ["XSS", "cross-site scripting", "cross site scripting"],
+          "document.write"
+        ],
+        "entryPointKeywords": [["userInput", "user input", "parameter"]],
         "sinkKeywords": ["document.write"],
-        "exposureKeywords": ["script", "DOM"]
+        "exposureKeywords": [["script", "javascript", "DOM"]]
       },
       "remediation": {
-        "summaryKeywords": ["escape", "sanitize"],
-        "recommendationKeywords": ["textContent", "escape", "DOMPurify"],
+        "summaryKeywords": [["escape", "sanitize", "encode"]],
+        "recommendationKeywords": [["textContent", "innerText", "escape", "DOMPurify", "sanitize"]],
         "forbiddenInSnippet": ["document.write(userInput)"]
       },
       "reviewedBy": "ai-draft"
@@ -63,17 +78,17 @@
       "triage": {
         "classification": "true_positive",
         "minConfidence": 0.85,
-        "requiredKeywords": ["innerHTML", "XSS"]
+        "requiredKeywords": ["innerHTML", ["XSS", "cross-site scripting", "DOM-based XSS"]]
       },
       "context": {
-        "summaryKeywords": ["innerHTML", "XSS"],
-        "entryPointKeywords": ["userInput"],
+        "summaryKeywords": ["innerHTML", ["XSS", "cross-site scripting"]],
+        "entryPointKeywords": [["userInput", "user input", "user-supplied"]],
         "sinkKeywords": ["innerHTML"],
-        "exposureKeywords": ["DOM", "script"]
+        "exposureKeywords": [["DOM", "script", "javascript injection"]]
       },
       "remediation": {
-        "summaryKeywords": ["textContent", "sanitize"],
-        "recommendationKeywords": ["textContent", "DOMPurify", "escape"],
+        "summaryKeywords": [["textContent", "innerText", "sanitize", "escape"]],
+        "recommendationKeywords": [["textContent", "innerText", "DOMPurify", "escape", "sanitize"]],
         "forbiddenInSnippet": [".innerHTML = userInput"]
       },
       "reviewedBy": "ai-draft"
@@ -88,17 +103,17 @@
       "triage": {
         "classification": "true_positive",
         "minConfidence": 0.8,
-        "requiredKeywords": ["setTimeout", "string"]
+        "requiredKeywords": ["setTimeout", ["string", "string argument", "code as string"]]
       },
       "context": {
-        "summaryKeywords": ["setTimeout", "string", "eval"],
-        "entryPointKeywords": ["string"],
+        "summaryKeywords": ["setTimeout", ["string", "code"], ["eval", "evaluation", "execution"]],
+        "entryPointKeywords": [["string", "literal"]],
         "sinkKeywords": ["setTimeout"],
-        "exposureKeywords": ["code", "execution"]
+        "exposureKeywords": [["code", "execution", "arbitrary"]]
       },
       "remediation": {
-        "summaryKeywords": ["function", "reference"],
-        "recommendationKeywords": ["function", "callback"],
+        "summaryKeywords": [["function", "callback", "reference"]],
+        "recommendationKeywords": [["function", "callback", "arrow", "reference"]],
         "forbiddenInSnippet": ["setTimeout('", "setTimeout(\""]
       },
       "reviewedBy": "ai-draft"
@@ -113,17 +128,23 @@
       "triage": {
         "classification": "true_positive",
         "minConfidence": 0.9,
-        "requiredKeywords": ["command injection", "exec"]
+        "requiredKeywords": [
+          ["command injection", "shell injection", "OS command injection"],
+          ["exec", "child_process"]
+        ]
       },
       "context": {
-        "summaryKeywords": ["command injection", "exec"],
-        "entryPointKeywords": ["req.query", "dir"],
-        "sinkKeywords": ["exec"],
-        "exposureKeywords": ["arbitrary", "command", "shell"]
+        "summaryKeywords": [
+          ["command injection", "shell injection"],
+          ["exec", "child_process"]
+        ],
+        "entryPointKeywords": [["req.query", "query", "request"]],
+        "sinkKeywords": [["exec", "child_process.exec"]],
+        "exposureKeywords": [["arbitrary", "command", "shell"]]
       },
       "remediation": {
-        "summaryKeywords": ["execFile", "validate", "allowlist"],
-        "recommendationKeywords": ["execFile", "spawn", "allowlist"],
+        "summaryKeywords": [["execFile", "spawn", "validate", "allowlist", "sanitize"]],
+        "recommendationKeywords": [["execFile", "spawn", "allowlist", "validate", "parameterize"]],
         "forbiddenInSnippet": ["exec('ls ' +", "exec(\"ls \" +"]
       },
       "reviewedBy": "ai-draft"
@@ -138,17 +159,23 @@
       "triage": {
         "classification": "true_positive",
         "minConfidence": 0.9,
-        "requiredKeywords": ["command injection", "execSync"]
+        "requiredKeywords": [
+          ["command injection", "shell injection"],
+          ["execSync", "child_process"]
+        ]
       },
       "context": {
-        "summaryKeywords": ["command injection", "execSync"],
-        "entryPointKeywords": ["req.body", "target"],
-        "sinkKeywords": ["execSync"],
-        "exposureKeywords": ["filesystem", "delete", "arbitrary"]
+        "summaryKeywords": [
+          ["command injection", "shell injection"],
+          ["execSync", "exec"]
+        ],
+        "entryPointKeywords": [["req.body", "request body", "body"]],
+        "sinkKeywords": [["execSync", "exec"]],
+        "exposureKeywords": [["filesystem", "delete", "destroy", "arbitrary"]]
       },
       "remediation": {
-        "summaryKeywords": ["validate", "allowlist"],
-        "recommendationKeywords": ["validate", "allowlist", "execFile"],
+        "summaryKeywords": [["validate", "allowlist", "sanitize", "execFile"]],
+        "recommendationKeywords": [["validate", "allowlist", "execFile", "spawn", "sanitize"]],
         "forbiddenInSnippet": ["execSync('rm", "execSync(\"rm"]
       },
       "reviewedBy": "ai-draft"
@@ -163,17 +190,17 @@
       "triage": {
         "classification": "true_positive",
         "minConfidence": 0.9,
-        "requiredKeywords": ["XSS", "innerHTML"]
+        "requiredKeywords": [["XSS", "cross-site scripting"], "innerHTML"]
       },
       "context": {
-        "summaryKeywords": ["XSS", "innerHTML"],
-        "entryPointKeywords": ["req.query", "name"],
+        "summaryKeywords": [["XSS", "cross-site scripting"], "innerHTML"],
+        "entryPointKeywords": [["req.query", "query", "request"]],
         "sinkKeywords": ["innerHTML"],
-        "exposureKeywords": ["DOM", "script"]
+        "exposureKeywords": [["DOM", "script", "javascript"]]
       },
       "remediation": {
-        "summaryKeywords": ["sanitize", "escape"],
-        "recommendationKeywords": ["textContent", "DOMPurify", "escape"],
+        "summaryKeywords": [["sanitize", "escape", "encode"]],
+        "recommendationKeywords": [["textContent", "DOMPurify", "escape", "sanitize"]],
         "forbiddenInSnippet": ["innerHTML = '<h1>Hi ' + username"]
       },
       "reviewedBy": "ai-draft"
@@ -188,17 +215,20 @@
       "triage": {
         "classification": "true_positive",
         "minConfidence": 0.9,
-        "requiredKeywords": ["SQL injection", "concatenation"]
+        "requiredKeywords": [
+          ["SQL injection", "SQLi", "SQL"],
+          ["concatenation", "concatenated", "interpolation"]
+        ]
       },
       "context": {
-        "summaryKeywords": ["SQL injection"],
-        "entryPointKeywords": ["req.params", "id"],
-        "sinkKeywords": ["db.query"],
-        "exposureKeywords": ["database", "data", "exfiltration"]
+        "summaryKeywords": [["SQL injection", "SQLi"]],
+        "entryPointKeywords": [["req.params", "params", "request"]],
+        "sinkKeywords": [["db.query", "query", "execute"]],
+        "exposureKeywords": [["database", "data", "exfiltration", "leak"]]
       },
       "remediation": {
-        "summaryKeywords": ["parameterized", "prepared"],
-        "recommendationKeywords": ["parameterized", "prepared", "placeholder"],
+        "summaryKeywords": [["parameterized", "prepared", "placeholder", "bind"]],
+        "recommendationKeywords": [["parameterized", "prepared", "placeholder", "bind", "?"]],
         "forbiddenInSnippet": ["'SELECT * FROM users WHERE id = ' +"]
       },
       "reviewedBy": "ai-draft"
@@ -213,17 +243,23 @@
       "triage": {
         "classification": "true_positive",
         "minConfidence": 0.85,
-        "requiredKeywords": ["Function constructor", "eval"]
+        "requiredKeywords": [
+          ["Function constructor", "new Function", "Function()"],
+          ["eval", "code injection", "dynamic code"]
+        ]
       },
       "context": {
-        "summaryKeywords": ["Function", "code", "string"],
-        "entryPointKeywords": ["source", "string"],
-        "sinkKeywords": ["new Function"],
-        "exposureKeywords": ["code execution", "arbitrary"]
+        "summaryKeywords": [
+          ["Function", "new Function"],
+          ["code", "string"]
+        ],
+        "entryPointKeywords": [["source", "string", "input"]],
+        "sinkKeywords": [["new Function", "Function constructor"]],
+        "exposureKeywords": [["code execution", "arbitrary", "RCE"]]
       },
       "remediation": {
-        "summaryKeywords": ["avoid", "static", "dispatch"],
-        "recommendationKeywords": ["dispatch", "lookup", "table", "switch"],
+        "summaryKeywords": [["avoid", "static", "dispatch", "lookup"]],
+        "recommendationKeywords": [["dispatch", "lookup", "table", "switch", "map"]],
         "forbiddenInSnippet": ["new Function(source)"]
       },
       "reviewedBy": "ai-draft"
@@ -238,17 +274,20 @@
       "triage": {
         "classification": "true_positive",
         "minConfidence": 0.9,
-        "requiredKeywords": ["exec", "code injection"]
+        "requiredKeywords": ["exec", ["code injection", "RCE", "arbitrary code", "remote code"]]
       },
       "context": {
-        "summaryKeywords": ["exec", "user", "input"],
-        "entryPointKeywords": ["user_input", "parameter"],
+        "summaryKeywords": ["exec", ["user", "untrusted"], ["input", "parameter"]],
+        "entryPointKeywords": [["user_input", "user input", "parameter"]],
         "sinkKeywords": ["exec"],
-        "exposureKeywords": ["code execution", "arbitrary"]
+        "exposureKeywords": [["code execution", "arbitrary", "RCE"]]
       },
       "remediation": {
-        "summaryKeywords": ["avoid", "ast", "literal"],
-        "recommendationKeywords": ["ast.literal_eval", "allowlist", "dispatch"],
+        "summaryKeywords": [
+          ["avoid", "remove", "replace"],
+          ["ast", "literal_eval", "alternative"]
+        ],
+        "recommendationKeywords": [["ast.literal_eval", "allowlist", "dispatch", "switch"]],
         "forbiddenInSnippet": ["exec(user_input)"]
       },
       "reviewedBy": "ai-draft"
@@ -263,17 +302,23 @@
       "triage": {
         "classification": "true_positive",
         "minConfidence": 0.85,
-        "requiredKeywords": ["shell=True", "command injection"]
+        "requiredKeywords": [
+          ["shell=True", "shell true", "shell parameter"],
+          ["command injection", "shell injection"]
+        ]
       },
       "context": {
-        "summaryKeywords": ["shell", "subprocess"],
-        "entryPointKeywords": ["cmd"],
-        "sinkKeywords": ["subprocess.run"],
-        "exposureKeywords": ["shell", "arbitrary command"]
+        "summaryKeywords": [
+          ["shell", "shell=True"],
+          ["subprocess", "command"]
+        ],
+        "entryPointKeywords": [["cmd", "command", "input"]],
+        "sinkKeywords": [["subprocess.run", "subprocess"]],
+        "exposureKeywords": [["shell", "arbitrary command", "command execution"]]
       },
       "remediation": {
-        "summaryKeywords": ["shell=False", "list"],
-        "recommendationKeywords": ["shell=False", "list", "argument"],
+        "summaryKeywords": [["shell=False", "list", "argument"]],
+        "recommendationKeywords": [["shell=False", "list", "argument", "array"]],
         "forbiddenInSnippet": ["shell=True"]
       },
       "reviewedBy": "ai-draft"
@@ -288,17 +333,17 @@
       "triage": {
         "classification": "true_positive",
         "minConfidence": 0.85,
-        "requiredKeywords": ["os.system", "command injection"]
+        "requiredKeywords": ["os.system", ["command injection", "shell injection"]]
       },
       "context": {
-        "summaryKeywords": ["os.system", "shell"],
-        "entryPointKeywords": ["cmd"],
+        "summaryKeywords": ["os.system", ["shell", "command"]],
+        "entryPointKeywords": [["cmd", "command", "input"]],
         "sinkKeywords": ["os.system"],
-        "exposureKeywords": ["shell", "arbitrary"]
+        "exposureKeywords": [["shell", "arbitrary", "command execution"]]
       },
       "remediation": {
-        "summaryKeywords": ["subprocess", "shell=False"],
-        "recommendationKeywords": ["subprocess.run", "shell=False"],
+        "summaryKeywords": [["subprocess", "shell=False"]],
+        "recommendationKeywords": [["subprocess.run", "subprocess", "shell=False"]],
         "forbiddenInSnippet": ["os.system(cmd)"]
       },
       "reviewedBy": "ai-draft"
@@ -313,17 +358,20 @@
       "triage": {
         "classification": "true_positive",
         "minConfidence": 0.85,
-        "requiredKeywords": ["yaml.load", "deserialization"]
+        "requiredKeywords": [
+          "yaml",
+          ["deserialization", "deserialisation", "unsafe load", "unsafe loading"]
+        ]
       },
       "context": {
-        "summaryKeywords": ["yaml", "deserialization"],
-        "entryPointKeywords": ["raw"],
-        "sinkKeywords": ["yaml.load"],
-        "exposureKeywords": ["arbitrary", "object", "instantiation"]
+        "summaryKeywords": ["yaml", ["deserialization", "deserialisation", "unsafe"]],
+        "entryPointKeywords": [["raw", "data", "input"]],
+        "sinkKeywords": [["yaml.load", "yaml load"]],
+        "exposureKeywords": [["arbitrary", "object", "instantiation", "code execution"]]
       },
       "remediation": {
-        "summaryKeywords": ["safe_load", "SafeLoader"],
-        "recommendationKeywords": ["yaml.safe_load", "SafeLoader"],
+        "summaryKeywords": [["safe_load", "SafeLoader", "safe"]],
+        "recommendationKeywords": [["yaml.safe_load", "safe_load", "SafeLoader"]],
         "forbiddenInSnippet": ["yaml.load(raw)"]
       },
       "reviewedBy": "ai-draft"
@@ -338,17 +386,20 @@
       "triage": {
         "classification": "true_positive",
         "minConfidence": 0.9,
-        "requiredKeywords": ["pickle", "deserialization"]
+        "requiredKeywords": [
+          "pickle",
+          ["deserialization", "deserialisation", "unmarshaling", "RCE"]
+        ]
       },
       "context": {
-        "summaryKeywords": ["pickle", "deserialization"],
-        "entryPointKeywords": ["blob"],
-        "sinkKeywords": ["pickle.loads"],
-        "exposureKeywords": ["code execution", "arbitrary"]
+        "summaryKeywords": ["pickle", ["deserialization", "deserialisation", "untrusted"]],
+        "entryPointKeywords": [["blob", "data", "input"]],
+        "sinkKeywords": [["pickle.loads", "pickle.load"]],
+        "exposureKeywords": [["code execution", "arbitrary", "RCE"]]
       },
       "remediation": {
-        "summaryKeywords": ["avoid", "json", "alternative"],
-        "recommendationKeywords": ["json", "msgpack", "validate"],
+        "summaryKeywords": [["avoid", "replace", "json", "alternative"]],
+        "recommendationKeywords": [["json", "msgpack", "validate", "signed"]],
         "forbiddenInSnippet": ["pickle.loads(blob)"]
       },
       "reviewedBy": "ai-draft"
@@ -363,17 +414,23 @@
       "triage": {
         "classification": "true_positive",
         "minConfidence": 0.8,
-        "requiredKeywords": ["MD5", "weak"]
+        "requiredKeywords": [
+          ["MD5", "md5"],
+          ["weak", "insecure", "broken", "compromised", "deprecated"]
+        ]
       },
       "context": {
-        "summaryKeywords": ["MD5", "weak"],
-        "entryPointKeywords": ["password"],
-        "sinkKeywords": ["hashlib.md5"],
-        "exposureKeywords": ["collision", "brute"]
+        "summaryKeywords": [
+          ["MD5", "md5"],
+          ["weak", "insecure", "broken", "deprecated"]
+        ],
+        "entryPointKeywords": [["password", "input", "data"]],
+        "sinkKeywords": [["hashlib.md5", "md5"]],
+        "exposureKeywords": [["collision", "brute force", "rainbow"]]
       },
       "remediation": {
-        "summaryKeywords": ["SHA-256", "bcrypt", "argon2"],
-        "recommendationKeywords": ["SHA-256", "bcrypt", "argon2", "pbkdf2"],
+        "summaryKeywords": [["SHA-256", "sha256", "bcrypt", "argon2", "scrypt"]],
+        "recommendationKeywords": [["SHA-256", "sha256", "bcrypt", "argon2", "scrypt", "pbkdf2"]],
         "forbiddenInSnippet": ["hashlib.md5("]
       },
       "reviewedBy": "ai-draft"
@@ -388,17 +445,23 @@
       "triage": {
         "classification": "true_positive",
         "minConfidence": 0.9,
-        "requiredKeywords": ["command injection", "sys.argv"]
+        "requiredKeywords": [
+          ["command injection", "shell injection"],
+          ["sys.argv", "argv", "command line"]
+        ]
       },
       "context": {
-        "summaryKeywords": ["command injection", "subprocess"],
-        "entryPointKeywords": ["sys.argv"],
-        "sinkKeywords": ["subprocess.run"],
-        "exposureKeywords": ["shell", "arbitrary command"]
+        "summaryKeywords": [
+          ["command injection", "shell injection"],
+          ["subprocess", "shell"]
+        ],
+        "entryPointKeywords": [["sys.argv", "argv", "command line"]],
+        "sinkKeywords": [["subprocess.run", "subprocess"]],
+        "exposureKeywords": [["shell", "arbitrary command", "command execution"]]
       },
       "remediation": {
-        "summaryKeywords": ["shell=False", "list", "validate"],
-        "recommendationKeywords": ["shell=False", "list", "argument"],
+        "summaryKeywords": [["shell=False", "list", "validate"]],
+        "recommendationKeywords": [["shell=False", "list", "argument", "array"]],
         "forbiddenInSnippet": ["shell=True"]
       },
       "reviewedBy": "ai-draft"
@@ -413,17 +476,20 @@
       "triage": {
         "classification": "true_positive",
         "minConfidence": 0.9,
-        "requiredKeywords": ["command injection", "request.form"]
+        "requiredKeywords": [
+          ["command injection", "shell injection"],
+          ["request.form", "request", "form"]
+        ]
       },
       "context": {
-        "summaryKeywords": ["command injection", "os.system"],
-        "entryPointKeywords": ["request.form"],
+        "summaryKeywords": [["command injection", "shell injection"], "os.system"],
+        "entryPointKeywords": [["request.form", "request", "form"]],
         "sinkKeywords": ["os.system"],
-        "exposureKeywords": ["filesystem", "delete", "arbitrary"]
+        "exposureKeywords": [["filesystem", "delete", "destroy", "arbitrary"]]
       },
       "remediation": {
-        "summaryKeywords": ["validate", "allowlist"],
-        "recommendationKeywords": ["secure_filename", "validate", "allowlist"],
+        "summaryKeywords": [["validate", "allowlist", "sanitize"]],
+        "recommendationKeywords": [["secure_filename", "validate", "allowlist", "sanitize"]],
         "forbiddenInSnippet": ["os.system(\"rm /tmp/\" + name)"]
       },
       "reviewedBy": "ai-draft"
@@ -438,17 +504,20 @@
       "triage": {
         "classification": "true_positive",
         "minConfidence": 0.9,
-        "requiredKeywords": ["SQL injection", "concatenation"]
+        "requiredKeywords": [
+          ["SQL injection", "SQLi", "SQL"],
+          ["concatenation", "concatenated", "interpolation"]
+        ]
       },
       "context": {
-        "summaryKeywords": ["SQL injection"],
-        "entryPointKeywords": ["request.args"],
-        "sinkKeywords": ["cursor.execute"],
-        "exposureKeywords": ["database", "exfiltration"]
+        "summaryKeywords": [["SQL injection", "SQLi"]],
+        "entryPointKeywords": [["request.args", "request", "args"]],
+        "sinkKeywords": [["cursor.execute", "execute"]],
+        "exposureKeywords": [["database", "exfiltration", "data"]]
       },
       "remediation": {
-        "summaryKeywords": ["parameterized", "placeholder"],
-        "recommendationKeywords": ["parameterized", "placeholder", "?", "%s"],
+        "summaryKeywords": [["parameterized", "prepared", "placeholder"]],
+        "recommendationKeywords": [["parameterized", "prepared", "placeholder", "?", "%s", "bind"]],
         "forbiddenInSnippet": ["\"SELECT * FROM users WHERE id = \" + user_id"]
       },
       "reviewedBy": "ai-draft"
@@ -463,17 +532,24 @@
       "triage": {
         "classification": "true_positive",
         "minConfidence": 0.85,
-        "requiredKeywords": ["path traversal"]
+        "requiredKeywords": [
+          ["path traversal", "directory traversal", "..", "LFI", "local file inclusion"]
+        ]
       },
       "context": {
-        "summaryKeywords": ["path traversal", "open"],
-        "entryPointKeywords": ["request.args", "name"],
+        "summaryKeywords": [
+          ["path traversal", "directory traversal", "LFI"],
+          ["open", "file"]
+        ],
+        "entryPointKeywords": [["request.args", "request", "args", "name"]],
         "sinkKeywords": ["open"],
-        "exposureKeywords": ["filesystem", "arbitrary file"]
+        "exposureKeywords": [["filesystem", "arbitrary file", "file read"]]
       },
       "remediation": {
-        "summaryKeywords": ["secure_filename", "validate"],
-        "recommendationKeywords": ["secure_filename", "os.path.basename", "allowlist"],
+        "summaryKeywords": [["secure_filename", "validate", "sanitize", "basename"]],
+        "recommendationKeywords": [
+          ["secure_filename", "os.path.basename", "allowlist", "validate"]
+        ],
         "forbiddenInSnippet": ["open(filename)"]
       },
       "reviewedBy": "ai-draft"
@@ -488,17 +564,21 @@
       "triage": {
         "classification": "true_positive",
         "minConfidence": 0.9,
-        "requiredKeywords": ["AWS", "key"]
+        "requiredKeywords": ["AWS", ["key", "credential", "secret", "access key"]]
       },
       "context": {
-        "summaryKeywords": ["AWS", "credential", "leaked"],
-        "entryPointKeywords": ["hardcoded", "source"],
-        "sinkKeywords": ["awsAccessKey"],
-        "exposureKeywords": ["AWS account", "credential exposure"]
+        "summaryKeywords": [
+          "AWS",
+          ["credential", "key", "secret"],
+          ["leaked", "hardcoded", "exposed"]
+        ],
+        "entryPointKeywords": [["hardcoded", "source", "literal"]],
+        "sinkKeywords": [["awsAccessKey", "access key", "credential"]],
+        "exposureKeywords": [["AWS", "account", "credential exposure", "compromise"]]
       },
       "remediation": {
-        "summaryKeywords": ["rotate", "remove"],
-        "recommendationKeywords": ["rotate", "environment variable", "secret manager"],
+        "summaryKeywords": [["rotate", "remove", "revoke"]],
+        "recommendationKeywords": [["rotate", "environment variable", "secret manager", "vault"]],
         "forbiddenInSnippet": ["AKIA"]
       },
       "reviewedBy": "ai-draft"
@@ -513,17 +593,20 @@
       "triage": {
         "classification": "true_positive",
         "minConfidence": 0.7,
-        "requiredKeywords": ["HEALTHCHECK"]
+        "requiredKeywords": [["HEALTHCHECK", "health check", "healthcheck"]]
       },
       "context": {
-        "summaryKeywords": ["HEALTHCHECK", "missing"],
-        "entryPointKeywords": ["Dockerfile"],
-        "sinkKeywords": ["container", "image"],
-        "exposureKeywords": ["health", "monitoring", "outage"]
+        "summaryKeywords": [
+          ["HEALTHCHECK", "health check"],
+          ["missing", "absent", "lacks"]
+        ],
+        "entryPointKeywords": [["Dockerfile", "dockerfile", "container image"]],
+        "sinkKeywords": [["container", "image", "Docker"]],
+        "exposureKeywords": [["health", "monitoring", "outage", "uptime", "liveness"]]
       },
       "remediation": {
-        "summaryKeywords": ["HEALTHCHECK"],
-        "recommendationKeywords": ["HEALTHCHECK", "CMD"],
+        "summaryKeywords": [["HEALTHCHECK", "health check"]],
+        "recommendationKeywords": [["HEALTHCHECK", "health check", "CMD"]],
         "forbiddenInSnippet": []
       },
       "reviewedBy": "ai-draft"
@@ -538,17 +621,23 @@
       "triage": {
         "classification": "true_positive",
         "minConfidence": 0.75,
-        "requiredKeywords": ["root", "USER"]
+        "requiredKeywords": [
+          ["root", "uid 0"],
+          ["USER", "user instruction", "non-root"]
+        ]
       },
       "context": {
-        "summaryKeywords": ["root", "container"],
-        "entryPointKeywords": ["Dockerfile"],
-        "sinkKeywords": ["container", "runtime"],
-        "exposureKeywords": ["privilege", "escalation"]
+        "summaryKeywords": [
+          ["root", "uid 0"],
+          ["container", "Docker"]
+        ],
+        "entryPointKeywords": [["Dockerfile", "dockerfile"]],
+        "sinkKeywords": [["container", "runtime", "process"]],
+        "exposureKeywords": [["privilege", "escalation", "elevated"]]
       },
       "remediation": {
-        "summaryKeywords": ["USER", "non-root"],
-        "recommendationKeywords": ["USER", "non-root", "nobody"],
+        "summaryKeywords": [["USER", "non-root"]],
+        "recommendationKeywords": [["USER", "non-root", "nobody", "unprivileged"]],
         "forbiddenInSnippet": []
       },
       "reviewedBy": "ai-draft"
@@ -563,17 +652,23 @@
       "triage": {
         "classification": "true_positive",
         "minConfidence": 0.6,
-        "requiredKeywords": ["placeholder", "API_KEY"]
+        "requiredKeywords": [
+          ["placeholder", "dummy", "example", "fake", "stub"],
+          ["API_KEY", "api key", "API key"]
+        ]
       },
       "context": {
-        "summaryKeywords": ["placeholder", "API key"],
-        "entryPointKeywords": ["API_KEY"],
-        "sinkKeywords": ["API_KEY", "config"],
-        "exposureKeywords": ["dummy", "production"]
+        "summaryKeywords": [
+          ["placeholder", "dummy", "stub"],
+          ["API key", "api_key", "secret"]
+        ],
+        "entryPointKeywords": [["API_KEY", "api key"]],
+        "sinkKeywords": [["API_KEY", "api key", "config"]],
+        "exposureKeywords": [["dummy", "placeholder", "production", "ship"]]
       },
       "remediation": {
-        "summaryKeywords": ["environment", "variable"],
-        "recommendationKeywords": ["environment", "os.environ", "secret"],
+        "summaryKeywords": [["environment", "variable", "secret"]],
+        "recommendationKeywords": [["environment", "os.environ", "secret manager", "vault"]],
         "forbiddenInSnippet": ["\"your-api-key-here\"", "'your-api-key-here'"]
       },
       "humanNotes": "Vibe-Detect heuristic. Borderline case: technically a real secret leak only if shipped. AI-draft confidence intentionally lower.",
@@ -589,17 +684,23 @@
       "triage": {
         "classification": "true_positive",
         "minConfidence": 0.85,
-        "requiredKeywords": ["verify=False", "TLS"]
+        "requiredKeywords": [
+          ["verify=False", "verify false", "TLS verification", "certificate verification"],
+          ["TLS", "SSL", "HTTPS", "certificate"]
+        ]
       },
       "context": {
-        "summaryKeywords": ["TLS", "verification"],
-        "entryPointKeywords": ["requests.get"],
-        "sinkKeywords": ["verify=False"],
-        "exposureKeywords": ["man-in-the-middle", "MITM"]
+        "summaryKeywords": [
+          ["TLS", "SSL", "HTTPS", "certificate"],
+          ["verification", "verify", "validation"]
+        ],
+        "entryPointKeywords": [["requests.get", "requests", "HTTP client"]],
+        "sinkKeywords": [["verify=False", "verify false", "TLS verification"]],
+        "exposureKeywords": [["man-in-the-middle", "MITM", "interception", "tampering"]]
       },
       "remediation": {
-        "summaryKeywords": ["enable", "verify"],
-        "recommendationKeywords": ["verify=True", "CA bundle"],
+        "summaryKeywords": [["enable", "verify"]],
+        "recommendationKeywords": [["verify=True", "verify true", "CA bundle", "certificate"]],
         "forbiddenInSnippet": ["verify=False"]
       },
       "reviewedBy": "ai-draft"
@@ -614,17 +715,24 @@
       "triage": {
         "classification": "true_positive",
         "minConfidence": 0.8,
-        "requiredKeywords": ["CORS", "wildcard"]
+        "requiredKeywords": [
+          ["CORS", "cross-origin", "Cross-Origin"],
+          ["wildcard", "any origin", "asterisk", "*"]
+        ]
       },
       "context": {
-        "summaryKeywords": ["CORS", "wildcard", "origin"],
-        "entryPointKeywords": ["Access-Control-Allow-Origin"],
-        "sinkKeywords": ["res.header"],
-        "exposureKeywords": ["cross-origin", "data"]
+        "summaryKeywords": [
+          ["CORS", "cross-origin"],
+          ["wildcard", "any origin", "*"],
+          ["origin", "domain"]
+        ],
+        "entryPointKeywords": [["Access-Control-Allow-Origin", "allow origin"]],
+        "sinkKeywords": [["res.header", "response header", "header"]],
+        "exposureKeywords": [["cross-origin", "data exposure", "any site"]]
       },
       "remediation": {
-        "summaryKeywords": ["allowlist", "origin"],
-        "recommendationKeywords": ["allowlist", "specific origin", "cors"],
+        "summaryKeywords": [["allowlist", "specific origin", "whitelist"]],
+        "recommendationKeywords": [["allowlist", "specific origin", "whitelist", "cors"]],
         "forbiddenInSnippet": ["'*'", "\"*\""]
       },
       "reviewedBy": "ai-draft"
@@ -639,17 +747,31 @@
       "triage": {
         "classification": "true_positive",
         "minConfidence": 0.6,
-        "requiredKeywords": ["FIXME", "authorization"]
+        "requiredKeywords": [
+          ["FIXME", "TODO", "XXX", "HACK"],
+          ["authorization", "auth", "authentication"]
+        ]
       },
       "context": {
-        "summaryKeywords": ["FIXME", "authorization"],
-        "entryPointKeywords": ["comment"],
-        "sinkKeywords": ["route", "handler"],
-        "exposureKeywords": ["missing", "auth"]
+        "summaryKeywords": [
+          ["FIXME", "TODO", "comment"],
+          ["authorization", "auth"]
+        ],
+        "entryPointKeywords": [["comment", "FIXME", "TODO"]],
+        "sinkKeywords": [["route", "handler", "endpoint"]],
+        "exposureKeywords": [
+          ["missing", "absent", "unimplemented"],
+          ["auth", "authorization"]
+        ]
       },
       "remediation": {
-        "summaryKeywords": ["implement", "authorization"],
-        "recommendationKeywords": ["authentication", "middleware", "verify"],
+        "summaryKeywords": [
+          ["implement", "add"],
+          ["authorization", "auth", "authentication"]
+        ],
+        "recommendationKeywords": [
+          ["authentication", "authorization", "middleware", "verify", "JWT"]
+        ],
         "forbiddenInSnippet": []
       },
       "humanNotes": "Vibe-Detect FIXME heuristic — borderline. The comment is genuine technical debt, not a vulnerability per se. AI-draft confidence intentionally lower.",
