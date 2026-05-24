@@ -1,0 +1,659 @@
+{
+  "version": "1.0",
+  "generatedAt": "2026-05-23T22:30:00.000Z",
+  "reviewedAt": null,
+  "entries": [
+    {
+      "fixturePath": "packages/scouts/tests/opengrep/fixtures/vulnerable/javascript/eval-injection.js",
+      "line": 6,
+      "category": "SAST",
+      "ruleId": "sentinel-js-eval-usage",
+      "severity": "high",
+      "description": "eval() invoked on a user-controlled parameter — direct code injection.",
+      "triage": {
+        "classification": "true_positive",
+        "minConfidence": 0.85,
+        "requiredKeywords": ["eval", "code injection"]
+      },
+      "context": {
+        "summaryKeywords": ["eval", "user", "input"],
+        "entryPointKeywords": ["userInput", "parameter"],
+        "sinkKeywords": ["eval"],
+        "exposureKeywords": ["code execution", "arbitrary"]
+      },
+      "remediation": {
+        "summaryKeywords": ["eval", "replace"],
+        "recommendationKeywords": ["JSON.parse", "parser", "safe"],
+        "forbiddenInSnippet": ["eval(userInput)", "eval(user_input)"]
+      },
+      "reviewedBy": "ai-draft"
+    },
+    {
+      "fixturePath": "packages/scouts/tests/opengrep/fixtures/vulnerable/javascript/xss-and-injection.js",
+      "line": 7,
+      "category": "SAST",
+      "ruleId": "sentinel-js-document-write",
+      "severity": "high",
+      "description": "document.write() with user-controlled input — reflected XSS.",
+      "triage": {
+        "classification": "true_positive",
+        "minConfidence": 0.85,
+        "requiredKeywords": ["document.write", "XSS"]
+      },
+      "context": {
+        "summaryKeywords": ["XSS", "document.write"],
+        "entryPointKeywords": ["userInput"],
+        "sinkKeywords": ["document.write"],
+        "exposureKeywords": ["script", "DOM"]
+      },
+      "remediation": {
+        "summaryKeywords": ["escape", "sanitize"],
+        "recommendationKeywords": ["textContent", "escape", "DOMPurify"],
+        "forbiddenInSnippet": ["document.write(userInput)"]
+      },
+      "reviewedBy": "ai-draft"
+    },
+    {
+      "fixturePath": "packages/scouts/tests/opengrep/fixtures/vulnerable/javascript/xss-and-injection.js",
+      "line": 12,
+      "category": "SAST",
+      "ruleId": "sentinel-js-innerhtml-assignment",
+      "severity": "high",
+      "description": "Dynamic innerHTML assignment with user input — DOM XSS.",
+      "triage": {
+        "classification": "true_positive",
+        "minConfidence": 0.85,
+        "requiredKeywords": ["innerHTML", "XSS"]
+      },
+      "context": {
+        "summaryKeywords": ["innerHTML", "XSS"],
+        "entryPointKeywords": ["userInput"],
+        "sinkKeywords": ["innerHTML"],
+        "exposureKeywords": ["DOM", "script"]
+      },
+      "remediation": {
+        "summaryKeywords": ["textContent", "sanitize"],
+        "recommendationKeywords": ["textContent", "DOMPurify", "escape"],
+        "forbiddenInSnippet": [".innerHTML = userInput"]
+      },
+      "reviewedBy": "ai-draft"
+    },
+    {
+      "fixturePath": "packages/scouts/tests/opengrep/fixtures/vulnerable/javascript/xss-and-injection.js",
+      "line": 17,
+      "category": "SAST",
+      "ruleId": "sentinel-js-settimeout-string",
+      "severity": "medium",
+      "description": "setTimeout with a string argument — implicit eval.",
+      "triage": {
+        "classification": "true_positive",
+        "minConfidence": 0.8,
+        "requiredKeywords": ["setTimeout", "string"]
+      },
+      "context": {
+        "summaryKeywords": ["setTimeout", "string", "eval"],
+        "entryPointKeywords": ["string"],
+        "sinkKeywords": ["setTimeout"],
+        "exposureKeywords": ["code", "execution"]
+      },
+      "remediation": {
+        "summaryKeywords": ["function", "reference"],
+        "recommendationKeywords": ["function", "callback"],
+        "forbiddenInSnippet": ["setTimeout('", "setTimeout(\""]
+      },
+      "reviewedBy": "ai-draft"
+    },
+    {
+      "fixturePath": "packages/scouts/tests/opengrep/fixtures/vulnerable/javascript/taint-vuln.js",
+      "line": 18,
+      "category": "SAST",
+      "ruleId": "sentinel-js-taint-command-injection",
+      "severity": "critical",
+      "description": "req.query.dir flows to child_process.exec — command injection.",
+      "triage": {
+        "classification": "true_positive",
+        "minConfidence": 0.9,
+        "requiredKeywords": ["command injection", "exec"]
+      },
+      "context": {
+        "summaryKeywords": ["command injection", "exec"],
+        "entryPointKeywords": ["req.query", "dir"],
+        "sinkKeywords": ["exec"],
+        "exposureKeywords": ["arbitrary", "command", "shell"]
+      },
+      "remediation": {
+        "summaryKeywords": ["execFile", "validate", "allowlist"],
+        "recommendationKeywords": ["execFile", "spawn", "allowlist"],
+        "forbiddenInSnippet": ["exec('ls ' +", "exec(\"ls \" +"]
+      },
+      "reviewedBy": "ai-draft"
+    },
+    {
+      "fixturePath": "packages/scouts/tests/opengrep/fixtures/vulnerable/javascript/taint-vuln.js",
+      "line": 26,
+      "category": "SAST",
+      "ruleId": "sentinel-js-taint-command-injection",
+      "severity": "critical",
+      "description": "req.body.target flows to execSync — command injection (rm -rf).",
+      "triage": {
+        "classification": "true_positive",
+        "minConfidence": 0.9,
+        "requiredKeywords": ["command injection", "execSync"]
+      },
+      "context": {
+        "summaryKeywords": ["command injection", "execSync"],
+        "entryPointKeywords": ["req.body", "target"],
+        "sinkKeywords": ["execSync"],
+        "exposureKeywords": ["filesystem", "delete", "arbitrary"]
+      },
+      "remediation": {
+        "summaryKeywords": ["validate", "allowlist"],
+        "recommendationKeywords": ["validate", "allowlist", "execFile"],
+        "forbiddenInSnippet": ["execSync('rm", "execSync(\"rm"]
+      },
+      "reviewedBy": "ai-draft"
+    },
+    {
+      "fixturePath": "packages/scouts/tests/opengrep/fixtures/vulnerable/javascript/taint-vuln.js",
+      "line": 33,
+      "category": "SAST",
+      "ruleId": "sentinel-js-taint-xss",
+      "severity": "high",
+      "description": "req.query.name flows to innerHTML — taint-based XSS.",
+      "triage": {
+        "classification": "true_positive",
+        "minConfidence": 0.9,
+        "requiredKeywords": ["XSS", "innerHTML"]
+      },
+      "context": {
+        "summaryKeywords": ["XSS", "innerHTML"],
+        "entryPointKeywords": ["req.query", "name"],
+        "sinkKeywords": ["innerHTML"],
+        "exposureKeywords": ["DOM", "script"]
+      },
+      "remediation": {
+        "summaryKeywords": ["sanitize", "escape"],
+        "recommendationKeywords": ["textContent", "DOMPurify", "escape"],
+        "forbiddenInSnippet": ["innerHTML = '<h1>Hi ' + username"]
+      },
+      "reviewedBy": "ai-draft"
+    },
+    {
+      "fixturePath": "packages/scouts/tests/opengrep/fixtures/vulnerable/javascript/taint-vuln.js",
+      "line": 39,
+      "category": "SAST",
+      "ruleId": "sentinel-js-taint-sql-injection",
+      "severity": "critical",
+      "description": "req.params.id concatenated into SQL — SQL injection.",
+      "triage": {
+        "classification": "true_positive",
+        "minConfidence": 0.9,
+        "requiredKeywords": ["SQL injection", "concatenation"]
+      },
+      "context": {
+        "summaryKeywords": ["SQL injection"],
+        "entryPointKeywords": ["req.params", "id"],
+        "sinkKeywords": ["db.query"],
+        "exposureKeywords": ["database", "data", "exfiltration"]
+      },
+      "remediation": {
+        "summaryKeywords": ["parameterized", "prepared"],
+        "recommendationKeywords": ["parameterized", "prepared", "placeholder"],
+        "forbiddenInSnippet": ["'SELECT * FROM users WHERE id = ' +"]
+      },
+      "reviewedBy": "ai-draft"
+    },
+    {
+      "fixturePath": "packages/scouts/tests/opengrep/fixtures/vulnerable/typescript/dynamic-code.ts",
+      "line": 6,
+      "category": "SAST",
+      "ruleId": "sentinel-js-function-constructor",
+      "severity": "high",
+      "description": "new Function(source) — eval-equivalent code construction from string.",
+      "triage": {
+        "classification": "true_positive",
+        "minConfidence": 0.85,
+        "requiredKeywords": ["Function constructor", "eval"]
+      },
+      "context": {
+        "summaryKeywords": ["Function", "code", "string"],
+        "entryPointKeywords": ["source", "string"],
+        "sinkKeywords": ["new Function"],
+        "exposureKeywords": ["code execution", "arbitrary"]
+      },
+      "remediation": {
+        "summaryKeywords": ["avoid", "static", "dispatch"],
+        "recommendationKeywords": ["dispatch", "lookup", "table", "switch"],
+        "forbiddenInSnippet": ["new Function(source)"]
+      },
+      "reviewedBy": "ai-draft"
+    },
+    {
+      "fixturePath": "packages/scouts/tests/opengrep/fixtures/vulnerable/python/code-injection.py",
+      "line": 9,
+      "category": "SAST",
+      "ruleId": "sentinel-py-exec-usage",
+      "severity": "critical",
+      "description": "exec() on user input — Python code injection.",
+      "triage": {
+        "classification": "true_positive",
+        "minConfidence": 0.9,
+        "requiredKeywords": ["exec", "code injection"]
+      },
+      "context": {
+        "summaryKeywords": ["exec", "user", "input"],
+        "entryPointKeywords": ["user_input", "parameter"],
+        "sinkKeywords": ["exec"],
+        "exposureKeywords": ["code execution", "arbitrary"]
+      },
+      "remediation": {
+        "summaryKeywords": ["avoid", "ast", "literal"],
+        "recommendationKeywords": ["ast.literal_eval", "allowlist", "dispatch"],
+        "forbiddenInSnippet": ["exec(user_input)"]
+      },
+      "reviewedBy": "ai-draft"
+    },
+    {
+      "fixturePath": "packages/scouts/tests/opengrep/fixtures/vulnerable/python/code-injection.py",
+      "line": 14,
+      "category": "SAST",
+      "ruleId": "sentinel-py-subprocess-shell",
+      "severity": "high",
+      "description": "subprocess.run with shell=True — command injection.",
+      "triage": {
+        "classification": "true_positive",
+        "minConfidence": 0.85,
+        "requiredKeywords": ["shell=True", "command injection"]
+      },
+      "context": {
+        "summaryKeywords": ["shell", "subprocess"],
+        "entryPointKeywords": ["cmd"],
+        "sinkKeywords": ["subprocess.run"],
+        "exposureKeywords": ["shell", "arbitrary command"]
+      },
+      "remediation": {
+        "summaryKeywords": ["shell=False", "list"],
+        "recommendationKeywords": ["shell=False", "list", "argument"],
+        "forbiddenInSnippet": ["shell=True"]
+      },
+      "reviewedBy": "ai-draft"
+    },
+    {
+      "fixturePath": "packages/scouts/tests/opengrep/fixtures/vulnerable/python/unsafe-apis.py",
+      "line": 14,
+      "category": "SAST",
+      "ruleId": "sentinel-py-os-system",
+      "severity": "high",
+      "description": "os.system on user input — shell command injection.",
+      "triage": {
+        "classification": "true_positive",
+        "minConfidence": 0.85,
+        "requiredKeywords": ["os.system", "command injection"]
+      },
+      "context": {
+        "summaryKeywords": ["os.system", "shell"],
+        "entryPointKeywords": ["cmd"],
+        "sinkKeywords": ["os.system"],
+        "exposureKeywords": ["shell", "arbitrary"]
+      },
+      "remediation": {
+        "summaryKeywords": ["subprocess", "shell=False"],
+        "recommendationKeywords": ["subprocess.run", "shell=False"],
+        "forbiddenInSnippet": ["os.system(cmd)"]
+      },
+      "reviewedBy": "ai-draft"
+    },
+    {
+      "fixturePath": "packages/scouts/tests/opengrep/fixtures/vulnerable/python/unsafe-apis.py",
+      "line": 19,
+      "category": "SAST",
+      "ruleId": "sentinel-py-yaml-unsafe-load",
+      "severity": "high",
+      "description": "yaml.load without SafeLoader — unsafe deserialization.",
+      "triage": {
+        "classification": "true_positive",
+        "minConfidence": 0.85,
+        "requiredKeywords": ["yaml.load", "deserialization"]
+      },
+      "context": {
+        "summaryKeywords": ["yaml", "deserialization"],
+        "entryPointKeywords": ["raw"],
+        "sinkKeywords": ["yaml.load"],
+        "exposureKeywords": ["arbitrary", "object", "instantiation"]
+      },
+      "remediation": {
+        "summaryKeywords": ["safe_load", "SafeLoader"],
+        "recommendationKeywords": ["yaml.safe_load", "SafeLoader"],
+        "forbiddenInSnippet": ["yaml.load(raw)"]
+      },
+      "reviewedBy": "ai-draft"
+    },
+    {
+      "fixturePath": "packages/scouts/tests/opengrep/fixtures/vulnerable/python/unsafe-apis.py",
+      "line": 24,
+      "category": "SAST",
+      "ruleId": "sentinel-py-pickle-loads",
+      "severity": "critical",
+      "description": "pickle.loads on untrusted data — RCE via pickle deserialization.",
+      "triage": {
+        "classification": "true_positive",
+        "minConfidence": 0.9,
+        "requiredKeywords": ["pickle", "deserialization"]
+      },
+      "context": {
+        "summaryKeywords": ["pickle", "deserialization"],
+        "entryPointKeywords": ["blob"],
+        "sinkKeywords": ["pickle.loads"],
+        "exposureKeywords": ["code execution", "arbitrary"]
+      },
+      "remediation": {
+        "summaryKeywords": ["avoid", "json", "alternative"],
+        "recommendationKeywords": ["json", "msgpack", "validate"],
+        "forbiddenInSnippet": ["pickle.loads(blob)"]
+      },
+      "reviewedBy": "ai-draft"
+    },
+    {
+      "fixturePath": "packages/scouts/tests/opengrep/fixtures/vulnerable/python/unsafe-apis.py",
+      "line": 29,
+      "category": "SAST",
+      "ruleId": "sentinel-py-md5",
+      "severity": "medium",
+      "description": "hashlib.md5 — cryptographically weak hash.",
+      "triage": {
+        "classification": "true_positive",
+        "minConfidence": 0.8,
+        "requiredKeywords": ["MD5", "weak"]
+      },
+      "context": {
+        "summaryKeywords": ["MD5", "weak"],
+        "entryPointKeywords": ["password"],
+        "sinkKeywords": ["hashlib.md5"],
+        "exposureKeywords": ["collision", "brute"]
+      },
+      "remediation": {
+        "summaryKeywords": ["SHA-256", "bcrypt", "argon2"],
+        "recommendationKeywords": ["SHA-256", "bcrypt", "argon2", "pbkdf2"],
+        "forbiddenInSnippet": ["hashlib.md5("]
+      },
+      "reviewedBy": "ai-draft"
+    },
+    {
+      "fixturePath": "packages/scouts/tests/opengrep/fixtures/vulnerable/python/taint-vuln.py",
+      "line": 24,
+      "category": "SAST",
+      "ruleId": "sentinel-py-taint-command-injection",
+      "severity": "critical",
+      "description": "sys.argv flows to subprocess.run with shell=True — command injection.",
+      "triage": {
+        "classification": "true_positive",
+        "minConfidence": 0.9,
+        "requiredKeywords": ["command injection", "sys.argv"]
+      },
+      "context": {
+        "summaryKeywords": ["command injection", "subprocess"],
+        "entryPointKeywords": ["sys.argv"],
+        "sinkKeywords": ["subprocess.run"],
+        "exposureKeywords": ["shell", "arbitrary command"]
+      },
+      "remediation": {
+        "summaryKeywords": ["shell=False", "list", "validate"],
+        "recommendationKeywords": ["shell=False", "list", "argument"],
+        "forbiddenInSnippet": ["shell=True"]
+      },
+      "reviewedBy": "ai-draft"
+    },
+    {
+      "fixturePath": "packages/scouts/tests/opengrep/fixtures/vulnerable/python/taint-vuln.py",
+      "line": 30,
+      "category": "SAST",
+      "ruleId": "sentinel-py-taint-command-injection",
+      "severity": "critical",
+      "description": "request.form flows to os.system — command injection.",
+      "triage": {
+        "classification": "true_positive",
+        "minConfidence": 0.9,
+        "requiredKeywords": ["command injection", "request.form"]
+      },
+      "context": {
+        "summaryKeywords": ["command injection", "os.system"],
+        "entryPointKeywords": ["request.form"],
+        "sinkKeywords": ["os.system"],
+        "exposureKeywords": ["filesystem", "delete", "arbitrary"]
+      },
+      "remediation": {
+        "summaryKeywords": ["validate", "allowlist"],
+        "recommendationKeywords": ["secure_filename", "validate", "allowlist"],
+        "forbiddenInSnippet": ["os.system(\"rm /tmp/\" + name)"]
+      },
+      "reviewedBy": "ai-draft"
+    },
+    {
+      "fixturePath": "packages/scouts/tests/opengrep/fixtures/vulnerable/python/taint-vuln.py",
+      "line": 36,
+      "category": "SAST",
+      "ruleId": "sentinel-py-taint-sql-injection",
+      "severity": "critical",
+      "description": "request.args flows to cursor.execute — SQL injection.",
+      "triage": {
+        "classification": "true_positive",
+        "minConfidence": 0.9,
+        "requiredKeywords": ["SQL injection", "concatenation"]
+      },
+      "context": {
+        "summaryKeywords": ["SQL injection"],
+        "entryPointKeywords": ["request.args"],
+        "sinkKeywords": ["cursor.execute"],
+        "exposureKeywords": ["database", "exfiltration"]
+      },
+      "remediation": {
+        "summaryKeywords": ["parameterized", "placeholder"],
+        "recommendationKeywords": ["parameterized", "placeholder", "?", "%s"],
+        "forbiddenInSnippet": ["\"SELECT * FROM users WHERE id = \" + user_id"]
+      },
+      "reviewedBy": "ai-draft"
+    },
+    {
+      "fixturePath": "packages/scouts/tests/opengrep/fixtures/vulnerable/python/taint-vuln.py",
+      "line": 42,
+      "category": "SAST",
+      "ruleId": "sentinel-py-taint-path-traversal",
+      "severity": "high",
+      "description": "request.args flows to open() — path traversal.",
+      "triage": {
+        "classification": "true_positive",
+        "minConfidence": 0.85,
+        "requiredKeywords": ["path traversal"]
+      },
+      "context": {
+        "summaryKeywords": ["path traversal", "open"],
+        "entryPointKeywords": ["request.args", "name"],
+        "sinkKeywords": ["open"],
+        "exposureKeywords": ["filesystem", "arbitrary file"]
+      },
+      "remediation": {
+        "summaryKeywords": ["secure_filename", "validate"],
+        "recommendationKeywords": ["secure_filename", "os.path.basename", "allowlist"],
+        "forbiddenInSnippet": ["open(filename)"]
+      },
+      "reviewedBy": "ai-draft"
+    },
+    {
+      "fixturePath": "packages/scouts/tests/gitleaks/fixtures/secrets/leaked-config.js",
+      "line": 5,
+      "category": "Secrets",
+      "ruleId": "aws-access-token",
+      "severity": "high",
+      "description": "AWS-style access key (AKIA prefix) hardcoded in source.",
+      "triage": {
+        "classification": "true_positive",
+        "minConfidence": 0.9,
+        "requiredKeywords": ["AWS", "key"]
+      },
+      "context": {
+        "summaryKeywords": ["AWS", "credential", "leaked"],
+        "entryPointKeywords": ["hardcoded", "source"],
+        "sinkKeywords": ["awsAccessKey"],
+        "exposureKeywords": ["AWS account", "credential exposure"]
+      },
+      "remediation": {
+        "summaryKeywords": ["rotate", "remove"],
+        "recommendationKeywords": ["rotate", "environment variable", "secret manager"],
+        "forbiddenInSnippet": ["AKIA"]
+      },
+      "reviewedBy": "ai-draft"
+    },
+    {
+      "fixturePath": "packages/scouts/tests/checkov/fixtures/iac/Dockerfile",
+      "line": 4,
+      "category": "IaC",
+      "ruleId": "CKV_DOCKER_2",
+      "severity": "low",
+      "description": "Dockerfile lacks HEALTHCHECK instruction.",
+      "triage": {
+        "classification": "true_positive",
+        "minConfidence": 0.7,
+        "requiredKeywords": ["HEALTHCHECK"]
+      },
+      "context": {
+        "summaryKeywords": ["HEALTHCHECK", "missing"],
+        "entryPointKeywords": ["Dockerfile"],
+        "sinkKeywords": ["container", "image"],
+        "exposureKeywords": ["health", "monitoring", "outage"]
+      },
+      "remediation": {
+        "summaryKeywords": ["HEALTHCHECK"],
+        "recommendationKeywords": ["HEALTHCHECK", "CMD"],
+        "forbiddenInSnippet": []
+      },
+      "reviewedBy": "ai-draft"
+    },
+    {
+      "fixturePath": "packages/scouts/tests/checkov/fixtures/iac/Dockerfile",
+      "line": 4,
+      "category": "IaC",
+      "ruleId": "CKV_DOCKER_3",
+      "severity": "medium",
+      "description": "Dockerfile does not set a non-root USER — runs as root.",
+      "triage": {
+        "classification": "true_positive",
+        "minConfidence": 0.75,
+        "requiredKeywords": ["root", "USER"]
+      },
+      "context": {
+        "summaryKeywords": ["root", "container"],
+        "entryPointKeywords": ["Dockerfile"],
+        "sinkKeywords": ["container", "runtime"],
+        "exposureKeywords": ["privilege", "escalation"]
+      },
+      "remediation": {
+        "summaryKeywords": ["USER", "non-root"],
+        "recommendationKeywords": ["USER", "non-root", "nobody"],
+        "forbiddenInSnippet": []
+      },
+      "reviewedBy": "ai-draft"
+    },
+    {
+      "fixturePath": "packages/scouts/tests/vibe-detect/fixtures/vibe-coded/config.py",
+      "line": 6,
+      "category": "VibeCoded",
+      "ruleId": "vibe-placeholder-api-key",
+      "severity": "medium",
+      "description": "Placeholder string in API_KEY assignment — AI-generated boilerplate left in.",
+      "triage": {
+        "classification": "true_positive",
+        "minConfidence": 0.6,
+        "requiredKeywords": ["placeholder", "API_KEY"]
+      },
+      "context": {
+        "summaryKeywords": ["placeholder", "API key"],
+        "entryPointKeywords": ["API_KEY"],
+        "sinkKeywords": ["API_KEY", "config"],
+        "exposureKeywords": ["dummy", "production"]
+      },
+      "remediation": {
+        "summaryKeywords": ["environment", "variable"],
+        "recommendationKeywords": ["environment", "os.environ", "secret"],
+        "forbiddenInSnippet": ["\"your-api-key-here\"", "'your-api-key-here'"]
+      },
+      "humanNotes": "Vibe-Detect heuristic. Borderline case: technically a real secret leak only if shipped. AI-draft confidence intentionally lower.",
+      "reviewedBy": "ai-draft"
+    },
+    {
+      "fixturePath": "packages/scouts/tests/vibe-detect/fixtures/vibe-coded/config.py",
+      "line": 12,
+      "category": "VibeCoded",
+      "ruleId": "vibe-verify-false",
+      "severity": "high",
+      "description": "requests.get with verify=False — TLS verification disabled.",
+      "triage": {
+        "classification": "true_positive",
+        "minConfidence": 0.85,
+        "requiredKeywords": ["verify=False", "TLS"]
+      },
+      "context": {
+        "summaryKeywords": ["TLS", "verification"],
+        "entryPointKeywords": ["requests.get"],
+        "sinkKeywords": ["verify=False"],
+        "exposureKeywords": ["man-in-the-middle", "MITM"]
+      },
+      "remediation": {
+        "summaryKeywords": ["enable", "verify"],
+        "recommendationKeywords": ["verify=True", "CA bundle"],
+        "forbiddenInSnippet": ["verify=False"]
+      },
+      "reviewedBy": "ai-draft"
+    },
+    {
+      "fixturePath": "packages/scouts/tests/vibe-detect/fixtures/vibe-coded/server.js",
+      "line": 9,
+      "category": "VibeCoded",
+      "ruleId": "vibe-wildcard-cors",
+      "severity": "high",
+      "description": "Access-Control-Allow-Origin: * — wildcard CORS allows any origin.",
+      "triage": {
+        "classification": "true_positive",
+        "minConfidence": 0.8,
+        "requiredKeywords": ["CORS", "wildcard"]
+      },
+      "context": {
+        "summaryKeywords": ["CORS", "wildcard", "origin"],
+        "entryPointKeywords": ["Access-Control-Allow-Origin"],
+        "sinkKeywords": ["res.header"],
+        "exposureKeywords": ["cross-origin", "data"]
+      },
+      "remediation": {
+        "summaryKeywords": ["allowlist", "origin"],
+        "recommendationKeywords": ["allowlist", "specific origin", "cors"],
+        "forbiddenInSnippet": ["'*'", "\"*\""]
+      },
+      "reviewedBy": "ai-draft"
+    },
+    {
+      "fixturePath": "packages/scouts/tests/vibe-detect/fixtures/vibe-coded/server.js",
+      "line": 13,
+      "category": "VibeCoded",
+      "ruleId": "vibe-fixme-security",
+      "severity": "medium",
+      "description": "FIXME comment about authorization — AI left a security TODO unaddressed.",
+      "triage": {
+        "classification": "true_positive",
+        "minConfidence": 0.6,
+        "requiredKeywords": ["FIXME", "authorization"]
+      },
+      "context": {
+        "summaryKeywords": ["FIXME", "authorization"],
+        "entryPointKeywords": ["comment"],
+        "sinkKeywords": ["route", "handler"],
+        "exposureKeywords": ["missing", "auth"]
+      },
+      "remediation": {
+        "summaryKeywords": ["implement", "authorization"],
+        "recommendationKeywords": ["authentication", "middleware", "verify"],
+        "forbiddenInSnippet": []
+      },
+      "humanNotes": "Vibe-Detect FIXME heuristic — borderline. The comment is genuine technical debt, not a vulnerability per se. AI-draft confidence intentionally lower.",
+      "reviewedBy": "ai-draft"
+    }
+  ]
+}

@@ -15,3 +15,4 @@ export * from './colony/colony-db.js';
 export * from './coordinator/coordinator.js';
 export * from './config/agents-config.js';
 export * from './config/agent-output-schemas.js';
+export * from './config/benchmark-ground-truth.js';
