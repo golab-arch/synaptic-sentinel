@@ -2500,5 +2500,37 @@ Each entry follows this structure:
 
 ---
 
+### Entry #86 - DG-079.1 hotfix: extension.cjs bundle externals fix → v0.3.1 (bug crítico descubierto al instalar localmente el .vsix v0.3.0)
+
+```json
+{
+  "timestamp": "2026-05-24T19:00:00.000Z",
+  "cycle": 73,
+  "phase": 12,
+  "action": "HOTFIX_APPLIED",
+  "details": {
+    "DG-079.1": {
+      "title": "Hotfix sub-DG: bundle externals para el extension.cjs faltaban (descubierto al validar el .vsix v0.3.0 localmente antes de Phase 12 marketplace publish)",
+      "trigger": "Usuario instaló el synaptic-sentinel-0.3.0.vsix (el SHA DA07CA79... del re-pack de DG-080 B con README polish) vía 'Install from VSIX...' en VSCode. La extension figuró 'installed' OK. Al ejecutar 'SYNAPTIC Sentinel: Install Scanners' VSCode mostró popup de error: 'Command synaptic-sentinel.installScanners not found'. Anti-optimismo ilusorio MATERIALIZADO: el local validation que el usuario insistió en hacer ANTES del marketplace publish detectó un bug crítico que ningún test del gate atajó.",
+      "root_cause": "Bundle script de la extension en packages/vscode-extension/package.json marcaba solo --external:vscode. Cuando DG-073 B / DG-074 B agregaron import desde @synaptic-sentinel/agents en src/settings-view.ts, ese paquete arrastra transitivamente @anthropic-ai/sdk + openai (AnthropicLlmClient y OpenAiCompatibleLlmClient en provider-registry). esbuild INLINEÓ esos SDKs en extension.cjs (615 KB con 178 referencias a @anthropic-ai/sdk en el bundle). Esos SDKs contienen require() dinámicos / module path-resolution que LANZAN en runtime cuando VSCode extension host evalúa el bundle. La excepción mata activate() SILENCIOSAMENTE antes de llegar al context.subscriptions.push(...) con los 7 vscode.commands.registerCommand(...). Resultado: extension instalada pero NINGÚN comando registrado.",
+      "fix_aplicado": "packages/vscode-extension/package.json bundle script: agregadas 3 externals que ya estaban en el bundle del CLI pero faltaban en la extension: --external:@anthropic-ai/sdk + --external:openai + --external:node-sqlite3-wasm. Ahora extension.cjs marca esos paquetes como external y Node los resuelve en runtime desde dist/node_modules/ (que ya están copiados al .vsix por scripts/copy-cli-assets.mjs). Bump version 0.3.0 → 0.3.1. CHANGELOG entry [0.3.1] - 2026-05-24 con headline 'Hotfix: extension activate() failed silently because bundled SDKs collided with VSCode extension host' + sección Fixed (descripción técnica del root cause) + sección Notes con anti-optimismo lesson explícita (el verify gate no es suficiente para VSCode extensions; futuro ciclo puede agregar vscode-test integration).",
+      "verification_real": "pnpm -w run verify VERDE 56 test files / 463 tests (mismo conteo — bump + CHANGELOG + bundle config no toca código de tests). Bundle re-empaquetado: dist/extension.cjs ahora 280 KB (vs 615 KB pre-fix, -54%) y refs a @anthropic-ai/sdk en el bundle bajaron de 178 a 2 (solo el require runtime). pnpm -F synaptic-sentinel package EXITOSO: synaptic-sentinel-0.3.1.vsix producido (3.12 MB / 1838 archivos vs 3.17 MB / 1838 archivos del v0.3.0). Manifest validado al extraer: version 0.3.1 + publisher GoLab + Apache-2.0 + main ./dist/extension.cjs. Bundle dentro del .vsix verificado: contiene 'synaptic-sentinel.installScanners' + require('@anthropic-ai/sdk') como external runtime. SHA-256: 0450DF44C4E21170FE7F6F706B4836619C26655CD691C3F0EDF63286AF6348E4.",
+      "v030_status": "SUPERSEDED — ambas variantes (GitHub Release SHA 5EA050B1... y re-pack DG-080 con SHA DA07CA79... que ya tiene el README multi-provider polish) están afectadas por el mismo bug del bundle. v0.3.0 NO funciona en VSCode (ningún comando aparece). v0.3.1 es el primer release usable. El asset .vsix del GitHub Release v0.3.0 queda como artefacto histórico para evidencia diagnóstica del bug + transparencia del fix.",
+      "pending_user_validation": "Usuario debe (a) desinstalar v0.3.0 si lo instaló: code --uninstall-extension GoLab.synaptic-sentinel (o vía UI Extensions sidebar); (b) instalar v0.3.1: vía 'Install from VSIX...' UI seleccionando packages/vscode-extension/synaptic-sentinel-0.3.1.vsix, o code --install-extension <ruta>\\synaptic-sentinel-0.3.1.vsix; (c) reiniciar VSCode (Ctrl+Shift+P > 'Developer: Reload Window'); (d) Ctrl+Shift+P > escribir 'SYNAPTIC' — DEBE aparecer los 5 comandos (Scan Workspace, Triage Findings, Set Anthropic API Key, Install Scanners, Configure Brain Layer Providers); (e) probar Install Scanners — debería abrir pseudoterminal y descargar binarios. SOLO si esto funciona se procede a tag v0.3.1 + GitHub Release + Phase 12 marketplace publish con docs/PUBLISHING.md ya generado (preparación de DG-080 B sigue válida — el README polish y el runbook NO requieren cambio).",
+      "checks": "format:check / lint / build / test:unit VERDE. vsce package EXITOSO. Manifest validado. Bundle internals validados (size + externals + command registration).",
+      "anti_optimismo_lesson_explicita": "v0.3.0 fue declarada PHASE_CLOSED y release SUCCESS en DG-079 A (Entry #84) con manifest validado y SHA-256 publicado, sin ejecutar la extension en un VSCode real. DG-080 B (Entry #85) re-empaquetó v0.3.0 con README polish para preparar el marketplace, sin re-validar el bundle. El user smoke test en local (instalar el .vsix + abrir un proyecto + Ctrl+Shift+P) detectó en minutos lo que 463 unit tests + verify gate + vsce package validation no atajaron en DOS ciclos consecutivos. CLASE DE BUG: bundling de dependencias dinámicas que el static analyzer de esbuild no puede detectar pero el VSCode extension host SÍ ejecuta. PREVENCIÓN futura: agregar un step de smoke 'extensionDevelopmentHost test' al verify gate (vscode-test framework abre VSCode headless y ejecuta una sesión real de la extension). Sub-DG futuro a registrar formalmente. La lesson más profunda es que la insistencia del usuario en 'probarlo en local primero' (anti-optimismo aplicado consistentemente por el operador humano) fue lo que rescató al proyecto de publicar al marketplace un .vsix roto.",
+      "out_of_scope_explicit": "(1) Marketplace publish - sigue siendo Phase 12 (DG-080 sub-paso 2), ahora con v0.3.1 como artifact en vez de v0.3.0; bloqueado por validación del usuario. (2) Refactor del bundle script para que los externals sean lista compartida CLI+extension - mejora menor, no urgente. (3) vscode-test integration en verify gate - sub-DG futuro (importante para prevenir regresiones de esta clase). (4) Retro-actualizar release notes de v0.3.0 con nota 'superseded by v0.3.1 due to extension bundle bug' - acción post-validación. (5) Update docs/PUBLISHING.md para apuntar al .vsix v0.3.1 en vez de v0.3.0 - micro-fix junto al commit.",
+      "commits_split": "feat en commit a venir (bundle script + bump 0.3.1 + CHANGELOG hotfix entry); este registro SYNAPTIC en el commit docs siguiente. NO se crea tag v0.3.1 ni GitHub Release hasta que el usuario valide localmente que los comandos aparecen.",
+      "phase_status_after_hotfix": "Phase 11 sigue CERRADA (las features de Phase 11 son intactas, lo único que falló era el bundling de la extension — un defecto de empaquetado, no de funcionalidad). Phase 12 sigue abierta PARCIAL (DG-080 B Entry #85) — el publish al marketplace requiere primero que el usuario confirme que v0.3.1 funciona end-to-end."
+    }
+  },
+  "outcome": "HOTFIX_APPLIED_PENDING_USER_VALIDATION",
+  "synapticStrength": 78,
+  "complianceScore": 100
+}
+```
+
+---
+
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-24T15:00:00.000Z*
+*Last Updated: 2026-05-24T19:00:00.000Z*
