@@ -16,6 +16,7 @@ export * from './openai-compatible-client.js';
 export * from './ollama-client.js';
 export * from './brain-agent.js';
 export * from './provider-registry.js';
+export * from './token-tracking-client.js';
 export * from './triage-agent.js';
 export * from './context-agent.js';
 export * from './remediation-agent.js';

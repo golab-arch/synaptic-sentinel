@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS meta (
   key   TEXT PRIMARY KEY,
   value TEXT NOT NULL
 );
-INSERT OR IGNORE INTO meta (key, value) VALUES ('schema_version', '4');
+INSERT OR IGNORE INTO meta (key, value) VALUES ('schema_version', '5');
 
 CREATE TABLE IF NOT EXISTS scans (
   id            TEXT PRIMARY KEY,
@@ -97,3 +97,27 @@ CREATE TABLE IF NOT EXISTS remediation_suggestions (
 );
 CREATE INDEX IF NOT EXISTS idx_remediation_fingerprint ON remediation_suggestions(fingerprint);
 CREATE INDEX IF NOT EXISTS idx_remediation_scan        ON remediation_suggestions(scan_id);
+
+-- Tokens y costo USD estimado por LLM call del Brain Layer (schema v5 — aditiva).
+-- Tracking provider-agnostic del consumo: cada fila = una invocacion de un
+-- agente (triage/context/remediation) contra un provider/model concreto sobre
+-- un finding concreto. Las cifras de tokens son PROXIES (heuristica chars/4,
+-- el contrato LlmClient no expone usage real — DG-073 B). DG-078 B.
+CREATE TABLE IF NOT EXISTS triage_token_usage (
+  id                  TEXT PRIMARY KEY,
+  triage_session_id   TEXT NOT NULL,                -- UUID que agrupa toda una invocacion de `triage`
+  scan_id             TEXT NOT NULL REFERENCES scans(id),
+  fingerprint         TEXT NOT NULL,                -- Finding.fingerprint
+  provider_label      TEXT NOT NULL,                -- "<provider>/<model>" (ej. anthropic/claude-haiku-4-5-20251001)
+  -- CHECK enum: defensa en profundidad anti Memory Poisoning (v0.4 9.6).
+  agent_id            TEXT NOT NULL CHECK (agent_id IN
+                        ('triage', 'context', 'remediation')),
+  input_tokens        INTEGER NOT NULL CHECK (input_tokens >= 0),
+  output_tokens       INTEGER NOT NULL CHECK (output_tokens >= 0),
+  estimated_cost_usd  REAL NOT NULL CHECK (estimated_cost_usd >= 0),
+  latency_ms          INTEGER NOT NULL CHECK (latency_ms >= 0),
+  created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_token_usage_session     ON triage_token_usage(triage_session_id);
+CREATE INDEX IF NOT EXISTS idx_token_usage_scan        ON triage_token_usage(scan_id);
+CREATE INDEX IF NOT EXISTS idx_token_usage_provider    ON triage_token_usage(provider_label);

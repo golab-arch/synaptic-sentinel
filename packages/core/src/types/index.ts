@@ -16,3 +16,4 @@ export * from './remediation.js';
 export * from './learning.js';
 export * from './scan.js';
 export * from './scout-agent.js';
+export * from './token-usage.js';

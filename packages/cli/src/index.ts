@@ -9,6 +9,7 @@ import { SEVERITIES, type Severity } from '@synaptic-sentinel/core';
 import { runScanCommand } from './commands/scan.js';
 import { runMarkFpCommand } from './commands/mark-fp.js';
 import { runTriageCommand } from './commands/triage.js';
+import { runCostHistoryCommand } from './commands/cost-history.js';
 import { parseAgentProviderFlags } from './commands/agent-provider-flag.js';
 import { runScannersInstallCommand } from './commands/scanners-install.js';
 
@@ -23,12 +24,15 @@ Usage:
   synaptic-sentinel mark-fp --fingerprint <fp> [--path <dir>] [--reason <text>]
   synaptic-sentinel triage [--path <dir>] [--limit <n>]
                           [--agent-provider <agent>=<provider>/<model>]...
+  synaptic-sentinel cost-history [--path <dir>] [--limit <n>]
   synaptic-sentinel scanners install [--global]
 
 Commands:
   scan               Scan a project and persist the findings to colony.db
   mark-fp            Mark a finding as a false positive (suppressed in future scans)
   triage             Triage the latest scan's findings with the Brain Layer (BYOK)
+  cost-history       Show ~estimated cost USD + token usage of the last N
+                     triage sessions (default 10), grouped by provider+agent
   scanners install   Download and verify the OSS scanner binaries pinned in
                      the manifest. Without --global installs to <cwd>/.scanners
                      (dev cache); with --global installs to the per-user cache
@@ -166,6 +170,23 @@ async function main(): Promise<void> {
       ...(limit !== undefined ? { limit } : {}),
       ...(agentProviderOverrides !== undefined ? { agentProviderOverrides } : {}),
       ...(values['no-color'] === true ? { noColor: true } : {}),
+    });
+    return;
+  }
+
+  if (command === 'cost-history') {
+    let limit: number | undefined;
+    if (values.limit !== undefined) {
+      limit = Number.parseInt(values.limit, 10);
+      if (!Number.isInteger(limit) || limit < 1) {
+        console.error('--limit must be a positive integer.\n');
+        process.exitCode = 1;
+        return;
+      }
+    }
+    process.exitCode = runCostHistoryCommand({
+      path: values.path ?? process.cwd(),
+      ...(limit !== undefined ? { limit } : {}),
     });
     return;
   }

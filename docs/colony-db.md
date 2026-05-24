@@ -17,9 +17,26 @@ solo está el schema que la crea
 | `triage_verdicts`         | Veredictos del Triage Agent (Brain Layer) — schema v2                                     |
 | `context_explanations`    | Explicaciones de la cadena de explotabilidad del Context Agent — schema v3                |
 | `remediation_suggestions` | Sugerencias de corrección del Remediation Agent — schema v4                               |
+| `triage_token_usage`      | Tokens proxy + costo USD estimado por LLM call (cost visibility) — schema v5              |
 
 El schema crece de forma **aditiva** (`CREATE TABLE IF NOT EXISTS`): cada versión
-nueva agrega tablas sin reconstruir las existentes. La versión actual es **v4**.
+nueva agrega tablas sin reconstruir las existentes. La versión actual es **v5**.
+
+## Cost visibility (`triage_token_usage`, DG-078 B)
+
+Cada invocación del comando `triage` agrupa todas sus LLM calls bajo un
+`triage_session_id` (UUID generado al inicio) y persiste **una fila por call**
+en `triage_token_usage` con: provider+modelo, agente (`triage` /
+`context` / `remediation`), tokens de input/output, costo USD estimado y
+latencia. El comando `synaptic-sentinel cost-history [--limit N]` consulta
+esta tabla y devuelve un rollup de las últimas N sesiones agrupado por
+`(provider, agent)`.
+
+**Caveat anti-optimismo ilusorio**: tokens son **proxies** (heurística
+`chars/4`) porque el contrato `LlmClient.complete()` no expone `usage`
+real del provider (DG-073 B mantuvo el contrato simple). El cost USD
+puede divergir **±15-20%** del facturado real. El summary post-triage y el
+sub-comando `cost-history` imprimen el caveat `~estimated` explícitamente.
 
 ## WAL mode
 

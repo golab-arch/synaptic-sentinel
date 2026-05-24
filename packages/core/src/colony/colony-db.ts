@@ -17,14 +17,17 @@ import {
   PheromoneSchema,
   RemediationSuggestionRecordSchema,
   ScanSchema,
+  TokenUsageRecordSchema,
   TriageVerdictRecordSchema,
   type ContextExplanationRecord,
+  type CostHistoryRow,
   type LearningClassification,
   type LearningRecord,
   type Pheromone,
   type PheromoneType,
   type RemediationSuggestionRecord,
   type Scan,
+  type TokenUsageRecord,
   type TriageVerdictRecord,
 } from '../types/index.js';
 
@@ -526,6 +529,103 @@ export class ColonyDb {
     return this.#db
       .all('SELECT * FROM learning_records ORDER BY pattern_signature')
       .map(rowToLearningRecord);
+  }
+
+  /**
+   * Inserta un lote de registros de uso de tokens (DG-078 B, schema v5)
+   * en una unica transaccion. Las cifras de tokens son PROXIES heuristicos
+   * (`chars/4`) — el contrato LlmClient no expone usage real. El estimate
+   * de costo USD se calcula caller-side con `estimateCostUsd` de
+   * `@synaptic-sentinel/core` antes de pasar el record.
+   */
+  insertTokenUsages(records: readonly TokenUsageRecord[]): void {
+    if (records.length === 0) return;
+    withStmt(
+      this.#db,
+      'INSERT INTO triage_token_usage ' +
+        '(id, triage_session_id, scan_id, fingerprint, provider_label, agent_id, ' +
+        ' input_tokens, output_tokens, estimated_cost_usd, latency_ms, created_at) ' +
+        'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      (stmt) => {
+        this.#db.exec('BEGIN');
+        try {
+          for (const raw of records) {
+            const r = TokenUsageRecordSchema.parse(raw);
+            stmt.run([
+              r.id,
+              r.triageSessionId,
+              r.scanId,
+              r.fingerprint,
+              r.providerLabel,
+              r.agentId,
+              r.inputTokens,
+              r.outputTokens,
+              r.estimatedCostUsd,
+              r.latencyMs,
+              r.createdAt,
+            ]);
+          }
+          this.#db.exec('COMMIT');
+        } catch (err) {
+          this.#db.exec('ROLLBACK');
+          throw err;
+        }
+      },
+    );
+  }
+
+  /**
+   * Devuelve un rollup de las ultimas `limit` sesiones de triage agrupado
+   * por `(provider_label, agent_id)`. Default `limit = 10` sesiones. Cada
+   * fila acumula calls, tokens y costo USD sobre todas las invocaciones
+   * dentro de esas sesiones.
+   *
+   * El order es desc por `last_created_at` de la sesion (las sesiones mas
+   * recientes primero) y dentro de cada sesion, por costo descendente.
+   */
+  getCostHistory(limit: number = 10): CostHistoryRow[] {
+    // Subquery: ultimas `limit` sesiones (por created_at MAX).
+    const recentSessions = this.#db.all(
+      'SELECT triage_session_id FROM triage_token_usage ' +
+        'GROUP BY triage_session_id ' +
+        'ORDER BY MAX(created_at) DESC ' +
+        'LIMIT ?',
+      [limit],
+    ) as unknown as { triage_session_id: string }[];
+    if (recentSessions.length === 0) return [];
+    const sessionIds = recentSessions.map((r) => r.triage_session_id);
+    // Placeholders dinamicos (?, ?, ?...) — sessionIds es controlado por nosotros, no por usuario.
+    const placeholders = sessionIds.map(() => '?').join(', ');
+    const rows = this.#db.all(
+      'SELECT provider_label, agent_id, ' +
+        '       COUNT(*) AS calls, ' +
+        '       SUM(input_tokens) AS input_tokens, ' +
+        '       SUM(output_tokens) AS output_tokens, ' +
+        '       SUM(estimated_cost_usd) AS estimated_cost_usd, ' +
+        '       AVG(latency_ms) AS avg_latency_ms ' +
+        'FROM triage_token_usage ' +
+        `WHERE triage_session_id IN (${placeholders}) ` +
+        'GROUP BY provider_label, agent_id ' +
+        'ORDER BY estimated_cost_usd DESC',
+      sessionIds,
+    ) as unknown as readonly {
+      provider_label: string;
+      agent_id: 'triage' | 'context' | 'remediation';
+      calls: number;
+      input_tokens: number;
+      output_tokens: number;
+      estimated_cost_usd: number;
+      avg_latency_ms: number;
+    }[];
+    return rows.map((row) => ({
+      providerLabel: row.provider_label,
+      agentId: row.agent_id,
+      calls: row.calls,
+      inputTokens: row.input_tokens,
+      outputTokens: row.output_tokens,
+      estimatedCostUsd: row.estimated_cost_usd,
+      avgLatencyMs: row.avg_latency_ms,
+    }));
   }
 
   /** Cierra la conexion con la base de datos. */

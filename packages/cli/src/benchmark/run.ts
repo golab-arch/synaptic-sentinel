@@ -33,6 +33,7 @@ import { parseArgs } from 'node:util';
 import {
   BenchmarkGroundTruthSchema,
   countByReviewStatus,
+  estimateCostUsd,
   GROUND_TRUTH_PATH,
   type AgentConfig,
   type BenchmarkGroundTruth,
@@ -57,37 +58,6 @@ import {
   type BenchmarkReport,
   type ProviderResult,
 } from './report.js';
-
-/** Pricing table (cost por 1M tokens). */
-interface PricingTable {
-  readonly models: Record<string, { input: number; output: number }>;
-  readonly localProviders: Record<string, { input: number; output: number }>;
-}
-
-/** Carga la tabla de pricing desde tests/benchmark/pricing.json. */
-function loadPricing(repoRoot: string): PricingTable {
-  const raw = readFileSync(join(repoRoot, 'tests', 'benchmark', 'pricing.json'), 'utf8');
-  return JSON.parse(raw) as PricingTable;
-}
-
-/** Estima cost USD de un rollup contra la tabla. */
-function estimateCostUsd(
-  pricing: PricingTable,
-  providerLabel: string,
-  totalInputTokens: number,
-  totalOutputTokens: number,
-): number {
-  const direct = pricing.models[providerLabel];
-  if (direct !== undefined) {
-    return (totalInputTokens * direct.input + totalOutputTokens * direct.output) / 1_000_000;
-  }
-  // Local providers (ollama, lmstudio, vllm) son $0.
-  const providerName = providerLabel.split('/')[0] as string;
-  if (pricing.localProviders[providerName] !== undefined) {
-    return 0;
-  }
-  return 0;
-}
 
 /** Inicializa un AgentRollup vacio. */
 function emptyRollup(): AgentRollup {
@@ -608,7 +578,9 @@ Manual single-call probe:
   const groundTruth: BenchmarkGroundTruth = BenchmarkGroundTruthSchema.parse(
     JSON.parse(readFileSync(groundTruthPath, 'utf8')),
   );
-  const pricing = loadPricing(repoRoot);
+  // Pricing table viene de @synaptic-sentinel/core como single source of
+  // truth (DG-078 B). El antiguo loadPricing(repoRoot) que leia
+  // tests/benchmark/pricing.json fue eliminado.
 
   // Aplicar filtro de entries (--entries): si está activo, retener solo las que matchean.
   const filteredEntries =
@@ -692,7 +664,6 @@ Manual single-call probe:
       dryRun,
     });
     const cost = estimateCostUsd(
-      pricing,
       label,
       result.triage.inputTokens + result.context.inputTokens + result.remediation.inputTokens,
       result.triage.outputTokens + result.context.outputTokens + result.remediation.outputTokens,

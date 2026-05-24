@@ -4,6 +4,7 @@ import { join, resolve } from 'node:path';
 import {
   ColonyDb,
   deriveFromLearning,
+  estimateCostUsd,
   FindingSchema,
   loadAgentsConfig,
   patternSignature,
@@ -14,6 +15,7 @@ import {
   type ContextExplanationRecord,
   type LearningClassification,
   type RemediationSuggestionRecord,
+  type TokenUsageRecord,
   type TriageVerdict,
   type TriageVerdictRecord,
 } from '@synaptic-sentinel/core';
@@ -24,6 +26,7 @@ import {
   RemediationAgent,
   resolveApiKeyFromEnv,
   runAgent,
+  TokenTrackingLlmClient,
   TriageAgent,
   type LlmClient,
 } from '@synaptic-sentinel/agents';
@@ -78,13 +81,25 @@ export interface TriageCommandOptions {
 function resolveAgentLlmClients(
   projectRoot: string,
   options: TriageCommandOptions,
-): { ok: true; clients: AgentLlmClients; source: string } | { ok: false; error: string } {
+):
+  | {
+      ok: true;
+      clients: AgentLlmClients;
+      providerLabels: Record<BrainAgentId, string>;
+      source: string;
+    }
+  | { ok: false; error: string } {
   // (1) Override de tests: comportamiento legacy (un cliente compartido).
   if (options.llmClient !== undefined) {
     const llm = options.llmClient;
     return {
       ok: true,
       clients: { triage: llm, context: llm, remediation: llm },
+      providerLabels: {
+        triage: 'injected/test',
+        context: 'injected/test',
+        remediation: 'injected/test',
+      },
       source: 'injected',
     };
   }
@@ -170,7 +185,12 @@ function resolveAgentLlmClients(
         : hasOverrides
           ? 'CLI overrides (no agents.yaml)'
           : 'Anthropic fallback (legacy ANTHROPIC_API_KEY)';
-    return { ok: true, clients, source };
+    const providerLabels: Record<BrainAgentId, string> = {
+      triage: `${(agents.triage as AgentConfig).provider}/${(agents.triage as AgentConfig).model}`,
+      context: `${(agents.context as AgentConfig).provider}/${(agents.context as AgentConfig).model}`,
+      remediation: `${(agents.remediation as AgentConfig).provider}/${(agents.remediation as AgentConfig).model}`,
+    };
+    return { ok: true, clients, providerLabels, source };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : String(err) };
   }
@@ -222,8 +242,22 @@ export async function runTriageCommand(options: TriageCommandOptions): Promise<n
     console.error(resolved.error);
     return 1;
   }
-  const { clients, source } = resolved;
-  console.log(`Brain Layer providers (${source}): ${describeAgentClients(clients)}`);
+  const { clients: rawClients, providerLabels, source } = resolved;
+  // Cost visibility (DG-078 B): envolvemos cada cliente con un wrapper que
+  // registra tokens (proxy chars/4) + latencia por call. Drenamos las
+  // observations despues de cada `runAgent` para asociarlas al fingerprint.
+  const triageWrapper = new TokenTrackingLlmClient(rawClients.triage);
+  const contextWrapper = new TokenTrackingLlmClient(rawClients.context);
+  const remediationWrapper = new TokenTrackingLlmClient(rawClients.remediation);
+  const clients: AgentLlmClients = {
+    triage: triageWrapper,
+    context: contextWrapper,
+    remediation: remediationWrapper,
+  };
+  console.log(`Brain Layer providers (${source}): ${describeAgentClients(rawClients)}`);
+
+  // Sesion de triage: agrupa todos los token usage records de esta invocacion.
+  const triageSessionId = randomUUID();
 
   const db = ColonyDb.open(dbPath);
   try {
@@ -263,6 +297,36 @@ export async function runTriageCommand(options: TriageCommandOptions): Promise<n
     const verdicts: TriageVerdictRecord[] = [];
     const explanations: ContextExplanationRecord[] = [];
     const remediations: RemediationSuggestionRecord[] = [];
+    // Cost visibility (DG-078 B): un record por cada call exitosa o fallida.
+    const tokenUsages: TokenUsageRecord[] = [];
+    // Helper que toma la observation mas reciente del wrapper y la convierte
+    // en un TokenUsageRecord asociado al finding actual.
+    const drainObservation = (
+      wrapper: TokenTrackingLlmClient,
+      agentId: BrainAgentId,
+      fingerprint: string,
+    ): void => {
+      const obs = wrapper.observations.at(-1);
+      if (obs === undefined) return;
+      const providerLabel = providerLabels[agentId];
+      const estimatedCostUsd =
+        obs.outputTokens === 0 && !obs.ok
+          ? 0
+          : estimateCostUsd(providerLabel, obs.inputTokens, obs.outputTokens);
+      tokenUsages.push({
+        id: randomUUID(),
+        triageSessionId,
+        scanId,
+        fingerprint,
+        providerLabel,
+        agentId,
+        inputTokens: obs.inputTokens,
+        outputTokens: obs.outputTokens,
+        estimatedCostUsd,
+        latencyMs: obs.latencyMs,
+        createdAt: new Date().toISOString(),
+      });
+    };
     // Aprendizaje del enjambre: patrones generalizados de los hallazgos
     // clasificados, para alimentar `learning_records` (v0.4 §3.5).
     const learningEntries: { signature: string; classification: LearningClassification }[] = [];
@@ -287,6 +351,7 @@ export async function runTriageCommand(options: TriageCommandOptions): Promise<n
           learnedCount += 1;
         } else {
           verdict = await runAgent(triageAgent, finding, clients.triage);
+          drainObservation(triageWrapper, 'triage', finding.fingerprint);
         }
         verdicts.push({
           id: randomUUID(),
@@ -317,6 +382,7 @@ export async function runTriageCommand(options: TriageCommandOptions): Promise<n
         if (verdict.classification === 'true_positive') {
           try {
             const explanation = await runAgent(contextAgent, finding, clients.context);
+            drainObservation(contextWrapper, 'context', finding.fingerprint);
             explanations.push({
               id: randomUUID(),
               scanId,
@@ -331,12 +397,14 @@ export async function runTriageCommand(options: TriageCommandOptions): Promise<n
             console.log(`      context: ${explanation.summary}`);
           } catch (err) {
             // Un fallo de contexto no descarta el veredicto de triage.
+            drainObservation(contextWrapper, 'context', finding.fingerprint);
             const message = err instanceof Error ? err.message : String(err);
             console.error(`      ! context failed for "${finding.title}": ${message}`);
           }
           // Stage 4 — Remediation: como corregir el verdadero positivo.
           try {
             const remediation = await runAgent(remediationAgent, finding, clients.remediation);
+            drainObservation(remediationWrapper, 'remediation', finding.fingerprint);
             remediations.push({
               id: randomUUID(),
               scanId,
@@ -352,12 +420,16 @@ export async function runTriageCommand(options: TriageCommandOptions): Promise<n
             console.log(`      remediation: ${remediation.summary}`);
           } catch (err) {
             // Un fallo de remediacion no descarta el veredicto de triage.
+            drainObservation(remediationWrapper, 'remediation', finding.fingerprint);
             const message = err instanceof Error ? err.message : String(err);
             console.error(`      ! remediation failed for "${finding.title}": ${message}`);
           }
         }
       } catch (err) {
         // Un fallo de triage no aborta la corrida (degraded > failed).
+        // Si el wrapper alcanzo a registrar la observation antes del throw,
+        // tambien la persistimos para visibilidad de cost en sesiones fallidas.
+        drainObservation(triageWrapper, 'triage', finding.fingerprint);
         const message = err instanceof Error ? err.message : String(err);
         console.error(`  ! triage failed for "${finding.title}": ${message}`);
       }
@@ -367,6 +439,7 @@ export async function runTriageCommand(options: TriageCommandOptions): Promise<n
     db.insertContextExplanations(explanations);
     db.insertRemediationSuggestions(remediations);
     db.recordLearningBatch(learningEntries, scanId);
+    db.insertTokenUsages(tokenUsages);
     console.log(
       `Triage verdicts persisted: ${String(verdicts.length)}; ` +
         `context explanations: ${String(explanations.length)}; ` +
@@ -374,8 +447,91 @@ export async function runTriageCommand(options: TriageCommandOptions): Promise<n
         `patterns learned: ${String(learningEntries.length)}; ` +
         `pre-classified from memory: ${String(learnedCount)}.`,
     );
+    // Cost visibility summary (DG-078 B). Tokens son PROXIES (chars/4) y
+    // cost USD es estimado — caveat visible para el usuario.
+    if (tokenUsages.length > 0) {
+      renderCostSummary(tokenUsages);
+    }
     return 0;
   } finally {
     db.close();
   }
+}
+
+/**
+ * Imprime el bloque de cost visibility post-triage (DG-078 B).
+ *
+ * Agrupa los `tokenUsages` por `(providerLabel, agentId)`, suma tokens y
+ * cost USD, y muestra una tabla compacta + un total. Los numeros llevan
+ * caveat "~estimated" porque los tokens son proxies `chars/4` y el cost
+ * puede divergir ±15-20% del facturado real.
+ */
+function renderCostSummary(tokenUsages: readonly TokenUsageRecord[]): void {
+  // Group por (providerLabel, agentId).
+  const groups = new Map<
+    string,
+    {
+      providerLabel: string;
+      agentId: BrainAgentId;
+      calls: number;
+      input: number;
+      output: number;
+      cost: number;
+      latency: number;
+    }
+  >();
+  for (const u of tokenUsages) {
+    const key = `${u.providerLabel}|${u.agentId}`;
+    const existing = groups.get(key);
+    if (existing === undefined) {
+      groups.set(key, {
+        providerLabel: u.providerLabel,
+        agentId: u.agentId,
+        calls: 1,
+        input: u.inputTokens,
+        output: u.outputTokens,
+        cost: u.estimatedCostUsd,
+        latency: u.latencyMs,
+      });
+    } else {
+      existing.calls += 1;
+      existing.input += u.inputTokens;
+      existing.output += u.outputTokens;
+      existing.cost += u.estimatedCostUsd;
+      existing.latency += u.latencyMs;
+    }
+  }
+  let totalInput = 0;
+  let totalOutput = 0;
+  let totalCost = 0;
+  const rows: string[] = [];
+  // Order: por providerLabel asc, luego por agentId (triage, context, remediation).
+  const agentOrder: Record<BrainAgentId, number> = { triage: 0, context: 1, remediation: 2 };
+  const sorted = [...groups.values()].sort((a, b) => {
+    const lblCmp = a.providerLabel.localeCompare(b.providerLabel);
+    if (lblCmp !== 0) return lblCmp;
+    return agentOrder[a.agentId] - agentOrder[b.agentId];
+  });
+  for (const g of sorted) {
+    totalInput += g.input;
+    totalOutput += g.output;
+    totalCost += g.cost;
+    const avgLatency = Math.round(g.latency / g.calls);
+    rows.push(
+      `  ${g.providerLabel.padEnd(40)} ${g.agentId.padEnd(11)} ${String(g.calls).padStart(4)} calls  ` +
+        `${String(g.input).padStart(7)} in  ${String(g.output).padStart(6)} out  ` +
+        `$${g.cost.toFixed(4).padStart(8)}  ${String(avgLatency).padStart(5)}ms avg`,
+    );
+  }
+  console.log('');
+  console.log('Cost summary (~estimated — tokens are chars/4 proxy, ±15-20% vs provider usage):');
+  console.log(
+    `  ${'provider/model'.padEnd(40)} ${'agent'.padEnd(11)} ${'calls'.padStart(10)}  ` +
+      `${'input'.padStart(7)}     ${'output'.padStart(6)}  ${'cost USD'.padStart(9)}  ${'latency'.padStart(7)}`,
+  );
+  for (const row of rows) console.log(row);
+  console.log(
+    `  Total: ${String(totalInput)} input tokens · ${String(totalOutput)} output tokens · ` +
+      `$${totalCost.toFixed(4)} (~estimated USD)`,
+  );
 }
