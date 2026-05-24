@@ -2282,5 +2282,35 @@ Each entry follows this structure:
 
 ---
 
+### Entry #80 - DG-075 (C): ground truth dataset (AI-draft) para benchmark cross-provider; cierra Cycle 68
+```json
+{
+  "timestamp": "2026-05-23T22:30:00.000Z",
+  "cycle": 68,
+  "phase": 11,
+  "action": "FEATURE_IMPLEMENTED",
+  "details": {
+    "DG-075": {
+      "title": "Phase 11 sub-increment 6 - ground truth dataset para benchmark empirico cross-provider (AI-draft)",
+      "selected": "Option C (Hibrido)",
+      "effect": "Define + popula el dataset de ground truth que DG-076 (benchmark empirico) va a consumir para puntuar cada {provider, model} en los 3 agentes del Brain Layer (Triage / Context / Remediation). 27 entries cubriendo 13 fixtures deliberadamente vulnerables (9 OpenGrep SAST JS/TS + 7 OpenGrep SAST Python + 1 Gitleaks Secrets + 2 Checkov IaC + 4 Vibe-Detect VibeCoded). TODAS las entries marcadas como reviewedBy:'ai-draft' - el dataset es un BORRADOR Claude basado en lectura de los fixtures + el ruleset, NO autoritativo. Antes de cualquier cita externa del benchmark, un AppSec engineer humano debe revisar entrada por entrada y marcar como 'human-confirmed' o 'human-corrected'. SCA (Trivy) deferido a DG-076 (enumera 1 finding por CVE dinamicamente)."
+    },
+    "files_changed": "5 archivos. NEW packages/core/src/config/benchmark-ground-truth.ts (~150 lineas: BenchmarkGroundTruthSchema + GroundTruthEntrySchema + TriageGroundTruthSchema con classification + minConfidence + requiredKeywords + ContextGroundTruthSchema con 4 buckets de keywords + RemediationGroundTruthSchema con keywords + forbiddenInSnippet validacion por NEGATIVA + REVIEW_STATUSES enum + countByReviewStatus helper). NEW tests/benchmark/ground-truth.json (27 entries cubriendo: eval-injection.js, xss-and-injection.js x3, taint-vuln.js x4 JS, dynamic-code.ts, code-injection.py x2, unsafe-apis.py x4, taint-vuln.py x4 Python, leaked-config.js secrets, Dockerfile x2 IaC, vibe-coded config.py x2 + server.js x2; cada entry con triage + context + remediation expectations + reviewedBy ai-draft). NEW tests/benchmark/README.md documentando el contrato de PASS por agente + modelo de revisor + procedimiento de revision + limitaciones conocidas del AI-draft. NEW packages/core/tests/config/benchmark-ground-truth.test.ts (16 unit tests: 5 schema validation + 4 Triage + 2 Context/Remediation opcionales + 1 countByReviewStatus + 4 dataset real desde disco). packages/core/src/index.ts (re-exporta).",
+    "design": "Opcion C elegida sobre A (yo escribo full con disclaimer) y sobre B (solo plumbing, usuario llena). C balanza velocidad con autoridad: yo lleno el borrador completo PERO marco cada entry como reviewedBy:'ai-draft' explicitamente; el usuario revisa cuando se acerque a un release externo. Las 3 capas de pass: Triage = match exacto del classification + minConfidence + requiredKeywords contained (case-insensitive); Context (solo si Triage=TP) = los 4 fields contienen sus respectivos *Keywords; Remediation (solo si Triage=TP) = summary + recommendation contienen keywords + si hay fixedSnippet, NO contiene forbiddenInSnippet (validacion por negativa - un buen fix elimina el sink). Decision: SCA (Trivy) NO en este AI-draft porque Trivy enumera 1 finding por CVE (potencialmente docenas en un solo package-lock.json) - enumerar estaticamente sin correr el scanner es infeasible; DG-076 las descubrira dinamicamente y el reporte las marcara 'no ground truth - best-effort scoring'.",
+    "verification_real": "pnpm verify VERDE: format:check + lint + build + test:unit. 51 test files / 419 tests pasados (+16 nuevos vs 403 baseline DG-074 B: schema validation + dataset real load). Prettier auto-fix sobre el test + README. El dataset JSON parsea correctamente contra el Zod schema; las 4 categorias del producto (SAST + Secrets + IaC + VibeCoded) estan cubiertas; las 27 entries arrancan todas como ai-draft (validado por assertion en test).",
+    "tests": "+16 nuevos: 5 BenchmarkGroundTruthSchema (minimal, version, entries empty, reviewedAt null/string) + 4 Triage (3 classifications, unknown classif, confidence range, requiredKeywords empty) + 2 Context/Remediation opcionales + 1 countByReviewStatus + 4 dataset real (parses, >=25 entries, all ai-draft, cubre 4 categorias, TP entries have context+remediation). Cumulative 419 tests verde.",
+    "checks": "format:check / lint / build / test:unit - todos en verde",
+    "out_of_scope_explicit": "(1) SCA (Trivy) entries - deferido a DG-076 dynamic enumeration; el AI-draft no las pre-enumera por la cardinalidad alta (1 finding por CVE). (2) Revision humana de las 27 entries - trabajo del usuario o AppSec engineer cuando se acerque release externo; en este DG todas arrancan ai-draft. (3) Benchmark runner que corre los 3 agentes vs N providers vs estas entries - DG-076. (4) Per-provider prompt tuning si DG-076 muestra >15% degradation - DG-077.",
+    "anti_optimismo_explicito": "TODAS las 27 entries son reviewedBy:'ai-draft' - el dataset NO ES AUTORITATIVO para claims externos. El README documenta explicitamente que cualquier blog post / marketplace listing / cita externa del benchmark debe filtrar a human-confirmed o ship con disclaimer 'ground truth is AI-draft pending human review'. Yo NO soy AppSec engineer; mi juicio de 'rationale aceptable' funciona para fixtures deliberadamente vulnerables (todos son TP by design) pero NO generaliza a casos enterprise reales. requiredKeywords pueden ser muy estrictos (un LLM que usa sinonimo falla el pass) o muy laxos (un LLM mediocre pasa); DG-076 surfaceara esto empiricamente. SCA (Trivy) deferido honestamente - habria sido optimismo ilusorio enumerarlo estaticamente.",
+    "commits_split": "feat en commit b978701 feat(core,tests); este registro SYNAPTIC se asienta en el commit docs siguiente."
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 73,
+  "complianceScore": 100
+}
+```
+
+---
+
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-23T21:30:00.000Z*
+*Last Updated: 2026-05-23T22:30:00.000Z*
