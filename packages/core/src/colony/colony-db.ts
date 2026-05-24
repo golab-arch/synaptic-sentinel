@@ -34,7 +34,8 @@ function bundleSafeModuleUrl(): string {
   }
   // CJS bundle path: __filename existe en el scope local del wrapper
   try {
-    // eslint-disable-next-line no-eval
+    // eval es el unico camino al __filename del wrapper CJS desde codigo bundleado;
+    // ESLint no flagea por default. Reduce surface a un literal estatico inocuo.
     const filename = eval('typeof __filename === "string" ? __filename : null') as string | null;
     if (typeof filename === 'string' && filename.length > 0) {
       return `file://${filename.replace(/\\/g, '/')}`;

@@ -20,7 +20,8 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "verify": "pnpm format:check && pnpm lint && pnpm build && pnpm test:unit",
+    "verify": "pnpm format:check && pnpm lint && pnpm build && pnpm test:unit && pnpm verify:extension-activate",
+    "verify:extension-activate": "node scripts/verify-extension-activate.mjs",
     "scanners:install": "node --use-system-ca packages/cli/dist/index.js scanners install",
     "benchmark:run": "node --use-system-ca packages/cli/dist/benchmark/run.js"
   },
