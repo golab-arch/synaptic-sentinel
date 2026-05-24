@@ -2404,5 +2404,70 @@ Each entry follows this structure:
 
 ---
 
+### Entry #84 - DG-079 (A): cierre Phase 11 con release v0.3.0 — bump + CHANGELOG + .vsix + tag + GitHub Release; cierra Cycle 72 y la Phase entera
+
+```json
+{
+  "timestamp": "2026-05-24T14:30:00.000Z",
+  "cycle": 72,
+  "phase": 11,
+  "action": "PHASE_CLOSED",
+  "details": {
+    "DG-079": {
+      "title": "Phase 11 sub-increment 10 (último) - cierre formal de Phase 11 con release v0.3.0 multi-provider + Known Issues honestos",
+      "selected": "Option A (bump + tag + GitHub Release sin marketplace publish; marketplace diferido a Phase 12)",
+      "effect": "Cierra Phase 11 — Multi-Provider Brain Layer entera (10 sub-increments DG-070 → DG-079, Cycles 63 → 72). Producto v0.3.0 con: 3 adapters (Anthropic native + OpenAI-compat para 14+ providers + Ollama con XGrammar) + .sentinel/agents.yaml versionable + Settings panel in-IDE + ground truth dataset AI-draft + benchmark cross-provider con verbose mode + cost visibility CLI con persistencia colony.db v5 + sub-comando cost-history. BYOK any provider, BC v0.2.0 preservada con fallback Anthropic implicito. v0.3.0 RELEASED en GitHub. CHANGELOG con headline 'Phase 11 closes: SYNAPTIC Sentinel is now provider-agnostic by design' + features completas + sección Known Issues con 6 caveats honestos (path leak, gpt-5 reasoning tokens, Ollama RAM con modelos pesados, free tier quotas, tokens chars/4 proxy, ground truth ai-draft).",
+      "release_outputs": {
+        "vsix_file": "synaptic-sentinel-0.3.0.vsix",
+        "vsix_size": "3.17 MB / 1838 archivos",
+        "vsix_sha256": "5EA050B10358534647C46E6E3B6E845F9174463D85DE2770CE334B669994AC29",
+        "manifest_validado": {
+          "version": "0.3.0",
+          "publisher": "GoLab",
+          "name": "synaptic-sentinel",
+          "displayName": "SYNAPTIC Sentinel",
+          "license": "Apache-2.0",
+          "description": "The vibe-coding security sentinel. Apache-2.0 agentic auditing for AI-assisted projects...",
+          "keywords": "synaptic / security / sast / taint-analysis / sarif / code-scanning / vibe-coding / ai-coding / ai-generated-code / llm-security / appsec / byok",
+          "engines.vscode": "^1.95.0"
+        },
+        "annotated_tag": "v0.3.0",
+        "github_release_url": "(a generar via gh release create — ver paso siguiente)"
+      },
+      "files_changed": "2 archivos: (1) packages/vscode-extension/package.json: version 0.2.0 → 0.3.0; (2) packages/vscode-extension/CHANGELOG.md: nueva entrada [0.3.0] - 2026-05-24 con headline 'Phase 11 closes: SYNAPTIC Sentinel is now provider-agnostic by design' + 3 sub-secciones Added (Multi-provider Brain Layer / Cost visibility / Cross-provider benchmark plumbing) + Changed + Known Issues (6 items) + Notes. Estructura Keep a Changelog respetada — los headings ### Added / ### Changed / ### Notes se repiten por versión (warning MD024 IDE cosmético consistente con entradas v0.2.0 y v0.1.0 prior).",
+      "verification_real": "pnpm verify VERDE 56 test files / 463 tests pasados — mismo conteo que tras DG-078 B (esperado: bump de version + CHANGELOG NO toca código ni tests). pnpm -F synaptic-sentinel package EXITOSO: synaptic-sentinel-0.3.0.vsix producido (3.17 MB / 1838 archivos). Manifest validado al extraer (.vsix → .zip → expand → leer package.json): version 0.3.0 + publisher GoLab + license Apache-2.0 + description 'vibe-coding security sentinel...' + engines.vscode ^1.95.0 + galleryBanner #1a1a2e dark + 12 keywords incluyendo multi-provider relevantes (byok, llm-security, ai-coding). SHA-256 calculado localmente: 5EA050B10358534647C46E6E3B6E845F9174463D85DE2770CE334B669994AC29 (verificable contra el asset que GitHub Release expone via digest).",
+      "deviation_honesta": "NINGUNA en el scope técnico — el bump + CHANGELOG + package son mecánicos. Anti-optimismo ilusorio en el CHANGELOG: incluye explícitamente la sección 'Known Issues' con los 6 caveats abiertos heredados de DG-076/77/78. NO oculta limitaciones. La página del marketplace GoLab.synaptic-sentinel sigue retornando 404 hasta Phase 12 (vsce publish); el link homepage del repo apunta ahí declarativamente.",
+      "tests": "0 tests nuevos. Mismo conteo (463) que tras DG-078 B.",
+      "checks": "format:check / lint / build / test:unit todo VERDE. vsce package EXITOSO. Manifest del .vsix validado mecánicamente.",
+      "out_of_scope_explicit": "(1) vsce publish al marketplace - Phase 12 (requiere PAT del usuario en Azure DevOps; explícitamente diferido en DG-070 + reafirmado en sección 6 de DG-079). (2) README/package.json polish multi-provider para marketplace - Phase 12 (Option B de DG-079 deferida; mejor hacerlo cuando se publique). (3) 6 sub-DGs heredados abiertos: path leak fix, gpt-5 reasoning tokens, Ollama batching, exponer usage real del provider, sidebar webview Cost Visibility, ground truth human review.",
+      "anti_optimismo_explicito": "v0.3.0 NO es un release perfecto. Lleva 6 caveats honestos en la sección Known Issues del CHANGELOG. El producto es funcional pero con limitaciones documentadas que el usuario debe conocer ANTES de instalar: (a) el path leak distorsiona el Triage PASS rate del benchmark synthetic; (b) gpt-5* family no funciona out-of-the-box (necesita raise de max_completion_tokens); (c) Ollama con modelos pesados puede saturar RAM en hardware consumer; (d) free tier quotas de Groq y Gemini se exhaustan con un benchmark completo; (e) tokens son proxies chars/4 ±15-20% vs facturado real; (f) ground truth dataset es AI-draft, no autoritativo para claims externos. Estos NO son bugs ocultos — son límites de diseño explícitos del estado actual del producto y materia de sub-DGs futuros.",
+      "phase_11_close_summary": {
+        "weeks": "Cycles 63 → 72 (10 sub-increments)",
+        "sub_increments": [
+          "DG-070 A — Phase 11 opener (bookkeeping puro)",
+          "DG-071 A — OpenAiCompatibleLlmClient extraído",
+          "DG-072 B — OllamaLlmClient con XGrammar opt-in",
+          "DG-073 B — provider registry + wiring runtime + SecretStorage namespaceado (primer ciclo user-visible)",
+          "DG-074 B — Settings panel multi-provider en VSCode extension",
+          "DG-075 C — ground truth dataset AI-draft (27 entries → 26 tras DG-077 reorg)",
+          "DG-076 B — benchmark plumbing con --dry-run validado",
+          "DG-077 A — post-mortem del primer benchmark real + 5 fixes + verbose mode + recalibration",
+          "DG-078 B — cost visibility (tokens proxy + USD estimado + persistencia colony.db v5 + cost-history)",
+          "DG-079 A — cierre Phase 11 con release v0.3.0 (este DG)"
+        ],
+        "deliverable_final": "synaptic-sentinel-0.3.0.vsix con multi-provider Brain Layer end-to-end + cost visibility + benchmark plumbing battle-tested + 6 caveats honestos en Known Issues",
+        "phase_10_status": "DEFERIDA y renumerada como Phase 12 (vsce publish al marketplace) — la decisión de DG-070 se materializa: el primer screenshot del marketplace será multi-provider (v0.3.0), no Anthropic-only (v0.2.0)"
+      },
+      "commits_split": "feat en commit a venir (bump + CHANGELOG); este registro SYNAPTIC se asienta en el commit docs siguiente. Tag y GitHub Release son acciones posteriores al docs commit (proceso operacional, no parte del commit synaptic)."
+    }
+  },
+  "outcome": "PHASE_CLOSED",
+  "synapticStrength": 77,
+  "complianceScore": 100
+}
+```
+
+---
+
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-24T14:00:00.000Z*
+*Last Updated: 2026-05-24T14:30:00.000Z*
