@@ -6,11 +6,11 @@
 
 ## Current Cycle
 
-- **Cycle:** 73 — **Phase 12 ABIERTA con DG-080 B cierre PARCIAL**: preparación marketplace done (README polish multi-provider + `docs/PUBLISHING.md` runbook + `.vsix` re-empaquetado) · `vsce publish` diferido al usuario · awaiting follow-up Entry cuando usuario publique
+- **Cycle:** 74 — **Phase 12 ABIERTA con DG-080 B PARCIAL + 2 hotfixes (DG-079.1 + DG-079.2 v0.3.2) + DG-081 B (verify gate fortalecido) CERRADOS**: `vsce publish` pendiente del PAT del usuario; gate ahora previene la clase de bugs de extension activation que casi rompe el marketplace publish dos veces
 - **Phase:** **9 CERRADA · 🏁 Phase 11 — Multi-Provider Brain Layer CERRADA en Cycle 72 (10/10 sub-increments) · Phase 12 — Marketplace launch v0.3.0 ABIERTA en Cycle 73** · Phase 8 sigue COMPLETA funcionalmente · 🏁 **Cero deuda OPEN registrada (6 caveats abiertos como sub-DGs futuros documentados en CHANGELOG Known Issues)** · **provider-agnostic-by-design · 3 de 3 adapters extraídos · multi-provider FUNCIONAL end-to-end vía CLI + UI extension · ground truth recalibrado · benchmark battle-tested · verbose mode · cost visibility · v0.3.0 RELEASED en GitHub · marketplace pending vsce publish manual del usuario**
 - **Status:** Cycle 73 con DG-080 B cierre PARCIAL: preparación marketplace completa pero `vsce publish` ejecutado por el usuario manualmente con su PAT siguiendo `docs/PUBLISHING.md`. **3 deliverables**: (1) `packages/vscode-extension/README.md` REESCRITO ~14 KB con tabla de 7 filas providers + Cost visibility section + Configuring providers 3 paths + Known Limitations honesta; (2) NEW `docs/PUBLISHING.md` runbook ~10 KB con prerequisitos Azure DevOps + PAT scope + 4 steps publish + 6 failure modes + Unpublishing emergency-only; (3) RE-EMPAQUETADO `synaptic-sentinel-0.3.0.vsix` 3.18 MB / 1838 archivos con README actualizado — **SHA-256 nuevo `DA07CA79CB8632C19037C16AAA7175E9504EA727CBF223585AA35B0B29A22185` DISTINTO del GitHub Release (`5EA050B1...`)** que queda histórico inmutable. `pnpm verify` verde 463 tests. **El listing `GoLab.synaptic-sentinel` SIGUE 404** hasta que el usuario ejecute el runbook. **DG-080 modela patrón nuevo: cierre PARCIAL con hand-off explícito al usuario**
 - **Compliance:** 100%
-- **Synaptic Strength:** 79
+- **Synaptic Strength:** 80
 
 ## Cycles cerrados
 
@@ -75,13 +75,13 @@
 
 ## Decision Gate abierto
 
-- **v0.3.2 VALIDATED + RELEASED en GitHub. Phase 12 publish pendiente del usuario**. v0.3.0 + v0.3.1 ambos SUPERSEDED; v0.3.2 es Latest. Tag pushed, GitHub Release con asset, v0.3.0 retro-actualizada con disclaimer. **Siguiente DG a presentar — 3 opciones**:
-  - **Option A**: Phase 12 publish ahora (`vsce publish v0.3.2` via `docs/PUBLISHING.md` cuando el usuario tenga PAT) → cierra Phase 12 enteramente.
-  - **Option B** (Recommended): intercalar **sub-DG vscode-test/headless integration en verify gate** ANTES del marketplace publish — los dos hotfixes consecutivos justifican CRÍTICAMENTE prevenir esta clase de bug antes de exponer el producto al marketplace público.
+- **DG-081 B (verify gate fortalecido) CERRADO con Entry #89. Phase 12 sigue ABIERTA con DG-080 B PARCIAL.** El proximo release de extension ahora pasa el headless extension-host simulator antes de llegar a vsce package. **Siguiente DG a presentar — 3 opciones**:
+  - **Option A**: Phase 12 publish ahora (`vsce publish v0.3.2` via `docs/PUBLISHING.md` cuando el usuario tenga PAT) → cierra Phase 12 enteramente, ahora con gate fortalecido detras.
+  - **Option B**: intercalar otro sub-DG futuro mientras tanto. Candidatos heredados: **path leak fix** (impacto en value-prop del benchmark — recomendado), gpt-5 reasoning tokens budget, Ollama batching strategy, exponer usage real del provider, sidebar webview Cost Visibility, ground truth human review.
   - **Option C**: pausar el proyecto temporalmente con v0.3.2 como release final en GitHub.
 
 ## Last Entry
 
-Entry #88 — RELEASE_VALIDATED (DG-079.2 follow-up) — 2026-05-24 — RELEASE_PUBLISHED_AND_VALIDATED · usuario reportó "si funcionó" tras instalar synaptic-sentinel-0.3.2.vsix + reload + verificar los 5 comandos SYNAPTIC + ejecutar Install Scanners exitosamente (abre pseudoterminal + descarga binarios) · primer .vsix de la serie v0.3.x que activate() correctamente en VSCode · confirma que el headless simulator era diagnóstico válido · acciones operacionales: (1) annotated tag v0.3.2 pushed a origin/main · (2) `gh release create v0.3.2` publicado en [github.com/golab-arch/synaptic-sentinel/releases/tag/v0.3.2](https://github.com/golab-arch/synaptic-sentinel/releases/tag/v0.3.2) con asset .vsix descargable (digest matched local↔GitHub) · (3) `gh release edit v0.3.0` con nueva nota "> SUPERSEDED by v0.3.2 — Do not install v0.3.0" al inicio · v0.3.1 nunca llegó a release público · `gh release list`: v0.3.2 Latest, v0.3.0 superseded, v0.2.0 histórico · **anti-optimismo validated**: DG-079.1 + DG-079.2 + headless simulator + user validation = el flow estricto que rescató el proyecto de publicar al marketplace dos veces un .vsix roto · synapticStrength 79
+Entry #89 — FEATURE_IMPLEMENTED (DG-081 B) — 2026-05-24 — SUCCESS · vscode-test/headless integration en verify gate · NEW `scripts/verify-extension-activate.mjs` (~280 lineas) destila el headless one-liner que descubrio DG-079.2 a un script reusable con assertions estrictas (7 comandos esperados + 13 subscriptions wired + activate() sin throw + diagnostic accionable si falla) · wirea al `verify` root: `format:check && lint && build && test:unit && verify:extension-activate` · `eslint.config.mjs` con globals Node para `scripts/**.{js,mjs}` · micro-cleanup `eslint-disable no-eval` unused en `colony-db.ts` · `pnpm verify` VERDE end-to-end con el nuevo step · valor empirico demostrado: este simulator (en su forma one-liner) detecto DG-079.2 + valido v0.3.2 — prueba retrospectiva contra los dos bugs reales · NO panacea (no cubre runtime behavior de comandos ni UI webview ni SecretStorage interaction real) pero cubre la clase de bug `activate() lanza al cargar el bundle CJS` que produjo los hotfixes · NO bump version del .vsix (cambio de tooling/gate; v0.3.2 sigue siendo el release publico) · sub-DG opcional futuro abierto: `@vscode/test-electron` framework completo (no urgente) · synapticStrength 80
 
 ---
