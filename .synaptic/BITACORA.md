@@ -2374,5 +2374,35 @@ Each entry follows this structure:
 
 ---
 
+### Entry #83 - DG-078 (B): cost visibility + persistencia colony.db v5 + sub-comando cost-history; cierra Cycle 71
+
+```json
+{
+  "timestamp": "2026-05-24T14:00:00.000Z",
+  "cycle": 71,
+  "phase": 11,
+  "action": "FEATURE_IMPLEMENTED",
+  "details": {
+    "DG-078": {
+      "title": "Phase 11 sub-increment 9 - cost visibility (tokens proxy + USD estimado por sesion de triage) + persistencia en colony.db v5 + sub-comando cost-history; materializa el value-prop multi-provider en CLI",
+      "selected": "Option B (CLI summary + persistencia colony.db, balanced approach; extension webview deferida a sub-DG futuro)",
+      "effect": "El comando `triage` ahora muestra al usuario al final de cada sesion: tokens consumidos (input + output proxy chars/4), costo USD estimado, latencia promedio, agrupado por (provider/model, agente). Persistido en colony.db tabla aditiva `triage_token_usage` (schema v5). Nuevo sub-comando `synaptic-sentinel cost-history [--limit N]` consulta la tabla y devuelve un rollup de las ultimas N sesiones agrupado por (provider, agent). Materializa el value-prop multi-provider de Phase 11: el usuario ahora ve que DeepSeek v4-flash le sale 25x mas barato que Anthropic Haiku para el mismo trabajo, en sus propios datos reales (no solo en el benchmark synthetic). Single source of truth de la pricing table: movida de tests/benchmark/pricing.json a packages/core/src/config/pricing.ts como const TS exportada — el benchmark runner ahora importa de core (mismo patron que el manifest de scanners en DG-059, evita ceremonial de copia de JSON al bundle).",
+      "fixes_aplicados": "(1) NEW packages/core/src/config/pricing.ts (~100 lineas): PricingTable type + PRICING_TABLE const + estimateCostUsd() + isPricedModel() funciones puras. 16 modelos cloud + 3 locales (ollama/lmstudio/vllm $0). (2) NEW packages/core/src/utils/token-count.ts: proxyTokenCount(text) = Math.ceil(text.length / 4). Heuristica documentada con caveat ±15-20%. (3) NEW packages/core/src/types/token-usage.ts: TokenUsageRecordSchema (zod) + CostHistoryRow interface. (4) packages/core/src/colony/schema.sql: bump 4→5 + nueva tabla triage_token_usage con id/triage_session_id/scan_id/fingerprint/provider_label/agent_id/input_tokens/output_tokens/estimated_cost_usd/latency_ms/created_at + 3 indices. (5) packages/core/src/colony/colony-db.ts: insertTokenUsages(records) + getCostHistory(limit=10) que hace 2-step query (subquery ultimas N sesiones + agregacion por provider_label,agent_id). (6) NEW packages/agents/src/token-tracking-client.ts (~70 lineas): TokenTrackingLlmClient decorator que envuelve cualquier LlmClient + registra observations (inputTokens proxy + outputTokens proxy + latency + ok/error) por call. Snapshot inmutable via getter `observations`. (7) packages/cli/src/commands/triage.ts: wrap los 3 clients antes del loop + drainObservation helper que crea TokenUsageRecord asociado al fingerprint actual despues de cada call (exitosa o fallida) + persist final con db.insertTokenUsages + renderCostSummary block. resolveAgentLlmClients ahora retorna tambien providerLabels (`<provider>/<model>` por agente; `injected/test` para tests legacy). (8) NEW packages/cli/src/commands/cost-history.ts: nuevo comando que reusa db.getCostHistory + render tabla compacta + total. (9) packages/cli/src/index.ts: USAGE + dispatch del subcomando cost-history. (10) packages/cli/src/benchmark/run.ts: elimina loadPricing local + local estimateCostUsd; importa estimateCostUsd de core. (11) DELETE tests/benchmark/pricing.json (single source of truth ahora en core). (12) NEW packages/core/tests/config/pricing.test.ts (14 tests: PRICING_TABLE shape + estimateCostUsd 5 casos + isPricedModel 3 casos + cero tokens + custom pricing). (13) NEW packages/core/tests/utils/token-count.test.ts (5 tests). (14) NEW packages/agents/tests/token-tracking-client.test.ts (7 tests: pass-through + observation + error case + multi-call + reset + snapshot inmutable). (15) docs/colony-db.md: nueva fila triage_token_usage + nueva seccion 'Cost visibility' con caveat anti-optimismo ilusorio.",
+      "verification_real": "pnpm verify VERDE 56 test files (+3 nuevos) / 463 tests pasados (+21 nuevos: 14 pricing + 5 token-count + ... 7 token-tracking). Build VERDE: bundle CLI 354.9 KB → 357.6 KB (+2.7 KB por el wrapper + cost-history command + token-usage schema). Tests existentes intactos — el decorator es transparente al contrato LlmClient. Schema migration aditiva: usuarios con colony.db v4 NO requieren reset; la tabla v5 se crea en el primer triage tras update.",
+      "tests": "+21 nuevos: 14 pricing.test (table shape + estimateCostUsd 5 escenarios incluyendo custom pricing + isPricedModel 3 escenarios + cero tokens edge case + 0 cost para locales + 0 cost para unknown models). 5 token-count.test (cero string + 1-4 chars + 5-8 chars + 100 chars = 25 tokens + texto largo). 7 token-tracking-client.test (pass-through + observation ok=true + observation ok=false con error + multi-call accumulation + reset() + snapshot inmutable + sample correcto).",
+      "checks": "format:check / lint / build / test:unit todo en verde.",
+      "out_of_scope_explicit": "(1) Sidebar webview en extension VSCode para cost visibility — Option C de DG-078 (deferido). Sub-DG futuro post-Phase-11 si los datos del usuario lo justifican. (2) Exponer `usage` real del provider (no chars/4 proxy) — requiere extender contrato LlmClient.complete() para retornar `{text, usage}`; toca los 3 adapters. Sub-DG futuro post-Phase-11. (3) Path leak en buildSyntheticFinding — sub-DG heredado de DG-077. (4) gpt-5* reasoning tokens budget — sub-DG heredado de DG-077. (5) Ollama batching strategy — sub-DG heredado de DG-077.",
+      "anti_optimismo_explicito": "Los tokens son PROXIES heuristicos (chars/4, ±15-20% error tipico). El cost USD calculado puede divergir del facturado real del provider. Ambos numeros se imprimen con el caveat `~estimated` explicito tanto en el summary post-triage como en el output de cost-history. Para cost exacto (facturacion interna), el usuario debe consultar el dashboard del provider o esperar al sub-DG que exponga `usage` real. El value-prop de cost visibility en este DG NO es 'cost exacto' — es 'orden de magnitud comparable cross-provider para decidir configuracion'.",
+      "commits_split": "feat en commit a venir (core types + schema + colony-db methods + agents wrapper + cli commands + benchmark refactor + tests + docs/colony-db); este registro SYNAPTIC se asienta en el commit docs siguiente."
+    }
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 76,
+  "complianceScore": 100
+}
+```
+
+---
+
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-24T13:00:00.000Z*
+*Last Updated: 2026-05-24T14:00:00.000Z*
