@@ -1,13 +1,13 @@
 # SYNAPTIC Sentinel
 
-**The vibe-coding security sentinel. Apache-2.0. Five deterministic scouts scan your repo; a Brain Layer (BYOK Anthropic) decides what really matters and how to fix it — all in the IDE.**
+**The vibe-coding security sentinel. Apache-2.0. Five deterministic scouts scan your repo; a multi-provider Brain Layer decides what really matters and how to fix it — all in the IDE, with cost visibility per session.**
 
-SYNAPTIC Sentinel is the security companion of the SYNAPTIC family (sibling of [SYNAPTIC Expert](https://marketplace.visualstudio.com/items?itemName=GoLab.synaptic-expert)). Where Expert helps you _write_ AI-assisted code with traceability, Sentinel audits _what gets written_ — your own code, your AI's code, your dependencies, your config — and explains why it matters. **All capabilities are open under Apache-2.0; there is no premium tier and no proprietary gating.**
+SYNAPTIC Sentinel is the security companion of the SYNAPTIC family (sibling of [SYNAPTIC Expert](https://marketplace.visualstudio.com/items?itemName=GoLab.synaptic-expert)). Where Expert helps you _write_ AI-assisted code with traceability, Sentinel audits _what gets written_ — your own code, your AI's code, your dependencies, your config — and explains why it matters. **All capabilities are open under Apache-2.0; there is no premium tier, no proprietary gating, and the Brain Layer runs against any LLM provider you choose.**
 
 Built for three kinds of users:
 
 - **Developers** shipping AI-assisted code who want to catch the classic mistakes (eval-of-user-input, SQL injection by concatenation, secrets in commits, vulnerable deps) before the PR.
-- **Tech leads** who want SARIF in CI as a quality gate, and a "living tome" of audited findings to ship as evidence.
+- **Tech leads** who want SARIF in CI as a quality gate, a "living tome" of audited findings to ship as evidence, and **per-session cost visibility** to pick the cheapest LLM that still gives quality triage.
 - **AppSec engineers** who want taint analysis + secrets + SCA + IaC + AI-anti-patterns in one place, with a Brain Layer that explains exploitability instead of just listing CVEs.
 
 ---
@@ -26,7 +26,7 @@ The Scout Layer runs five auditors in parallel, each best-in-class for its categ
 | **Checkov**     | IaC       | [bridgecrewio/checkov](https://github.com/bridgecrewio/checkov) | Misconfigurations in Dockerfiles, Terraform, Kubernetes manifests.                                                                                                                                                                                                                             |
 | **Vibe-Detect** | VibeCoded | (native, no binary)                                             | Anti-patterns specific to AI-generated code — 6 heuristic detectors, runs offline.                                                                                                                                                                                                             |
 
-### Brain Layer (BYOK Anthropic)
+### Multi-provider Brain Layer (BYOK any provider)
 
 Three LLM agents wired into the scan flow:
 
@@ -34,27 +34,93 @@ Three LLM agents wired into the scan flow:
 - **Context Agent** — for confirmed true positives, explains the exploitability chain: `entry point → propagation → sink → exposure`.
 - **Remediation Agent** — proposes a concrete fix, with a code snippet you can copy.
 
-The three agents share a **memory of the swarm** (a learning store on disk in your repo): a triage pattern seen with strong evidence is pre-classified on the next scan **without spending an LLM token**.
+**Pick a different provider per agent.** Run Triage on DeepSeek v4-flash (cheap), Context on Anthropic Haiku (quality), Remediation on Ollama locally (free / private). Or use one provider for everything. Mix-and-match by cost / quality / privacy.
 
-Bring Your Own Key (Anthropic). The key is stored encrypted in your OS secret store via `vscode.SecretStorage`, passed to the model only as a request header, never to a proxy.
+| Provider                                              | Models supported                             | Notes                                                                                        |
+| ----------------------------------------------------- | -------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| **Anthropic** (native adapter)                        | Claude Haiku 4.5 / Sonnet 4.6 / Opus 4.7     | Prompt caching + extended thinking preserved. Default if `ANTHROPIC_API_KEY` is set.         |
+| **OpenAI**                                            | gpt-5-nano / gpt-5-mini / gpt-5              | gpt-5\* has reasoning-token quirks — see Known Limitations.                                  |
+| **DeepSeek**                                          | v4-flash / v4-pro / R1                       | v4-flash is the empirical cost/performance winner of our cross-provider benchmark.           |
+| **Groq**                                              | Llama 3.3 70B / Llama 4 Scout 17B            | Speed king (sub-second latency typical). Free tier has a 100K-token/day cap.                 |
+| **Gemini**                                            | gemini-2.5-flash / gemini-2.5-pro            | Via Google's OpenAI-compat layer.                                                            |
+| **Mistral / Together / Fireworks / Perplexity / xAI** | All OpenAI-compatible chat-completion models | Just set the API key — the generic adapter handles the rest.                                 |
+| **AWS Bedrock / Azure OpenAI**                        | Any chat-completion model                    | Requires explicit `baseUrl` in `agents.yaml` (region/instance varies).                       |
+| **Ollama** (local) + **LM Studio** + **vLLM**         | Whatever you have pulled locally             | Ollama native API with XGrammar opt-in for ~99% JSON validity. Free. Private. Caveats below. |
+
+### Cost visibility — see what each session actually costs you
+
+At the end of every triage session you get a summary block:
+
+```text
+Cost summary (~estimated — tokens are chars/4 proxy, ±15-20% vs provider usage):
+  provider/model                           agent              calls      input     output   cost USD  latency
+  anthropic/claude-haiku-4-5-20251001      triage         3 calls      450 in     180 out    $0.0014      1842ms avg
+  anthropic/claude-haiku-4-5-20251001      context        2 calls      890 in     420 out    $0.0030      2104ms avg
+  anthropic/claude-haiku-4-5-20251001      remediation    2 calls      870 in     510 out    $0.0034      2851ms avg
+  Total: 2210 input tokens · 1110 output tokens · $0.0078 (~estimated USD)
+```
+
+The `synaptic-sentinel cost-history [--limit N]` sub-command shows a rollup across the last N sessions, grouped by provider+agent — useful to compare empirically (on _your_ findings, not synthetic benchmarks) which provider gives you the best cost/quality trade-off.
+
+Token counts are proxies (`Math.ceil(text.length / 4)`) — ±15-20% vs the provider's billed usage. Surfaced as `~estimated` everywhere.
+
+### Configuring providers (three equivalent paths)
+
+**A. From the IDE** — Command Palette → **`SYNAPTIC Sentinel: Configure Brain Layer Providers`** opens a Settings panel:
+
+- **Active Configuration** — see which provider/model runs each agent.
+- **Managed Credentials** — Save / Delete / Test API keys for 12 providers. Keys never cross to the webview in plain text (state is `configured: boolean`, real value lives in `vscode.SecretStorage`).
+- **Local Models** — auto-discovers your Ollama daemon at `localhost:11434` and lists models you've pulled.
+
+**B. From `.sentinel/agents.yaml`** in your project root (versionable):
+
+```yaml
+agents:
+  triage:
+    provider: deepseek
+    model: deepseek-v4-flash
+  context:
+    provider: anthropic
+    model: claude-haiku-4-5-20251001
+  remediation:
+    provider: ollama
+    model: gemma3:4b
+```
+
+**C. From the CLI** — repeatable `--agent-provider <agent>=<provider>/<model>` flag:
+
+```sh
+synaptic-sentinel triage \
+  --agent-provider triage=deepseek/deepseek-v4-flash \
+  --agent-provider context=anthropic/claude-haiku-4-5-20251001 \
+  --agent-provider remediation=ollama/gemma3:4b
+```
+
+API keys come from `SENTINEL_<PROVIDER>_API_KEY` environment variables (`SENTINEL_ANTHROPIC_API_KEY`, `SENTINEL_OPENAI_API_KEY`, `SENTINEL_DEEPSEEK_API_KEY`, etc). The legacy `ANTHROPIC_API_KEY` is also accepted for backward compatibility with `v0.2.0`. **Keys never appear in command-line arguments; they always travel via environment variables or `vscode.SecretStorage`.**
+
+**Backward-compatible**: users on `v0.2.0` with only `ANTHROPIC_API_KEY` set continue to work identically — Anthropic Haiku 4.5 runs all three agents (the implicit fallback).
+
+### Memory of the swarm
+
+The three agents share a learning store on disk in your repo (`.synaptic-sentinel/colony.db`): a triage pattern seen with strong evidence is pre-classified on the next scan **without spending an LLM token**.
 
 ### Turnkey from install to first scan
 
-1. Install the extension from the marketplace.
+1. Install the extension.
 2. **Command Palette → "SYNAPTIC Sentinel: Install Scanners"** — downloads and verifies the five scout binaries to a per-user cache (`~/.synaptic-sentinel/scanners`). Once.
 3. **Command Palette → "SYNAPTIC Sentinel: Scan Workspace"** — findings appear as inline diagnostics, in the _Problems_ panel, and in the **living tome** side view.
-4. _(Optional, BYOK)_ **Set Anthropic API Key** → **Triage Findings (Brain Layer)** to enrich findings with classification + context + remediation.
+4. _(Optional, BYOK)_ **Configure Brain Layer Providers** → **Triage Findings (Brain Layer)** to enrich findings with classification + context + remediation.
 
 ---
 
 ## Commands
 
-| Command                                            | What                                                                 |
-| -------------------------------------------------- | -------------------------------------------------------------------- |
-| `SYNAPTIC Sentinel: Scan Workspace`                | Runs the five scouts and paints findings as diagnostics.             |
-| `SYNAPTIC Sentinel: Triage Findings (Brain Layer)` | Runs the three Brain Layer agents over the last scan. Requires BYOK. |
-| `SYNAPTIC Sentinel: Set Anthropic API Key (BYOK)`  | Stores the key encrypted in `SecretStorage`.                         |
-| `SYNAPTIC Sentinel: Install Scanners`              | One-time download of the scout binaries to the per-user cache.       |
+| Command                                              | What                                                                 |
+| ---------------------------------------------------- | -------------------------------------------------------------------- |
+| `SYNAPTIC Sentinel: Scan Workspace`                  | Runs the five scouts and paints findings as diagnostics.             |
+| `SYNAPTIC Sentinel: Triage Findings (Brain Layer)`   | Runs the three Brain Layer agents over the last scan. Requires BYOK. |
+| `SYNAPTIC Sentinel: Configure Brain Layer Providers` | Opens the multi-provider Settings panel.                             |
+| `SYNAPTIC Sentinel: Install Scanners`                | One-time download of the scout binaries to the per-user cache.       |
 
 Plus Code Actions on each finding: **mark as false positive** (suppressed in future scans), and **copy suggested remediation**.
 
@@ -64,13 +130,28 @@ Plus Code Actions on each finding: **mark as false positive** (suppressed in fut
 
 Sentinel's CLI bundle ships with the extension and is also runnable standalone. The CLI exports the audit tome to **JSON**, **HTML** (an audit report you can hand to a reviewer), and **SARIF 2.1.0** (GitHub Code Scanning, Azure DevOps). The `--fail-on <severity>` flag turns the scan into a CI gate (exit code 2 if there are findings at or above the threshold).
 
+The `synaptic-sentinel cost-history` sub-command lets you wire cost reports into your CI summary too.
+
 ---
 
 ## Privacy and data flow
 
 - **Your code never leaves your machine for the deterministic scans.** The five scouts run locally as child processes.
-- **For the Brain Layer (optional), each finding's snippet goes directly to Anthropic** — no proxy, no middleman. BYOK.
+- **For the Brain Layer (optional)**, each finding's snippet goes directly to the LLM provider you chose — no proxy, no middleman, no Synaptic backend. BYOK. With Ollama / LM Studio / vLLM, the code never leaves your machine at all.
 - **The audit memory (`colony.db`) lives in your repo's `.synaptic-sentinel/` directory.** You decide whether to commit it.
+
+---
+
+## Known Limitations
+
+Honest caveats from the first real cross-provider benchmark — none affect your real source code, but you should know them:
+
+1. **OpenAI `gpt-5*` models need a higher `max_completion_tokens`**. Out-of-the-box `gpt-5-nano` exhausts its reasoning-token budget at 1024 tokens and returns empty content. Either raise the cap manually or pick a different OpenAI model for now.
+2. **Local LLMs with ≥10 GB models can saturate RAM** on consumer hardware during long batch operations (`pnpm benchmark:run`). Normal `triage` on a handful of findings is fine. For benchmark batches, prefer models ≤3 GB (`gemma3:4b`, `qwen2.5:3b`, `llama3.2:3b`).
+3. **Free-tier quotas exhaust quickly** on Groq (100K tokens/day) and Gemini (RPM-limited). Fine for everyday triage on a few findings; use the paid tier for full benchmark runs.
+4. **Token counts are proxies** (`chars/4`, ±15-20% vs the provider's billed usage). Cost USD is `~estimated` everywhere it appears.
+
+See the [CHANGELOG](./CHANGELOG.md) `v0.3.0` Known Issues section for the full list with rationale.
 
 ---
 
