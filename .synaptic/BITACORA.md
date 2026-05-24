@@ -2532,5 +2532,38 @@ Each entry follows this structure:
 
 ---
 
+### Entry #87 - DG-079.2 second hotfix: bundle-safe import.meta.url en colony-db.ts → v0.3.2 (v0.3.1 era insuficiente)
+
+```json
+{
+  "timestamp": "2026-05-24T19:30:00.000Z",
+  "cycle": 73,
+  "phase": 12,
+  "action": "HOTFIX_APPLIED",
+  "details": {
+    "DG-079.2": {
+      "title": "Second hotfix sub-DG: v0.3.1 reducia bundle size pero activate() seguia rompiendo. Headless extension-host simulator revelo el root cause real: createRequire(import.meta.url) en colony-db.ts CJS-bundled lanza porque import.meta.url es undefined en CJS target",
+      "trigger": "Usuario instalo synaptic-sentinel-0.3.1.vsix tras DG-079.1. Pasos 1-5 OK (extension instalada, version 0.3.1 visible, 5 comandos APARECEN en Ctrl+Shift+P). Paso 6 FALLA: ejecutar 'Install Scanners' tira el mismo popup 'command synaptic-sentinel.installScanners not found' que con v0.3.0. Anti-optimismo activo: v0.3.1 NO resolvio el bug, solo redujo el bundle.",
+      "diagnostic_method": "Headless extension-host simulator: node -e con mock del modulo `vscode` + Module._resolveFilename hook + require('dist/extension.cjs') + invocar activate() con fakeContext. Ejecutado contra v0.3.1 (en disco) revelo: 'TypeError: The argument filename must be a file URL object, file URL string, or absolute path string. Received undefined' en createRequire (extension.cjs:4673:55).",
+      "root_cause": "packages/core/src/colony/colony-db.ts:10 usa `const requireCjs = createRequire(import.meta.url)`. Patron ESM valido. Cuando esbuild bundlea el extension.cjs (--format=cjs), import.meta.url no existe en CJS target y esbuild lo reemplaza por `undefined`. Llamada createRequire(undefined) lanza inmediatamente. Excepcion mata activate() al cargar el modulo (antes de que la funcion activate siquiera sea invocada por VSCode), por lo que ningun comando se registra. Esto se introdujo en DG-062 B (pivot a node-sqlite3-wasm) cuando el patron solo se usaba en ESM (cli.mjs). DG-073 B agrego import desde @synaptic-sentinel/core en settings-view.ts del extension; el barrel arrastra colony-db al bundle CJS de la extension, donde el patron rompe. NO fue detectado en DG-079.1 porque el fix de externals redujo refs a SDKs externos pero el bug de colony-db.ts es INDEPENDIENTE.",
+      "fix_aplicado": "packages/core/src/colony/colony-db.ts: nuevo helper `bundleSafeModuleUrl()` que intenta `import.meta.url` (ESM path) y cae a `eval('typeof __filename === \"string\" ? __filename : null')` (CJS path - eval es la unica forma de acceder al __filename del wrapper CJS desde codigo bundleado; new Function() solo ve globals y globalThis.__filename no esta seteado). El URL safe se asigna a `const __moduleUrl` y se reusa para `createRequire(__moduleUrl)` y `new URL('./schema.sql', __moduleUrl)` (que tambien usaba import.meta.url y tambien hubiera fallado). Bump version 0.3.1 → 0.3.2. CHANGELOG entry [0.3.2] - 2026-05-24 con root cause tecnico + Notes con la anti-optimismo lesson explicita sobre la necesidad de un vscode-test integration en el verify gate.",
+      "verification_real": "pnpm verify VERDE 56 test files / 463 tests (mismo conteo). Build CLI bundle: dist/cli.mjs intacto. Bundle extension: dist/extension.cjs 280 KB → 296 KB (+16 KB por el helper bundleSafeModuleUrl + el eval wrapper). vsce package EXITOSO: synaptic-sentinel-0.3.2.vsix 3.13 MB / 1838 archivos. Manifest validado al extraer: version 0.3.2 + publisher GoLab + Apache-2.0. HEADLESS VALIDATE (mismo simulator que revelo el bug) ahora REPORTA SUCCESS: registered los 7 comandos (scanWorkspace, markFalsePositive, copyRemediation, triageWorkspace, setAnthropicApiKey, installScanners, configureProviders) + 13 subscriptions totales + activate() completed sin errores. SHA-256: 84411A07C4F6C68D9C8CD9ECA973020F183D62949ECE45C326CB7D0A943D39C0.",
+      "v030_v031_status": "BOTH SUPERSEDED. v0.3.0 tenia el inlined-SDKs bug (fixed in DG-079.1). v0.3.1 lo fixeo pero tenia este createRequire(undefined) bug independiente. v0.3.2 es el primer .vsix donde activate() realmente registra los comandos. v0.3.0 y v0.3.1 quedan como artefactos historicos para evidencia diagnostica de los dos bugs.",
+      "pending_user_validation": "Usuario debe: (a) desinstalar v0.3.1 (code --uninstall-extension GoLab.synaptic-sentinel o UI); (b) instalar synaptic-sentinel-0.3.2.vsix via 'Install from VSIX...' o code --install-extension; (c) reload window (Developer: Reload Window); (d) Ctrl+Shift+P > escribir 'SYNAPTIC' — los 5 comandos deben aparecer; (e) probar Install Scanners — debe abrir el pseudoterminal y descargar binarios. La diferencia clave con v0.3.1: el headless simulator AHORA confirma que activate() completa, asi que (e) deberia funcionar (no como con v0.3.1 que pasaba (d) pero rompia en (e)). Si v0.3.2 falla en VSCode, hay un TERCER bug no detectado por el headless simulator (vscode-test integration es el siguiente paso obvio).",
+      "anti_optimismo_lesson_v2": "DG-079.1 reclamo el fix sin haber corrido un headless simulator. El bundle size bajo de 615 KB → 280 KB que parecia evidencia de fix, en realidad era evidencia parcial: 178 → 2 refs a @anthropic-ai/sdk efectivamente removidas, pero el bug REAL (createRequire(undefined)) seguia ahi independiente. CLASE de error de razonamiento: confundir 'el sintoma medido se redujo' con 'el bug se arreglo'. PREVENCION: el headless simulator (node -e con mock vscode) es UN ONE-LINER que confirma activate() funciona end-to-end sin necesidad de VSCode real. Deberia ser parte del verify gate antes de publicar cualquier .vsix. Sub-DG mas prioritario que nunca: vscode-test integration (o como minimo, este headless simulator como step de verify).",
+      "checks": "format:check / lint / build / test:unit VERDE. vsce package EXITOSO. Headless extension-host simulator: SUCCESS (7 commands registered, 13 subscriptions).",
+      "out_of_scope_explicit": "(1) vscode-test integration completo en verify gate - sub-DG futuro CRITICO (ahora dos hotfixes seguidos lo justifican aun mas); a minima, agregar el headless simulator (3 lineas de bash) al verify. (2) Refactor del fileURLToPath patterns en otros archivos que solo viven en cli.mjs ESM (scan.ts, rules.ts) - innecesario porque no se bundlean en CJS. (3) Marketplace publish - sigue siendo Phase 12 (DG-080), ahora con v0.3.2 como artifact; bloqueado por validacion del usuario.",
+      "commits_split": "feat en commit a venir (colony-db.ts bundle-safe + bump 0.3.2 + CHANGELOG hotfix entry [0.3.2] + docs/PUBLISHING.md actualizado a v0.3.2); este registro SYNAPTIC en el commit docs siguiente. NO se crea tag v0.3.2 ni GitHub Release hasta que el usuario valide localmente que el comando Install Scanners ahora funciona.",
+      "phase_status_after_hotfix": "Phase 11 sigue CERRADA. Phase 12 sigue abierta PARCIAL (DG-080 B Entry #85, ahora con v0.3.2 como artifact). El publish al marketplace requiere primero que el usuario confirme que v0.3.2 funciona end-to-end."
+    }
+  },
+  "outcome": "HOTFIX_APPLIED_PENDING_USER_VALIDATION",
+  "synapticStrength": 78,
+  "complianceScore": 100
+}
+```
+
+---
+
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-24T19:00:00.000Z*
+*Last Updated: 2026-05-24T19:30:00.000Z*
