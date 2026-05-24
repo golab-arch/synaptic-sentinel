@@ -2565,5 +2565,33 @@ Each entry follows this structure:
 
 ---
 
+### Entry #88 - DG-079.2 follow-up: v0.3.2 VALIDATED by user + tag pushed + GitHub Release with asset + v0.3.0 marked superseded
+
+```json
+{
+  "timestamp": "2026-05-24T19:55:00.000Z",
+  "cycle": 73,
+  "phase": 12,
+  "action": "RELEASE_VALIDATED",
+  "details": {
+    "DG-079.2-follow-up": {
+      "title": "Confirmacion de validacion humana real del .vsix v0.3.2 en VSCode + acciones operacionales (tag + GitHub Release con asset + retro-actualizar release v0.3.0 con nota de superseded)",
+      "user_validation": "Usuario reporto: 'si funcionó'. Test path completo en VSCode real: (1) desinstalo v0.3.1; (2) instalo synaptic-sentinel-0.3.2.vsix via 'Install from VSIX...' UI; (3) reload window; (4) Ctrl+Shift+P > 'SYNAPTIC' mostro los 5 comandos; (5) ejecuto SYNAPTIC Sentinel: Install Scanners — abrio el pseudoterminal y descargo los binarios end-to-end. Este es el primer .vsix de la serie v0.3.x que activa() correctamente en VSCode. Confirma que el headless simulator (DG-079.2) era diagnostico valido y que el fix bundleSafeModuleUrl() resolvio el bug real.",
+      "release_actions": "(1) annotated tag v0.3.2 pushed a origin/main con mensaje completo describiendo los 2 hotfixes consecutivos (DG-079.1 + DG-079.2) + headless validation success + SHA-256 + reference a anti-optimismo lesson. (2) gh release create v0.3.2 ejecutado: https://github.com/golab-arch/synaptic-sentinel/releases/tag/v0.3.2 (Latest, isDraft:false, isPrerelease:false) con synaptic-sentinel-0.3.2.vsix adjunto + release notes basadas en CHANGELOG + diagnostic output del headless simulator + anti-optimismo lesson explicita. (3) gh release edit v0.3.0 con nueva release note: '> SUPERSEDED by v0.3.2. This .vsix installed but no extension command was reachable in VSCode' — el asset v0.3.0 .vsix queda descargable como evidencia diagnostica historica pero con disclaimer fuerte para evitar que usuarios lo instalen. (4) NO se toco la GitHub Release de v0.3.1 (existe el .vsix v0.3.1 local en disco del repo pero NO se subio nunca a GitHub Release — DG-079.1 cerro sin crear release esperando user validation; v0.3.1 nunca llego a tag/release publico). Estructura final en gh release list: v0.3.2 Latest, v0.3.0 superseded, v0.2.0 historico (Phase 9).",
+      "anti_optimismo_validated": "DG-079.1 + DG-079.2 + headless simulator + user validation = el flow estricto que rescato el proyecto de publicar al marketplace dos veces un .vsix roto. El anti-optimismo ilusorio aplicado por el usuario (insistencia en 'probarlo en local primero') fue lo que catalizo todo. Lesson reinforced: el verify gate del proyecto necesita un step de validacion real de la extension en VSCode (vscode-test o headless simulator one-liner) antes de cualquier futuro release de extension.",
+      "phase_status": "Phase 11 sigue CERRADA. Phase 12 sigue PARCIAL (DG-080 B Entry #85): la preparacion marketplace esta done, vsce publish PENDING hasta que el usuario tenga PAT + tiempo + decida ejecutar docs/PUBLISHING.md (ahora apuntando a v0.3.2). Sub-DGs futuros heredados: path leak fix, gpt-5 reasoning tokens, Ollama batching, exponer usage real, sidebar webview Cost Visibility, ground truth human review, **vscode-test/headless integration en verify gate (PRIORIDAD ELEVADA tras DG-079.1 + DG-079.2)**.",
+      "next_step_options": "Tres caminos validos a presentar al usuario en seccion 6 de cualquier DG futuro: (A) ejecutar Phase 12 publish (vsce publish al marketplace cuando tenga PAT) — cierre operacional puro, requiere solo accion del usuario; (B) intercalar un sub-DG mientras tanto — el mas critico tras DG-079.1 + DG-079.2 es el sub-DG de vscode-test/headless integration en verify gate (previene la clase de bugs que casi rompe el marketplace publish); el otro candidato fuerte es path leak fix (impacto en value-prop del benchmark); (C) pausar el proyecto y dejar v0.3.2 como release final por un tiempo. La recomendacion del operador (LLM) tiene que ser explicita en el proximo DG.",
+      "checks": "tag v0.3.2 pushed OK. gh release create v0.3.2 OK con asset adjunto (digest sha256:84411a07c4f6c68d9c8cd9eca973020f183d62949ece45c326cb7d0a943d39c0). gh release edit v0.3.0 OK con nota superseded. gh release list confirma: v0.3.2 Latest, v0.3.0 superseded, v0.2.0 historico. NO se ejecuto vsce publish — explicitamente diferido a Phase 12 con PAT del usuario.",
+      "commits_split": "este registro SYNAPTIC + actualizaciones de director files van en el commit docs siguiente. NO requiere feat commit (las acciones fueron tag + gh release, operaciones GitHub-side; el .vsix v0.3.2 ya esta committed via DG-079.2 Entry #87 commit feat 7eef34e)."
+    }
+  },
+  "outcome": "RELEASE_PUBLISHED_AND_VALIDATED",
+  "synapticStrength": 79,
+  "complianceScore": 100
+}
+```
+
+---
+
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-24T19:30:00.000Z*
+*Last Updated: 2026-05-24T19:55:00.000Z*
