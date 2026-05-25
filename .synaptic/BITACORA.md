@@ -2759,7 +2759,36 @@ Each entry follows this structure:
 }
 ```
 
+### Entry #94 - DG-084 A: path leak fix en buildSyntheticFinding (cierra caveat 1/6 de v0.3.x Known Issues)
+
+```json
+{
+  "timestamp": "2026-05-25T03:15:00.000Z",
+  "cycle": 76,
+  "phase": null,
+  "action": "FEATURE_IMPLEMENTED",
+  "details": {
+    "DG-084-A": {
+      "title": "Path leak fix en buildSyntheticFinding del cross-provider benchmark: anonimizar `Finding.location.path` antes de pasarlo al Brain Layer, eliminando el meta-razonamiento del LLM sobre 'tests/.../fixtures/vulnerable/' que producia clasificaciones 'inconclusive' en vez de 'true_positive'. Cierra 1 de los 6 caveats heredados documentados en CHANGELOG Known Issues de v0.3.x (path leak en synthetic findings).",
+      "scope": "Ciclo 76 atomico, sin Phases abiertas. NO toca el .vsix v0.3.3 (no bump version - sigue siendo el release publico del marketplace). Toca exclusivamente el codigo del benchmark runner (packages/cli/src/benchmark/scoring.ts + tests). Resuelve un caveat de VALUE del benchmark, no un release-blocker.",
+      "root_cause_documentada": "Descubierta en DG-077 via flag --verbose: con Anthropic + ruleId sentinel-js-eval-usage, el LLM mostraba reasoning 'this appears to be a test fixture in tests/.../fixtures/vulnerable/, so probably not real production code -> inconclusive'. Root cause del 1.3% Triage PASS persistente de Anthropic en el 3rd benchmark run (Context PASS 46.2% y Remediation PASS 25.6% mejoraron por recalibration de DG-077, pero Triage no — porque el path leak es un meta-bias upstream de los keywords).",
+      "fix_implementado": "(1) NEW funcion exportada `anonymizeFixturePath(fixturePath: string): string` en packages/cli/src/benchmark/scoring.ts con heuristica: split en segmentos, tomar el ultimo (filename) + el penultimo si esta en KNOWN_LANGS=Set(['javascript','typescript','python']), prefijar con 'src/'. Resultados: 'packages/scouts/tests/opengrep/fixtures/vulnerable/javascript/eval.js'->'src/javascript/eval.js'; 'packages/scouts/tests/gitleaks/fixtures/secrets/leaked.js'->'src/leaked.js'; 'packages/scouts/tests/checkov/fixtures/iac/Dockerfile'->'src/Dockerfile'. (2) `buildSyntheticFinding` ahora usa el path anonimizado en location.path Y en fingerprint (consistencia interna). El fingerprint sintetico no se persiste cross-runs porque scanId='benchmark' — Findings reales del scan persisten con su path original, no se ven afectados. (3) Test existente que assertaba `location.path === 'packages/scouts/tests/x/eval.js'` actualizado a `'src/eval.js'` con comentario referenciando DG-084 A. (4) 5 tests nuevos del helper anonymizeFixturePath cubriendo: lang preservation (javascript/typescript/python -> src/lang/file), lang stripping (secrets/iac/vibe-coded -> src/file), assertions negativos (out NO contiene 'tests'/'fixtures'/'vulnerable'), edge cases (path corto, vacio).",
+      "decisiones_de_diseno": "(a) `src/<lang>/<file>` o `src/<file>` como salida — `src/` es la convencion mas neutral en proyectos JS/TS/Python (aplicacion code, no test). (b) Preservar lang cuando es claro (javascript/typescript/python) — el LLM razona mejor con contexto sintactico legitimo del lenguaje, sin meta-razonamiento sobre 'test fixture'. (c) Descartar categorias-de-finding (secrets/iac/vibe-coded) en el path — el campo `Finding.category` ya las transmite legitimamente; cualquier hint del path es redundante y arriesga el mismo tipo de meta-razonamiento. (d) Cambiar fingerprint a path anonimizado tambien — para consistencia interna en debugging; el fingerprint del Finding sintetico no entra en el prompt del LLM (verificado: TriageAgent.buildPrompt linea 49 solo serializa `Location: ${finding.location.path}:${...}`, no el fingerprint).",
+      "smoke_test_passed": "pnpm verify VERDE end-to-end: 56 test files / 468 tests pasados (+5 vs baseline 463 — los 5 nuevos cubren anonymizeFixturePath + fingerprint consistency). El test existente de buildSyntheticFinding pasa con el nuevo path anonimizado. Ambos gates del verify pasaron: verify-extension-activate (7 commands + 13 subscriptions) + verify-manifest (18 checks).",
+      "validacion_empirica_diferida_honestamente": "El IMPACTO REAL del fix (mejora del Triage PASS rate) solo se puede medir corriendo el benchmark contra providers reales con keys del usuario — eso esta diferido honestamente. Lo que SE puede afirmar ahora: el path que el LLM va a recibir ya no contiene 'tests/' ni 'fixtures/' ni 'vulnerable/' (verificable por unit tests + grep). Lo que NO se puede afirmar sin corrida real: que el Triage PASS rate efectivamente sube. El caveat del CHANGELOG 'path leak en synthetic findings' se reescribira a 'path leak fix landed in DG-084 A; empirical validation deferred' en el proximo release (v0.3.4 o v0.4.0, segun consolidacion).",
+      "phase_status": "Sin Phases abiertas. SYNAPTIC Sentinel v0.3.3 sigue live en VSCode Marketplace. Verify gate cumulativo intacto (2 steps). 5 de 6 caveats heredados de v0.3.x siguen abiertos (gpt-5 reasoning tokens, Ollama RAM, free tier quotas, tokens proxy, ground truth ai-draft). successfulCycles: 76. synapticStrength: 83.",
+      "next_step_options_to_present": "Tres caminos validos para Cycle 77: (A) sub-DG `extender contrato LlmClient para exponer usage real del provider` — elimina el caveat 'tokens proxy chars/4 ±15-20%' de Known Issues; modificacion del contrato + actualizar 3 adapters (Anthropic/OpenAi-compat/Ollama) para devolver inputTokens/outputTokens reales del provider response; ~1-2 ciclos. (B) sub-DG `@vscode/test-electron framework completo` — cubre runtime behavior de comandos + UI webview + SecretStorage real que el headless simulator de DG-081 B no cubre; NO urgente porque DG-081 B + DG-083 A cubrieron las 2 clases de bug criticas; ~2 ciclos. (C) pausar el proyecto con SYNAPTIC Sentinel v0.3.3 live + verify gate fortalecido + 1 caveat menos como hito final temporal. La recomendacion sera explicita en el proximo DG.",
+      "checks": "pnpm verify VERDE (468 tests + 2 gates). Working tree DIRTY: 2 archivos modificados (packages/cli/src/benchmark/scoring.ts + packages/cli/tests/benchmark/scoring.test.ts). Listo para feat commit + docs(synaptic) commit + push.",
+      "commits_split": "feat(benchmark): DG-084 A — path leak fix en buildSyntheticFinding (anonymize fixture paths antes de pasarlos al LLM). docs(synaptic): registro DG-084 A — Entry #94 + actualizaciones de director files."
+    }
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 83,
+  "complianceScore": 100
+}
+```
+
 ---
 
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-25T02:30:00.000Z*
+*Last Updated: 2026-05-25T03:15:00.000Z*
