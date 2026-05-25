@@ -40,7 +40,7 @@ Expected: `>= 3.0.0` (or whatever version the lockfile pins).
 
 ## Publish a release
 
-Assuming you already have the `.vsix` produced (e.g. `synaptic-sentinel-0.3.2.vsix`). **Do not publish `v0.3.0` or `v0.3.1`** — both had extension-host activation bugs (`v0.3.0` had inlined-SDKs; `v0.3.1` had a residual `createRequire(import.meta.url)` issue in the CJS bundle of `colony-db.ts`). `v0.3.2` is the first version where `activate()` actually registers all commands inside VSCode. See `DG-079.1` (Entry #86) and `DG-079.2` (Entry #87) in `BITACORA.md` for context.
+Assuming you already have the `.vsix` produced (e.g. `synaptic-sentinel-0.3.3.vsix`). **Do not publish `v0.3.0`, `v0.3.1`, or `v0.3.2`** — `v0.3.0` had inlined-SDKs; `v0.3.1` had a residual `createRequire(import.meta.url)` issue in the CJS bundle of `colony-db.ts`; `v0.3.2` activated correctly inside VSCode (DG-079.1 + DG-079.2 fixed the activation bugs) but had the wrong `publisher` field (`GoLab` instead of the actual Marketplace publisher `RealGoLab`), so the Marketplace rejected the upload. `v0.3.3` is the **first version with the correct publisher**, ready for Marketplace publication. See `DG-079.1` (Entry #86), `DG-079.2` (Entry #87), and `DG-082.1` (Entry #90) in `BITACORA.md` for context.
 
 ### Step 1: set the PAT in your shell
 
@@ -63,14 +63,14 @@ The PAT lives in the env var only for this shell session — it is **not** persi
 From the repo root:
 
 ```sh
-pnpm -F synaptic-sentinel exec vsce publish --packagePath packages/vscode-extension/synaptic-sentinel-0.3.2.vsix
+pnpm -F synaptic-sentinel exec vsce publish --packagePath packages/vscode-extension/synaptic-sentinel-0.3.3.vsix
 ```
 
 Expected output:
 
 ```text
-INFO  Publishing 'GoLab.synaptic-sentinel v0.3.2' from package...
-INFO  Published GoLab.synaptic-sentinel v0.3.2.
+INFO  Publishing 'RealGoLab.synaptic-sentinel v0.3.3' from package...
+INFO  Published RealGoLab.synaptic-sentinel v0.3.3.
 ```
 
 The publish takes ~10-30 seconds. The listing becomes searchable on the marketplace within a few minutes (the marketplace runs an indexer pass).
@@ -80,23 +80,23 @@ The publish takes ~10-30 seconds. The listing becomes searchable on the marketpl
 Open:
 
 ```text
-https://marketplace.visualstudio.com/items?itemName=GoLab.synaptic-sentinel
+https://marketplace.visualstudio.com/items?itemName=RealGoLab.synaptic-sentinel
 ```
 
 Verify:
 
 - ✅ The page loads (no 404).
-- ✅ The version is `0.3.2` (or later — do **not** publish `0.3.0` or `0.3.1`, see `DG-079.1` and `DG-079.2` for context).
+- ✅ The version is `0.3.3` (or later — do **not** publish `0.3.0`, `0.3.1`, or `0.3.2`; see `DG-079.1`, `DG-079.2` and `DG-082.1` for context).
 - ✅ The README rendered matches `packages/vscode-extension/README.md`.
 - ✅ The icon is the official GoLab logo (`media/icon.png`).
-- ✅ The CHANGELOG tab shows the `[0.3.2]` hotfix entry (and `[0.3.1]` + `[0.3.0]` as superseded) with the Multi-provider Brain Layer section + Known Issues.
+- ✅ The CHANGELOG tab shows the `[0.3.3]` hotfix entry (and `[0.3.2]` + `[0.3.1]` + `[0.3.0]` as superseded GitHub-only artifacts) with the Multi-provider Brain Layer section + Known Issues.
 - ✅ The categories and keywords match `package.json`.
 - ✅ The Apache-2.0 license badge is detected.
 
 You can also verify with `vsce`:
 
 ```sh
-pnpm -F synaptic-sentinel exec vsce show GoLab.synaptic-sentinel
+pnpm -F synaptic-sentinel exec vsce show RealGoLab.synaptic-sentinel
 ```
 
 Expected: a JSON-like dump of the listing metadata (display name, version, install count, etc.).
@@ -106,14 +106,14 @@ Expected: a JSON-like dump of the listing metadata (display name, version, insta
 The release is now publicly installable as:
 
 ```sh
-code --install-extension GoLab.synaptic-sentinel
+code --install-extension RealGoLab.synaptic-sentinel
 ```
 
 or by clicking **Install** in the marketplace page.
 
 Optionally announce via:
 
-- GitHub Release notes for `v0.3.0` were created by `DG-079 A`; v0.3.0 and v0.3.1 are both superseded by `v0.3.2` — that hotfix Release is the one users should download.
+- GitHub Release notes for `v0.3.0` were created by `DG-079 A`; v0.3.0, v0.3.1, and v0.3.2 are all superseded by `v0.3.3` — that's the first Marketplace-compatible Release, and the one users should download.
 - Show HN / X / LinkedIn (only after the Known Issues are resolved in future sub-DGs — see `CHANGELOG.md`).
 - GitHub Discussions on `golab-arch/synaptic-sentinel` (categories `Announcements` / `Show & Tell`).
 
@@ -145,7 +145,7 @@ The runbook is the same; only the version number changes.
 If a release ships with a critical bug:
 
 ```sh
-pnpm -F synaptic-sentinel exec vsce unpublish GoLab.synaptic-sentinel <version>
+pnpm -F synaptic-sentinel exec vsce unpublish RealGoLab.synaptic-sentinel <version>
 ```
 
 **Caveats**:

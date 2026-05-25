@@ -4,6 +4,21 @@ All notable changes to the SYNAPTIC Sentinel extension will be documented in thi
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.3] - 2026-05-24
+
+**Marketplace publish hotfix**: the v0.3.2 `.vsix` rejected by the Visual Studio Marketplace upload with `Publisher ID 'GoLab' provided in the extension manifest should match the publisher ID 'RealGoLab' under which you are trying to publish this extension.` Root cause: the publisher field in `package.json` was set to `"GoLab"` (a follow-up cosmetic change after `DG-065`), but the actual Azure DevOps publisher under the user's account is `RealGoLab` (URL: `marketplace.visualstudio.com/manage/publishers/realgolab`). v0.3.3 corrects the mismatch — no code or feature changes.
+
+### Fixed
+
+- **`packages/vscode-extension/package.json` `"publisher"`** changed from `"GoLab"` (never published anywhere; mismatch with the actual Marketplace publisher) to `"RealGoLab"` (the correct ID under the user's `golab.develop@gmail.com` Azure DevOps account, aligned with the sibling `RealGoLab.synaptic-vscode-extension` already published).
+- **Extension marketplace identifier changes**: from `GoLab.synaptic-sentinel` (in v0.3.0 / v0.3.1 / v0.3.2 `.vsix` files — none of which were ever accepted by the Marketplace) to **`RealGoLab.synaptic-sentinel`** (v0.3.3+). The CLI to install from Marketplace is now `code --install-extension RealGoLab.synaptic-sentinel`.
+
+### Notes
+
+- v0.3.0, v0.3.1, and v0.3.2 `.vsix` files are all **GitHub-only release artifacts** that were installable locally via `code --install-extension <file.vsix>` (with the broken `GoLab.synaptic-sentinel` identifier in the metadata) but **never accepted by the Visual Studio Marketplace**. v0.3.3 is the **first version intended for Marketplace publication**.
+- If you installed v0.3.2 (or earlier) locally via the `.vsix` from GitHub Release: that's `GoLab.synaptic-sentinel` in your VSCode. To upgrade to v0.3.3 from the Marketplace, you need to **uninstall the old identifier first** (`code --uninstall-extension GoLab.synaptic-sentinel`) and then install from Marketplace (`code --install-extension RealGoLab.synaptic-sentinel`). The IDs are different so VSCode does NOT auto-upgrade between them.
+- Anti-optimismo lesson: the headless extension-host simulator added in `DG-081 B` validates `activate()` runtime but does NOT validate the manifest against the actual Marketplace publisher. The publisher mismatch was caught only when the user attempted the real upload. Future cycle: extend `scripts/verify-extension-activate.mjs` (or split into a separate `verify-manifest.mjs`) to assert the manifest's `publisher` matches a value documented somewhere reproducible.
+
 ## [0.3.2] - 2026-05-24
 
 **Second hotfix**: v0.3.1 was insufficient. The bundle externals fix from `DG-079.1` reduced the bundle size and the inlined SDK refs from 178 → 2, but **`activate()` was still throwing silently** because of a different root cause inside `@synaptic-sentinel/core`: `colony-db.ts` used `createRequire(import.meta.url)` (an ESM pattern), which esbuild leaves as `createRequire(undefined)` when bundling to CJS — and `createRequire(undefined)` throws `TypeError: The argument 'filename' must be a file URL object, file URL string, or absolute path string. Received undefined`. The exception killed `activate()` at module-load time, before any command could register.
@@ -77,7 +92,7 @@ The first real benchmark runs against five cloud providers + Ollama exposed seve
 
 - This release wraps **Phase 11 — Multi-Provider Brain Layer** (cycles 63 → 72, ten sub-increments DG-070 → DG-079). The product is now provider-agnostic at the architecture level, with three adapters, a config registry, an in-IDE Settings panel, an empirical benchmark and cost visibility, all shipped under Apache-2.0.
 - BYOK any provider you trust. Keys never leave the user's machine — direct provider calls, no Synaptic backend.
-- The marketplace listing `GoLab.synaptic-sentinel` is updated by Phase 12 (`vsce publish`); meanwhile, the `.vsix` is downloadable as a GitHub Release asset.
+- The marketplace listing `RealGoLab.synaptic-sentinel` is updated by Phase 12 (`vsce publish`); meanwhile, the `.vsix` is downloadable as a GitHub Release asset. (Note: the v0.3.0 / v0.3.1 / v0.3.2 `.vsix` files actually shipped with the placeholder `GoLab.synaptic-sentinel` identifier — fixed in v0.3.3, see that entry.)
 
 ## [0.2.0] - 2026-05-23
 

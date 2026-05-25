@@ -8,7 +8,7 @@ Third product in the SYNAPTIC family, sibling of [SYNAPTIC Expert](https://marke
 
 ## Status
 
-🚧 **Active development (pre-1.0).** Operational: the Scout Layer (5 scanners), the Coordinator, the reporters (JSON/HTML/SARIF tome), the CLI, and the VSCode extension; the Brain Layer with 3 agents (Triage / Context / Remediation). **All packages under Apache-2.0** — no premium tier, no proprietary gating. The `.vsix v0.1.0` is marketplace-ready (`golab.synaptic-sentinel`); `v0.2.0` rebranded release lands in DG-069.
+🚧 **Active development (pre-1.0).** Operational: the Scout Layer (5 scanners), the Coordinator, the reporters (JSON/HTML/SARIF tome), the CLI, and the VSCode extension; the Brain Layer with 3 agents (Triage / Context / Remediation, BYOK multi-provider). **All packages under Apache-2.0** — no premium tier, no proprietary gating. Marketplace listing: `RealGoLab.synaptic-sentinel` (v0.3.3+).
 
 ## How it works
 
