@@ -2730,7 +2730,36 @@ Each entry follows this structure:
 }
 ```
 
+### Entry #93 - DG-083 A: scripts/verify-manifest.mjs (destila lesson v3 a step permanente del verify gate)
+
+```json
+{
+  "timestamp": "2026-05-25T02:30:00.000Z",
+  "cycle": 75,
+  "phase": null,
+  "action": "FEATURE_IMPLEMENTED",
+  "details": {
+    "DG-083-A": {
+      "title": "Sub-DG nuevo verify-manifest.mjs: destila la lesson de DG-082.1 (publisher mismatch GoLab/RealGoLab que el marketplace rechazo al subir v0.3.2) a un step PERMANENTE del verify gate. Cubre la clase de bug 'manifest validity' que el headless extension-host simulator de DG-081 B no cubre — la marketplace rechaza el upload antes de cargar el bundle.",
+      "scope": "Ciclo 75 atomico, sin Phases abiertas. No toca codigo del producto, no bump version del .vsix v0.3.3 (sigue siendo el release publico). Solo agrega tooling al verify gate. Mismo patron que DG-081 B (que destilo la lesson de DG-079.1+.2 a verify-extension-activate.mjs).",
+      "deliverable": "(1) NEW scripts/verify-manifest.mjs (228 lineas) — valida packages/vscode-extension/package.json contra 18 valores esperados: publisher='RealGoLab' (con diagnostico explicito que cita DG-082.1), name='synaptic-sentinel', license='Apache-2.0', main='./dist/extension.cjs', version cumple semver \\d+.\\d+.\\d+, engines.vscode='^1.95.0' como version minima, icon field set + file exists en disco, displayName non-empty, description >10 chars, categories array non-empty, keywords array non-empty, repository.url contains 'github.com/golab-arch/synaptic-sentinel', homepage URL valid, bugs.url valid, activationEvents array non-empty, contributes.commands.length >= 5 (Scan/Triage/SetApiKey/InstallScanners/ConfigureProviders). Cada check tiene mensaje accionable con 'Got X, expected Y, here is why this matters'. (2) MODIFIED package.json (root) — agrega script 'verify:manifest': 'node scripts/verify-manifest.mjs' + lo wirea al 'verify' chain: format:check && lint && build && test:unit && verify:extension-activate && verify:manifest.",
+      "design_decisions": "(a) Valida el SOURCE package.json directamente, NO el .vsix empaquetado, porque vsce no muta el manifest principal — solo lo copia al .vsix; validar source es suficiente para esta clase de bug y evita el overhead de 'vsce package' en cada verify (~10s). (b) Falla con exit code 1 con lista de checks failed + detalles + 'Gate covers' al final. (c) Diagnostico del check 'publisher' cita DG-082.1 explicitamente para que future-me entienda la historia. (d) Cada EXPECTED value es una const TS al inicio del archivo — si alguno necesita cambiar legitimamente (ej. bump de engines.vscode minimum), modificar conscientemente; el commit hace el cambio auditable.",
+      "smoke_test_passed": "pnpm verify VERDE end-to-end con BOTH gates: 463 tests + verify-extension-activate OK (7 commands + 13 subscriptions) + verify-manifest OK (18 checks passed). El nuevo step toma ~30ms — overhead negligible.",
+      "adversarial_test_passed": "Test del gate ejecutado en PowerShell: backup package.json -> corromper publisher 'RealGoLab' -> 'GoLab' -> correr verify-manifest -> esperar exit code 1 + mensaje diagnostic citando DG-082.1 -> restore desde backup. SALIDA capturada: '❌ verify-manifest FAIL (1 check(s) failed): ✗ publisher = RealGoLab — Got GoLab. The marketplace rejects upload if this does not match the Azure DevOps publisher ID. DG-082.1 captured this exact bug (v0.3.2 was rejected because publisher was GoLab instead of RealGoLab).' exit code: 1 (esperado: 1). El gate detecta correctamente la regresion que motivo DG-082.1.",
+      "anti_optimismo_lesson_v3_consolidada": "El verify gate es CUMULATIVO, no PREVENTIVO completo. Cada release-blocker descubierto por accion humana real distinta agrega un step: DG-079.1/2 (activate() throws) -> verify-extension-activate (DG-081 B); DG-082.1 (manifest publisher mismatch) -> verify-manifest (este DG). Siempre puede existir una nueva clase de bug no descubierta hasta que una accion humana real la exponga. DG-081 B + DG-083 A juntos cubren los 3 release-blockers de Phase 12 retro-activamente, no garantizan ausencia de nuevos. El proximo release de extension (cualquier bump futuro) va a tener que pasar ambos gates antes de llegar a vsce package.",
+      "phase_status": "Sin Phases abiertas — Phase 12 sigue CERRADA en Cycle 74. Este DG es un sub-DG aislado destinado a fortalecer el tooling. successfulCycles: 75. synapticStrength: 82.",
+      "next_step_options_to_present": "Tres caminos validos para el proximo ciclo (Cycle 76): (A) sub-DG futuro de Phase 11 heredado — path leak fix en buildSyntheticFinding (DG-077 hangover; ~1 ciclo; impacto en value-prop del benchmark + cierra un caveat documentado en Known Issues de v0.3.x). (B) sub-DG futuro de tooling — @vscode/test-electron framework completo (descarga VSCode headless + instala el .vsix + ejecuta comandos reales; cubriria runtime behavior y UI webview que el headless simulator de DG-081 B no cubre; ~2 ciclos; no urgente). (C) pausar el proyecto con SYNAPTIC Sentinel v0.3.3 live en marketplace + verify gate fortalecido como hito final temporal. La recomendacion sera explicita en el proximo DG segun protocolo.",
+      "checks": "pnpm verify VERDE end-to-end (463 tests + 2 gates). Adversarial test confirmado exit code 1. Working tree DIRTY: 2 archivos modificados (package.json root, scripts/verify-manifest.mjs NEW). Listo para feat commit + docs(synaptic) commit + push.",
+      "commits_split": "feat(verify): DG-083 A — sub-DG verify-manifest.mjs (destila lesson v3 a step permanente del verify gate). Cubre el script + el wiring al pnpm verify del root. docs(synaptic): registro DG-083 A — sub-DG verify-manifest gate, cubre Entry #93 + actualizaciones de director files (DESIGN_DOC + INTELLIGENCE + CURRENT + session)."
+    }
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 82,
+  "complianceScore": 100
+}
+```
+
 ---
 
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-25T00:45:00.000Z*
+*Last Updated: 2026-05-25T02:30:00.000Z*
