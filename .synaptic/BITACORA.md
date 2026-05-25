@@ -2659,5 +2659,34 @@ Each entry follows this structure:
 
 ---
 
+### Entry #91 - DG-082.1 follow-up: Marketplace upload ACEPTADO + tag v0.3.3 + GitHub Release publicado + v0.3.2 retro-marked SUPERSEDED; awaiting Marketplace public listing
+
+```json
+{
+  "timestamp": "2026-05-25T00:15:00.000Z",
+  "cycle": 74,
+  "phase": 12,
+  "action": "MARKETPLACE_UPLOAD_ACCEPTED",
+  "details": {
+    "DG-082.1-follow-up": {
+      "title": "Confirmacion del Marketplace upload exitoso del .vsix v0.3.3 + acciones operacionales (tag + GitHub Release + retro-actualizar v0.3.2 con disclaimer superseded); awaiting status 'Public' del Marketplace para Entry de cierre completo de Phase 12",
+      "user_validation_marketplace_upload": "Usuario reporto: 'se pudo Uplodear! ahora se esta verificando'. Marketplace acepto el .vsix v0.3.3 sin error de Publisher ID mismatch (que rechazo el v0.3.2 en DG-082.1 trigger). Status actual del Marketplace listing: 'Verifying' (esperado, ~minutos hasta minutos antes de Public). Phase 12 esta en su LAST MILE: el upload paso, falta la verificacion automatica del Marketplace (validacion del manifest + scanning del .vsix por contenido malicioso + assets como icon.png + README/CHANGELOG rendering test) antes de pasar a 'Public'.",
+      "release_actions": "(1) annotated tag v0.3.3 pushed a origin/main con mensaje completo describiendo los 4 release-blockers historicos (v0.3.0 inlined SDKs, v0.3.1 createRequire undefined, v0.3.2 publisher mismatch, v0.3.3 fixed) + SHA-256 + sub-DG futuro verify-manifest.mjs anotado. (2) gh release create v0.3.3 ejecutado: https://github.com/golab-arch/synaptic-sentinel/releases/tag/v0.3.3 (Latest, isDraft:false, asset .vsix descargable, SHA-256 79209754A9BAF1EE2242176019965534F74FFBB9FC588118F7AA4FD80C49D44C) con release notes que incluyen tabla de los 4 release-blockers + migration path (`code --uninstall-extension GoLab.synaptic-sentinel` antes de `code --install-extension RealGoLab.synaptic-sentinel`) + anti-optimismo lesson v3. (3) gh release edit v0.3.2 con disclaimer SUPERSEDED + explicacion del publisher mismatch + caveat 'functional locally, not Marketplace-compatible'. v0.3.0 ya tenia su disclaimer SUPERSEDED desde DG-079.2 follow-up (Entry #88). v0.3.1 nunca llego a GitHub Release publico (DG-079.1 cerro sin tag esperando user validation que descubrio DG-079.2). Estructura final gh release list: v0.3.3 Latest, v0.3.2 superseded, v0.3.0 superseded, v0.2.0 historico (Phase 9).",
+      "status_marketplace": "PENDING. El Marketplace listing va a pasar por las siguientes fases automaticamente: (a) Verifying (donde esta ahora, ~minutos): validacion del package + scanning de seguridad + render del README/CHANGELOG + verificacion de assets (icon.png). (b) Public: listing publico, instalable via `code --install-extension RealGoLab.synaptic-sentinel`. (c) URL final: https://marketplace.visualstudio.com/items?itemName=RealGoLab.synaptic-sentinel. (d) gh release edit del v0.3.3 actualizando la mention al marketplace listing oficial. Anti-optimismo activo: la verificacion automatica del Marketplace puede en casos raros rechazar por (a) malformed README HTML, (b) icon issues, (c) link rotos, (d) content policy violations. SOLO declaramos Phase 12 CERRADA cuando el usuario confirme status 'Public' visible en el listing.",
+      "checks": "tag v0.3.3 pushed OK. gh release create v0.3.3 OK con asset adjunto (digest sha256:79209754a9baf1ee2242176019965534f74ffbb9fc588118f7aa4fd80c49d44c). gh release edit v0.3.2 OK con nota superseded. gh release list confirma: v0.3.3 Latest, v0.3.2 superseded, v0.3.0 superseded, v0.2.0 historico. Marketplace upload ACEPTADO por el publisher RealGoLab. Marketplace verification IN PROGRESS.",
+      "anti_optimismo_v3_validated": "DG-079.1 + DG-079.2 + DG-081 B + DG-082.1 + this follow-up = el flow estricto que rescato el proyecto de publicar al marketplace TRES VECES un .vsix roto. Lesson v3 reinforced: el verify gate cubre cada vez mas clases de bug (activation runtime via DG-081 B) pero el patron 'cada release-blocker descubierto solo por accion humana real' va a continuar hasta que el gate sea exhaustivo. Sub-DG futuro inmediato post-Phase-12: verify-manifest.mjs para validar publisher / name / license / engines.vscode minimum del .vsix manifest contra valores esperados — mismo patron que DG-081 B hizo para activate runtime.",
+      "phase_status": "Phase 11 sigue CERRADA. Phase 12 (Marketplace launch) sigue PARCIAL — upload aceptado pero awaiting Public status. El cierre completo de Phase 12 requiere confirmacion del usuario de que el listing esta Public. Entry #92 (proximo) sera el cierre formal cuando el usuario reporte 'Public'.",
+      "next_step_after_public": "Cuando el usuario confirme 'Public', Entry #92 va a registrar: (a) URL final del marketplace listing; (b) cierre formal de Phase 12; (c) presentar 3-option DG al usuario sobre proximo ciclo (sub-DG verify-manifest.mjs / path leak fix / pausa); (d) bump synapticStrength 80 → 81.",
+      "commits_split": "este registro SYNAPTIC + actualizaciones de director files van en el commit docs siguiente. NO requiere feat commit (las acciones fueron tag + gh release + gh release edit, operaciones GitHub-side; el .vsix v0.3.3 ya esta committed via DG-082.1 Entry #90 commit feat 3a6f46d)."
+    }
+  },
+  "outcome": "MARKETPLACE_UPLOAD_ACCEPTED_AWAITING_PUBLIC_STATUS",
+  "synapticStrength": 80,
+  "complianceScore": 100
+}
+```
+
+---
+
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-24T21:00:00.000Z*
+*Last Updated: 2026-05-25T00:15:00.000Z*
