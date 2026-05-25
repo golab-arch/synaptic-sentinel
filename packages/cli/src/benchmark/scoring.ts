@@ -159,6 +159,45 @@ export function remediationPass(
 }
 
 /**
+ * Anonimiza el path del fixture para evitar que el LLM haga meta-razonamiento
+ * sobre "esto es codigo de testing" en vez de evaluar el codigo en si.
+ *
+ * Path leak issue descubierto en DG-077 via `--verbose` probe: cuando el Brain
+ * Layer ve `Finding.location.path = "packages/scouts/tests/.../fixtures/
+ * vulnerable/<lang>/<file>"`, los segmentos `tests/`, `fixtures/` y
+ * `vulnerable/` delatan que es codigo de test y producen clasificaciones
+ * `inconclusive` en vez de `true_positive` (root cause del 1.3% Triage PASS
+ * persistente de Anthropic).
+ *
+ * Heuristica: tomar el ultimo segmento (filename) + el penultimo si es un
+ * lenguaje conocido. Prefijar con `src/` para que el path luzca como codigo
+ * de aplicacion real.
+ *
+ *   packages/scouts/tests/opengrep/fixtures/vulnerable/javascript/eval.js
+ *     -> src/javascript/eval.js
+ *   packages/scouts/tests/gitleaks/fixtures/secrets/leaked-config.js
+ *     -> src/leaked-config.js
+ *   packages/scouts/tests/checkov/fixtures/iac/Dockerfile
+ *     -> src/Dockerfile
+ *
+ * El `category` del Finding (que SI se pasa al LLM) ya transmite la categoria
+ * (SAST/Secrets/IaC/etc); cualquier hint que el path daria sobre categoria es
+ * redundante. La anonimizacion no pierde informacion util — preserva el
+ * lenguaje cuando es claro y el basename siempre.
+ */
+const KNOWN_LANGS: ReadonlySet<string> = new Set(['javascript', 'typescript', 'python']);
+
+export function anonymizeFixturePath(fixturePath: string): string {
+  const segments = fixturePath.split('/').filter((s) => s.length > 0);
+  const filename = segments.at(-1) ?? 'unknown';
+  const parent = segments.at(-2);
+  if (parent !== undefined && KNOWN_LANGS.has(parent)) {
+    return `src/${parent}/${filename}`;
+  }
+  return `src/${filename}`;
+}
+
+/**
  * Construye un `Finding` sintetico desde una entry del ground truth.
  *
  * El benchmark NO corre los scouts reales (eso ya esta cubierto por los
@@ -167,11 +206,18 @@ export function remediationPass(
  * `ruleId`, `category`, `severity`, `title`, `message`, `location.path`,
  * `location.startLine`, `location.snippet` (cuando aplica).
  *
+ * El `location.path` se anonimiza para no delatar el contexto de testing
+ * (DG-084 A path leak fix). El `fingerprint` usa el path anonimizado por
+ * consistencia interna (el fingerprint sintetico no se persiste cross-runs
+ * porque `scanId: 'benchmark'` — los Findings reales del scan persisten
+ * con su path original, no se ven afectados).
+ *
  * El `snippet` se carga desde el fixture real si existe; si no, queda
  * undefined (el Brain Layer es robusto a ese caso — lo declara
  * "(not available)" en el prompt).
  */
 export function buildSyntheticFinding(entry: GroundTruthEntry, snippetText?: string): Finding {
+  const anonymizedPath = anonymizeFixturePath(entry.fixturePath);
   return {
     id: `bench-${entry.ruleId}-${String(entry.line)}`,
     scanId: 'benchmark',
@@ -182,12 +228,12 @@ export function buildSyntheticFinding(entry: GroundTruthEntry, snippetText?: str
     title: entry.description,
     message: entry.description,
     location: {
-      path: entry.fixturePath,
+      path: anonymizedPath,
       startLine: entry.line,
       ...(snippetText !== undefined ? { snippet: snippetText } : {}),
     },
     complianceRefs: [],
-    fingerprint: `${entry.fixturePath}:${entry.ruleId}:${String(entry.line)}`,
+    fingerprint: `${anonymizedPath}:${entry.ruleId}:${String(entry.line)}`,
     lifecycleState: 'new',
     createdAt: '2026-05-23T22:30:00.000Z',
   } satisfies Finding;

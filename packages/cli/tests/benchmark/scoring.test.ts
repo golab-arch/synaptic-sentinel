@@ -9,6 +9,7 @@ import type {
   TriageVerdict,
 } from '@synaptic-sentinel/core';
 import {
+  anonymizeFixturePath,
   buildSyntheticFinding,
   contextPass,
   remediationPass,
@@ -161,7 +162,9 @@ describe('buildSyntheticFinding', () => {
     expect(finding.ruleId).toBe('sentinel-js-eval-usage');
     expect(finding.category).toBe('SAST');
     expect(finding.severity).toBe('high');
-    expect(finding.location.path).toBe('packages/scouts/tests/x/eval.js');
+    // DG-084 A path leak fix: el path se anonimiza para no delatar el contexto
+    // de testing al LLM ("tests/...fixtures/vulnerable/" → "src/eval.js").
+    expect(finding.location.path).toBe('src/eval.js');
     expect(finding.location.startLine).toBe(6);
     expect(finding.scoutId).toBe('opengrep'); // mapping SAST -> opengrep
   });
@@ -176,5 +179,57 @@ describe('buildSyntheticFinding', () => {
     expect(buildSyntheticFinding({ ...entry, category: 'SCA' }).scoutId).toBe('trivy');
     expect(buildSyntheticFinding({ ...entry, category: 'IaC' }).scoutId).toBe('checkov');
     expect(buildSyntheticFinding({ ...entry, category: 'VibeCoded' }).scoutId).toBe('vibe-detect');
+  });
+
+  it('el fingerprint usa el path anonimizado (consistencia interna)', () => {
+    const finding = buildSyntheticFinding(entry);
+    expect(finding.fingerprint).toBe('src/eval.js:sentinel-js-eval-usage:6');
+  });
+});
+
+describe('anonymizeFixturePath (DG-084 A path leak fix)', () => {
+  it('preserva el lenguaje cuando el penultimo segmento es javascript/typescript/python', () => {
+    expect(
+      anonymizeFixturePath(
+        'packages/scouts/tests/opengrep/fixtures/vulnerable/javascript/eval-injection.js',
+      ),
+    ).toBe('src/javascript/eval-injection.js');
+    expect(
+      anonymizeFixturePath(
+        'packages/scouts/tests/opengrep/fixtures/vulnerable/typescript/dynamic-code.ts',
+      ),
+    ).toBe('src/typescript/dynamic-code.ts');
+    expect(
+      anonymizeFixturePath(
+        'packages/scouts/tests/opengrep/fixtures/vulnerable/python/code-injection.py',
+      ),
+    ).toBe('src/python/code-injection.py');
+  });
+
+  it('descarta el penultimo segmento cuando no es un lenguaje (secrets, iac, vibe-coded)', () => {
+    expect(anonymizeFixturePath('packages/scouts/tests/gitleaks/fixtures/secrets/leaked.js')).toBe(
+      'src/leaked.js',
+    );
+    expect(anonymizeFixturePath('packages/scouts/tests/checkov/fixtures/iac/Dockerfile')).toBe(
+      'src/Dockerfile',
+    );
+    expect(
+      anonymizeFixturePath('packages/scouts/tests/vibe-detect/fixtures/vibe-coded/config.py'),
+    ).toBe('src/config.py');
+  });
+
+  it('elimina las pistas tests/, fixtures/, vulnerable/ de cualquier path', () => {
+    const out = anonymizeFixturePath(
+      'packages/scouts/tests/opengrep/fixtures/vulnerable/javascript/xss.js',
+    );
+    expect(out).not.toContain('tests');
+    expect(out).not.toContain('fixtures');
+    expect(out).not.toContain('vulnerable');
+  });
+
+  it('maneja paths cortos sin crash', () => {
+    expect(anonymizeFixturePath('eval.js')).toBe('src/eval.js');
+    expect(anonymizeFixturePath('javascript/eval.js')).toBe('src/javascript/eval.js');
+    expect(anonymizeFixturePath('')).toBe('src/unknown');
   });
 });
