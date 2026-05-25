@@ -2688,5 +2688,49 @@ Each entry follows this structure:
 
 ---
 
+### Entry #92 - DG-082 A completado / Phase 12 CERRADA: SYNAPTIC Sentinel v0.3.3 PUBLICADO en el Visual Studio Marketplace
+
+```json
+{
+  "timestamp": "2026-05-25T00:45:00.000Z",
+  "cycle": 74,
+  "phase": 12,
+  "action": "PHASE_CLOSED",
+  "details": {
+    "DG-082-A-final": {
+      "title": "Cierre formal de Phase 12 (Marketplace launch v0.3.x) tras confirmacion del usuario de que el listing esta Public en el Visual Studio Marketplace. Primer release del producto en estar instalable directamente desde el marketplace (no solo via .vsix de GitHub Release).",
+      "user_validation_marketplace_public": "Usuario reporto: 'Publicado!'. El listing RealGoLab.synaptic-sentinel paso de status 'Verifying' a 'Public' en https://marketplace.visualstudio.com/manage/publishers/realgolab tras la verification automatica del marketplace (validacion del package + scanning + render de README/CHANGELOG + verificacion de assets). El producto es ahora discoverable por busqueda en el marketplace de Visual Studio Code y instalable via `code --install-extension RealGoLab.synaptic-sentinel`.",
+      "phase_12_summary": {
+        "weeks": "Cycle 73-74 (~3 días reales con 2 hotfixes intermedios)",
+        "sub_increments": [
+          "DG-080 B (Entry #85, Cycle 73) — Phase 12 opener: README polish multi-provider + docs/PUBLISHING.md runbook + .vsix re-empaquetado. PARCIAL — vsce publish diferido al usuario.",
+          "DG-079.1 hotfix (Entry #86, Cycle 73) — bundle externals fix: extension.cjs no inlinea SDKs cloud (DG-074 B settings-view import lo destapo). v0.3.1 producido. NO publicado a GitHub Release (esperaba user validation que descubrio DG-079.2).",
+          "DG-079.2 hotfix (Entry #87, Cycle 73) — bundle-safe createRequire en colony-db.ts: bundleSafeModuleUrl() helper con fallback a eval('__filename') en CJS bundle. v0.3.2 producido. User validation LOCAL OK pero...",
+          "DG-079.2 follow-up (Entry #88, Cycle 73) — v0.3.2 VALIDATED por user en VSCode real + tag v0.3.2 + GitHub Release publicado. Pero no probado contra marketplace upload.",
+          "DG-081 B (Entry #89, Cycle 73) — scripts/verify-extension-activate.mjs como step del verify gate. Cubre la clase de bug activate() runtime de DG-079.1+.2. No bump version.",
+          "DG-082.1 hotfix (Entry #90, Cycle 74) — publisher GoLab→RealGoLab tras Marketplace upload rechazo. v0.3.3 producido.",
+          "DG-082.1 follow-up (Entry #91, Cycle 74) — Marketplace upload ACEPTADO + tag v0.3.3 + GitHub Release publicado + v0.3.2 retro-marked SUPERSEDED. Awaiting Public.",
+          "DG-082 A final (Entry #92, this entry) — Marketplace listing PUBLIC confirmed by user. PHASE 12 CERRADA."
+        ],
+        "release_chain": "v0.3.0 (GitHub-only, broken activate) → v0.3.1 (GitHub-only attempt #1, broken activate residual) → v0.3.2 (GitHub-only, activate OK but publisher mismatch) → v0.3.3 (Marketplace PUBLIC) — 4 release artifacts, 3 of which are GitHub-only diagnostic evidence with SUPERSEDED disclaimers, 1 (v0.3.3) is the live Marketplace release.",
+        "marketplace_listing_url": "https://marketplace.visualstudio.com/items?itemName=RealGoLab.synaptic-sentinel",
+        "marketplace_identifier": "RealGoLab.synaptic-sentinel",
+        "deliverable_final": "v0.3.3 publicado en Visual Studio Marketplace con: 5 scouts deterministicos (OpenGrep SAST 17 reglas + Gitleaks Secrets + Trivy SCA + Checkov IaC + Vibe-Detect VibeCoded) + Brain Layer 3 agentes multi-provider (Triage/Context/Remediation contra 14+ providers via BYOK) + .sentinel/agents.yaml config + Settings panel in-IDE + cost visibility (summary + cost-history) + cross-provider benchmark plumbing (pnpm benchmark:run con verbose mode) + 6 documented Known Issues + verify gate fortalecido con headless extension-host simulator. Todo Apache-2.0."
+      },
+      "anti_optimismo_lesson_v3_consolidada": "La cadena historica completa de Phase 12 captura 4 release-blockers descubiertos en orden, cada uno por accion humana real distinta del ciclo anterior: (1) v0.3.0 activate() throws — descubierto por user install local; (2) v0.3.1 activate() throws otra vez — descubierto por user reinstall + test funcional; (3) v0.3.2 activate() OK pero marketplace rechaza publisher — descubierto por user upload manual al marketplace; (4) v0.3.3 OK end-to-end. El verify gate CUMULATIVO ahora cubre clase (1)+(2) via DG-081 B headless simulator. Sub-DG futuro abierto: verify-manifest.mjs para cubrir clase (3). Pero la lesson mas profunda es que el verify gate sera siempre CUMULATIVO, no preventivo completo — siempre puede existir una nueva clase de bug no descubierta hasta que una accion humana real la exponga. Por eso DG-081 B + verify-manifest.mjs son necesarios pero no suficientes: el contrato 'gate VS validation humana real' siempre va a dejar espacio para nuevas clases.",
+      "phase_status": "Phase 1-9 CERRADAS (Phase 11 CERRADA en Cycle 72; Phase 12 CERRADA en Cycle 74 con este entry). Phase 8 (Distribucion) sigue COMPLETA. Sin Phases abiertas. El producto esta en su primer estado 'fully shipped' del proyecto: tanto la cadena de release (GitHub Release con .vsix descargable) como el discovery channel principal (Marketplace public listing) operativos.",
+      "next_step_options_to_present": "Tres caminos validos para el proximo ciclo: (A) sub-DG nuevo verify-manifest.mjs — destila la lesson v3 a un step de gate permanente que valida el manifest contra valores esperados antes de cualquier vsce publish futuro. Cubre la clase de bug DG-082.1 que el headless simulator de DG-081 B no cubre. Acotado, ~1 ciclo. (B) intercalar sub-DG heredado de Phase 11: path leak fix en buildSyntheticFinding del benchmark (DG-077 hangover) — impacto en value-prop del benchmark, ~1 ciclo. (C) pausar el proyecto con v0.3.3 publicado en marketplace como hito final temporal. La recomendacion sera explicita en el proximo DG.",
+      "checks": "tag v0.3.3 pushed (DG-082.1 follow-up). gh release create v0.3.3 publicado (DG-082.1 follow-up, Latest). Marketplace listing confirmed Public por user. URL marketplace: https://marketplace.visualstudio.com/items?itemName=RealGoLab.synaptic-sentinel (no curl-verifiable desde este env por Norton TLS, pero el user lo confirma). Producto en estado 'fully shipped'.",
+      "commits_split": "este registro SYNAPTIC + actualizaciones de director files (DESIGN_DOC Phase 12 CERRADA + INTELLIGENCE roadmap update + CURRENT cycle bump + session strength bump) van en el commit docs siguiente. Update opcional al README raiz con marketplace badge + gh repo edit homepage tambien en el mismo commit. NO requiere feat commit (las acciones fueron gh release create + gh release edit + user marketplace upload — operaciones GitHub/Marketplace-side; el .vsix v0.3.3 ya esta committed via DG-082.1 Entry #90 commit feat 3a6f46d)."
+    }
+  },
+  "outcome": "PHASE_CLOSED_PRODUCT_LIVE_ON_MARKETPLACE",
+  "synapticStrength": 81,
+  "complianceScore": 100
+}
+```
+
+---
+
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-25T00:15:00.000Z*
+*Last Updated: 2026-05-25T00:45:00.000Z*

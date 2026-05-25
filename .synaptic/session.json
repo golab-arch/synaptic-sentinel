@@ -3,10 +3,10 @@
   "projectId": "sentinel-1779304140796",
   "projectName": "SENTINEL",
   "initializedAt": "2026-05-20T19:09:00.816Z",
-  "lastActivity": "2026-05-25T00:15:00.000Z",
-  "currentCycle": 74,
+  "lastActivity": "2026-05-25T00:45:00.000Z",
+  "currentCycle": 75,
   "currentPhase": 12,
-  "synapticStrength": 80,
+  "synapticStrength": 81,
   "enforcement": {
     "mode": "STRICT",
     "persistence": {
@@ -19,6 +19,8 @@
   "agentState": {
     "complianceScore": 100,
     "violationsCount": 0,
-    "successfulCycles": 74
+    "successfulCycles": 74,
+    "marketplacePublishedExtensionId": "RealGoLab.synaptic-sentinel",
+    "marketplacePublishedVersion": "0.3.3"
   }
 }
