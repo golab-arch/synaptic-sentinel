@@ -8,7 +8,19 @@ Third product in the SYNAPTIC family, sibling of [SYNAPTIC Expert](https://marke
 
 ## Status
 
-🚧 **Active development (pre-1.0).** Operational: the Scout Layer (5 scanners), the Coordinator, the reporters (JSON/HTML/SARIF tome), the CLI, and the VSCode extension; the Brain Layer with 3 agents (Triage / Context / Remediation, BYOK multi-provider). **All packages under Apache-2.0** — no premium tier, no proprietary gating. Marketplace listing: `RealGoLab.synaptic-sentinel` (v0.3.3+).
+[![Visual Studio Marketplace Version](https://img.shields.io/visual-studio-marketplace/v/RealGoLab.synaptic-sentinel?label=marketplace&color=blue)](https://marketplace.visualstudio.com/items?itemName=RealGoLab.synaptic-sentinel)
+[![Visual Studio Marketplace Installs](https://img.shields.io/visual-studio-marketplace/i/RealGoLab.synaptic-sentinel)](https://marketplace.visualstudio.com/items?itemName=RealGoLab.synaptic-sentinel)
+[![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue)](./LICENSE)
+
+🚀 **Live on the Visual Studio Marketplace** — [`RealGoLab.synaptic-sentinel`](https://marketplace.visualstudio.com/items?itemName=RealGoLab.synaptic-sentinel) (v0.3.3, Apache-2.0).
+
+🚧 **Active development (pre-1.0).** Operational: the Scout Layer (5 scanners), the Coordinator, the reporters (JSON/HTML/SARIF tome), the CLI, and the VSCode extension; the Brain Layer with 3 agents (Triage / Context / Remediation, BYOK multi-provider). **All packages under Apache-2.0** — no premium tier, no proprietary gating.
+
+Install in VSCode:
+
+```sh
+code --install-extension RealGoLab.synaptic-sentinel
+```
 
 ## How it works
 
