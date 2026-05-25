@@ -2627,5 +2627,37 @@ Each entry follows this structure:
 
 ---
 
+### Entry #90 - DG-082.1 hotfix: publisher GoLab→RealGoLab + bump 0.3.3 (Marketplace upload rechazo el v0.3.2 por mismatch)
+
+```json
+{
+  "timestamp": "2026-05-24T21:00:00.000Z",
+  "cycle": 74,
+  "phase": 12,
+  "action": "HOTFIX_APPLIED",
+  "details": {
+    "DG-082.1": {
+      "title": "Hotfix sub-DG dentro del flow de Phase 12 publish (DG-082 A): el Visual Studio Marketplace rechazo el upload de synaptic-sentinel-0.3.2.vsix con 'Publisher ID GoLab provided in the extension manifest should match the publisher ID RealGoLab under which you are trying to publish this extension'. Mismatch entre el publisher declarado en el manifest (GoLab, cosmetic change del DG-065 follow-up Entry #70) y el publisher real en Azure DevOps del usuario (RealGoLab, URL marketplace.visualstudio.com/manage/publishers/realgolab).",
+      "trigger": "Usuario intento upload manual al marketplace.visualstudio.com/manage/publishers/realgolab del .vsix v0.3.2 producido en DG-079.2. El marketplace UI rechazo el archivo con error explícito de Publisher ID mismatch. Anti-optimismo activo: el .vsix instalaba correctamente en VSCode local (DG-079.2 user-validated) pero la primera vez que paso por el path de marketplace publish revelo OTRO bug independiente — el publisher field del manifest no fue validado contra la realidad del Azure DevOps account.",
+      "root_cause": "DG-065 inicial (Cycle 58, 2026-05-22) seteo publisher: 'RealGoLab' (correcto, alineado con sibling SYNAPTIC Expert RealGoLab.synaptic-vscode-extension). Follow-up DG-065 (Entry #70, commit 9f44a82, 2026-05-23) cambio a publisher: 'GoLab' como brand alignment cosmetico tras feedback visual del usuario, asumiendo que esa string era valida sin validar contra el publisher real de Azure DevOps. Ese cambio quedo intacto a traves de DG-067 a DG-082 (8 ciclos). El error solo se manifesto al ejecutar el vsce publish real, que comparara el manifest contra el publisher resuelto del PAT del usuario.",
+      "fix_aplicado": "(1) packages/vscode-extension/package.json: 'publisher': 'GoLab' → 'RealGoLab' + 'version': '0.3.2' → '0.3.3'. (2) packages/vscode-extension/CHANGELOG.md: nueva entrada [0.3.3] - 2026-05-24 con Fixed section explicando el mismatch + el cambio del extension identifier de GoLab.synaptic-sentinel a RealGoLab.synaptic-sentinel + Notes con migration path para usuarios que instalaron localmente los .vsix viejos (uninstall del GoLab.synaptic-sentinel ID + reinstall desde marketplace del RealGoLab.synaptic-sentinel ID — VSCode no auto-upgrade entre IDs distintos). Tambien correccion en CHANGELOG entry [0.3.0] Notes que mencionaba 'GoLab.synaptic-sentinel' incorrectamente. (3) docs/PUBLISHING.md: 6 ocurrencias de 'GoLab.synaptic-sentinel' → 'RealGoLab.synaptic-sentinel'; 4 ocurrencias de version bump 0.3.2 → 0.3.3 (incluyendo el pre-flight checklist y el step de publish). (4) README.md raíz: 1 mention 'golab.synaptic-sentinel' → 'RealGoLab.synaptic-sentinel'.",
+      "verification_real": "pnpm -w run verify VERDE end-to-end: format:check + lint + build + test:unit (56 test files / 463 tests) + verify:extension-activate (✅ headless simulator: 7 commands + 13 subscriptions + activate() sin throw — el cambio de publisher field NO afecta el bundle runtime, era esperable). pnpm -F synaptic-sentinel package EXITOSO: synaptic-sentinel-0.3.3.vsix 3.13 MB / 1838 archivos. Manifest validado al extraer: publisher='RealGoLab' + name='synaptic-sentinel' + version='0.3.3' + license='Apache-2.0' + main='./dist/extension.cjs' + identifier final 'RealGoLab.synaptic-sentinel'. SHA-256: 79209754A9BAF1EE2242176019965534F74FFBB9FC588118F7AA4FD80C49D44C.",
+      "v030_v031_v032_status": "TODOS marcados como 'GitHub-only release artifacts'. Instalables localmente via .vsix con identifier GoLab.synaptic-sentinel pero NUNCA aceptados por el Visual Studio Marketplace. v0.3.3 es el PRIMER release marketplace-compatible. El usuario que instalo v0.3.2 localmente (test de DG-079.2) tiene que desinstalarlo manualmente antes de instalar v0.3.3 desde marketplace (VSCode no migra entre extension IDs distintos automaticamente).",
+      "pending_user_action": "Usuario reintenta el upload al marketplace.visualstudio.com/manage/publishers/realgolab con packages/vscode-extension/synaptic-sentinel-0.3.3.vsix. Si el upload tiene exito: yo procedo con annotated tag v0.3.3 + gh release create v0.3.3 con asset .vsix adjunto + bookkeeping follow-up que CIERRA Phase 12 completamente. Si el upload falla por OTRO motivo: nuevo sub-DG diagnostic.",
+      "checks": "format:check / lint / build / test:unit / verify:extension-activate VERDE. vsce package EXITOSO. Manifest validado al extraer — publisher='RealGoLab' confirmed.",
+      "out_of_scope_explicit": "(1) vsce publish ejecutado por Claude - sigue siendo accion del usuario con su PAT. (2) Tag v0.3.3 + GitHub Release - PENDING hasta confirmacion de upload exitoso al marketplace. (3) Sub-DG futuro: extender scripts/verify-extension-activate.mjs (o crear scripts/verify-manifest.mjs separado) con asserciones del manifest contra valores esperados — publisher='RealGoLab', name='synaptic-sentinel', license='Apache-2.0', engines.vscode minimum, etc. Es lo mismo que DG-081 B hizo para activation, pero para manifest validity. La leccion empirica: dos clases distintas de bugs (activate runtime + manifest validity) cada una necesita su propio gate. (4) Retro-actualizar release notes de v0.3.0, v0.3.1, v0.3.2 con disclaimers fuertes sobre el wrong-publisher — accion post-publish.",
+      "anti_optimismo_lesson_v3": "Tercer release-blocker en una semana — tercera leccion sobre el verify gate. La cadena historica completa: (a) v0.3.0 fallo en activate() con inlined SDKs (DG-079.1) - cubierto por DG-081 B; (b) v0.3.1 fallo en activate() con createRequire(undefined) (DG-079.2) - cubierto por DG-081 B; (c) v0.3.2 fallo en marketplace upload con publisher mismatch (DG-082.1) - NO cubierto por DG-081 B porque el headless simulator valida activation runtime, no manifest validity. CLASE de error: cada release-blocker fue descubierto solo por accion humana real (instalar el .vsix, intentar el upload), no por el verify automatico. PATRON: cada vez que el verify gate cubre una clase de bug, hay OTRA clase que la siguiente accion humana descubre. La leccion es: el verify gate es CUMULATIVO (cada clase descubierta agrega un step), no PREVENTIVO completo. Phase 12 va a cerrar con DOS gates fortalecidos (DG-081 B + sub-DG futuro de manifest validity) PERO con el reconocimiento explicito de que pueden existir mas clases de bugs no descubiertas hasta que una accion humana las exponga.",
+      "commits_split": "feat en commit a venir (4 archivos: package.json + CHANGELOG + docs/PUBLISHING.md + README.md raiz); este registro SYNAPTIC en el commit docs siguiente. NO se crea tag v0.3.3 ni GitHub Release hasta que el usuario confirme upload exitoso al marketplace.",
+      "phase_status": "Phase 11 sigue CERRADA. Phase 12 (Marketplace launch) sigue ABIERTA con DG-080 B PARCIAL + 3 hotfixes consecutivos en Cycle 73-74: DG-079.1 + DG-079.2 + DG-082.1. v0.3.3 es el primer artifact marketplace-compatible producido. El cierre completo de Phase 12 requiere upload exitoso al marketplace."
+    }
+  },
+  "outcome": "HOTFIX_APPLIED_PENDING_USER_MARKETPLACE_UPLOAD",
+  "synapticStrength": 80,
+  "complianceScore": 100
+}
+```
+
+---
+
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-24T20:30:00.000Z*
+*Last Updated: 2026-05-24T21:00:00.000Z*

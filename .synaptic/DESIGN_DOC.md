@@ -222,5 +222,5 @@ Items identificados para mejorar más adelante. No bloquean el MVP.
 ---
 
 *Created: 2026-05-20T19:09:00.816Z*
-*Last Updated: 2026-05-24T20:30:00.000Z*
+*Last Updated: 2026-05-24T21:00:00.000Z*
 *SYNAPTIC Protocol v3.0*
