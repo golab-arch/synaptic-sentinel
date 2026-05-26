@@ -2822,7 +2822,38 @@ Each entry follows this structure:
 }
 ```
 
+### Entry #96 - DG-086 A: gpt-5* reasoning tokens budget fix (cierra caveat 3/6 de v0.3.x Known Issues)
+
+```json
+{
+  "timestamp": "2026-05-26T09:25:00.000Z",
+  "cycle": 78,
+  "phase": null,
+  "action": "FEATURE_IMPLEMENTED",
+  "details": {
+    "DG-086-A": {
+      "title": "Bump del default `max_completion_tokens` de 1024 a 8192 SOLO para la familia gpt-5* en `OpenAiCompatibleLlmClient`. Cierra el caveat 'gpt-5* reasoning tokens consumen el budget de 1024 default y producen content=null' (100% errors observados en el 3rd benchmark run de DG-077). Mantiene el default cross-provider en 1024 para todos los demas (gpt-4o / Llama / Mistral / DeepSeek / etc).",
+      "scope": "Ciclo 78 atomico, sin Phases abiertas. NO toca el .vsix v0.3.3 (no bump version - sigue siendo el release publico marketplace). Toca exclusivamente 1 archivo de codigo + 1 archivo de tests. Resuelve un caveat de provider-coverage del Brain Layer, no un release-blocker.",
+      "root_cause_documentada": "En el 3rd benchmark run cloud-only (DG-077, post-fixes), gpt-5-nano devolvio choices[0].message.content=null en 100% de las invocaciones. Diagnostico via verbose probe: los reasoning tokens INTERNOS de gpt-5* (Chain-of-Thought elaboracion interna del modelo, no visible al caller) consumen el techo `max_completion_tokens` antes de que el modelo emita texto visible. Con el default 1024 (compartido cross-provider), 1024 tokens enteros se evaporan en reasoning, dejando 0 para content -> content=null. Para Anthropic Haiku / OpenAI gpt-4o-mini / DeepSeek v4-flash / etc. el reasoning interno es minimo o nulo, asi que 1024 alcanza con holgura para los prompts de triage/context/remediation (~512 tokens).",
+      "fix_implementado": "(1) NEW constante `DEFAULT_MAX_TOKENS_GPT5 = 8192` en packages/agents/src/openai-compatible-client.ts. (2) Logica del `completeWithUsage`: `const tokens = request.maxTokens ?? (isGpt5 ? DEFAULT_MAX_TOKENS_GPT5 : DEFAULT_MAX_TOKENS)`. Override del caller via `request.maxTokens` SIEMPRE se respeta (sin importar el model). Para el resto de providers, sigue el default cross-provider 1024. (3) Comment del adapter actualizado: ahora documenta TRES quirks de gpt-5* (max_completion_tokens vs max_tokens; rechazo de temperature=0; reasoning tokens consumen el budget) en vez de dos.",
+      "tests_agregados": "+2 unit tests (485 vs baseline 483; test existente cambio de assert 1024 -> 8192 sin agregar): (a) `respeta el maxTokens override del caller incluso para gpt-5*` — anti-regresion del bump (un caller que pasa `request.maxTokens: 512` debe recibir 512, no 8192); (b) `NO bumpea el default para non-gpt-5* models (regresion guard DG-086 A)` — verifica que gpt-4o-mini sigue con `max_tokens: 1024` y `max_completion_tokens: undefined`. Test existente actualizado: el assert `expect(body['max_completion_tokens']).toBe(1024)` cambia a `.toBe(8192)` con comentario que cita DG-086 A + root cause.",
+      "decisiones_de_diseno": "(a) Constante 8192 (no 4096 ni 16384): 4096 ya supera el techo observado empiricamente del reasoning (en el PILOT no medimos cuanto exactamente, pero los prompts ocupan ~512, asi que con 8192 quedan ~7K para reasoning + 1K para content emitido — margen confortable); 16384 seria over-allocation que aunque no afecta el cost real (el provider cobra solo por tokens GENERADOS, no por el cap), si afecta el budget defense (anti-rogue agent) — un cap mas amplio amplia el espacio del peor-caso. 8192 es el sweet spot empirico-defensivo. (b) Aplicar SOLO a gpt-5*: el problema es especifico de la familia (gpt-5 son los unicos modelos OpenAI con reasoning interno significativo at this date). Los demas providers no se ven afectados por la regresion. (c) NO agregar flag CLI `--max-tokens` en este DG: el sub-DG dice '(opcional, mismo ciclo)' pero anti-optimismo dicta cerrar lo prometido sin inflar scope; si futuros benchmarks reales muestran que 8192 sigue insuficiente, sera un sub-DG de seguimiento que expone el flag.",
+      "smoke_test_passed": "pnpm verify VERDE end-to-end: 56 test files / 485 tests pasados (+2 vs baseline 483) + ambos gates OK (verify-extension-activate 7 commands + 13 subscriptions; verify-manifest 18 checks). Format/lint clean.",
+      "validacion_empirica_diferida_honestamente": "El IMPACTO REAL del fix (gpt-5-nano deja de devolver content=null) SOLO se puede medir corriendo el benchmark contra OpenAI con la API key del usuario y costo asociado. Eso queda diferido honestamente. Lo afirmable ahora: el bug-cause empirico documentado (reasoning tokens consumen el budget) se elimina al ampliar el budget a 8192 — el modelo dispone de margen suficiente para reasoning + content. Lo NO afirmable: que 8192 sea LITERALMENTE suficiente en todos los casos (un prompt mas largo + reasoning mas profundo podria exhausting el cap). El caveat del CHANGELOG se reescribira a 'gpt-5* reasoning tokens budget bumped to 8192 in DG-086 A; empirical validation deferred' en el proximo release.",
+      "cost_implication_documentada": "El bump del cap NO duplica/octuplica el cost real. El provider OpenAI cobra por tokens generados (input + output), no por el cap configurado. La unica diferencia practica: si una invocacion real eventualmente USA 8192 tokens, el cost de esa invocacion sera ~8x mas (vs 1024). Pero en la mayoria de invocaciones reales el output sigue siendo ~256-512 tokens visible (los reasoning son ~1-2K), asi que el bump amplia el peor caso pero no el caso tipico. Documentado en el comment del adapter.",
+      "phase_status": "Sin Phases abiertas. SYNAPTIC Sentinel v0.3.3 sigue live en VSCode Marketplace. Verify gate cumulativo intacto (2 steps). Caveats heredados de v0.3.x: **3 abiertos** (era 4; DG-086 A cerro gpt-5 reasoning tokens). Quedan: Ollama RAM con modelos pesados, free tier quotas Groq+Gemini, ground truth ai-draft. successfulCycles: 78. synapticStrength: 85.",
+      "next_step_options_to_present": "Tres caminos validos para Cycle 79: (A) sub-DG **Ollama RAM warning + docs** — el caveat documenta que Gemma 4 (9.6 GB) y gpt-oss:20b (13 GB) saturaron RAM tras 2 horas. Settings panel del VSCode extension muestra tamanio del modelo seleccionado + warning visual si >5 GB; docs README de la extension agrega tabla recomendada con modelos ≤3 GB. ~1 ciclo. (B) sub-DG **free tier quotas handling** — el caveat documenta que Groq 100K TPD y Gemini RPM se exhaustaron tras 2 benchmarks. Agregar deteccion de error 429 con backoff exponencial + marker 'quota-exhausted' en el reporte del benchmark. ~1 ciclo. (C) pausar el proyecto con SYNAPTIC Sentinel v0.3.3 live + verify gate fortalecido + 3 de 6 caveats cerrados como hito final temporal. La recomendacion sera explicita en el proximo DG.",
+      "checks": "pnpm verify VERDE (485 tests + 2 gates). Working tree DIRTY: 2 archivos modificados (src/openai-compatible-client.ts + tests/openai-compatible-client.test.ts). Listo para feat commit + docs(synaptic) commit + push.",
+      "commits_split": "feat(agents): DG-086 A — gpt-5* reasoning tokens budget bumped to 8192. docs(synaptic): registro DG-086 A — Entry #96 + actualizaciones de director files."
+    }
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 85,
+  "complianceScore": 100
+}
+```
+
 ---
 
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-26T09:10:00.000Z*
+*Last Updated: 2026-05-26T09:25:00.000Z*
