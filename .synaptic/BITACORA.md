@@ -2989,7 +2989,47 @@ Each entry follows this structure:
 }
 ```
 
+### Entry #101 - DG-091 A: release v0.3.5 con el provider selector UI (DG-090 A); GitHub Release publicado, vsce publish queda al usuario
+
+```json
+{
+  "timestamp": "2026-05-26T13:10:00.000Z",
+  "cycle": 83,
+  "phase": null,
+  "action": "RELEASE_PUBLISHED",
+  "details": {
+    "DG-091-A": {
+      "title": "Release v0.3.5 con el fix UX del DG-090 A (provider selector UI editable). Cierra el 'loop publicar' del feedback del usuario: el reporte UX vino directamente de usar v0.3.4 instalada, y v0.3.5 empaqueta el fix en un release real. GitHub Release publicado; vsce publish al Marketplace queda al usuario con su PAT (cierre PARCIAL, mismo patron operacional que DG-089 A / DG-082 A / DG-080 B).",
+      "scope": "Ciclo 83 atomico, sin Phases abiertas. Bump version + CHANGELOG entry + pnpm verify + vsce package + annotated tag + GitHub Release. NO toca codigo (todo el fix UX ya fue mergeado en main en DG-090 A). El verify gate cumulativo (verify-extension-activate + verify-manifest, DG-081 B + DG-083 A) confirmo la viabilidad del release y el bump semver.",
+      "release_artifacts": {
+        "version_bump": "0.3.4 → 0.3.5",
+        "vsix_path": "packages/vscode-extension/synaptic-sentinel-0.3.5.vsix",
+        "vsix_size": "3.14 MB",
+        "vsix_files": 1838,
+        "vsix_sha256": "89c749d15f09c476c76fe222c746d6057c6ffe2d57e6c58f10968883886ff4b2",
+        "annotated_tag": "v0.3.5 pushed to origin",
+        "github_release_url": "https://github.com/golab-arch/synaptic-sentinel/releases/tag/v0.3.5",
+        "marketplace_listing": "RealGoLab.synaptic-sentinel (live sigue siendo v0.3.3 hasta vsce publish del usuario; el Marketplace puede saltar de v0.3.3 directamente a v0.3.5 — semver permite skip)"
+      },
+      "changelog_entry_0_3_5": "Entry [0.3.5] - 2026-05-26 agregada al CHANGELOG con 3 secciones: Added (Editable provider/model selector per agent — descripcion detallada del select + input + Apply button + filtering + currentProvider always included + helpful hint), Notes (only DG-090 A feature; agents.yaml format unchanged; mergeAgentConfig validation defensiva; anti-optimismo sobre tests de renderer + helper vs flow stateful end-to-end que requiere F5), Known Issues (1 abierto: ground truth ai-draft, sin cambios desde v0.3.4).",
+      "verify_gate_VERDE_post_bump": "pnpm verify VERDE end-to-end tras el bump: 57 test files / 515 tests pasados + verify-extension-activate OK (7 commands + 13 subscriptions; el bump version no afecta el bundle runtime) + verify-manifest OK (18 checks — el gate efectivamente verifico el bump semver 0.3.4 → 0.3.5). Format/lint clean.",
+      "vsce_package_exitoso": "pnpm -F synaptic-sentinel package produjo synaptic-sentinel-0.3.5.vsix sin errores ni warnings vsce-side. 1838 archivos / 3.14 MB - mismo orden de magnitud que v0.3.4 (3.13 MB) porque los cambios fueron solo de UX renderer/handler dentro del bundle existente. Manifest dentro del .vsix valido: version 0.3.5 + publisher RealGoLab + license Apache-2.0 + identifier final RealGoLab.synaptic-sentinel.",
+      "github_release_publicado": "gh release create v0.3.5 ejecutado exitosamente: asset .vsix descargable, release notes basadas en el CHANGELOG entry [0.3.5] con resumen + Added + Notes + Known Issues + Verification (515 tests + 2 gates) + Marketplace note explicando el cierre PARCIAL + nota sobre el skip semver (v0.3.3 directamente a v0.3.5 es legitimo). isDraft=false. URL: https://github.com/golab-arch/synaptic-sentinel/releases/tag/v0.3.5.",
+      "marketplace_handoff_doble_pendiente": "vsce publish al Visual Studio Marketplace NO ejecutado por mi en este DG. AHORA HAY DOS releases GitHub-only pendientes de marketplace upload: v0.3.4 (publicado en DG-089 A) y v0.3.5 (publicado en este DG-091 A). El usuario puede ejecutar vsce publish de v0.3.5 directamente — el Marketplace acepta el skip de v0.3.4 (semver permite versiones intermedias sin publicar). Mismo patron operacional de DG-080 B (preparacion marketplace para v0.3.0 — publish difirido) y DG-082 A (upload manual de v0.3.3). El listing live en el marketplace SIGUE siendo RealGoLab.synaptic-sentinel v0.3.3.",
+      "anti_optimismo_ilusorio_explicito": "Anti-optimismo activo: este DG ENTREGA el GitHub Release pero NO el marketplace upload. La distincion es honesta porque el marketplace upload tiene un riesgo no-cero de descubrir una clase nueva de bug (DG-082.1 demostro que el upload manual puede revelar mismatches no detectables por gates locales). Verify gate cumulativo cubre dos clases retroactivamente (activate runtime + manifest validity) pero NO garantiza que no exista una clase 3 todavia no descubierta. El proximo paso requiere accion humana real del usuario para validar empiricamente que el marketplace acepta el v0.3.5. Adicionalmente: el flow stateful end-to-end del DG-090 A (usuario abre panel → Apply → yaml escrito → next triage usa nuevo provider) SOLO se valida con la instalacion local del .vsix v0.3.5 (mismo patron que la validacion empirica diferida documentada en DG-090 A).",
+      "phase_status": "Sin Phases abiertas. SYNAPTIC Sentinel v0.3.5 en GitHub Release (publico, descargable); v0.3.3 sigue siendo el live en marketplace hasta vsce publish del usuario (v0.3.4 o v0.3.5 — su eleccion). Verify gate cumulativo intacto. Caveats heredados de v0.3.x: **1 abierto** (ground truth ai-draft). 5 de 6 originales cerrados = 83% del backlog. successfulCycles: 83. synapticStrength: 90.",
+      "next_step_options_to_present": "Tres caminos validos para Cycle 84: (A) sub-DG **ground truth review structure** — el ULTIMO caveat heredado de v0.3.x. Yo no puedo HACER la revision AppSec humana, pero puedo dejar el caveat estructurado: el schema reviewedBy ya soporta 'ai-draft'|'human-confirmed'|'human-corrected' (DG-075 lo definio); falta documentar el flujo de revision en tests/benchmark/README.md + reportar el mix en el benchmark + (opcional) CLI helper synaptic-sentinel review-ground-truth para flag-ear entries via terminal. Deja el ULTIMO caveat estructurado = 100% del backlog tratado (sea cerrado o estructurado). ~1 ciclo. (B) sub-DG **sidebar webview Cost Visibility** en VSCode extension (Option C de DG-078 deferido) — mostrar el cost summary del CLI triage como webview persistente en el sidebar; bounded scope similar a DG-087 A. ~1-2 ciclos. (C) pausar el proyecto con SYNAPTIC Sentinel v0.3.5 en GitHub Release + 5/6 caveats cerrados (83%) + verify gate fortalecido + momentum de 9 sub-DGs consecutivos (DG-083 → DG-091) + 2 releases reales publicados como hito final temporal. La recomendacion sera explicita en el proximo DG.",
+      "checks": "pnpm verify VERDE (515 tests + 2 gates). vsce package exitoso. Annotated tag v0.3.5 pushed. GitHub Release v0.3.5 publicado con asset .vsix. Working tree DIRTY: 5 archivos directores synaptic pendientes de commit (bookkeeping).",
+      "commits_split": "feat(release) commit ya ejecutado en este DG (bump + CHANGELOG entry). docs(synaptic): registro DG-091 A — Entry #101 + actualizaciones de director files."
+    }
+  },
+  "outcome": "RELEASE_PUBLISHED",
+  "synapticStrength": 90,
+  "complianceScore": 100
+}
+```
+
 ---
 
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-26T12:35:00.000Z*
+*Last Updated: 2026-05-26T13:10:00.000Z*
