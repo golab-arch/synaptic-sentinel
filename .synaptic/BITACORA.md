@@ -3092,7 +3092,47 @@ Each entry follows this structure:
 }
 ```
 
+### Entry #104 - DG-094 A: release v0.3.6 con DG-092 A (diagnóstico defensivo) + DG-093 A (unificación naming `.sentinel/`) acumulados; GitHub Release publicado, vsce publish queda al usuario
+
+```json
+{
+  "timestamp": "2026-05-26T16:15:00.000Z",
+  "cycle": 86,
+  "phase": null,
+  "action": "RELEASE_PUBLISHED",
+  "details": {
+    "DG-094-A": {
+      "title": "Release v0.3.6 con los 2 fixes estructurales acumulados desde v0.3.5: DG-092 A (diagnóstico defensivo en ColonyDb.open) + DG-093 A (unificación de naming workspace-level a `.sentinel/` con dual-read backward-compat). Cierra el 'loop publicar' del feedback del usuario que originó esta cadena (DG-092 A vino de un bug real reportado; DG-093 A de una pregunta UX legítima). GitHub Release publicado; vsce publish al Marketplace queda al usuario con su PAT (cierre PARCIAL, mismo patrón operacional que DG-089 A / DG-091 A / DG-082 A / DG-080 B).",
+      "scope": "Ciclo 86 atómico, sin Phases abiertas. Bump version + CHANGELOG entry + pnpm verify + vsce package + annotated tag + GitHub Release. NO toca código (todos los fixes ya fueron mergeados en main en DG-092 A + DG-093 A). El verify gate cumulativo (verify-extension-activate + verify-manifest, DG-081 B + DG-083 A) confirmó la viabilidad del release y el bump semver.",
+      "release_artifacts": {
+        "version_bump": "0.3.5 → 0.3.6",
+        "vsix_path": "packages/vscode-extension/synaptic-sentinel-0.3.6.vsix",
+        "vsix_size": "3.14 MB",
+        "vsix_files": 1838,
+        "vsix_sha256": "f99bf452c02b5d1b3bb7d1dbbb9f441363c447308b8790addef77af8c021eb08",
+        "annotated_tag": "v0.3.6 pushed to origin",
+        "github_release_url": "https://github.com/golab-arch/synaptic-sentinel/releases/tag/v0.3.6",
+        "marketplace_listing": "RealGoLab.synaptic-sentinel (live sigue siendo v0.3.3 hasta vsce publish del usuario; el Marketplace puede saltar de v0.3.3 directamente a v0.3.6 — semver permite skip de v0.3.4 + v0.3.5 intermedios)"
+      },
+      "changelog_entry_0_3_6": "Entry [0.3.6] - 2026-05-26 agregada al CHANGELOG con 4 secciones: Added (ColonyDb.open actionable error messages — DG-092 A: pre-flight de directorio parent + wrap del SQLite error con las 3 causas comunes lockfile/AV/permisos + original error preservado); Changed (workspace data directory unified to `.sentinel/` — DG-093 A: colony.db ahora en `<workspace>/.sentinel/colony.db`, mismo namespace que `.sentinel/agents.yaml`; backward-compat dual-read sin migrar archivo; per-user scanner cache `~/.synaptic-sentinel/scanners/` queda intacto); Notes (helper `resolveColonyDbPath` exportado para integraciones third-party; `.gitignore` updated en docs/colony-db.md; anti-optimismo sobre 524 unit tests + helper puro 100% covered + integration test del dual-read en mark-fp pero no en los otros 3 commands → riesgo bajo asumido por mismo helper compartido); Known Issues (1 abierto sin cambios: ground truth ai-draft).",
+      "verify_gate_VERDE_post_bump": "pnpm verify VERDE end-to-end tras el bump: 58 test files / 524 tests pasados + verify-extension-activate OK (7 commands + 13 subscriptions; el bump version no afecta el bundle runtime) + verify-manifest OK (18 checks — el gate efectivamente verificó el bump semver 0.3.5 → 0.3.6). Format/lint clean.",
+      "vsce_package_exitoso": "pnpm -F synaptic-sentinel package produjo synaptic-sentinel-0.3.6.vsix sin errores ni warnings vsce-side. 1838 archivos / 3.14 MB - mismo orden de magnitud que v0.3.5 (3.14 MB) porque los cambios fueron internos al bundle (helper en core + 4 commands del CLI + tests; ninguno cambia el tamaño del bundle de forma significativa). Manifest dentro del .vsix validado: version 0.3.6 + publisher RealGoLab + license Apache-2.0 + identifier final RealGoLab.synaptic-sentinel.",
+      "github_release_publicado": "gh release create v0.3.6 ejecutado exitosamente: asset .vsix descargable, release notes basadas en el CHANGELOG entry [0.3.6] con resumen + Added + Changed + Notes + Known Issues + Verification (524 tests + 2 gates) + Marketplace note explicando el cierre PARCIAL + nota sobre el skip semver (v0.3.3 a v0.3.6 directamente legítimo). isDraft=false. URL: https://github.com/golab-arch/synaptic-sentinel/releases/tag/v0.3.6.",
+      "marketplace_handoff_triple_pendiente": "vsce publish al Visual Studio Marketplace NO ejecutado por mí en este DG. AHORA HAY TRES releases GitHub-only pendientes de marketplace upload: v0.3.4 (DG-089 A), v0.3.5 (DG-091 A), v0.3.6 (este DG-094 A). El usuario puede ejecutar vsce publish de v0.3.6 directamente — el Marketplace acepta el skip de v0.3.4 + v0.3.5. Mismo patrón operacional de DG-080 B / DG-082 A / DG-089 A / DG-091 A. El listing live en el marketplace SIGUE siendo RealGoLab.synaptic-sentinel v0.3.3.",
+      "anti_optimismo_ilusorio_explicito": "Anti-optimismo activo: este DG ENTREGA el GitHub Release pero NO el marketplace upload. La distincion es honesta porque el marketplace upload tiene un riesgo no-cero de descubrir una clase nueva de bug (DG-082.1 demostró que el upload manual puede revelar mismatches no detectables por gates locales). Verify gate cumulativo cubre dos clases retroactivamente (activate runtime + manifest validity) pero NO garantiza que no exista una clase 3 todavía no descubierta. Adicionalmente: la migración de `.synaptic-sentinel/colony.db` → `.sentinel/colony.db` con dual-read del DG-093 A solo se valida con la instalación local del v0.3.6 — el helper puro tiene cobertura completa de unit tests, pero los 3 commands (scan / triage / cost-history) distintos a mark-fp NO tienen integration test específico del dual-read end-to-end (mismo helper compartido → riesgo bajo asumido, no eliminado).",
+      "phase_status": "Sin Phases abiertas. SYNAPTIC Sentinel v0.3.6 en GitHub Release (público, descargable); v0.3.3 sigue siendo el live en marketplace hasta vsce publish del usuario. Verify gate cumulativo intacto. Caveats heredados de v0.3.x: **1 abierto** (ground truth ai-draft, sin cambios). 5 de 6 originales cerrados = 83% del backlog. successfulCycles: 86. synapticStrength: 93.",
+      "next_step_options_to_present": "Tres caminos válidos para Cycle 87: (A) sub-DG **ground truth review structure** — el ÚLTIMO caveat heredado de v0.3.x Known Issues. Yo no puedo HACER la revisión AppSec humana, pero puedo dejar el caveat estructurado: el schema reviewedBy ya soporta 'ai-draft'|'human-confirmed'|'human-corrected' (DG-075 lo definió); falta documentar el flujo de revisión en tests/benchmark/README.md + reportar el mix en el benchmark + (opcional) CLI helper synaptic-sentinel review-ground-truth para flag-ear entries via terminal. Deja el ÚLTIMO caveat estructurado = 100% del backlog tratado. ~1 ciclo. (B) sub-DG **sidebar webview Cost Visibility** en VSCode extension (Option C de DG-078 deferido) — mostrar el cost summary del CLI triage como webview persistente en el sidebar; bounded scope similar a DG-087 A. ~1-2 ciclos. (C) pausar el proyecto con SYNAPTIC Sentinel v0.3.6 en GitHub Release + 5/6 caveats cerrados (83%) + verify gate fortalecido + momentum de 12 sub-DGs consecutivos (DG-083 → DG-094) + 3 releases reales publicados (v0.3.4, v0.3.5, v0.3.6) como hito final temporal. La recomendación será explícita en el próximo DG.",
+      "checks": "pnpm verify VERDE (524 tests + 2 gates). vsce package exitoso. Annotated tag v0.3.6 pushed. GitHub Release v0.3.6 publicado con asset .vsix. Working tree DIRTY: 5 archivos directores synaptic pendientes de commit (bookkeeping).",
+      "commits_split": "feat(release) commit ya ejecutado en este DG (bump + CHANGELOG entry [0.3.6]). docs(synaptic): registro DG-094 A — Entry #104 + actualizaciones de director files."
+    }
+  },
+  "outcome": "RELEASE_PUBLISHED",
+  "synapticStrength": 93,
+  "complianceScore": 100
+}
+```
+
 ---
 
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-26T15:30:00.000Z*
+*Last Updated: 2026-05-26T16:15:00.000Z*
