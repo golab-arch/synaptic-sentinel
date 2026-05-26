@@ -2917,7 +2917,47 @@ Each entry follows this structure:
 }
 ```
 
+### Entry #99 - DG-089 A: release v0.3.4 con 6 fixes acumulados (DG-083 A → DG-088 A); GitHub Release publicado, vsce publish queda al usuario
+
+```json
+{
+  "timestamp": "2026-05-26T11:00:00.000Z",
+  "cycle": 81,
+  "phase": null,
+  "action": "RELEASE_PUBLISHED",
+  "details": {
+    "DG-089-A": {
+      "title": "Release v0.3.4 con los 6 fixes acumulados desde DG-083 A: cierra el 'loop publicar' tras 6 sub-DGs consecutivos cerrando caveats. El .vsix queda como GitHub Release público; vsce publish al Marketplace queda al usuario con su PAT (mismo patrón que DG-082 A / DG-080 B - cierre PARCIAL con hand-off operacional). 5 de los 6 caveats originales heredados de v0.3.0 Known Issues ahora cerrados (83% del backlog resuelto).",
+      "scope": "Ciclo 81 atomico, sin Phases abiertas. Bump version + CHANGELOG entry + vsce package + annotated tag + GitHub Release. NO toca código de los packages (todos los fixes ya fueron mergeados en main en DG-083 A → DG-088 A). El verify gate cumulativo (verify-extension-activate + verify-manifest, DG-081 B + DG-083 A) confirmó la viabilidad del release.",
+      "release_artifacts": {
+        "version": "0.3.3 → 0.3.4",
+        "vsix_path": "packages/vscode-extension/synaptic-sentinel-0.3.4.vsix",
+        "vsix_size": "3.13 MB",
+        "vsix_files": 1838,
+        "vsix_sha256": "c00cf2cddf5b05c9c40bc19191aa2aa421ed48283ca08100ea553732de16bce0",
+        "annotated_tag": "v0.3.4 pushed to origin",
+        "github_release_url": "https://github.com/golab-arch/synaptic-sentinel/releases/tag/v0.3.4",
+        "marketplace_listing": "RealGoLab.synaptic-sentinel (la version live sigue siendo v0.3.3 hasta que el usuario ejecute vsce publish con su PAT)"
+      },
+      "changelog_entry_0_3_4": "Entry [0.3.4] - 2026-05-26 agregada al CHANGELOG con 4 secciones: Added (verify-manifest gate DG-083 A + Ollama heavy warning DG-087 A + real LLM usage DG-085 A + QuotaExhaustedError DG-088 A); Changed (gpt-5* reasoning tokens default DG-086 A + benchmark anonymized paths DG-084 A); Known Issues (1 abierto: ground truth ai-draft, era 6 en v0.3.0); Notes (verify gate cumulativo + anti-optimismo lesson).",
+      "verify_gate_VERDE_post_bump": "pnpm verify VERDE end-to-end tras el bump: 56 test files / 502 tests pasados + verify-extension-activate OK (7 commands + 13 subscriptions; el bump version no afecta el bundle runtime) + verify-manifest OK (18 checks, incluyendo version semver que ahora reporta 0.3.4 - el gate efectivamente verifico el bump). Format/lint clean.",
+      "vsce_package_exitoso": "pnpm -F synaptic-sentinel package produjo synaptic-sentinel-0.3.4.vsix sin errores ni warnings vsce-side. 1838 archivos / 3.13 MB - mismo orden de magnitud que v0.3.3 (3.13 MB) porque los cambios fueron internos a los paquetes ya bundleados (LlmClient contract, adapters, runner, reporter). Manifest dentro del .vsix valido: version 0.3.4 + publisher RealGoLab + license Apache-2.0 + identifier final RealGoLab.synaptic-sentinel.",
+      "github_release_publicado": "gh release create v0.3.4 ejecutado exitosamente: asset .vsix descargable, release notes basadas en el CHANGELOG entry [0.3.4] con resumen + Added + Changed + Known Issues + Verification (502 tests + 2 gates) + Marketplace note explicando el cierre PARCIAL. isDraft=false. URL: https://github.com/golab-arch/synaptic-sentinel/releases/tag/v0.3.4. GitHub expone el SHA-256 del asset automaticamente via 'digest'.",
+      "marketplace_handoff": "vsce publish al Visual Studio Marketplace NO ejecutado por mi en este DG - el usuario lo ejecutara manualmente con su PAT siguiendo docs/PUBLISHING.md. Mismo patron operacional de DG-080 B (preparacion marketplace para v0.3.0 - publish difirido) y DG-082 A (upload manual de v0.3.3). El listing live en el marketplace SIGUE siendo RealGoLab.synaptic-sentinel v0.3.3 hasta que el usuario ejecute el upload; cuando lo haga, una sola Entry follow-up cierra el ciclo completamente (no requiere nuevo DG - continuacion operacional).",
+      "anti_optimismo_ilusorio_explicito": "Anti-optimismo activo: este DG ENTREGA el GitHub Release pero NO el marketplace upload. La distincion es honesta porque el marketplace upload tiene un riesgo no-cero de descubrir una nueva clase de bug (DG-082.1 demostro que el upload manual puede revelar mismatches no detectables por gates locales). El verify gate cumulativo cubre dos clases de bug retroactivamente (activate runtime + manifest validity) pero NO garantiza que no exista una clase 3 todavia no descubierta. El proximo paso requiere accion humana real del usuario para validar empiricamente que el marketplace acepta el v0.3.4. Si lo acepta, follow-up Entry cierra el ciclo; si no, nuevo sub-DG diagnostic.",
+      "phase_status": "Sin Phases abiertas. SYNAPTIC Sentinel v0.3.4 en GitHub Release (publico, descargable); v0.3.3 sigue siendo el live en marketplace hasta vsce publish del usuario. Verify gate cumulativo intacto. Caveats heredados de v0.3.x: **1 abierto** (ground truth ai-draft). 5 de 6 originales cerrados = 83% del backlog. successfulCycles: 81. synapticStrength: 88.",
+      "next_step_options_to_present": "Tres caminos validos para Cycle 82: (A) sub-DG **ground truth review structure** — yo no puedo HACER la revision AppSec humana, pero puedo dejar el caveat estructurado: el schema reviewedBy ya soporta 'ai-draft'|'human-confirmed'|'human-corrected' (DG-075 lo definio); falta documentar el flujo de revision en tests/benchmark/README.md + reportar el mix en el benchmark + (opcional) CLI helper synaptic-sentinel review-ground-truth para flag-ear entries via terminal. Deja el ULTIMO caveat de v0.3.x estructurado para una eventual revision humana = 100% del backlog 'estructurado'. ~1 ciclo. (B) sub-DG **sidebar webview Cost Visibility** en VSCode extension (Option C de DG-078 deferido) — mostrar el cost summary del CLI triage como webview persistent en el sidebar; bounded scope similar a DG-087 A. ~1-2 ciclos. (C) pausar el proyecto con SYNAPTIC Sentinel v0.3.4 en GitHub Release + 5/6 caveats cerrados (83%) + verify gate fortalecido + momentum de 7 sub-DGs consecutivos como hito final temporal. La recomendacion sera explicita en el proximo DG.",
+      "checks": "pnpm verify VERDE (502 tests + 2 gates). vsce package exitoso. Annotated tag v0.3.4 pushed. GitHub Release v0.3.4 publicado con asset .vsix (SHA-256 verificable). Working tree DIRTY: 5 archivos directores synaptic pendientes de commit (bookkeeping).",
+      "commits_split": "feat(release) commit ya ejecutado en este DG (bump + CHANGELOG + 6 fixes acumulados). docs(synaptic): registro DG-089 A — Entry #99 + actualizaciones de director files."
+    }
+  },
+  "outcome": "RELEASE_PUBLISHED",
+  "synapticStrength": 88,
+  "complianceScore": 100
+}
+```
+
 ---
 
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-26T10:30:00.000Z*
+*Last Updated: 2026-05-26T11:00:00.000Z*
