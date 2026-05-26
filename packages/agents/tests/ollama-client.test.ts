@@ -4,6 +4,7 @@ import {
   isOllamaAvailable,
   listOllamaModels,
   parseOllamaResponse,
+  parseOllamaUsage,
 } from '../src/ollama-client.js';
 
 /** Construye un payload `/api/chat` valido con el texto dado en message.content. */
@@ -218,5 +219,47 @@ describe('listOllamaModels', () => {
       )) as typeof fetch;
     const models = await listOllamaModels(undefined, fakeFetch);
     expect(models).toEqual([]);
+  });
+});
+
+describe('parseOllamaUsage (DG-085 A)', () => {
+  it('extrae prompt_eval_count y eval_count del payload', () => {
+    expect(parseOllamaUsage({ prompt_eval_count: 200, eval_count: 80 })).toEqual({
+      inputTokens: 200,
+      outputTokens: 80,
+    });
+  });
+
+  it('devuelve null si faltan los campos', () => {
+    expect(parseOllamaUsage({ message: { role: 'assistant', content: 'x' } })).toBeNull();
+  });
+
+  it('devuelve null si los counts no son numeros finitos no negativos', () => {
+    expect(parseOllamaUsage({ prompt_eval_count: 'a', eval_count: 1 })).toBeNull();
+    expect(parseOllamaUsage({ prompt_eval_count: -5, eval_count: 1 })).toBeNull();
+    expect(parseOllamaUsage({ prompt_eval_count: NaN, eval_count: 1 })).toBeNull();
+  });
+});
+
+describe('OllamaLlmClient.completeWithUsage (DG-085 A)', () => {
+  it('devuelve text + usage real extraido del payload /api/chat', async () => {
+    const fakeFetch = ((): Promise<Response> =>
+      Promise.resolve(
+        new Response(
+          JSON.stringify({
+            model: 'mistral-nemo:12b',
+            created_at: '2026-05-26T18:00:00Z',
+            message: { role: 'assistant', content: 'respuesta' },
+            done: true,
+            prompt_eval_count: 312,
+            eval_count: 64,
+          }),
+          { status: 200, headers: { 'content-type': 'application/json' } },
+        ),
+      )) as typeof fetch;
+    const client = new OllamaLlmClient({ fetchImpl: fakeFetch });
+    const result = await client.completeWithUsage({ system: 's', user: 'u' });
+    expect(result.text).toBe('respuesta');
+    expect(result.usage).toEqual({ inputTokens: 312, outputTokens: 64 });
   });
 });

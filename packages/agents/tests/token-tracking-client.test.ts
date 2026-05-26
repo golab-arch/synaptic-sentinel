@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { TokenTrackingLlmClient } from '../src/token-tracking-client.js';
-import type { LlmClient, LlmCompletionRequest } from '../src/llm-client.js';
+import type { LlmClient, LlmCompletionRequest, LlmCompletionResult } from '../src/llm-client.js';
 
 /** Fake LlmClient determinista para los tests. */
 function makeFake(response: string, latencyMs = 5): LlmClient {
@@ -31,7 +31,7 @@ describe('TokenTrackingLlmClient', () => {
     expect(result).toBe('hello world response');
   });
 
-  it('registra una observation con tokens proxy + latencia + ok=true', async () => {
+  it('registra una observation con tokens proxy + latencia + ok=true (legacy client)', async () => {
     const inner = makeFake('xxxx xxxx xxxx'); // 14 chars -> ceil(14/4) = 4 tokens
     const wrapped = new TokenTrackingLlmClient(inner);
     await wrapped.complete({ system: 'sys-prompt', user: 'user-message' });
@@ -44,6 +44,8 @@ describe('TokenTrackingLlmClient', () => {
     expect(obs.ok).toBe(true);
     expect(obs.errorMessage).toBeUndefined();
     expect(obs.latencyMs).toBeGreaterThanOrEqual(0);
+    // DG-085 A: el inner solo implementa `complete` -> fallback proxy.
+    expect(obs.usageSource).toBe('proxy');
   });
 
   it('registra una observation con ok=false + errorMessage cuando el client lanza', async () => {
@@ -86,5 +88,61 @@ describe('TokenTrackingLlmClient', () => {
     // Modificar el snapshot NO afecta el buffer interno.
     (snap as { length: number }).length = 0;
     expect(wrapped.observations).toHaveLength(1);
+  });
+
+  // DG-085 A — Preferencia provider usage vs proxy chars/4.
+
+  it('usa usage REAL del provider cuando inner.completeWithUsage existe y devuelve usage', async () => {
+    const inner: LlmClient = {
+      complete: (): Promise<string> => Promise.resolve('text'),
+      completeWithUsage: (_req: LlmCompletionRequest): Promise<LlmCompletionResult> => {
+        void _req;
+        return Promise.resolve({
+          text: 'real text',
+          usage: { inputTokens: 999, outputTokens: 111 },
+        });
+      },
+    };
+    const wrapped = new TokenTrackingLlmClient(inner);
+    const out = await wrapped.complete({ system: 'sys', user: 'usr' });
+    expect(out).toBe('real text');
+    expect(wrapped.observations).toHaveLength(1);
+    const obs = wrapped.observations[0]!;
+    expect(obs.inputTokens).toBe(999);
+    expect(obs.outputTokens).toBe(111);
+    expect(obs.usageSource).toBe('provider');
+    expect(obs.ok).toBe(true);
+  });
+
+  it('cae a proxy chars/4 cuando inner.completeWithUsage existe pero devuelve usage=null', async () => {
+    const inner: LlmClient = {
+      complete: (): Promise<string> => Promise.resolve('text'),
+      completeWithUsage: (_req: LlmCompletionRequest): Promise<LlmCompletionResult> => {
+        void _req;
+        return Promise.resolve({ text: 'xxxx xxxx', usage: null });
+      },
+    };
+    const wrapped = new TokenTrackingLlmClient(inner);
+    await wrapped.complete({ system: 'sys', user: 'usr' });
+    const obs = wrapped.observations[0]!;
+    // proxy: "sys" (3 chars -> 1) + "usr" (3 chars -> 1) = 2
+    expect(obs.inputTokens).toBe(2);
+    // proxy: "xxxx xxxx" (9 chars -> 3)
+    expect(obs.outputTokens).toBe(3);
+    expect(obs.usageSource).toBe('proxy');
+  });
+
+  it('marca usageSource=proxy cuando completeWithUsage lanza', async () => {
+    const inner: LlmClient = {
+      complete: (): Promise<string> => Promise.reject(new Error('boom')),
+      completeWithUsage: (): Promise<LlmCompletionResult> => Promise.reject(new Error('boom')),
+    };
+    const wrapped = new TokenTrackingLlmClient(inner);
+    await expect(wrapped.complete({ system: 's', user: 'u' })).rejects.toThrow('boom');
+    const obs = wrapped.observations[0]!;
+    expect(obs.ok).toBe(false);
+    expect(obs.errorMessage).toBe('boom');
+    expect(obs.usageSource).toBe('proxy');
+    expect(obs.outputTokens).toBe(0);
   });
 });

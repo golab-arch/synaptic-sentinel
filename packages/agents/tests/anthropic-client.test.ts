@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { AnthropicLlmClient, parseAnthropicResponse } from '../src/anthropic-client.js';
+import {
+  AnthropicLlmClient,
+  parseAnthropicResponse,
+  parseAnthropicUsage,
+} from '../src/anthropic-client.js';
 
 describe('parseAnthropicResponse', () => {
   it('extrae y concatena los bloques de texto', () => {
@@ -91,5 +95,52 @@ describe('AnthropicLlmClient.complete (vs @anthropic-ai/sdk)', () => {
       maxRetries: 0,
     });
     await expect(client.complete({ system: 's', user: 'u' })).rejects.toThrow(/429/);
+  });
+});
+
+describe('parseAnthropicUsage (DG-085 A)', () => {
+  it('extrae input_tokens y output_tokens del payload', () => {
+    expect(parseAnthropicUsage({ usage: { input_tokens: 42, output_tokens: 17 } })).toEqual({
+      inputTokens: 42,
+      outputTokens: 17,
+    });
+  });
+
+  it('devuelve null si falta el campo usage', () => {
+    expect(parseAnthropicUsage({ content: [] })).toBeNull();
+  });
+
+  it('devuelve null si los counts no son numeros finitos no negativos', () => {
+    expect(parseAnthropicUsage({ usage: { input_tokens: 'a', output_tokens: 1 } })).toBeNull();
+    expect(parseAnthropicUsage({ usage: { input_tokens: -1, output_tokens: 1 } })).toBeNull();
+    expect(parseAnthropicUsage({ usage: { input_tokens: NaN, output_tokens: 1 } })).toBeNull();
+  });
+});
+
+describe('AnthropicLlmClient.completeWithUsage (DG-085 A)', () => {
+  it('devuelve text + usage real extraido del SDK response', async () => {
+    const fakeFetch = ((): Promise<Response> =>
+      Promise.resolve(
+        new Response(
+          JSON.stringify({
+            id: 'msg_y',
+            type: 'message',
+            role: 'assistant',
+            model: 'claude-haiku-4-5-20251001',
+            content: [{ type: 'text', text: 'respuesta' }],
+            stop_reason: 'end_turn',
+            usage: { input_tokens: 123, output_tokens: 45 },
+          }),
+          { status: 200, headers: { 'content-type': 'application/json' } },
+        ),
+      )) as typeof fetch;
+    const client = new AnthropicLlmClient({
+      apiKey: 'sk-x',
+      fetchImpl: fakeFetch,
+      maxRetries: 0,
+    });
+    const result = await client.completeWithUsage({ system: 's', user: 'u' });
+    expect(result.text).toBe('respuesta');
+    expect(result.usage).toEqual({ inputTokens: 123, outputTokens: 45 });
   });
 });

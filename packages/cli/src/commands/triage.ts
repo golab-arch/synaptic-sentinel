@@ -29,6 +29,7 @@ import {
   TokenTrackingLlmClient,
   TriageAgent,
   type LlmClient,
+  type TokenUsageSource,
 } from '@synaptic-sentinel/agents';
 import { renderBanner, renderTriageTag } from '@synaptic-sentinel/reporters';
 import { shouldUseColor } from './scan.js';
@@ -299,6 +300,9 @@ export async function runTriageCommand(options: TriageCommandOptions): Promise<n
     const remediations: RemediationSuggestionRecord[] = [];
     // Cost visibility (DG-078 B): un record por cada call exitosa o fallida.
     const tokenUsages: TokenUsageRecord[] = [];
+    // DG-085 A: rastrear el origen de los tokens (provider real vs proxy
+    // chars/4) para que el summary muestre el caveat apropiado.
+    const usageSourcesSeen = new Set<TokenUsageSource>();
     // Helper que toma la observation mas reciente del wrapper y la convierte
     // en un TokenUsageRecord asociado al finding actual.
     const drainObservation = (
@@ -308,6 +312,7 @@ export async function runTriageCommand(options: TriageCommandOptions): Promise<n
     ): void => {
       const obs = wrapper.observations.at(-1);
       if (obs === undefined) return;
+      usageSourcesSeen.add(obs.usageSource);
       const providerLabel = providerLabels[agentId];
       const estimatedCostUsd =
         obs.outputTokens === 0 && !obs.ok
@@ -447,10 +452,10 @@ export async function runTriageCommand(options: TriageCommandOptions): Promise<n
         `patterns learned: ${String(learningEntries.length)}; ` +
         `pre-classified from memory: ${String(learnedCount)}.`,
     );
-    // Cost visibility summary (DG-078 B). Tokens son PROXIES (chars/4) y
-    // cost USD es estimado — caveat visible para el usuario.
+    // Cost visibility summary (DG-078 B + DG-085 A). El caveat del summary
+    // distingue ahora entre tokens reales del provider y la proxy chars/4.
     if (tokenUsages.length > 0) {
-      renderCostSummary(tokenUsages);
+      renderCostSummary(tokenUsages, usageSourcesSeen);
     }
     return 0;
   } finally {
@@ -459,14 +464,21 @@ export async function runTriageCommand(options: TriageCommandOptions): Promise<n
 }
 
 /**
- * Imprime el bloque de cost visibility post-triage (DG-078 B).
+ * Imprime el bloque de cost visibility post-triage (DG-078 B + DG-085 A).
  *
  * Agrupa los `tokenUsages` por `(providerLabel, agentId)`, suma tokens y
- * cost USD, y muestra una tabla compacta + un total. Los numeros llevan
- * caveat "~estimated" porque los tokens son proxies `chars/4` y el cost
- * puede divergir ±15-20% del facturado real.
+ * cost USD, y muestra una tabla compacta + un total. El caveat del summary
+ * depende del origen de los counts (`usageSources`):
+ *
+ *   - solo `'provider'` → "tokens & cost from provider usage" (sin caveat
+ *     de proxy; el cost USD se puede contrastar contra la facturacion real)
+ *   - solo `'proxy'`    → "tokens are chars/4 proxy, ±15-20% vs provider"
+ *   - mixed            → "mixed sources; some calls used the chars/4 proxy"
  */
-function renderCostSummary(tokenUsages: readonly TokenUsageRecord[]): void {
+function renderCostSummary(
+  tokenUsages: readonly TokenUsageRecord[],
+  usageSources: ReadonlySet<TokenUsageSource>,
+): void {
   // Group por (providerLabel, agentId).
   const groups = new Map<
     string,
@@ -523,8 +535,17 @@ function renderCostSummary(tokenUsages: readonly TokenUsageRecord[]): void {
         `$${g.cost.toFixed(4).padStart(8)}  ${String(avgLatency).padStart(5)}ms avg`,
     );
   }
+  // DG-085 A: caveat depende del origen de los counts.
+  const onlyProvider = usageSources.has('provider') && !usageSources.has('proxy');
+  const onlyProxy = usageSources.has('proxy') && !usageSources.has('provider');
+  const headerCaveat = onlyProvider
+    ? 'Cost summary (tokens & cost from provider usage):'
+    : onlyProxy
+      ? 'Cost summary (~estimated — tokens are chars/4 proxy, ±15-20% vs provider usage):'
+      : 'Cost summary (mixed — some calls used provider usage, some fell back to chars/4 proxy):';
+  const totalCaveat = onlyProvider ? '(provider-reported)' : '(~estimated)';
   console.log('');
-  console.log('Cost summary (~estimated — tokens are chars/4 proxy, ±15-20% vs provider usage):');
+  console.log(headerCaveat);
   console.log(
     `  ${'provider/model'.padEnd(40)} ${'agent'.padEnd(11)} ${'calls'.padStart(10)}  ` +
       `${'input'.padStart(7)}     ${'output'.padStart(6)}  ${'cost USD'.padStart(9)}  ${'latency'.padStart(7)}`,
@@ -532,6 +553,6 @@ function renderCostSummary(tokenUsages: readonly TokenUsageRecord[]): void {
   for (const row of rows) console.log(row);
   console.log(
     `  Total: ${String(totalInput)} input tokens · ${String(totalOutput)} output tokens · ` +
-      `$${totalCost.toFixed(4)} (~estimated USD)`,
+      `$${totalCost.toFixed(4)} USD ${totalCaveat}`,
   );
 }

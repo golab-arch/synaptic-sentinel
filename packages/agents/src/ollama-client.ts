@@ -1,4 +1,9 @@
-import type { LlmClient, LlmCompletionRequest } from './llm-client.js';
+import type {
+  LlmClient,
+  LlmCompletionRequest,
+  LlmCompletionResult,
+  TokenUsage,
+} from './llm-client.js';
 
 /**
  * Cliente LLM contra una instancia local de Ollama (Phase 11 DG-072 B).
@@ -92,6 +97,23 @@ export function parseOllamaResponse(payload: unknown): string {
 }
 
 /**
+ * Extrae el `usage` REAL del payload de `/api/chat` de Ollama (DG-085 A).
+ * Ollama nativo expone `prompt_eval_count` (tokens del prompt) +
+ * `eval_count` (tokens generados) en el payload de cada respuesta. Devuelve
+ * `null` si el shape no coincide — algunos modelos antiguos o el modo
+ * streaming intermedio pueden no incluirlos.
+ */
+export function parseOllamaUsage(payload: unknown): TokenUsage | null {
+  if (typeof payload !== 'object' || payload === null) return null;
+  const input = (payload as { prompt_eval_count?: unknown }).prompt_eval_count;
+  const output = (payload as { eval_count?: unknown }).eval_count;
+  if (typeof input !== 'number' || typeof output !== 'number') return null;
+  if (!Number.isFinite(input) || !Number.isFinite(output)) return null;
+  if (input < 0 || output < 0) return null;
+  return { inputTokens: input, outputTokens: output };
+}
+
+/**
  * Cliente LLM contra `/api/chat` de una instancia local de Ollama.
  *
  * Patron identico al `AnthropicLlmClient` y al `OpenAiCompatibleLlmClient`:
@@ -115,6 +137,11 @@ export class OllamaLlmClient implements LlmClient {
   }
 
   async complete(request: LlmCompletionRequest): Promise<string> {
+    const result = await this.completeWithUsage(request);
+    return result.text;
+  }
+
+  async completeWithUsage(request: LlmCompletionRequest): Promise<LlmCompletionResult> {
     const body: Record<string, unknown> = {
       model: this.#model,
       messages: [
@@ -139,7 +166,10 @@ export class OllamaLlmClient implements LlmClient {
       throw new Error(`Ollama respondio ${String(response.status)} en /api/chat.`);
     }
     const payload: unknown = await response.json();
-    return parseOllamaResponse(payload);
+    return {
+      text: parseOllamaResponse(payload),
+      usage: parseOllamaUsage(payload),
+    };
   }
 }
 

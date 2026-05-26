@@ -1,5 +1,10 @@
 import OpenAI from 'openai';
-import type { LlmClient, LlmCompletionRequest } from './llm-client.js';
+import type {
+  LlmClient,
+  LlmCompletionRequest,
+  LlmCompletionResult,
+  TokenUsage,
+} from './llm-client.js';
 
 /**
  * Cliente LLM contra cualquier endpoint OpenAI-compatible (Phase 11 DG-071 A).
@@ -90,6 +95,25 @@ export function parseOpenAiCompatibleResponse(payload: unknown): string {
 }
 
 /**
+ * Extrae el `usage` REAL del payload OpenAI-compatible (DG-085 A). El
+ * protocolo OpenAI Chat Completions expone `usage.prompt_tokens` +
+ * `usage.completion_tokens` en cada respuesta — soportado por todos los
+ * 14+ providers OpenAI-compatible que sirve este adapter. Devuelve `null`
+ * si el shape no coincide (algunos providers o versiones antiguas omiten
+ * el campo; tratamos eso como "no disponible", no como error).
+ */
+export function parseOpenAiCompatibleUsage(payload: unknown): TokenUsage | null {
+  const usage = (payload as { usage?: unknown }).usage;
+  if (typeof usage !== 'object' || usage === null) return null;
+  const input = (usage as { prompt_tokens?: unknown }).prompt_tokens;
+  const output = (usage as { completion_tokens?: unknown }).completion_tokens;
+  if (typeof input !== 'number' || typeof output !== 'number') return null;
+  if (!Number.isFinite(input) || !Number.isFinite(output)) return null;
+  if (input < 0 || output < 0) return null;
+  return { inputTokens: input, outputTokens: output };
+}
+
+/**
  * Cliente LLM contra cualquier endpoint OpenAI-compatible (BYOK).
  *
  * Patron identico al `AnthropicLlmClient`: toda la API queda detras del
@@ -114,6 +138,11 @@ export class OpenAiCompatibleLlmClient implements LlmClient {
   }
 
   async complete(request: LlmCompletionRequest): Promise<string> {
+    const result = await this.completeWithUsage(request);
+    return result.text;
+  }
+
+  async completeWithUsage(request: LlmCompletionRequest): Promise<LlmCompletionResult> {
     // gpt-5* family tiene dos quirks descubiertos empíricamente en el PILOT
     // benchmark de DG-077: (1) rechaza `max_tokens` y exige
     // `max_completion_tokens`; (2) rechaza `temperature: 0` con
@@ -143,6 +172,9 @@ export class OpenAiCompatibleLlmClient implements LlmClient {
         { role: 'user', content: request.user },
       ],
     });
-    return parseOpenAiCompatibleResponse(completion);
+    return {
+      text: parseOpenAiCompatibleResponse(completion),
+      usage: parseOpenAiCompatibleUsage(completion),
+    };
   }
 }

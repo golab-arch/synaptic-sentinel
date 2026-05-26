@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   OpenAiCompatibleLlmClient,
   parseOpenAiCompatibleResponse,
+  parseOpenAiCompatibleUsage,
 } from '../src/openai-compatible-client.js';
 
 /** Construye una respuesta OpenAI-compat valida con un mensaje de texto. */
@@ -153,5 +154,48 @@ describe('OpenAiCompatibleLlmClient.complete (vs openai SDK)', () => {
       maxRetries: 0,
     });
     await expect(client.complete({ system: 's', user: 'u' })).rejects.toThrow(/429/);
+  });
+});
+
+describe('parseOpenAiCompatibleUsage (DG-085 A)', () => {
+  it('extrae prompt_tokens y completion_tokens del payload', () => {
+    expect(
+      parseOpenAiCompatibleUsage({
+        usage: { prompt_tokens: 88, completion_tokens: 22, total_tokens: 110 },
+      }),
+    ).toEqual({ inputTokens: 88, outputTokens: 22 });
+  });
+
+  it('devuelve null si falta el campo usage', () => {
+    expect(parseOpenAiCompatibleUsage({ choices: [] })).toBeNull();
+  });
+
+  it('devuelve null si los counts no son numeros finitos no negativos', () => {
+    expect(
+      parseOpenAiCompatibleUsage({ usage: { prompt_tokens: '88', completion_tokens: 22 } }),
+    ).toBeNull();
+    expect(
+      parseOpenAiCompatibleUsage({ usage: { prompt_tokens: -1, completion_tokens: 22 } }),
+    ).toBeNull();
+  });
+});
+
+describe('OpenAiCompatibleLlmClient.completeWithUsage (DG-085 A)', () => {
+  it('devuelve text + usage real extraido del response', async () => {
+    const fakeFetch = ((): Promise<Response> =>
+      Promise.resolve(
+        new Response(JSON.stringify(buildChatCompletion('respuesta')), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        }),
+      )) as typeof fetch;
+    const client = new OpenAiCompatibleLlmClient({
+      apiKey: 'sk-x',
+      fetchImpl: fakeFetch,
+      maxRetries: 0,
+    });
+    const result = await client.completeWithUsage({ system: 's', user: 'u' });
+    expect(result.text).toBe('respuesta');
+    expect(result.usage).toEqual({ inputTokens: 1, outputTokens: 1 });
   });
 });

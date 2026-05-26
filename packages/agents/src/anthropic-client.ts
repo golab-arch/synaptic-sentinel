@@ -1,5 +1,10 @@
 import Anthropic from '@anthropic-ai/sdk';
-import type { LlmClient, LlmCompletionRequest } from './llm-client.js';
+import type {
+  LlmClient,
+  LlmCompletionRequest,
+  LlmCompletionResult,
+  TokenUsage,
+} from './llm-client.js';
 
 /** Modelo por defecto: Haiku — rapido y barato, adecuado para triage masivo. */
 const DEFAULT_MODEL = 'claude-haiku-4-5-20251001';
@@ -56,6 +61,23 @@ export function parseAnthropicResponse(payload: unknown): string {
 }
 
 /**
+ * Extrae el `usage` REAL del payload de respuesta de la Messages API
+ * (DG-085 A). La Messages API expone `usage.input_tokens` + `usage.output_tokens`
+ * en cada respuesta — no es una proxy. Devuelve `null` si el shape no
+ * coincide (defensa contra drift del API o respuestas corruptas).
+ */
+export function parseAnthropicUsage(payload: unknown): TokenUsage | null {
+  const usage = (payload as { usage?: unknown }).usage;
+  if (typeof usage !== 'object' || usage === null) return null;
+  const input = (usage as { input_tokens?: unknown }).input_tokens;
+  const output = (usage as { output_tokens?: unknown }).output_tokens;
+  if (typeof input !== 'number' || typeof output !== 'number') return null;
+  if (!Number.isFinite(input) || !Number.isFinite(output)) return null;
+  if (input < 0 || output < 0) return null;
+  return { inputTokens: input, outputTokens: output };
+}
+
+/**
  * Cliente LLM contra la Messages API de Anthropic via `@anthropic-ai/sdk`
  * (BYOK, FI-009 cerrado en DG-064 A).
  *
@@ -85,12 +107,20 @@ export class AnthropicLlmClient implements LlmClient {
   }
 
   async complete(request: LlmCompletionRequest): Promise<string> {
+    const result = await this.completeWithUsage(request);
+    return result.text;
+  }
+
+  async completeWithUsage(request: LlmCompletionRequest): Promise<LlmCompletionResult> {
     const message = await this.#client.messages.create({
       model: this.#model,
       max_tokens: request.maxTokens ?? DEFAULT_MAX_TOKENS,
       system: request.system,
       messages: [{ role: 'user', content: request.user }],
     });
-    return parseAnthropicResponse(message);
+    return {
+      text: parseAnthropicResponse(message),
+      usage: parseAnthropicUsage(message),
+    };
   }
 }

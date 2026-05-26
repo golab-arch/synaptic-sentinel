@@ -14,3 +14,7 @@ context/
 # tablas largas chocan con max-width de prettier — mismo patron que
 # .synaptic/BITACORA.md / la documentacion legacy).
 docs/benchmark/
+
+# Documentacion tecnica externa redactada por el usuario; se preserva la
+# forma original sin pasar por prettier (mismo patron que docs/benchmark/).
+SYNAPTIC_SENTINEL_TECHNICAL_REFERENCE.md
