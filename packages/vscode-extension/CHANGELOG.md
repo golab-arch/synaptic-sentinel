@@ -4,6 +4,32 @@ All notable changes to the SYNAPTIC Sentinel extension will be documented in thi
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.6] - 2026-05-26
+
+**Two structural fixes** accumulated from sub-DGs `DG-092 A` and `DG-093 A`. Both came directly from real user feedback while running v0.3.5 locally: an opaque `unable to open database file` error during a `Scan Workspace` (DG-092 A) and a follow-up observation that the workspace had two distinct directories — `.sentinel/agents.yaml` and `.synaptic-sentinel/colony.db` — which felt inconsistent (DG-093 A).
+
+### Added
+
+- **`ColonyDb.open()` now emits actionable error messages** (DG-092 A) — the previous opaque `unable to open database file` from `node-sqlite3-wasm` is now wrapped with a multi-line diagnostic that lists the three common causes observed in real reports: (a) a stale lockfile from another Sentinel CLI run still in flight (close other VS Code windows or kill stale node processes); (b) Norton / Defender / corporate antivirus blocking the write (add the workspace path to your AV exclusions); (c) the workspace is read-only or your user lacks write permissions. The original SQLite error is preserved at the end of the message for stack-trace correlation. A pre-flight also checks that the parent directory exists before delegating to the driver, so a missing dir fails fast with the absolute path in the message. Defensive only — no behavior change when things work; the diagnostic appears when the underlying driver throws.
+
+### Changed
+
+- **Workspace data directory unified to `.sentinel/`** (DG-093 A) — `colony.db` now lives in `<workspace>/.sentinel/colony.db`, the same directory where `.sentinel/agents.yaml` has been written since v0.3.0 (Phase 11 DG-073 B). Previous versions wrote it to `<workspace>/.synaptic-sentinel/colony.db`, which created two distinct directories side by side in your repo. **Backward-compat is preserved by dual-read**: if your workspace has `.synaptic-sentinel/colony.db` from v0.3.5 or earlier, the CLI keeps reading it and emits a log informativo suggesting you move it to `.sentinel/colony.db` when convenient. **No automatic file migration** — the CLI never moves your data; you decide when. Zero risk of data loss from this release.
+- **Per-user scanner cache path unchanged** — `~/.synaptic-sentinel/scanners/` keeps its legacy name (workspace and per-user home are distinct namespaces; migrating both would only force users to re-download binaries with no upside).
+
+### Notes
+
+- The CHANGELOG of v0.3.4 has a similar "release with N accumulated fixes" pattern; v0.3.6 follows the same operational model: 2 GitHub Releases accumulated since the last Marketplace publish (v0.3.4 and v0.3.5 were both GitHub-only). The Marketplace listing may go from v0.3.3 directly to v0.3.6 — semver permits skipping intermediate versions on marketplace releases.
+- The new `resolveColonyDbPath(projectRoot)` helper is exported from `@synaptic-sentinel/core`. Third-party integrations that open the colony DB programmatically should switch to it from hardcoded `join(root, '.synaptic-sentinel', 'colony.db')` calls.
+- `.gitignore` users who versioned their old `colony.db`: see `docs/colony-db.md` for the updated section listing both `.sentinel/colony.db*` and the legacy `.synaptic-sentinel/colony.db*`.
+- Anti-optimismo: 524 unit tests pass + both verify gates pass + `vsce package` produces a valid `.vsix`. The end-to-end flow (open a project, scan, observe the new `.sentinel/colony.db` written) was validated empirically in DG-092 A's bug report — the v0.3.5 run that triggered DG-092 A also confirmed that `Scan Workspace` + `Triage Findings` work end-to-end in a real installation. The migration to `.sentinel/` is unit-tested through the `resolveColonyDbPath` helper covering all four branches of its decision tree, plus a `mark-fp` integration test that exercises the dual-read with a legacy seed.
+
+### Known Issues
+
+The Known Issues section is unchanged from v0.3.5 — **1 caveat open**:
+
+1. **Ground truth dataset is AI-drafted** (DG-075 caveat heredado). The 26 entries in `tests/benchmark/ground-truth.json` are `reviewedBy: 'ai-draft'`. The schema supports `'human-confirmed' | 'human-corrected'` for entries that pass through an AppSec engineer review, but no entry has gone through review at this point. The benchmark report still ships with an "internal-comparative only, do NOT cite externally" disclaimer for any session where all entries are `ai-draft`.
+
 ## [0.3.5] - 2026-05-26
 
 **Editable provider selector in the Settings panel** (DG-090 A). Until v0.3.4 the "Active Configuration" section of the **Configure Brain Layer Providers** panel was a read-only display — you could save / delete / test API keys for any of the 12 providers, but the only way to choose **which provider runs each agent** (Triage / Context / Remediation) was to edit `.sentinel/agents.yaml` by hand or pass `--agent-provider` flags to the CLI. This UX gap was reported by a user testing v0.3.4 locally. v0.3.5 closes it: each agent row now has a provider dropdown + model input + an **Apply** button that writes `.sentinel/agents.yaml` from the panel.
