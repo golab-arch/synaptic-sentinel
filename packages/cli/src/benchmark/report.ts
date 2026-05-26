@@ -48,6 +48,13 @@ export interface ProviderResult {
   readonly determinismRate: number | null;
   /** Errores no fatales encontrados (ej. 429, timeout, parse error). */
   readonly errors: readonly string[];
+  /**
+   * `true` si el provider exhausto su quota (HTTP 429 / rate-limit) y el
+   * runner skip-eo el resto de la sesion (DG-088 A). Permite al reporte
+   * distinguir "quota agotada" de "modelo roto" — antes ambos contaban
+   * como `errors[]` opacos.
+   */
+  readonly quotaExhausted?: boolean;
 }
 
 /** Reporte completo del benchmark. */
@@ -130,6 +137,29 @@ export function renderBenchmarkReport(report: BenchmarkReport): string {
     lines.push('');
   }
 
+  // Throttled section (DG-088 A). Lista los providers que se intentaron
+  // correr pero pegaron quota durante la sesion — el runner los skip-eo
+  // tras 2 quota-exhausted consecutivos y aqui se documenta.
+  const throttled = report.providers.filter((p) => p.quotaExhausted === true);
+  if (throttled.length > 0) {
+    lines.push('## Providers throttled this run');
+    lines.push('');
+    lines.push(
+      'These providers were skipped mid-session after consecutive `429` ' +
+        '/ rate-limit responses — not a model failure. Try a paid tier or ' +
+        'wait for the quota window to reset, then re-run.',
+    );
+    lines.push('');
+    lines.push('| Provider | Completed runs before skip |');
+    lines.push('| -------- | -------------------------- |');
+    for (const provider of throttled) {
+      lines.push(
+        `| \`${provider.providerLabel}\` | ${String(provider.completedRuns)} / ${String(provider.attemptedRuns)} |`,
+      );
+    }
+    lines.push('');
+  }
+
   // Top-level summary table.
   if (report.providers.length === 0) {
     lines.push('## No providers were successfully run');
@@ -158,8 +188,12 @@ export function renderBenchmarkReport(report: BenchmarkReport): string {
     const cost = usd(provider.estimatedCostUsd);
     const determinism = provider.determinismRate === null ? 'n/a' : pct(provider.determinismRate);
     const errors = provider.errors.length === 0 ? '—' : String(provider.errors.length);
+    // DG-088 A: si el provider pego quota, el row lleva un badge despues
+    // del label para que el lector NO confunda "quota agotada" con "modelo
+    // roto" al comparar columnas.
+    const throttledBadge = provider.quotaExhausted === true ? ' ⚠️ throttled' : '';
     lines.push(
-      `| \`${provider.providerLabel}\` | ${passRate} | ${validityRate} | ${avgLatency} | ${cost} | ${determinism} | ${errors} |`,
+      `| \`${provider.providerLabel}\`${throttledBadge} | ${passRate} | ${validityRate} | ${avgLatency} | ${cost} | ${determinism} | ${errors} |`,
     );
   }
   lines.push('');

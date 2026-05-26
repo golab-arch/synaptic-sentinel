@@ -1,10 +1,47 @@
 import OpenAI from 'openai';
-import type {
-  LlmClient,
-  LlmCompletionRequest,
-  LlmCompletionResult,
-  TokenUsage,
+import {
+  QuotaExhaustedError,
+  type LlmClient,
+  type LlmCompletionRequest,
+  type LlmCompletionResult,
+  type TokenUsage,
 } from './llm-client.js';
+
+/**
+ * Detecta si un error del SDK de OpenAI (o de cualquier provider OpenAI-
+ * compatible) corresponde a una cuota agotada / rate limit (DG-088 A).
+ * Defensiva: mira `status` y campos de mensaje sin asumir clases internas
+ * del SDK. Retorna `null` si NO es un caso de quota — el caller relanza.
+ */
+function quotaErrorFromOpenAi(err: unknown, providerLabel: string): QuotaExhaustedError | null {
+  if (typeof err !== 'object' || err === null) return null;
+  const e = err as {
+    status?: unknown;
+    code?: unknown;
+    type?: unknown;
+    message?: unknown;
+    headers?: Record<string, string | undefined> | undefined;
+  };
+  const status = typeof e.status === 'number' ? e.status : -1;
+  const codeStr = typeof e.code === 'string' ? e.code : '';
+  const typeStr = typeof e.type === 'string' ? e.type : '';
+  const messageStr = typeof e.message === 'string' ? e.message : '';
+  const isQuota =
+    status === 429 ||
+    /rate[_-]?limit|quota|insufficient_quota|tokens_per_day|requests_per_minute|too[_-]?many[_-]?requests/i.test(
+      `${codeStr} ${typeStr} ${messageStr}`,
+    );
+  if (!isQuota) return null;
+  const retryAfter = e.headers?.['retry-after'];
+  const retrySec =
+    typeof retryAfter === 'string' && /^\d+$/.test(retryAfter) ? Number(retryAfter) : null;
+  return new QuotaExhaustedError({
+    providerLabel,
+    httpStatus: status === -1 ? 429 : status,
+    retryAfterSeconds: retrySec,
+    message: `Quota/rate-limit at ${providerLabel}: ${messageStr || codeStr || typeStr || 'no detail'}`,
+  });
+}
 
 /**
  * Cliente LLM contra cualquier endpoint OpenAI-compatible (Phase 11 DG-071 A).
@@ -138,6 +175,7 @@ export function parseOpenAiCompatibleUsage(payload: unknown): TokenUsage | null 
 export class OpenAiCompatibleLlmClient implements LlmClient {
   readonly #client: OpenAI;
   readonly #model: string;
+  readonly #providerLabel: string;
 
   constructor(options: OpenAiCompatibleClientOptions) {
     this.#client = new OpenAI({
@@ -147,6 +185,10 @@ export class OpenAiCompatibleLlmClient implements LlmClient {
       ...(options.maxRetries !== undefined ? { maxRetries: options.maxRetries } : {}),
     });
     this.#model = options.model ?? DEFAULT_MODEL;
+    // Label simple para el QuotaExhaustedError: deriva del baseUrl host
+    // o cae a 'openai-compat' si no se paso. El benchmark runner ya tiene
+    // su propio providerLabel mas rico (provider/model) cuando llama.
+    this.#providerLabel = options.baseUrl !== undefined ? options.baseUrl : 'openai';
   }
 
   async complete(request: LlmCompletionRequest): Promise<string> {
@@ -177,16 +219,26 @@ export class OpenAiCompatibleLlmClient implements LlmClient {
     // adapter sigue obteniendo el `content` y `parseOpenAiCompatibleResponse`
     // lo extrae igual. Los system prompts de los 3 agentes ya mencionan
     // "json" — requisito de OpenAI para esta opción.
-    const completion = await this.#client.chat.completions.create({
-      model: this.#model,
-      ...tokensParam,
-      ...temperatureParam,
-      response_format: { type: 'json_object' },
-      messages: [
-        { role: 'system', content: request.system },
-        { role: 'user', content: request.user },
-      ],
-    });
+    let completion;
+    try {
+      completion = await this.#client.chat.completions.create({
+        model: this.#model,
+        ...tokensParam,
+        ...temperatureParam,
+        response_format: { type: 'json_object' },
+        messages: [
+          { role: 'system', content: request.system },
+          { role: 'user', content: request.user },
+        ],
+      });
+    } catch (err) {
+      // DG-088 A: convertir 429 / rate-limit en QuotaExhaustedError tipado
+      // para que el benchmark runner pueda skip-ear el provider tras 2
+      // ocurrencias consecutivas en vez de tratarlo como error opaco.
+      const quotaErr = quotaErrorFromOpenAi(err, this.#providerLabel);
+      if (quotaErr !== null) throw quotaErr;
+      throw err;
+    }
     return {
       text: parseOpenAiCompatibleResponse(completion),
       usage: parseOpenAiCompatibleUsage(completion),

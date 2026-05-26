@@ -4,6 +4,7 @@ import {
   parseOpenAiCompatibleResponse,
   parseOpenAiCompatibleUsage,
 } from '../src/openai-compatible-client.js';
+import { QuotaExhaustedError } from '../src/llm-client.js';
 
 /** Construye una respuesta OpenAI-compat valida con un mensaje de texto. */
 function buildChatCompletion(text: string): Record<string, unknown> {
@@ -230,6 +231,54 @@ describe('parseOpenAiCompatibleUsage (DG-085 A)', () => {
     expect(
       parseOpenAiCompatibleUsage({ usage: { prompt_tokens: -1, completion_tokens: 22 } }),
     ).toBeNull();
+  });
+});
+
+describe('OpenAiCompatibleLlmClient — QuotaExhaustedError (DG-088 A)', () => {
+  it('lanza QuotaExhaustedError cuando el provider responde HTTP 429', async () => {
+    const fakeFetch = ((): Promise<Response> =>
+      Promise.resolve(
+        new Response(
+          JSON.stringify({
+            error: {
+              type: 'rate_limit_exceeded',
+              message:
+                'You exceeded your current quota, please check your plan and billing details.',
+            },
+          }),
+          {
+            status: 429,
+            headers: { 'content-type': 'application/json', 'retry-after': '60' },
+          },
+        ),
+      )) as typeof fetch;
+    const client = new OpenAiCompatibleLlmClient({
+      apiKey: 'sk-x',
+      baseUrl: 'https://api.groq.com/openai/v1',
+      model: 'llama-3.3-70b-versatile',
+      fetchImpl: fakeFetch,
+      maxRetries: 0,
+    });
+    await expect(client.complete({ system: 's', user: 'u' })).rejects.toBeInstanceOf(
+      QuotaExhaustedError,
+    );
+  });
+
+  it('preserva errores NO-quota como Error genérico (regresion guard)', async () => {
+    const fakeFetch = ((): Promise<Response> =>
+      Promise.resolve(
+        new Response(JSON.stringify({ error: { message: 'internal server error' } }), {
+          status: 500,
+        }),
+      )) as typeof fetch;
+    const client = new OpenAiCompatibleLlmClient({
+      apiKey: 'sk-x',
+      fetchImpl: fakeFetch,
+      maxRetries: 0,
+    });
+    const err = await client.complete({ system: 's', user: 'u' }).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(Error);
+    expect(err).not.toBeInstanceOf(QuotaExhaustedError);
   });
 });
 

@@ -1,8 +1,9 @@
-import type {
-  LlmClient,
-  LlmCompletionRequest,
-  LlmCompletionResult,
-  TokenUsage,
+import {
+  QuotaExhaustedError,
+  type LlmClient,
+  type LlmCompletionRequest,
+  type LlmCompletionResult,
+  type TokenUsage,
 } from './llm-client.js';
 
 /**
@@ -163,6 +164,20 @@ export class OllamaLlmClient implements LlmClient {
       body: JSON.stringify(body),
     });
     if (!response.ok) {
+      // DG-088 A: 429 desde Ollama (Ollama Cloud o gateways custom) -> quota.
+      // Una instalacion local de Ollama nunca devuelve 429, pero el adapter
+      // sirve tambien deployments managed que si lo hacen.
+      if (response.status === 429) {
+        const retryAfter = response.headers.get('retry-after');
+        const retrySec =
+          retryAfter !== null && /^\d+$/.test(retryAfter) ? Number(retryAfter) : null;
+        throw new QuotaExhaustedError({
+          providerLabel: 'ollama',
+          httpStatus: 429,
+          retryAfterSeconds: retrySec,
+          message: `Quota/rate-limit at ollama (HTTP 429).`,
+        });
+      }
       throw new Error(`Ollama respondio ${String(response.status)} en /api/chat.`);
     }
     const payload: unknown = await response.json();

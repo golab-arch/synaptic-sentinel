@@ -4,6 +4,7 @@ import {
   parseAnthropicResponse,
   parseAnthropicUsage,
 } from '../src/anthropic-client.js';
+import { QuotaExhaustedError } from '../src/llm-client.js';
 
 describe('parseAnthropicResponse', () => {
   it('extrae y concatena los bloques de texto', () => {
@@ -114,6 +115,31 @@ describe('parseAnthropicUsage (DG-085 A)', () => {
     expect(parseAnthropicUsage({ usage: { input_tokens: 'a', output_tokens: 1 } })).toBeNull();
     expect(parseAnthropicUsage({ usage: { input_tokens: -1, output_tokens: 1 } })).toBeNull();
     expect(parseAnthropicUsage({ usage: { input_tokens: NaN, output_tokens: 1 } })).toBeNull();
+  });
+});
+
+describe('AnthropicLlmClient — QuotaExhaustedError (DG-088 A)', () => {
+  it('lanza QuotaExhaustedError cuando la Messages API responde HTTP 429', async () => {
+    const fakeFetch = ((): Promise<Response> =>
+      Promise.resolve(
+        new Response(
+          JSON.stringify({
+            error: { type: 'rate_limit_error', message: 'Rate limit exceeded' },
+          }),
+          {
+            status: 429,
+            headers: { 'content-type': 'application/json' },
+          },
+        ),
+      )) as typeof fetch;
+    const client = new AnthropicLlmClient({
+      apiKey: 'sk-ant-x',
+      fetchImpl: fakeFetch,
+      maxRetries: 0,
+    });
+    await expect(client.complete({ system: 's', user: 'u' })).rejects.toBeInstanceOf(
+      QuotaExhaustedError,
+    );
   });
 });
 

@@ -1,10 +1,45 @@
 import Anthropic from '@anthropic-ai/sdk';
-import type {
-  LlmClient,
-  LlmCompletionRequest,
-  LlmCompletionResult,
-  TokenUsage,
+import {
+  QuotaExhaustedError,
+  type LlmClient,
+  type LlmCompletionRequest,
+  type LlmCompletionResult,
+  type TokenUsage,
 } from './llm-client.js';
+
+/**
+ * Detecta si un error del SDK Anthropic corresponde a una cuota agotada /
+ * rate limit (DG-088 A). Misma logica defensiva que el helper del
+ * adapter OpenAI-compat. Retorna `null` si NO es quota — el caller relanza.
+ */
+function quotaErrorFromAnthropic(err: unknown): QuotaExhaustedError | null {
+  if (typeof err !== 'object' || err === null) return null;
+  const e = err as {
+    status?: unknown;
+    error?: { type?: unknown; message?: unknown } | undefined;
+    message?: unknown;
+    headers?: Record<string, string | undefined> | undefined;
+  };
+  const status = typeof e.status === 'number' ? e.status : -1;
+  const innerType = typeof e.error?.type === 'string' ? e.error.type : '';
+  const innerMsg = typeof e.error?.message === 'string' ? e.error.message : '';
+  const topMsg = typeof e.message === 'string' ? e.message : '';
+  const isQuota =
+    status === 429 ||
+    /rate[_-]?limit|quota|overloaded|too[_-]?many[_-]?requests/i.test(
+      `${innerType} ${innerMsg} ${topMsg}`,
+    );
+  if (!isQuota) return null;
+  const retryAfter = e.headers?.['retry-after'];
+  const retrySec =
+    typeof retryAfter === 'string' && /^\d+$/.test(retryAfter) ? Number(retryAfter) : null;
+  return new QuotaExhaustedError({
+    providerLabel: 'anthropic',
+    httpStatus: status === -1 ? 429 : status,
+    retryAfterSeconds: retrySec,
+    message: `Quota/rate-limit at anthropic: ${innerMsg || innerType || topMsg || 'no detail'}`,
+  });
+}
 
 /** Modelo por defecto: Haiku — rapido y barato, adecuado para triage masivo. */
 const DEFAULT_MODEL = 'claude-haiku-4-5-20251001';
@@ -112,12 +147,20 @@ export class AnthropicLlmClient implements LlmClient {
   }
 
   async completeWithUsage(request: LlmCompletionRequest): Promise<LlmCompletionResult> {
-    const message = await this.#client.messages.create({
-      model: this.#model,
-      max_tokens: request.maxTokens ?? DEFAULT_MAX_TOKENS,
-      system: request.system,
-      messages: [{ role: 'user', content: request.user }],
-    });
+    let message;
+    try {
+      message = await this.#client.messages.create({
+        model: this.#model,
+        max_tokens: request.maxTokens ?? DEFAULT_MAX_TOKENS,
+        system: request.system,
+        messages: [{ role: 'user', content: request.user }],
+      });
+    } catch (err) {
+      // DG-088 A: convertir 429 / rate-limit / overloaded en QuotaExhaustedError.
+      const quotaErr = quotaErrorFromAnthropic(err);
+      if (quotaErr !== null) throw quotaErr;
+      throw err;
+    }
     return {
       text: parseAnthropicResponse(message),
       usage: parseAnthropicUsage(message),

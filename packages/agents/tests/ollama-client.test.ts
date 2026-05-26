@@ -7,6 +7,7 @@ import {
   parseOllamaResponse,
   parseOllamaUsage,
 } from '../src/ollama-client.js';
+import { QuotaExhaustedError } from '../src/llm-client.js';
 
 /** Construye un payload `/api/chat` valido con el texto dado en message.content. */
 function buildChatResponse(text: string): Record<string, unknown> {
@@ -262,6 +263,31 @@ describe('OllamaLlmClient.completeWithUsage (DG-085 A)', () => {
     const result = await client.completeWithUsage({ system: 's', user: 'u' });
     expect(result.text).toBe('respuesta');
     expect(result.usage).toEqual({ inputTokens: 312, outputTokens: 64 });
+  });
+});
+
+describe('OllamaLlmClient — QuotaExhaustedError (DG-088 A)', () => {
+  it('lanza QuotaExhaustedError cuando Ollama Cloud responde HTTP 429', async () => {
+    const fakeFetch = ((): Promise<Response> =>
+      Promise.resolve(
+        new Response(JSON.stringify({ error: 'rate limit' }), {
+          status: 429,
+          headers: { 'content-type': 'application/json', 'retry-after': '30' },
+        }),
+      )) as typeof fetch;
+    const client = new OllamaLlmClient({ fetchImpl: fakeFetch });
+    await expect(client.complete({ system: 's', user: 'u' })).rejects.toBeInstanceOf(
+      QuotaExhaustedError,
+    );
+  });
+
+  it('NO confunde un 500 generico con quota (regresion guard)', async () => {
+    const fakeFetch = ((): Promise<Response> =>
+      Promise.resolve(new Response('boom', { status: 500 }))) as typeof fetch;
+    const client = new OllamaLlmClient({ fetchImpl: fakeFetch });
+    const err = await client.complete({ system: 's', user: 'u' }).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(Error);
+    expect(err).not.toBeInstanceOf(QuotaExhaustedError);
   });
 });
 

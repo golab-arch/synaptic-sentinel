@@ -149,3 +149,39 @@ describe('renderBenchmarkReport — tabla de providers + breakdown per-agente', 
     expect(md).toContain('| **Context** | n/a |');
   });
 });
+
+describe('renderBenchmarkReport — Providers throttled this run (DG-088 A)', () => {
+  const baseProvider = {
+    providerLabel: 'groq/llama-3.3-70b-versatile',
+    attemptedRuns: 5,
+    completedRuns: 3,
+    triage: makeRollup({ invocations: 3, passed: 1, jsonValid: 3 }),
+    context: makeRollup({ invocations: 0, jsonValid: 0, passed: 0, latencies: [] }),
+    remediation: makeRollup({ invocations: 0, jsonValid: 0, passed: 0, latencies: [] }),
+    estimatedCostUsd: 0.01,
+    determinismRate: null,
+    errors: ['some-rule triage: Quota/rate-limit at groq'],
+  };
+
+  it('imprime una sección "Providers throttled this run" cuando un provider quedó marked', () => {
+    const md = renderBenchmarkReport(
+      makeReport({ providers: [{ ...baseProvider, quotaExhausted: true }] }),
+    );
+    expect(md).toContain('## Providers throttled this run');
+    expect(md).toContain('groq/llama-3.3-70b-versatile');
+    expect(md).toContain('3 / 5'); // completed / attempted
+  });
+
+  it('agrega badge "⚠️ throttled" en la tabla summary del row quota-exhausted', () => {
+    const md = renderBenchmarkReport(
+      makeReport({ providers: [{ ...baseProvider, quotaExhausted: true }] }),
+    );
+    expect(md).toContain('⚠️ throttled');
+  });
+
+  it('NO imprime la sección cuando ningún provider está marked', () => {
+    const md = renderBenchmarkReport(makeReport({ providers: [baseProvider] }));
+    expect(md).not.toContain('## Providers throttled this run');
+    expect(md).not.toContain('⚠️ throttled');
+  });
+});

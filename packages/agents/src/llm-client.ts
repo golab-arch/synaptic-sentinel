@@ -60,3 +60,42 @@ export interface LlmClient {
    */
   completeWithUsage?(request: LlmCompletionRequest): Promise<LlmCompletionResult>;
 }
+
+/**
+ * Error tipado que un adapter lanza cuando el provider responde con
+ * "quota exhausted" o "rate limit" (DG-088 A). El benchmark runner lo
+ * detecta para skip-ear el provider tras 2 ocurrencias consecutivas, en
+ * vez de contarlo como `error` opaco. Cubre el caveat empirico de
+ * DG-077 donde Groq (100K TPD) y Gemini (RPM) se exhaustaron tras 2
+ * corridas del benchmark sin que el reporte distinguiera "quota
+ * agotada" de "modelo roto".
+ */
+export class QuotaExhaustedError extends Error {
+  /** Etiqueta del provider (ej. "groq", "gemini") que emitio el rate-limit. */
+  readonly providerLabel: string;
+  /**
+   * Status HTTP del provider (suele ser 429, eventualmente 503 para
+   * algunos providers). Captura el valor crudo para diagnostico.
+   */
+  readonly httpStatus: number;
+  /**
+   * `Retry-After` parseado del header del provider (segundos). `null`
+   * si el provider no lo expuso — el caller decide su propio backoff.
+   */
+  readonly retryAfterSeconds: number | null;
+
+  constructor(args: {
+    providerLabel: string;
+    httpStatus: number;
+    retryAfterSeconds?: number | null;
+    message?: string;
+  }) {
+    super(
+      args.message ?? `Quota exhausted at ${args.providerLabel} (HTTP ${String(args.httpStatus)}).`,
+    );
+    this.name = 'QuotaExhaustedError';
+    this.providerLabel = args.providerLabel;
+    this.httpStatus = args.httpStatus;
+    this.retryAfterSeconds = args.retryAfterSeconds ?? null;
+  }
+}

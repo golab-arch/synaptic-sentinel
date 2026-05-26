@@ -46,6 +46,7 @@ import {
 import {
   ContextAgent,
   createLlmClient,
+  QuotaExhaustedError,
   RemediationAgent,
   resolveApiKeyFromEnv,
   TriageAgent,
@@ -240,6 +241,8 @@ async function measureOnce<TOutput>(
   inputTokens: number;
   outputTokens: number;
   error?: string;
+  /** DG-088 A: `true` cuando el adapter lanzo QuotaExhaustedError. */
+  quotaExhausted?: boolean;
   rawSample?: string;
 }> {
   const prompt = buildPrompt();
@@ -260,6 +263,7 @@ async function measureOnce<TOutput>(
       inputTokens: 0,
       outputTokens: 0,
       error: err instanceof Error ? err.message : String(err),
+      ...(err instanceof QuotaExhaustedError ? { quotaExhausted: true } : {}),
     };
   }
   const latencyMs = Date.now() - start;
@@ -345,11 +349,20 @@ async function runProvider(args: {
 
   let attemptedRuns = 0;
   let completedRuns = 0;
+  // DG-088 A: cuenta de QuotaExhaustedError consecutivos sobre Triage
+  // (la primera capa que corre siempre). Si llegan a 2, el provider
+  // queda flag-eado como `quotaExhausted` y los loops siguientes se
+  // saltean — el reporte distinguira "quota agotada" de "errores
+  // miscelaneos" sin contaminar las metricas con runs imposibles.
+  let consecutiveQuotaErrors = 0;
+  let quotaExhausted = false;
 
   for (const entry of args.entries) {
+    if (quotaExhausted) break;
     const finding = buildSyntheticFinding(entry);
     const classifications: string[] = [];
     for (let run = 0; run < args.runsPerEntry; run += 1) {
+      if (quotaExhausted) break;
       attemptedRuns += 1;
 
       // === Triage ===
@@ -379,11 +392,27 @@ async function runProvider(args: {
       if (triageMeasurement.error !== undefined) {
         errors.push(`${entry.ruleId} triage: ${triageMeasurement.error}`);
       }
+      // DG-088 A: contador de quota errors. 2 consecutivos -> skip provider.
+      if (triageMeasurement.quotaExhausted === true) {
+        consecutiveQuotaErrors += 1;
+        if (consecutiveQuotaErrors >= 2) {
+          quotaExhausted = true;
+          errors.push(
+            `provider throttled: ${String(consecutiveQuotaErrors)} consecutive ` +
+              `quota/rate-limit responses; skipping remaining runs in this session.`,
+          );
+        }
+      } else if (triageMeasurement.error === undefined) {
+        // Reset el contador solo cuando hubo una run EXITOSA — un error
+        // distinto a quota no resetea (el provider podria estar fluctuando).
+        consecutiveQuotaErrors = 0;
+      }
       if (args.verbose) {
         emitVerboseLine(args.providerLabel, 'triage', entry, run, triageMeasurement);
       }
       triage = accumulate(triage, triageMeasurement);
       completedRuns += 1;
+      if (quotaExhausted) break;
 
       // Solo corremos Context + Remediation si Triage paso Y la entry tiene
       // ground truth de las dos capas (TP entries).
@@ -486,6 +515,7 @@ async function runProvider(args: {
     estimatedCostUsd: 0, // se setea en el caller con la pricing table
     determinismRate,
     errors,
+    ...(quotaExhausted ? { quotaExhausted: true } : {}),
   };
 }
 
