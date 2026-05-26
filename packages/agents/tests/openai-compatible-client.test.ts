@@ -90,8 +90,11 @@ describe('OpenAiCompatibleLlmClient.complete (vs openai SDK)', () => {
     const body = capturedBody as Record<string, unknown>;
     expect(body['model']).toBe('gpt-5-nano');
     // gpt-5* exige max_completion_tokens (descubierto en el PILOT de DG-077);
-    // el adapter hace el switch automatico por prefijo del model name.
-    expect(body['max_completion_tokens']).toBe(1024);
+    // el adapter hace el switch automatico por prefijo del model name. El
+    // default para gpt-5* es 8192 (DG-086 A): los reasoning tokens internos
+    // consumen el techo antes de emitir texto visible — 1024 producia
+    // content=null el 100% de las veces en el benchmark real.
+    expect(body['max_completion_tokens']).toBe(8192);
     expect(body['max_tokens']).toBeUndefined();
     // gpt-5* tambien rechaza temperature=0 — solo acepta el default (1).
     // Por eso para gpt-5* el adapter OMITE el campo temperature y deja que el
@@ -138,6 +141,56 @@ describe('OpenAiCompatibleLlmClient.complete (vs openai SDK)', () => {
     expect(body['max_tokens']).toBe(256);
     expect(body['max_completion_tokens']).toBeUndefined();
     expect(body['response_format']).toEqual({ type: 'json_object' });
+  });
+
+  it('respeta el maxTokens override del caller incluso para gpt-5* (DG-086 A)', async () => {
+    // Anti-regresion: el bump del default a 8192 NO debe pisar un override
+    // explicito del caller. Cuando request.maxTokens viene seteado, se usa
+    // ese valor independientemente del model.
+    let capturedBody: unknown;
+    const fakeFetch = ((_url: string | URL, init?: RequestInit): Promise<Response> => {
+      capturedBody = init?.body !== undefined ? JSON.parse(String(init.body)) : undefined;
+      return Promise.resolve(
+        new Response(JSON.stringify(buildChatCompletion('ok')), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        }),
+      );
+    }) as typeof fetch;
+    const client = new OpenAiCompatibleLlmClient({
+      apiKey: 'sk-x',
+      model: 'gpt-5-nano',
+      fetchImpl: fakeFetch,
+      maxRetries: 0,
+    });
+    await client.complete({ system: 's', user: 'u', maxTokens: 512 });
+    const body = capturedBody as Record<string, unknown>;
+    expect(body['max_completion_tokens']).toBe(512);
+  });
+
+  it('NO bumpea el default para non-gpt-5* models (regresion guard DG-086 A)', async () => {
+    // El bump a 8192 aplica SOLO a gpt-5*. gpt-4o / Llama / Mistral / DeepSeek
+    // siguen con el default cross-provider de 1024.
+    let capturedBody: unknown;
+    const fakeFetch = ((_url: string | URL, init?: RequestInit): Promise<Response> => {
+      capturedBody = init?.body !== undefined ? JSON.parse(String(init.body)) : undefined;
+      return Promise.resolve(
+        new Response(JSON.stringify(buildChatCompletion('ok')), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        }),
+      );
+    }) as typeof fetch;
+    const client = new OpenAiCompatibleLlmClient({
+      apiKey: 'sk-x',
+      model: 'gpt-4o-mini',
+      fetchImpl: fakeFetch,
+      maxRetries: 0,
+    });
+    await client.complete({ system: 's', user: 'u' });
+    const body = capturedBody as Record<string, unknown>;
+    expect(body['max_tokens']).toBe(1024);
+    expect(body['max_completion_tokens']).toBeUndefined();
   });
 
   it('lanza si el endpoint responde con un estado de error (sin reintentos)', async () => {

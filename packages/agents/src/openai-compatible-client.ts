@@ -47,6 +47,18 @@ import type {
 const DEFAULT_MODEL = 'gpt-5-nano';
 /** Tope de tokens de respuesta por defecto, alineado con `AnthropicLlmClient`. */
 const DEFAULT_MAX_TOKENS = 1024;
+/**
+ * Tope mas amplio para gpt-5* family (DG-086 A). El PILOT benchmark de
+ * DG-077 expuso que gpt-5-nano consume el techo de `max_completion_tokens`
+ * en reasoning tokens INTERNOS y devuelve `content=null` (100% errors). 8K
+ * deja ~7K para reasoning + ~1K para content emitido visible — empirica-
+ * mente suficiente para los prompts de triage/context/remediation que
+ * caben en ~512 tokens. Solo aplica cuando el llamante no pasa
+ * `request.maxTokens` (un override explicito se respeta). El cost del cap
+ * NO es el cost del actual usage — el provider cobra por los tokens
+ * generados realmente, no por el cap.
+ */
+const DEFAULT_MAX_TOKENS_GPT5 = 8192;
 /** Temperature fija — determinism cross-provider. */
 const DETERMINISTIC_TEMPERATURE = 0;
 
@@ -143,15 +155,18 @@ export class OpenAiCompatibleLlmClient implements LlmClient {
   }
 
   async completeWithUsage(request: LlmCompletionRequest): Promise<LlmCompletionResult> {
-    // gpt-5* family tiene dos quirks descubiertos empíricamente en el PILOT
+    // gpt-5* family tiene tres quirks descubiertos empíricamente en el PILOT
     // benchmark de DG-077: (1) rechaza `max_tokens` y exige
     // `max_completion_tokens`; (2) rechaza `temperature: 0` con
     // "Unsupported value: 'temperature' does not support 0 with this model.
-    // Only the default (1) value is supported" — solo acepta su default 1.
-    // Eso degrada determinism cross-provider para gpt-5* (caveat aceptado;
-    // el resto de providers mantienen determinism con temperature=0).
-    const tokens = request.maxTokens ?? DEFAULT_MAX_TOKENS;
+    // Only the default (1) value is supported" — solo acepta su default 1;
+    // (3) consume el techo de `max_completion_tokens` en reasoning tokens
+    // INTERNOS antes de emitir texto visible — con default 1024 (cross-
+    // provider) devolvia content=null el 100% de las veces. DG-086 A
+    // sube el default a 8192 SOLO para gpt-5* (override del caller se
+    // respeta). El resto de providers se queda en 1024.
     const isGpt5 = this.#model.startsWith('gpt-5');
+    const tokens = request.maxTokens ?? (isGpt5 ? DEFAULT_MAX_TOKENS_GPT5 : DEFAULT_MAX_TOKENS);
     const tokensParam = isGpt5 ? { max_completion_tokens: tokens } : { max_tokens: tokens };
     // Para gpt-5* omitimos `temperature` y dejamos que el modelo use su
     // default (1). Para el resto fijamos 0 para determinism.
