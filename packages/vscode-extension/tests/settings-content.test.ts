@@ -219,6 +219,106 @@ describe('renderSettingsHtml — escape HTML / defensa anti-inyeccion', () => {
   });
 });
 
+describe('renderSettingsHtml — Provider selector (DG-090 A)', () => {
+  it('renderea un <select> + <input> + boton Apply por cada agente', () => {
+    const html = renderSettingsHtml(makeState(), HTML_OPTIONS);
+    // 3 dropdowns (uno por agente) con data-agent-field=provider
+    expect((html.match(/<select data-agent-field="provider"/g) ?? []).length).toBe(3);
+    // 3 inputs de model
+    expect((html.match(/<input type="text" data-agent-field="model"/g) ?? []).length).toBe(3);
+    // 3 botones Apply
+    expect((html.match(/data-action="set-agent-provider"/g) ?? []).length).toBe(3);
+  });
+
+  it('el dropdown SOLO lista providers con configured:true + ollama si available + el provider activo', () => {
+    const html = renderSettingsHtml(
+      makeState({
+        credentials: {
+          anthropic: { configured: true, testStatus: 'pending' },
+          deepseek: { configured: true, testStatus: 'pending' },
+          // openai, groq, etc -> NO configured
+        },
+        ollama: {
+          available: true,
+          models: ['gemma3:4b'],
+          endpoint: 'http://localhost:11434',
+        },
+      }),
+      HTML_OPTIONS,
+    );
+    // El triage agent dropdown debe tener: anthropic (configured + activo), deepseek (configured), ollama (available).
+    // NO debe tener openai / groq / mistral.
+    const triageDropdownMatch = html.match(
+      /<select data-agent-field="provider" data-agent-id="triage">([\s\S]*?)<\/select>/,
+    );
+    expect(triageDropdownMatch).not.toBeNull();
+    const options = triageDropdownMatch![1] as string;
+    expect(options).toContain('value="anthropic"');
+    expect(options).toContain('value="deepseek"');
+    expect(options).toContain('value="ollama"');
+    expect(options).not.toContain('value="openai"');
+    expect(options).not.toContain('value="groq"');
+    expect(options).not.toContain('value="mistral"');
+  });
+
+  it('el provider activo siempre aparece selected aunque NO este configured', () => {
+    // Caso: el yaml apunta a "groq" pero la key de groq no está en SecretStorage.
+    // El dropdown lo lista igual (selected) para que el usuario vea el state real.
+    const html = renderSettingsHtml(
+      makeState({
+        active: {
+          triage: { provider: 'groq', model: 'llama-3.3-70b-versatile' },
+          context: { provider: 'anthropic', model: 'claude-haiku-4-5-20251001' },
+          remediation: { provider: 'anthropic', model: 'claude-haiku-4-5-20251001' },
+        },
+        credentials: {}, // ningun configured
+      }),
+      HTML_OPTIONS,
+    );
+    const triageDropdownMatch = html.match(
+      /<select data-agent-field="provider" data-agent-id="triage">([\s\S]*?)<\/select>/,
+    );
+    expect(triageDropdownMatch![1] as string).toContain('<option value="groq" selected>');
+  });
+
+  it('input prefilled con el model activo + escape de tags maliciosos en el value', () => {
+    const html = renderSettingsHtml(
+      makeState({
+        active: {
+          triage: { provider: 'anthropic', model: '"><script>alert(1)</script>' },
+          context: { provider: 'anthropic', model: 'm' },
+          remediation: { provider: 'anthropic', model: 'm' },
+        },
+      }),
+      HTML_OPTIONS,
+    );
+    expect(html).not.toContain('<script>alert(1)</script>');
+    expect(html).toContain('&quot;');
+  });
+
+  it('muestra un hint cuando no hay NINGUN provider configured ni Ollama available', () => {
+    const html = renderSettingsHtml(
+      makeState({
+        credentials: {},
+        ollama: { available: false, models: [], endpoint: 'http://localhost:11434' },
+      }),
+      HTML_OPTIONS,
+    );
+    expect(html).toContain('Tip: configure at least one API key');
+  });
+
+  it('NO muestra el hint cuando hay al menos un provider configured', () => {
+    const html = renderSettingsHtml(
+      makeState({
+        credentials: { anthropic: { configured: true, testStatus: 'pending' } },
+        ollama: { available: false, models: [], endpoint: 'http://localhost:11434' },
+      }),
+      HTML_OPTIONS,
+    );
+    expect(html).not.toContain('Tip: configure at least one API key');
+  });
+});
+
 describe('renderSettingsHtml — Heavy model warning (DG-087 A)', () => {
   // ~6 GB en bytes (supera el umbral de 5 GB).
   const SIX_GB = 6 * 1024 * 1024 * 1024;

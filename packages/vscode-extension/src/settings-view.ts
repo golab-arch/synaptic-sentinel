@@ -5,6 +5,7 @@ import * as vscode from 'vscode';
 import {
   AGENTS_CONFIG_FILENAME,
   loadAgentsConfig,
+  type AgentsConfig,
   type BrainAgentId,
   type ProviderName,
 } from '@synaptic-sentinel/core';
@@ -15,6 +16,7 @@ import {
   listOllamaModelsWithInfo,
 } from '@synaptic-sentinel/agents';
 import { agentsYamlHasComments, renderAgentsYaml } from './agents-yaml-writer.js';
+import { mergeAgentConfig } from './agents-config-merge.js';
 import {
   deleteProviderApiKey,
   getProviderApiKey,
@@ -56,6 +58,10 @@ export const SUPPRESS_HEAVY_MODEL_WARNING_KEY = 'synaptic-sentinel.suppressHeavy
  *   - `dismiss-heavy-warning`  — (DG-087 A) marca en globalState que el usuario
  *                                pidio NO ver mas el warning de modelos Ollama
  *                                pesados; persiste cross-workspace
+ *   - `set-agent-provider`     — (DG-090 A) escribe .sentinel/agents.yaml en
+ *                                el workspace con el provider/model elegido
+ *                                para el agente indicado (merge sobre el
+ *                                state activo)
  */
 export class SentinelSettingsViewProvider {
   /** Id del comando que abre el panel; contribuido en package.json. */
@@ -261,6 +267,11 @@ export class SentinelSettingsViewProvider {
       return;
     }
 
+    if (msg.type === 'set-agent-provider') {
+      await this.#handleSetAgentProvider(msg);
+      return;
+    }
+
     const provider =
       typeof msg.provider === 'string' ? (msg.provider as SecretProviderName) : undefined;
     if (provider === undefined) return;
@@ -310,6 +321,70 @@ export class SentinelSettingsViewProvider {
       await this.#render();
       return;
     }
+  }
+
+  /**
+   * DG-090 A: handler de `set-agent-provider`. Valida los args del payload,
+   * carga la config actual (yaml o fallback), aplica el merge para un solo
+   * agente y escribe `.sentinel/agents.yaml` al workspace.
+   *
+   * Validacion:
+   *   - debe haber workspaceRoot (panel se puede abrir sin uno);
+   *   - agentId debe ser uno de `triage` / `context` / `remediation`;
+   *   - provider debe estar en `PROVIDER_NAMES`;
+   *   - model debe ser non-empty.
+   *
+   * Side effects:
+   *   - escribe el yaml + showInformationMessage cuando ok;
+   *   - showWarningMessage + return temprano si algun arg es invalido.
+   */
+  async #handleSetAgentProvider(msg: {
+    agentId?: unknown;
+    provider?: unknown;
+    model?: unknown;
+  }): Promise<void> {
+    const workspaceRoot = this.workspaceRootProvider();
+    if (workspaceRoot === undefined) {
+      void vscode.window.showWarningMessage(
+        'SYNAPTIC Sentinel: open a folder/workspace first — the panel writes ' +
+          '.sentinel/agents.yaml relative to your project root.',
+      );
+      return;
+    }
+    const next = mergeAgentConfig(
+      this.#loadCurrentAgentsConfig(workspaceRoot),
+      msg.agentId,
+      msg.provider,
+      msg.model,
+    );
+    if (next === null) {
+      void vscode.window.showWarningMessage(
+        'SYNAPTIC Sentinel: invalid agent / provider / model — nothing written.',
+      );
+      return;
+    }
+    writeAgentsYamlFromUI(workspaceRoot, next);
+    const agentId = msg.agentId as BrainAgentId;
+    void vscode.window.showInformationMessage(
+      `SYNAPTIC Sentinel: ${agentId} agent now uses ${String(msg.provider)} / ${String(msg.model)}.`,
+    );
+    await this.#render();
+  }
+
+  /**
+   * Carga la `AgentsConfig` actual desde `agents.yaml`, o construye una
+   * desde el fallback Anthropic si no existe / esta corrupto. Garantiza
+   * que `#handleSetAgentProvider` siempre tenga una base válida sobre la
+   * cual hacer merge.
+   */
+  #loadCurrentAgentsConfig(workspaceRoot: string): AgentsConfig {
+    try {
+      const loaded = loadAgentsConfig(workspaceRoot);
+      if (loaded !== null) return loaded;
+    } catch {
+      // yaml invalido -> caer al fallback
+    }
+    return buildAnthropicFallbackConfig();
   }
 }
 

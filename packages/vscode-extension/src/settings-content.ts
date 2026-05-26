@@ -195,17 +195,58 @@ function renderCredentialRow(provider: ProviderName, status: CredentialStatus): 
   ].join('');
 }
 
-/** Renderiza una linea de configuracion per-agente. */
-function renderAgentRow(agentId: BrainAgentId, active: ResolvedAgentConfig): string {
+/**
+ * Calcula la lista de providers "available" para el dropdown de selección
+ * per-agente (DG-090 A). Un provider está available si:
+ *   - es un AUTH provider (anthropic + 11 openai-compat) Y `configured: true`
+ *     en SecretStorage, O
+ *   - es `ollama` Y `available: true` en el ping de auto-discovery.
+ *
+ * El provider actualmente activo SIEMPRE se incluye aunque no sea
+ * available — el usuario debe verlo seleccionado en su dropdown aunque
+ * el `configured` se haya borrado entre renders.
+ */
+function availableProvidersForSelector(
+  state: SettingsViewState,
+  currentProvider: ProviderName,
+): readonly ProviderName[] {
+  const set = new Set<ProviderName>();
+  for (const provider of AUTH_PROVIDERS) {
+    if (state.credentials[provider]?.configured === true) {
+      set.add(provider);
+    }
+  }
+  if (state.ollama.available) {
+    set.add('ollama');
+  }
+  set.add(currentProvider);
+  return Array.from(set);
+}
+
+/** Renderiza una linea de configuracion per-agente EDITABLE (DG-090 A). */
+function renderAgentRow(
+  agentId: BrainAgentId,
+  active: ResolvedAgentConfig,
+  state: SettingsViewState,
+): string {
   // El Record esta indexado por BrainAgentId, asi que AGENT_LABELS[agentId]
   // siempre existe; el cast silencia noUncheckedIndexedAccess.
   const label = AGENT_LABELS[agentId] as string;
+  const providers = availableProvidersForSelector(state, active.provider);
+  const options = providers
+    .map(
+      (p) =>
+        `<option value="${escapeHtml(p)}"${p === active.provider ? ' selected' : ''}>${escapeHtml(p)}</option>`,
+    )
+    .join('');
   return [
     `<div class="row" data-agent="${escapeHtml(agentId)}">`,
     `<label>${escapeHtml(label)}</label>`,
-    `<code>${escapeHtml(active.provider)}</code>`,
+    `<select data-agent-field="provider" data-agent-id="${escapeHtml(agentId)}">${options}</select>`,
     '<span>/</span>',
-    `<code>${escapeHtml(active.model)}</code>`,
+    `<input type="text" data-agent-field="model" data-agent-id="${escapeHtml(agentId)}" ` +
+      `value="${escapeHtml(active.model)}" placeholder="model name" style="min-width: 14rem;" />`,
+    `<button data-action="set-agent-provider" data-agent-id="${escapeHtml(agentId)}">Apply</button>`,
     '</div>',
   ].join('');
 }
@@ -299,17 +340,28 @@ function renderActiveSection(state: SettingsViewState): string {
     }
   })();
   const rows = AGENT_IDS.map((id) =>
-    renderAgentRow(id, state.active[id] as ResolvedAgentConfig),
+    renderAgentRow(id, state.active[id] as ResolvedAgentConfig, state),
   ).join('');
   const warning = state.agentsYamlHasComments
     ? '<div class="warning">⚠ Your <code>agents.yaml</code> contains comments. ' +
       'Saving from this panel will preserve the configuration but strip comments. ' +
       'Edit the YAML manually if you want to keep them.</div>'
     : '';
+  // DG-090 A: hint when no providers are configured/available, so the user
+  // knows why the dropdown only shows the current (fallback) provider.
+  const anyConfigured = AUTH_PROVIDERS.some((p) => state.credentials[p]?.configured === true);
+  const hint =
+    !anyConfigured && !state.ollama.available
+      ? '<div class="help">Tip: configure at least one API key below (or start Ollama locally) ' +
+        'to make more providers available in the dropdowns above.</div>'
+      : '';
   return [
     '<h3>Active Configuration</h3>',
     `<p class="meta">${sourceLabel}</p>`,
+    '<p class="help">Pick a provider/model per agent and click <b>Apply</b> to write ' +
+      '<code>.sentinel/agents.yaml</code> in your workspace (DG-090 A).</p>',
     rows,
+    hint,
     warning,
   ].join('');
 }
@@ -358,6 +410,15 @@ export function renderSettingsHtml(state: SettingsViewState, options: SettingsHt
     `send('refresh-ollama', {});` +
     `} else if (action === 'dismiss-heavy-warning') {` +
     `send('dismiss-heavy-warning', {});` +
+    `} else if (action === 'set-agent-provider') {` +
+    // DG-090 A: leer el provider + model del row del agente correspondiente
+    // y enviar al provider para que escriba .sentinel/agents.yaml.
+    `const agentId = btn.getAttribute('data-agent-id');` +
+    `const selProvider = document.querySelector('select[data-agent-field="provider"][data-agent-id="' + agentId + '"]');` +
+    `const inpModel = document.querySelector('input[data-agent-field="model"][data-agent-id="' + agentId + '"]');` +
+    `const newProvider = selProvider ? selProvider.value : '';` +
+    `const newModel = inpModel ? inpModel.value : '';` +
+    `send('set-agent-provider', { agentId, provider: newProvider, model: newModel });` +
     `}` +
     `});` +
     `// Inicial: pedirle a la extension el state actual.` +

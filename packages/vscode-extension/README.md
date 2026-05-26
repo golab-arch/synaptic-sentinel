@@ -68,9 +68,9 @@ Token counts are proxies (`Math.ceil(text.length / 4)`) — ±15-20% vs the prov
 
 **A. From the IDE** — Command Palette → **`SYNAPTIC Sentinel: Configure Brain Layer Providers`** opens a Settings panel:
 
-- **Active Configuration** — see which provider/model runs each agent.
+- **Active Configuration** — pick a provider + model for each agent (Triage / Context / Remediation) from a dropdown, then click **Apply**. The dropdown only lists providers whose API key is configured (plus Ollama if its daemon is reachable). Clicking Apply writes `.sentinel/agents.yaml` in your workspace — same file format the CLI reads (path B below).
 - **Managed Credentials** — Save / Delete / Test API keys for 12 providers. Keys never cross to the webview in plain text (state is `configured: boolean`, real value lives in `vscode.SecretStorage`).
-- **Local Models** — auto-discovers your Ollama daemon at `localhost:11434` and lists models you've pulled.
+- **Local Models** — auto-discovers your Ollama daemon at `localhost:11434` and lists models you've pulled. Models above 5 GB get a `⚠ heavy` badge and the panel shows a one-time warning about RAM saturation (with a "Don't remind me again" toggle that persists cross-workspace).
 
 **B. From `.sentinel/agents.yaml`** in your project root (versionable):
 
