@@ -102,7 +102,7 @@ API keys come from `SENTINEL_<PROVIDER>_API_KEY` environment variables (`SENTINE
 
 ### Memory of the swarm
 
-The three agents share a learning store on disk in your repo (`.synaptic-sentinel/colony.db`): a triage pattern seen with strong evidence is pre-classified on the next scan **without spending an LLM token**.
+The three agents share a learning store on disk in your repo (`.sentinel/colony.db` — same `.sentinel/` directory that holds `agents.yaml`): a triage pattern seen with strong evidence is pre-classified on the next scan **without spending an LLM token**. _Backward-compat:_ if your repo still has the legacy `.synaptic-sentinel/colony.db` from v0.3.5 or earlier, the CLI keeps reading it and emits a log suggesting you move it; no automatic migration to avoid data loss.
 
 ### Turnkey from install to first scan
 
@@ -138,7 +138,7 @@ The `synaptic-sentinel cost-history` sub-command lets you wire cost reports into
 
 - **Your code never leaves your machine for the deterministic scans.** The five scouts run locally as child processes.
 - **For the Brain Layer (optional)**, each finding's snippet goes directly to the LLM provider you chose — no proxy, no middleman, no Synaptic backend. BYOK. With Ollama / LM Studio / vLLM, the code never leaves your machine at all.
-- **The audit memory (`colony.db`) lives in your repo's `.synaptic-sentinel/` directory.** You decide whether to commit it.
+- **The audit memory (`colony.db`) lives in your repo's `.sentinel/` directory** (alongside `agents.yaml`). You decide whether to commit it. _Workspaces from v0.3.5 or earlier:_ if your repo has `.synaptic-sentinel/colony.db`, the CLI keeps reading the legacy path (dual-read, no auto-migration to avoid data loss).
 
 ---
 

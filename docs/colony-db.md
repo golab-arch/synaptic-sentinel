@@ -2,9 +2,15 @@
 
 `colony.db` es la memoria compartida del enjambre de Synaptic Sentinel: una base
 de datos **SQLite local** que vive en el proyecto **del cliente**, en
-`.synaptic-sentinel/colony.db`. **No** forma parte de este repositorio — aquí
-solo está el schema que la crea
+`.sentinel/colony.db` (mismo directorio que `.sentinel/agents.yaml`). **No**
+forma parte de este repositorio — aquí solo está el schema que la crea
 ([packages/core/src/colony/schema.sql](../packages/core/src/colony/schema.sql)).
+
+**Backward-compat (DG-093 A):** workspaces creados con v0.3.5 o anterior tienen
+`.synaptic-sentinel/colony.db`. La CLI sigue leyendo el path legacy
+(dual-read) y emite un log informativo cuando lo encuentra. No hay migración
+automática para evitar pérdida de datos — el usuario decide cuándo mover el
+archivo manualmente.
 
 ## Tablas
 
@@ -54,9 +60,13 @@ desarrollador y puede crecer.
   para reducir el costo LLM entre miembros.
 - Auditorías que requieren reproducir el estado exacto de un escaneo.
 
-Para versionarla, eliminá estas líneas de `.gitignore`:
+Para versionarla, eliminá estas líneas de `.gitignore` (cubren el path nuevo
+de DG-093 A y el legacy de v0.3.5 ←):
 
 ```
+.sentinel/colony.db
+.sentinel/colony.db-wal
+.sentinel/colony.db-shm
 .synaptic-sentinel/colony.db
 .synaptic-sentinel/colony.db-wal
 .synaptic-sentinel/colony.db-shm

@@ -24,8 +24,9 @@ function fakeLlm(): LlmClient {
 
 /** Crea un colony.db con un scan y un finding pheromone por fingerprint. */
 function seedDb(projectRoot: string, fingerprints: readonly string[]): string {
-  mkdirSync(join(projectRoot, '.synaptic-sentinel'), { recursive: true });
-  const db = ColonyDb.open(join(projectRoot, '.synaptic-sentinel', 'colony.db'));
+  // DG-093 A: tests siembran en el nuevo path .sentinel/ (preferred).
+  mkdirSync(join(projectRoot, '.sentinel'), { recursive: true });
+  const db = ColonyDb.open(join(projectRoot, '.sentinel', 'colony.db'));
   const scanId = randomUUID();
   db.insertScan({ id: scanId, startedAt: new Date().toISOString() });
   db.insertPheromones(
@@ -58,7 +59,7 @@ function seedDb(projectRoot: string, fingerprints: readonly string[]): string {
 
 /** Abre el colony.db de un proyecto sembrado. */
 function openDb(projectRoot: string): ColonyDb {
-  return ColonyDb.open(join(projectRoot, '.synaptic-sentinel', 'colony.db'));
+  return ColonyDb.open(join(projectRoot, '.sentinel', 'colony.db'));
 }
 
 describe('runTriageCommand', () => {

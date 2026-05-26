@@ -6,6 +6,7 @@ import {
   ColonyDb,
   Coordinator,
   FindingSchema,
+  resolveColonyDbPath,
   severityAtLeast,
   type Finding,
   type ScoutAgent,
@@ -274,9 +275,19 @@ export async function runScanCommand(options: ScanCommandOptions): Promise<numbe
     );
   }
 
-  const dbDir = join(projectRoot, '.synaptic-sentinel');
-  mkdirSync(dbDir, { recursive: true });
-  const db = ColonyDb.open(join(dbDir, 'colony.db'));
+  // DG-093 A: dual-read del colony.db. Si el workspace tiene .synaptic-sentinel/
+  // legacy de v0.3.x, lo usa con un log informativo; en cualquier otro caso
+  // escribe en el nuevo .sentinel/colony.db.
+  const dbResolution = resolveColonyDbPath(projectRoot);
+  mkdirSync(dbResolution.dir, { recursive: true });
+  if (dbResolution.isLegacy) {
+    console.warn(
+      `  using legacy .synaptic-sentinel/colony.db (pre-DG-093). Consider ` +
+        `moving it to .sentinel/colony.db at your leisure — the CLI keeps ` +
+        `reading the legacy path until you do.`,
+    );
+  }
+  const db = ColonyDb.open(dbResolution.path);
   try {
     const coordinator = new Coordinator(db, scouts);
     console.log(`  target  ${projectRoot}`);

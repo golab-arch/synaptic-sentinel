@@ -1,6 +1,6 @@
 import { existsSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
-import { join, resolve } from 'node:path';
+import { resolve } from 'node:path';
 import {
   ColonyDb,
   deriveFromLearning,
@@ -8,6 +8,7 @@ import {
   FindingSchema,
   loadAgentsConfig,
   patternSignature,
+  resolveColonyDbPath,
   triageClassificationToLearning,
   type AgentConfig,
   type AgentsConfig,
@@ -232,10 +233,21 @@ export async function runTriageCommand(options: TriageCommandOptions): Promise<n
   const color = shouldUseColor(options.noColor === true);
   console.log(renderBanner(color));
   const projectRoot = resolve(options.path);
-  const dbPath = join(projectRoot, '.synaptic-sentinel', 'colony.db');
+  // DG-093 A: dual-read del colony.db (preferencia .sentinel/, fallback al
+  // legacy .synaptic-sentinel/). El existsSync que sigue es contra el path
+  // resuelto; si NINGUNO de los dos paths tiene archivo, el caller saca el
+  // mismo error que antes.
+  const dbResolution = resolveColonyDbPath(projectRoot);
+  const dbPath = dbResolution.path;
   if (!existsSync(dbPath)) {
     console.error(`No colony.db in ${projectRoot}. Run "synaptic-sentinel scan" first.`);
     return 1;
+  }
+  if (dbResolution.isLegacy) {
+    console.warn(
+      `Using legacy .synaptic-sentinel/colony.db (pre-DG-093). Consider ` +
+        `moving it to .sentinel/colony.db at your leisure.`,
+    );
   }
 
   const resolved = resolveAgentLlmClients(projectRoot, options);

@@ -17,7 +17,9 @@ integrationSuite('runCliScan - integracion con la CLI real', () => {
   const probeDir = fileURLToPath(new URL('./fixtures/probe', import.meta.url));
 
   afterAll(() => {
-    // La CLI crea .synaptic-sentinel/colony.db en el dir escaneado.
+    // DG-093 A: la CLI ahora crea .sentinel/colony.db (no .synaptic-sentinel/).
+    // Limpiamos ambos por si el probe quedó con el legacy de una corrida anterior.
+    rmSync(join(probeDir, '.sentinel'), { recursive: true, force: true });
     rmSync(join(probeDir, '.synaptic-sentinel'), { recursive: true, force: true });
   });
 

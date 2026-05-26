@@ -6,10 +6,16 @@ import { randomUUID } from 'node:crypto';
 import { ColonyDb } from '@synaptic-sentinel/core';
 import { runMarkFpCommand } from '../src/commands/mark-fp.js';
 
-/** Crea un colony.db con un scan y un finding pheromone con el fingerprint dado. */
-function seedDb(projectRoot: string, fingerprint: string): void {
-  mkdirSync(join(projectRoot, '.synaptic-sentinel'), { recursive: true });
-  const db = ColonyDb.open(join(projectRoot, '.synaptic-sentinel', 'colony.db'));
+/**
+ * Crea un colony.db con un scan y un finding pheromone con el fingerprint
+ * dado. Por default usa el path nuevo `.sentinel/colony.db` (DG-093 A);
+ * `legacy: true` lo crea en `.synaptic-sentinel/colony.db` para cubrir el
+ * dual-read de workspaces preexistentes de v0.3.x.
+ */
+function seedDb(projectRoot: string, fingerprint: string, opts: { legacy?: boolean } = {}): void {
+  const dirname = opts.legacy === true ? '.synaptic-sentinel' : '.sentinel';
+  mkdirSync(join(projectRoot, dirname), { recursive: true });
+  const db = ColonyDb.open(join(projectRoot, dirname, 'colony.db'));
   const scanId = randomUUID();
   db.insertScan({ id: scanId, startedAt: new Date().toISOString() });
   db.insertPheromone({
@@ -35,7 +41,7 @@ describe('runMarkFpCommand', () => {
 
     expect(runMarkFpCommand({ path: root, fingerprint: 'fp-objetivo' })).toBe(0);
 
-    const db = ColonyDb.open(join(root, '.synaptic-sentinel', 'colony.db'));
+    const db = ColonyDb.open(join(root, '.sentinel', 'colony.db'));
     expect([...db.getKnownFingerprints('fp_known')]).toContain('fp-objetivo');
     db.close();
   });
@@ -47,7 +53,7 @@ describe('runMarkFpCommand', () => {
     expect(runMarkFpCommand({ path: root, fingerprint: 'fp-objetivo' })).toBe(0);
     expect(runMarkFpCommand({ path: root, fingerprint: 'fp-objetivo' })).toBe(0);
 
-    const db = ColonyDb.open(join(root, '.synaptic-sentinel', 'colony.db'));
+    const db = ColonyDb.open(join(root, '.sentinel', 'colony.db'));
     const fpKnown = db
       .getPheromonesByFingerprint('fp-objetivo')
       .filter((pheromone) => pheromone.type === 'fp_known');
@@ -65,5 +71,19 @@ describe('runMarkFpCommand', () => {
     root = join(tmpdir(), `markfp-${randomUUID()}`);
     mkdirSync(root, { recursive: true });
     expect(runMarkFpCommand({ path: root, fingerprint: 'x' })).toBe(1);
+  });
+
+  it('lee del legacy .synaptic-sentinel/colony.db si es el unico presente (DG-093 A backward-compat)', () => {
+    root = join(tmpdir(), `markfp-${randomUUID()}`);
+    // Seed en el path LEGACY. La CLI debe encontrarlo via resolveColonyDbPath.
+    seedDb(root, 'fp-legacy', { legacy: true });
+
+    expect(runMarkFpCommand({ path: root, fingerprint: 'fp-legacy' })).toBe(0);
+
+    // El fp_known debe quedar persistido en el MISMO archivo legacy (la CLI no
+    // mueve archivos — dual-read sin migración).
+    const db = ColonyDb.open(join(root, '.synaptic-sentinel', 'colony.db'));
+    expect([...db.getKnownFingerprints('fp_known')]).toContain('fp-legacy');
+    db.close();
   });
 });

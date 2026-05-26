@@ -1,6 +1,6 @@
 import { existsSync } from 'node:fs';
-import { join, resolve } from 'node:path';
-import { ColonyDb, type CostHistoryRow } from '@synaptic-sentinel/core';
+import { resolve } from 'node:path';
+import { ColonyDb, resolveColonyDbPath, type CostHistoryRow } from '@synaptic-sentinel/core';
 
 /**
  * Sub-comando `cost-history` (DG-078 B).
@@ -27,10 +27,19 @@ const DEFAULT_LIMIT = 10;
 
 export function runCostHistoryCommand(options: CostHistoryCommandOptions): number {
   const projectRoot = resolve(options.path);
-  const dbPath = join(projectRoot, '.synaptic-sentinel', 'colony.db');
+  // DG-093 A: dual-read del colony.db (preferencia .sentinel/, fallback al
+  // legacy .synaptic-sentinel/).
+  const dbResolution = resolveColonyDbPath(projectRoot);
+  const dbPath = dbResolution.path;
   if (!existsSync(dbPath)) {
     console.error(`No colony.db in ${projectRoot}. Run "synaptic-sentinel triage" first.`);
     return 1;
+  }
+  if (dbResolution.isLegacy) {
+    console.warn(
+      `Using legacy .synaptic-sentinel/colony.db (pre-DG-093). Consider ` +
+        `moving it to .sentinel/colony.db at your leisure.`,
+    );
   }
   const limit = options.limit ?? DEFAULT_LIMIT;
   const db = ColonyDb.open(dbPath);

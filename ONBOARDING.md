@@ -67,7 +67,10 @@ node packages/cli/dist/index.js scan --path /ruta/al/proyecto
 ```
 
 Corre los 5 scouts, deduplica e imprime los hallazgos, y los persiste en
-`.synaptic-sentinel/colony.db` dentro del proyecto escaneado.
+`.sentinel/colony.db` dentro del proyecto escaneado (mismo `.sentinel/` que
+contiene `agents.yaml`). Si tu repo tiene `.synaptic-sentinel/colony.db` de
+una versión anterior, la CLI lo sigue leyendo (dual-read, sin migración
+automática) — mové el archivo manualmente cuando te quede cómodo.
 
 Exportar el **tomo** (el informe de auditoría) en JSON y/o HTML:
 

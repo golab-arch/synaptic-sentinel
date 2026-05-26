@@ -81,7 +81,7 @@ pnpm verify      # per-cycle gate: format:check + lint + build + test:unit
 
 - **Your code never leaves your machine for the deterministic scans.** The 5 scouts run locally as child processes.
 - **For the Brain Layer (optional), each finding's snippet goes directly to Anthropic** — no proxy, no middleman, no Synaptic backend. BYOK.
-- **The audit memory (`colony.db`) lives in your repo's `.synaptic-sentinel/` directory.** You decide whether to commit it.
+- **The audit memory (`colony.db`) lives in your repo's `.sentinel/` directory** (alongside `agents.yaml`). You decide whether to commit it. _Repos from v0.3.5 or earlier:_ the legacy `.synaptic-sentinel/colony.db` is still read (dual-read, no auto-migration to avoid data loss).
 
 ## Documentation
 
