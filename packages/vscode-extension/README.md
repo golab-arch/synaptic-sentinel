@@ -147,7 +147,7 @@ The `synaptic-sentinel cost-history` sub-command lets you wire cost reports into
 Honest caveats from the first real cross-provider benchmark — none affect your real source code, but you should know them:
 
 1. **OpenAI `gpt-5*` models need a higher `max_completion_tokens`**. Out-of-the-box `gpt-5-nano` exhausts its reasoning-token budget at 1024 tokens and returns empty content. Either raise the cap manually or pick a different OpenAI model for now.
-2. **Local LLMs with ≥10 GB models can saturate RAM** on consumer hardware during long batch operations (`pnpm benchmark:run`). Normal `triage` on a handful of findings is fine. For benchmark batches, prefer models ≤3 GB (`gemma3:4b`, `qwen2.5:3b`, `llama3.2:3b`).
+2. **Local LLMs with >5 GB models can saturate RAM** on consumer hardware during long batch operations (`pnpm benchmark:run`). Normal `triage` on a handful of findings is fine. For benchmark batches, prefer the ≤3 GB tier — the **Configure Brain Layer Providers** panel now shows each Ollama model's size and a ⚠ badge for models above 5 GB (with a "Don't remind me again" option once you've made your peace with the trade-off). Recommended lightweight models: `gemma3:4b` (~3 GB), `qwen2.5-coder:7b` (~4.4 GB), `llama3.2:3b` (~2 GB).
 3. **Free-tier quotas exhaust quickly** on Groq (100K tokens/day) and Gemini (RPM-limited). Fine for everyday triage on a few findings; use the paid tier for full benchmark runs.
 4. **Token counts are proxies** (`chars/4`, ±15-20% vs the provider's billed usage). Cost USD is `~estimated` everywhere it appears.
 

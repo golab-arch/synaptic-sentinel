@@ -14,6 +14,7 @@ function makeState(overrides: Partial<SettingsViewState> = {}): SettingsViewStat
     agentsYamlHasComments: false,
     credentials: {},
     ollama: { available: false, models: [], endpoint: 'http://localhost:11434' },
+    suppressHeavyModelWarning: false,
     ...overrides,
   };
 }
@@ -215,5 +216,107 @@ describe('renderSettingsHtml — escape HTML / defensa anti-inyeccion', () => {
     );
     expect(html).not.toContain('<script>alert(1)</script>');
     expect(html).toContain('&lt;script&gt;');
+  });
+});
+
+describe('renderSettingsHtml — Heavy model warning (DG-087 A)', () => {
+  // ~6 GB en bytes (supera el umbral de 5 GB).
+  const SIX_GB = 6 * 1024 * 1024 * 1024;
+  // ~2 GB en bytes (por debajo del umbral).
+  const TWO_GB = 2 * 1024 * 1024 * 1024;
+
+  it('muestra el badge "⚠ heavy" + warning panel cuando un modelo supera 5 GB', () => {
+    const html = renderSettingsHtml(
+      makeState({
+        ollama: {
+          available: true,
+          models: ['gemma4:latest'],
+          modelsInfo: [{ name: 'gemma4:latest', sizeBytes: SIX_GB }],
+          endpoint: 'http://localhost:11434',
+        },
+      }),
+      HTML_OPTIONS,
+    );
+    expect(html).toContain('⚠ heavy');
+    expect(html).toContain('exceed 5 GB');
+    expect(html).toContain('6.0 GB');
+    expect(html).toContain("Don't remind me again");
+    expect(html).toContain('data-action="dismiss-heavy-warning"');
+  });
+
+  it('NO muestra el badge ni warning panel cuando todos los modelos ≤ 5 GB', () => {
+    const html = renderSettingsHtml(
+      makeState({
+        ollama: {
+          available: true,
+          models: ['gemma3:4b'],
+          modelsInfo: [{ name: 'gemma3:4b', sizeBytes: TWO_GB }],
+          endpoint: 'http://localhost:11434',
+        },
+      }),
+      HTML_OPTIONS,
+    );
+    // El tamaño SI se muestra siempre (informational).
+    expect(html).toContain('2.0 GB');
+    // Pero el badge "heavy" y el panel-level warning NO.
+    expect(html).not.toContain('⚠ heavy');
+    expect(html).not.toContain('exceed 5 GB');
+    expect(html).not.toContain("Don't remind me again");
+  });
+
+  it('respeta suppressHeavyModelWarning=true: no muestra badge ni warning aunque haya modelos pesados', () => {
+    const html = renderSettingsHtml(
+      makeState({
+        ollama: {
+          available: true,
+          models: ['gemma4:latest'],
+          modelsInfo: [{ name: 'gemma4:latest', sizeBytes: SIX_GB }],
+          endpoint: 'http://localhost:11434',
+        },
+        suppressHeavyModelWarning: true,
+      }),
+      HTML_OPTIONS,
+    );
+    // El tamaño sigue mostrandose (informational).
+    expect(html).toContain('6.0 GB');
+    // El badge y el panel-level warning estan suprimidos.
+    expect(html).not.toContain('⚠ heavy');
+    expect(html).not.toContain("Don't remind me again");
+  });
+
+  it('fallback legacy: render funciona sin modelsInfo (solo models string[])', () => {
+    const html = renderSettingsHtml(
+      makeState({
+        ollama: {
+          available: true,
+          models: ['mistral-nemo:12b'],
+          endpoint: 'http://localhost:11434',
+          // sin modelsInfo
+        },
+      }),
+      HTML_OPTIONS,
+    );
+    expect(html).toContain('mistral-nemo:12b');
+    // Sin info de size no se renderea ni el tamaño ni el badge.
+    expect(html).not.toContain('GB');
+    expect(html).not.toContain('⚠ heavy');
+  });
+
+  it('renderea sizeBytes=0 sin tamaño ni badge (Ollama no reporto size)', () => {
+    const html = renderSettingsHtml(
+      makeState({
+        ollama: {
+          available: true,
+          models: ['noisy-model:latest'],
+          modelsInfo: [{ name: 'noisy-model:latest', sizeBytes: 0 }],
+          endpoint: 'http://localhost:11434',
+        },
+      }),
+      HTML_OPTIONS,
+    );
+    expect(html).toContain('noisy-model:latest');
+    // Sin size reportado: no renderea size label ni badge heavy.
+    expect(html).not.toContain('0.0 GB');
+    expect(html).not.toContain('⚠ heavy');
   });
 });

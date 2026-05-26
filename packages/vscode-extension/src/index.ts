@@ -82,10 +82,14 @@ export function activate(context: vscode.ExtensionContext): void {
   tomoView = new SentinelTomoViewProvider();
   // Panel multi-provider (Phase 11 DG-074 B): provider per agent + Ollama
   // auto-discovery + managed credentials. La extension lo expone via comando.
-  const settingsView = new SentinelSettingsViewProvider(secrets, () => {
-    const folder = vscode.workspace.workspaceFolders?.[0];
-    return folder?.uri.fsPath;
-  });
+  const settingsView = new SentinelSettingsViewProvider(
+    secrets,
+    () => {
+      const folder = vscode.workspace.workspaceFolders?.[0];
+      return folder?.uri.fsPath;
+    },
+    context.globalState,
+  );
 
   context.subscriptions.push(
     diagnostics,

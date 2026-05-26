@@ -3,6 +3,7 @@ import {
   OllamaLlmClient,
   isOllamaAvailable,
   listOllamaModels,
+  listOllamaModelsWithInfo,
   parseOllamaResponse,
   parseOllamaUsage,
 } from '../src/ollama-client.js';
@@ -261,5 +262,68 @@ describe('OllamaLlmClient.completeWithUsage (DG-085 A)', () => {
     const result = await client.completeWithUsage({ system: 's', user: 'u' });
     expect(result.text).toBe('respuesta');
     expect(result.usage).toEqual({ inputTokens: 312, outputTokens: 64 });
+  });
+});
+
+describe('listOllamaModelsWithInfo (DG-087 A)', () => {
+  it('devuelve nombre + sizeBytes de cada modelo del payload /api/tags', async () => {
+    const fakeFetch = ((): Promise<Response> =>
+      Promise.resolve(
+        new Response(
+          JSON.stringify({
+            models: [
+              { name: 'gemma3:4b', modified_at: '2026-05-25T00:00:00Z', size: 3_200_000_000 },
+              { name: 'gemma4:latest', modified_at: '2026-05-25T00:00:00Z', size: 9_600_000_000 },
+            ],
+          }),
+          { status: 200, headers: { 'content-type': 'application/json' } },
+        ),
+      )) as typeof fetch;
+    const infos = await listOllamaModelsWithInfo(undefined, fakeFetch);
+    expect(infos).toEqual([
+      { name: 'gemma3:4b', sizeBytes: 3_200_000_000 },
+      { name: 'gemma4:latest', sizeBytes: 9_600_000_000 },
+    ]);
+  });
+
+  it('cae a sizeBytes=0 cuando el payload no incluye size para un modelo', async () => {
+    const fakeFetch = ((): Promise<Response> =>
+      Promise.resolve(
+        new Response(
+          JSON.stringify({
+            models: [{ name: 'sized:7b', size: 4_000_000_000 }, { name: 'unsized:latest' }],
+          }),
+          { status: 200 },
+        ),
+      )) as typeof fetch;
+    const infos = await listOllamaModelsWithInfo(undefined, fakeFetch);
+    expect(infos).toEqual([
+      { name: 'sized:7b', sizeBytes: 4_000_000_000 },
+      { name: 'unsized:latest', sizeBytes: 0 },
+    ]);
+  });
+
+  it('devuelve [] cuando Ollama no responde (sin lanzar)', async () => {
+    const fakeFetch = ((): Promise<Response> =>
+      Promise.reject(new Error('ECONNREFUSED'))) as typeof fetch;
+    const infos = await listOllamaModelsWithInfo(undefined, fakeFetch);
+    expect(infos).toEqual([]);
+  });
+
+  it('listOllamaModels (legacy) sigue devolviendo solo nombres tras DG-087 A', async () => {
+    const fakeFetch = ((): Promise<Response> =>
+      Promise.resolve(
+        new Response(
+          JSON.stringify({
+            models: [
+              { name: 'gemma3:4b', size: 3_200_000_000 },
+              { name: 'gemma4:latest', size: 9_600_000_000 },
+            ],
+          }),
+          { status: 200 },
+        ),
+      )) as typeof fetch;
+    const names = await listOllamaModels(undefined, fakeFetch);
+    expect(names).toEqual(['gemma3:4b', 'gemma4:latest']);
   });
 });

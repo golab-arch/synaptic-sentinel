@@ -211,6 +211,33 @@ export async function listOllamaModels(
   baseUrl: string = DEFAULT_BASE_URL,
   fetchImpl: typeof fetch = fetch,
 ): Promise<readonly string[]> {
+  const infos = await listOllamaModelsWithInfo(baseUrl, fetchImpl);
+  return infos.map((info) => info.name);
+}
+
+/**
+ * Info por modelo en una instancia local de Ollama (DG-087 A): nombre + tamaño
+ * en bytes (campo nativo del `/api/tags`). Usado por la UI del Settings panel
+ * para mostrar el peso de cada modelo y advertir cuando supera el umbral que
+ * empiricamente saturo RAM en DG-077 (Gemma 4 9.6 GB / gpt-oss:20b 13 GB).
+ */
+export interface OllamaModelInfo {
+  readonly name: string;
+  /** Bytes ocupados en disco — `0` si Ollama no lo reporto para este modelo. */
+  readonly sizeBytes: number;
+}
+
+/**
+ * Lista los modelos disponibles localmente con info de tamaño (DG-087 A).
+ * Mismo contrato defensivo que `listOllamaModels`: devuelve `[]` en cualquier
+ * error y no lanza. `sizeBytes` cae a `0` si el payload no incluye el field
+ * `size` (esto NO descarta el modelo del array — solo neutraliza el warning
+ * de RAM en la UI).
+ */
+export async function listOllamaModelsWithInfo(
+  baseUrl: string = DEFAULT_BASE_URL,
+  fetchImpl: typeof fetch = fetch,
+): Promise<readonly OllamaModelInfo[]> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => {
     controller.abort();
@@ -225,8 +252,14 @@ export async function listOllamaModels(
     const models = (payload as { models?: unknown }).models;
     if (!Array.isArray(models)) return [];
     return models
-      .map((entry) => (entry as { name?: unknown }).name)
-      .filter((name): name is string => typeof name === 'string' && name.length > 0);
+      .map((entry) => {
+        const name = (entry as { name?: unknown }).name;
+        const size = (entry as { size?: unknown }).size;
+        if (typeof name !== 'string' || name.length === 0) return null;
+        const sizeBytes = typeof size === 'number' && Number.isFinite(size) && size >= 0 ? size : 0;
+        return { name, sizeBytes } satisfies OllamaModelInfo;
+      })
+      .filter((info): info is OllamaModelInfo => info !== null);
   } catch {
     return [];
   } finally {

@@ -29,6 +29,12 @@ export interface SettingsViewState {
   readonly credentials: Readonly<Record<string, CredentialStatus>>;
   /** Status de auto-discovery de Ollama. */
   readonly ollama: OllamaStatus;
+  /**
+   * `true` si el usuario clickeo "Don't remind me again" en el warning de
+   * modelos Ollama pesados (DG-087 A). Persistido en `vscode.globalState`.
+   * Cuando `true` el badge "heavy" y el panel-level warning se omiten.
+   */
+  readonly suppressHeavyModelWarning: boolean;
 }
 
 /** Config resuelta de un agente (lo que el panel muestra en "Active"). */
@@ -47,15 +53,39 @@ export interface CredentialStatus {
   readonly testMessage?: string;
 }
 
+/** Info por modelo Ollama disponible (DG-087 A). */
+export interface OllamaModelEntry {
+  readonly name: string;
+  /** Bytes ocupados — `0` si Ollama no lo reporto (neutraliza el warning). */
+  readonly sizeBytes: number;
+}
+
 /** Status de Ollama. */
 export interface OllamaStatus {
   /** `true` si `GET /api/tags` respondio 200 al pingear localhost:11434. */
   readonly available: boolean;
   /** Modelos pulled en Ollama (vacio si `available === false`). */
   readonly models: readonly string[];
+  /**
+   * Modelos con info de tamaño (DG-087 A). Opcional para retro-compat con
+   * builds previos del provider; cuando esta presente, el renderer lo usa
+   * para mostrar tamaño + badge "heavy" si supera el umbral. Si esta
+   * ausente, el renderer cae al render legacy (solo `models: string[]`).
+   */
+  readonly modelsInfo?: readonly OllamaModelEntry[];
   /** Endpoint usado para el ping — visible en la UI para diagnosticar. */
   readonly endpoint: string;
 }
+
+/**
+ * Umbral empirico-defensivo a partir del cual un modelo Ollama se considera
+ * "heavy" y dispara el warning de RAM (DG-087 A). El PILOT de DG-077 vio
+ * que Gemma 4 (9.6 GB) y gpt-oss:20b (13 GB) saturaron RAM tras 2 horas;
+ * 5 GB deja modelos como qwen2.5-coder:7b (~4.4 GB), gemma3:4b (~3 GB) y
+ * mistral-nemo:7b sin disparar el warning. El usuario puede suprimirlo
+ * globalmente con "Don't remind me again".
+ */
+export const HEAVY_MODEL_THRESHOLD_BYTES = 5 * 1024 * 1024 * 1024;
 
 /** Opciones de renderizado (CSP). */
 export interface SettingsHtmlOptions {
@@ -114,6 +144,8 @@ const STYLE = `
   .badge-missing { background: #6b7280; }
   .badge-error { background: #c0392b; }
   .badge-pending { background: #4b6fb5; }
+  .badge-warning { background: #c08020; }
+  .meta-inline { color: var(--vscode-descriptionForeground); font-size: 0.85em; }
   .warning { background: var(--vscode-inputValidation-warningBackground);
     border-left: 3px solid var(--vscode-inputValidation-warningBorder);
     padding: 0.4rem 0.6rem; font-size: 0.85em; margin: 0.5rem 0; }
@@ -178,26 +210,79 @@ function renderAgentRow(agentId: BrainAgentId, active: ResolvedAgentConfig): str
   ].join('');
 }
 
+/** Formatea un tamano en bytes a "X.Y GB" (1 decimal). */
+function formatGb(sizeBytes: number): string {
+  const gb = sizeBytes / (1024 * 1024 * 1024);
+  return `${gb.toFixed(1)} GB`;
+}
+
+/** Renderiza un <li> de un modelo Ollama (con info de tamaño si disponible). */
+function renderOllamaModelLi(entry: OllamaModelEntry, suppressHeavyModelWarning: boolean): string {
+  const codeName = `<code>${escapeHtml(entry.name)}</code>`;
+  if (entry.sizeBytes <= 0) {
+    // El payload de Ollama no reporto size — render legacy sin badge.
+    return `<li>${codeName}</li>`;
+  }
+  const sizeLabel = ` <span class="meta-inline">${escapeHtml(formatGb(entry.sizeBytes))}</span>`;
+  const isHeavy = entry.sizeBytes > HEAVY_MODEL_THRESHOLD_BYTES;
+  const heavyBadge =
+    isHeavy && !suppressHeavyModelWarning
+      ? ' <span class="badge badge-warning" title="Heavy model — may saturate RAM under sustained inference. See README for ≤3 GB alternatives.">⚠ heavy</span>'
+      : '';
+  return `<li>${codeName}${sizeLabel}${heavyBadge}</li>`;
+}
+
 /** Renderiza la seccion "Local Models" (Ollama). */
-function renderOllamaSection(ollama: OllamaStatus): string {
+function renderOllamaSection(ollama: OllamaStatus, suppressHeavyModelWarning: boolean): string {
   const badge = ollama.available
     ? '<span class="badge badge-ok">found</span>'
     : '<span class="badge badge-error">not found</span>';
-  const models =
-    ollama.available && ollama.models.length > 0
-      ? `<ul style="margin: 0.4rem 0 0 1rem; padding: 0;">${ollama.models
-          .map((name) => `<li><code>${escapeHtml(name)}</code></li>`)
-          .join('')}</ul>`
-      : ollama.available
-        ? '<div class="help">No models pulled. Try <code>ollama pull mistral-nemo:12b</code>.</div>'
-        : '<div class="help">Install Ollama and start it: <code>ollama serve</code>.</div>';
+
+  // Si el provider envia modelsInfo (con tamaños), usar ese; si no, caer al
+  // render legacy con solo nombres (retro-compat).
+  let modelsHtml: string;
+  let anyHeavy = false;
+  if (ollama.available && ollama.modelsInfo !== undefined && ollama.modelsInfo.length > 0) {
+    anyHeavy = ollama.modelsInfo.some((m) => m.sizeBytes > HEAVY_MODEL_THRESHOLD_BYTES);
+    modelsHtml = `<ul style="margin: 0.4rem 0 0 1rem; padding: 0;">${ollama.modelsInfo
+      .map((entry) => renderOllamaModelLi(entry, suppressHeavyModelWarning))
+      .join('')}</ul>`;
+  } else if (ollama.available && ollama.models.length > 0) {
+    modelsHtml = `<ul style="margin: 0.4rem 0 0 1rem; padding: 0;">${ollama.models
+      .map((name) => `<li><code>${escapeHtml(name)}</code></li>`)
+      .join('')}</ul>`;
+  } else if (ollama.available) {
+    modelsHtml =
+      '<div class="help">No models pulled. Try <code>ollama pull mistral-nemo:12b</code>.</div>';
+  } else {
+    modelsHtml = '<div class="help">Install Ollama and start it: <code>ollama serve</code>.</div>';
+  }
+
+  // Panel-level warning + "Don't remind me again" SOLO si:
+  // (1) hay al menos un modelo pesado visible, y
+  // (2) el usuario NO ha clickeado "Don't remind me again" antes.
+  const heavyWarning =
+    anyHeavy && !suppressHeavyModelWarning
+      ? [
+          '<div class="warning">',
+          '⚠ One or more models above exceed 5 GB and may saturate RAM under sustained inference ',
+          '(observed during the DG-077 benchmark with Gemma 4 / gpt-oss:20b). ',
+          'Consider <code>gemma3:4b</code> (~3 GB) or <code>qwen2.5-coder:7b</code> (~4.4 GB) for batch workloads.',
+          ' <button class="secondary" data-action="dismiss-heavy-warning">',
+          "Don't remind me again",
+          '</button>',
+          '</div>',
+        ].join('')
+      : '';
+
   return [
     '<div class="row">',
     `<label>Ollama at <code>${escapeHtml(ollama.endpoint)}</code></label>`,
     badge,
     '<button data-action="refresh-ollama">Refresh</button>',
     '</div>',
-    models,
+    modelsHtml,
+    heavyWarning,
   ].join('');
 }
 
@@ -250,7 +335,7 @@ export function renderSettingsHtml(state: SettingsViewState, options: SettingsHt
       state.credentials[provider] ?? { configured: false, testStatus: 'pending' },
     ),
   ).join('');
-  const ollamaSection = renderOllamaSection(state.ollama);
+  const ollamaSection = renderOllamaSection(state.ollama, state.suppressHeavyModelWarning);
 
   const script =
     `const api = acquireVsCodeApi();` +
@@ -271,6 +356,8 @@ export function renderSettingsHtml(state: SettingsViewState, options: SettingsHt
     `send('test-key', { provider });` +
     `} else if (action === 'refresh-ollama') {` +
     `send('refresh-ollama', {});` +
+    `} else if (action === 'dismiss-heavy-warning') {` +
+    `send('dismiss-heavy-warning', {});` +
     `}` +
     `});` +
     `// Inicial: pedirle a la extension el state actual.` +

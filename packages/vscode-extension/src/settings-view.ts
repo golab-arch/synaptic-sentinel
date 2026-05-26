@@ -12,7 +12,7 @@ import {
   ANTHROPIC_FALLBACK_MODEL,
   buildAnthropicFallbackConfig,
   isOllamaAvailable,
-  listOllamaModels,
+  listOllamaModelsWithInfo,
 } from '@synaptic-sentinel/agents';
 import { agentsYamlHasComments, renderAgentsYaml } from './agents-yaml-writer.js';
 import {
@@ -24,10 +24,14 @@ import {
 import {
   renderSettingsHtml,
   type CredentialStatus,
+  type OllamaModelEntry,
   type OllamaStatus,
   type ResolvedAgentConfig,
   type SettingsViewState,
 } from './settings-content.js';
+
+/** Key del globalState donde se persiste el "Don't remind me again" (DG-087 A). */
+export const SUPPRESS_HEAVY_MODEL_WARNING_KEY = 'synaptic-sentinel.suppressHeavyModelWarning';
 
 /**
  * Proveedor del webview "Configure Brain Layer Providers" (Phase 11
@@ -48,7 +52,10 @@ import {
  *                          provider) queda para DG-076 que ya tiene el
  *                          benchmark; aqui solo registra que el usuario
  *                          intento testear y la apiKey esta presente.
- *   - `refresh-ollama`  — re-pingea localhost:11434 y re-lista modelos
+ *   - `refresh-ollama`         — re-pingea localhost:11434 y re-lista modelos
+ *   - `dismiss-heavy-warning`  — (DG-087 A) marca en globalState que el usuario
+ *                                pidio NO ver mas el warning de modelos Ollama
+ *                                pesados; persiste cross-workspace
  */
 export class SentinelSettingsViewProvider {
   /** Id del comando que abre el panel; contribuido en package.json. */
@@ -62,6 +69,13 @@ export class SentinelSettingsViewProvider {
   constructor(
     private readonly secrets: vscode.SecretStorage,
     private readonly workspaceRootProvider: () => string | undefined,
+    /**
+     * Globalstate Memento para flags persistidos cross-workspace (DG-087 A:
+     * "Don't remind me again" del warning de modelos Ollama pesados).
+     * Opcional para tests legacy que instancian el provider sin contexto;
+     * en producción siempre se pasa `context.globalState`.
+     */
+    private readonly globalState?: vscode.Memento,
   ) {}
 
   /** Abre el panel (lo crea si no existe, lo revela si ya esta). */
@@ -186,16 +200,27 @@ export class SentinelSettingsViewProvider {
       };
     }
 
-    // (3) Ollama.
+    // (3) Ollama. DG-087 A: ademas de los nombres legacy, traemos info con
+    // tamaño (size en bytes) para que el renderer marque heavy models.
     const ollamaEndpoint = 'http://localhost:11434';
     const ollamaAvailable = await isOllamaAvailable(ollamaEndpoint);
-    const ollamaModels = ollamaAvailable ? await listOllamaModels(ollamaEndpoint) : [];
+    const ollamaInfos = ollamaAvailable ? await listOllamaModelsWithInfo(ollamaEndpoint) : [];
+    const ollamaModels = ollamaInfos.map((info) => info.name);
+    const modelsInfo: readonly OllamaModelEntry[] = ollamaInfos.map((info) => ({
+      name: info.name,
+      sizeBytes: info.sizeBytes,
+    }));
 
     const ollama: OllamaStatus = {
       available: ollamaAvailable,
       models: ollamaModels,
+      modelsInfo,
       endpoint: ollamaEndpoint,
     };
+
+    // (4) Suppress heavy warning flag (DG-087 A): persistido en globalState.
+    const suppressHeavyModelWarning =
+      this.globalState?.get<boolean>(SUPPRESS_HEAVY_MODEL_WARNING_KEY, false) ?? false;
 
     return {
       active,
@@ -204,6 +229,7 @@ export class SentinelSettingsViewProvider {
       agentsYamlHasComments: agentsYamlHasCommentsFlag,
       credentials,
       ollama,
+      suppressHeavyModelWarning,
     };
   }
 
@@ -222,6 +248,15 @@ export class SentinelSettingsViewProvider {
     }
 
     if (msg.type === 'refresh-ollama') {
+      await this.#render();
+      return;
+    }
+
+    if (msg.type === 'dismiss-heavy-warning') {
+      // DG-087 A: el usuario clickeo "Don't remind me again" en el warning de
+      // modelos Ollama pesados. Persistir cross-workspace en globalState y
+      // re-renderizar para suprimir el warning + los badges heavy.
+      await this.globalState?.update(SUPPRESS_HEAVY_MODEL_WARNING_KEY, true);
       await this.#render();
       return;
     }
