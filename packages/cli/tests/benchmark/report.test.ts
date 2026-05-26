@@ -48,16 +48,36 @@ describe('renderBenchmarkReport — estructura base', () => {
     expect(md).toContain('internal-comparative only');
   });
 
-  it('omite el disclaimer fuerte cuando hay revision humana', () => {
+  it('imprime disclaimer suave cuando humanReviewed ≥ 10 (DG-095 A threshold)', () => {
     const md = renderBenchmarkReport(
       makeReport({
         groundTruthReviewStatus: { 'ai-draft': 5, 'human-confirmed': 20, 'human-corrected': 2 },
       }),
     );
     expect(md).not.toContain('Anti-optimismo ilusorio');
+    expect(md).not.toContain('Limited human review');
     expect(md).toContain('20 confirmed');
     expect(md).toContain('2 corrected');
     expect(md).toContain('5 draft');
+    expect(md).toContain('≥ 10 threshold');
+    expect(md).toContain('acceptable for external citation');
+  });
+
+  it('imprime disclaimer medio "Limited human review" cuando 0 < humanReviewed < 10 (DG-095 A)', () => {
+    // 3 + 2 = 5 reviewed, está bajo el threshold de 10 → disclaimer "Limited".
+    const md = renderBenchmarkReport(
+      makeReport({
+        groundTruthReviewStatus: { 'ai-draft': 22, 'human-confirmed': 3, 'human-corrected': 2 },
+      }),
+    );
+    expect(md).not.toContain('Anti-optimismo ilusorio');
+    expect(md).toContain('Limited human review');
+    expect(md).toContain('5 of 27 entries reviewed');
+    expect(md).toContain('threshold for high-confidence external citation: 10');
+    // El detalle ground-truth-review-status también se incluye en este nivel.
+    expect(md).toContain('3 confirmed');
+    expect(md).toContain('2 corrected');
+    expect(md).toContain('22 draft');
   });
 
   it('imprime mensaje claro si no se corrieron providers', () => {

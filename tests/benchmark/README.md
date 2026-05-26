@@ -107,23 +107,54 @@ AppSec engineer — should walk the dataset entry by entry and:
 Until then, the benchmark output should be reported with the disclaimer
 "ground truth is AI-draft pending human review".
 
-## How to revise
+## How to revise (DG-095 A — full operational flow)
 
-1. Read the fixture file at `fixturePath:line`.
-2. For each capa (Triage / Context / Remediation), ask:
-   - Are the `requiredKeywords` realistic? (Would a competent LLM
-     answer use these words?)
-   - Are they too few? (False easy passes.)
-   - Are they too many? (False hard fails.)
-3. If the entry needs change:
-   - Modify the relevant `requiredKeywords` / `*Keywords` / `forbiddenInSnippet`.
-   - Set `reviewedBy: "human-corrected"`.
-   - Add a `humanNotes` field explaining the change.
-4. If the entry is fine as-is:
-   - Set `reviewedBy: "human-confirmed"`.
+The ground truth is AI-drafted by design, and the way out of "internal-comparative only" is human-AppSec review. This section is the step-by-step for a reviewer who wants to take an entry from `ai-draft` to `human-confirmed` or `human-corrected`.
 
-The schema validates that after revision, every entry still parses
-against `BenchmarkGroundTruthSchema`. Run `pnpm test:unit` to verify.
+### Step-by-step
+
+1. **Clone the repo** and check out a working branch.
+2. **Pick an entry** from `tests/benchmark/ground-truth.json` by `ruleId:line`. The schema allows touching one entry at a time; you don't need to review all 26 at once.
+3. **Open the fixture** at `<entry.fixturePath>:<entry.line>` and read the surrounding context (typically 5-10 lines before/after the targeted line).
+4. **For each capa (Triage / Context / Remediation)** apply the validation criteria below.
+5. **Update the entry**:
+   - If the entry needs **no changes** → set `"reviewedBy": "human-confirmed"`.
+   - If the entry needs **any change** to keywords / classification / minConfidence / forbiddenInSnippet → set `"reviewedBy": "human-corrected"` and add a top-level `"humanNotes"` field explaining the change in 1-2 sentences (it's not in the schema today but the schema accepts unknown fields; future schema bump will add it formally).
+6. **Bump `reviewedAt`** at the top of the JSON to the current ISO timestamp.
+7. **Run `pnpm test:unit`** — the `BenchmarkGroundTruthSchema` (Zod) validates the JSON; a syntax error or invalid `reviewedBy` enum value fails the test.
+8. **Open a PR** with title `review(ground-truth): <ruleId>:<line> — confirmed|corrected`. The diff should be a small, focused change to a single entry.
+
+### What to validate, per capa
+
+**Triage**:
+
+- Does `classification` (`true_positive` / `false_positive` / `inconclusive`) actually match what a senior AppSec engineer would say given the code at `<fixturePath>:<line>`? Default for vulnerable fixtures is `true_positive`; obvious test-helper code is `false_positive`; ambiguous flow-dependent cases are `inconclusive`.
+- Is `minConfidence` realistic for a competent LLM? Too high → 100% real FAILs; too low → false easy PASSes. Range 0.7-0.95 is the sweet spot.
+- Are the `requiredKeywords` (per-capa or top-level) words that an LLM's `rationale` would naturally use, OR are they too specific (e.g. requiring the literal CWE number when the LLM would say "command injection")? **Synonym arrays (`["RCE", "remote code execution", "arbitrary code"]`) are encouraged** (added in DG-077 B).
+
+**Context** (only present if `classification === 'true_positive'`):
+
+- Do the four buckets (`summaryKeywords`, `entryPointKeywords`, `sinkKeywords`, `exposureKeywords`) accurately reflect the attack chain in this specific code, not generic SAST jargon?
+- Is the entry point a real user-controlled input, or a fabrication of the AI-draft?
+- Is the sink the actual dangerous function (e.g. `eval`, `child_process.exec`, `cursor.execute`), not a vague abstraction?
+
+**Remediation** (only present if `classification === 'true_positive'`):
+
+- Does `summaryKeywords` describe what to do (replace eval, sanitize, parameterize), not just the vulnerability?
+- Does `recommendationKeywords` include the realistic fix idiom (e.g. `JSON.parse`, `DOMPurify`, parameterized query, `secure_filename`)?
+- Does `forbiddenInSnippet` correctly list the patterns that **must NOT** appear in a good fix? (e.g. for command injection, `forbiddenInSnippet: ["exec(userInput)"]`; the LLM's fix should eliminate the sink-with-tainted-input pattern entirely).
+
+### Disclaimer thresholds in the benchmark report (DG-095 A)
+
+The benchmark report emits one of three disclaimers based on `human-confirmed + human-corrected` count across the dataset (the `humanReviewed` total):
+
+| Reviewed count                                  | Disclaimer level | Reporter wording                                                                                                                    |
+| ----------------------------------------------- | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `humanReviewed === 0`                           | **Strong**       | "all entries are ai-draft — internal-comparative only; do NOT cite externally without filtering"                                    |
+| `0 < humanReviewed < 10`                        | **Limited**      | "limited human review (N of total); threshold for external citation is 10; aggregate is internal-comparative"                       |
+| `humanReviewed ≥ 10` (`HUMAN_REVIEW_THRESHOLD`) | **Soft**         | "review status: N confirmed + M corrected + K draft (≥ 10 threshold — aggregate acceptable for external citation; mention the mix)" |
+
+The threshold of **10** is set in [`packages/cli/src/benchmark/report.ts`](../../packages/cli/src/benchmark/report.ts) (`HUMAN_REVIEW_THRESHOLD` constant). The rationale: 10 entries cover at least one case per category (SAST JS/TS, SAST Python, Secrets, IaC, Vibe-Coded) with replication; below that, the risk of selecting a non-representative subset when filtering by `human-reviewed` is high. The number can be adjusted in a future sub-DG when the dataset grows beyond ~50 entries.
 
 ## Known limitations of the AI-draft
 

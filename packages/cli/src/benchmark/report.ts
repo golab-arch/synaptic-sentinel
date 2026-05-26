@@ -7,8 +7,20 @@ import type { ReviewStatus } from '@synaptic-sentinel/core';
  * El reporte se commitea en `docs/benchmark/v0.3.0-DRAFT.md` para que el
  * cambio de calidad por provider sea visible en el repo publico. Es
  * humano-readable + machine-readable (tabla markdown con totales) y
- * lleva un disclaimer fuerte sobre el status del ground truth.
+ * lleva un disclaimer escalado sobre el status del ground truth.
  */
+
+/**
+ * Umbral de entries human-reviewed (sea `human-confirmed` o `human-corrected`)
+ * a partir del cual el disclaimer del reporte baja de "limited human review"
+ * a "mix of ai-draft and human-reviewed" (DG-095 A). El número viene de la
+ * regla práctica: 10 entries cubren al menos un caso por categoría principal
+ * (SAST JS/TS, SAST Python, Secrets, IaC, VibeCoded) con replicación; menos
+ * que eso, el riesgo de seleccionar un subset no representativo al filtrar
+ * por `human-reviewed` es alto. El número se puede ajustar editando esta
+ * constante en un sub-DG futuro cuando el dataset crezca.
+ */
+export const HUMAN_REVIEW_THRESHOLD = 10;
 
 /** Identificador unico de una corrida {provider, model}. */
 export type ProviderLabel = string; // ej. "anthropic/claude-haiku-4-5-20251001"
@@ -111,16 +123,33 @@ export function renderBenchmarkReport(report: BenchmarkReport): string {
   const confirmedCount = report.groundTruthReviewStatus['human-confirmed'];
   const correctedCount = report.groundTruthReviewStatus['human-corrected'];
   const humanReviewed = confirmedCount + correctedCount;
+  // DG-095 A: disclaimer escalado en 3 niveles según cuánto del dataset
+  // pasó por revisión humana. Antes era binario (todas ai-draft → fuerte;
+  // cualquier humano → suave), que era demasiado optimista para un dataset
+  // con sólo 1-2 entries revisadas.
   if (humanReviewed === 0) {
     lines.push(
       `> ⚠️ **Anti-optimismo ilusorio**: all ${String(draftCount)} entries are \`ai-draft\` ` +
         `(NO human-AppSec review). These numbers are **internal-comparative only**. ` +
         `Do NOT cite externally without filtering to \`human-confirmed\` entries.`,
     );
-  } else {
+  } else if (humanReviewed < HUMAN_REVIEW_THRESHOLD) {
+    lines.push(
+      `> ⚠️ **Limited human review** (${String(humanReviewed)} of ${String(humanReviewed + draftCount)} ` +
+        `entries reviewed; threshold for high-confidence external citation: ${String(HUMAN_REVIEW_THRESHOLD)}). ` +
+        `Aggregate numbers across the full dataset are **internal-comparative only**. ` +
+        `External citations should filter to the human-reviewed subset.`,
+    );
     lines.push(
       `> Ground truth review status: ${String(confirmedCount)} confirmed + ` +
         `${String(correctedCount)} corrected + ${String(draftCount)} draft.`,
+    );
+  } else {
+    lines.push(
+      `> Ground truth review status: ${String(confirmedCount)} confirmed + ` +
+        `${String(correctedCount)} corrected + ${String(draftCount)} draft ` +
+        `(${String(humanReviewed)} ≥ ${String(HUMAN_REVIEW_THRESHOLD)} threshold — aggregate numbers are ` +
+        `acceptable for external citation; mention the mix when reporting).`,
     );
   }
   lines.push('');
