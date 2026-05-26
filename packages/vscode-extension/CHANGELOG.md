@@ -4,6 +4,30 @@ All notable changes to the SYNAPTIC Sentinel extension will be documented in thi
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.5] - 2026-05-26
+
+**Editable provider selector in the Settings panel** (DG-090 A). Until v0.3.4 the "Active Configuration" section of the **Configure Brain Layer Providers** panel was a read-only display — you could save / delete / test API keys for any of the 12 providers, but the only way to choose **which provider runs each agent** (Triage / Context / Remediation) was to edit `.sentinel/agents.yaml` by hand or pass `--agent-provider` flags to the CLI. This UX gap was reported by a user testing v0.3.4 locally. v0.3.5 closes it: each agent row now has a provider dropdown + model input + an **Apply** button that writes `.sentinel/agents.yaml` from the panel.
+
+### Added
+
+- **Editable provider/model selector per agent** (DG-090 A) — in the "Active Configuration" section, each of the three agents (Triage / Context / Remediation) gets:
+  - A `<select>` dropdown listing the providers that are **actually usable in your environment**: providers whose API key is `configured: true` in the OS SecretStorage, plus `ollama` if the daemon responds at `localhost:11434`. The provider currently active is always included in the dropdown even if its key isn't configured — so you can see exactly what the system is using right now.
+  - A `<input type="text">` for the model name, prefilled with the active model and HTML-escaped against injection from the webview state.
+  - An **Apply** button that writes `.sentinel/agents.yaml` in your workspace root via the same `writeAgentsYamlFromUI` helper the CLI reads. The file format is unchanged — the panel and the YAML are now two equivalent ways to configure the same thing.
+- **Helpful hint when no provider is configured** — if you haven't saved any API key and Ollama isn't running, the panel shows a "Tip: configure at least one API key below (or start Ollama locally) to make more providers available in the dropdowns above." message under the agent rows.
+
+### Notes
+
+- This release contains only the DG-090 A feature — no changes to the Scout Layer, the Brain Layer adapters, the benchmark runner, or the CLI. The `.sentinel/agents.yaml` file that the editable selector writes is the **same format** the CLI has read since v0.3.0 (Phase 11 DG-073 B). If you've been editing the YAML by hand, the panel is a strict superset of that workflow — your existing files keep working unchanged.
+- The validation layer behind the Apply button (`mergeAgentConfig` helper) rejects invalid combinations defensively: it returns `null` (and the UI shows a warning toast) if the `agentId` isn't one of `triage / context / remediation`, if the `provider` isn't in `PROVIDER_NAMES`, or if the model field is empty after trimming — guards against malformed `postMessage` payloads from the webview.
+- Anti-optimismo: the end-to-end flow (click Apply → file written → next `triage` uses the new provider) is covered by 13 new unit tests on the renderer and the merge helper, but the stateful `writeAgentsYamlFromUI` call from the message handler isn't under test — manual F5 / installed-vsix validation is what closes that loop. If you find the Apply button doesn't update the YAML, please file an issue.
+
+### Known Issues
+
+The Known Issues section is unchanged from v0.3.4 — **1 caveat open**:
+
+1. **Ground truth dataset is AI-drafted** (DG-075 caveat heredado). The 26 entries in `tests/benchmark/ground-truth.json` are `reviewedBy: 'ai-draft'`. The schema supports `'human-confirmed' | 'human-corrected'` for entries that pass through an AppSec engineer review, but no entry has gone through review at this point. The benchmark report still ships with an "internal-comparative only, do NOT cite externally" disclaimer for any session where all entries are `ai-draft`.
+
 ## [0.3.4] - 2026-05-26
 
 **Six accumulated improvements** from sub-DGs `DG-083 A` through `DG-088 A`. No new features removed; six caveats from the v0.3.0 "Known Issues" section are now resolved (5 of 6 originals = **83% of the v0.3.0 backlog closed**). The remaining caveat (ground truth `ai-draft` review) requires a human AppSec engineer and is left documented and structured. The verify gate is now **cumulative with 2 release-blocker prevention steps** that retro-actively cover the 3 hotfixes that produced v0.3.1 / v0.3.2 / v0.3.3.

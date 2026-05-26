@@ -1,7 +1,7 @@
 {
   "name": "synaptic-sentinel",
   "displayName": "SYNAPTIC Sentinel",
-  "version": "0.3.4",
+  "version": "0.3.5",
   "description": "The vibe-coding security sentinel. Apache-2.0 agentic auditing for AI-assisted projects: five scouts (OpenGrep, Gitleaks, Trivy, Checkov, Vibe-Detect) + a Brain Layer (BYOK Anthropic) that triages, explains and remediates — all in the IDE.",
   "license": "Apache-2.0",
   "private": true,
