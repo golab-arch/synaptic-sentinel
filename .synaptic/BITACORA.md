@@ -3060,7 +3060,39 @@ Each entry follows this structure:
 }
 ```
 
+### Entry #103 - DG-093 A: unificación de naming a `.sentinel/` con dual-read backward-compat (cierra deuda de diseño descubierta en DG-092 A)
+
+```json
+{
+  "timestamp": "2026-05-26T15:30:00.000Z",
+  "cycle": 85,
+  "phase": null,
+  "action": "FEATURE_IMPLEMENTED",
+  "details": {
+    "DG-093-A": {
+      "title": "Unificación de naming workspace-level a `.sentinel/`. La colony.db migra conceptualmente de `<workspace>/.synaptic-sentinel/colony.db` a `<workspace>/.sentinel/colony.db` — mismo namespace que `.sentinel/agents.yaml` (DG-073 B). El cache global per-user `~/.synaptic-sentinel/scanners/` queda intacto (decisión user-side AskUserQuestion). Backward-compat: dual-read sin migrar archivo (decisión user-side AskUserQuestion) — la CLI lee primero `.sentinel/`, fallback al legacy `.synaptic-sentinel/` con log informativo cuando aplica. Cero riesgo de data loss; el usuario decide cuándo mover el archivo manualmente.",
+      "scope": "Ciclo 85 atomico, sin Phases abiertas. Toca packages/core (helper nuevo + barrel export) + packages/cli (4 commands actualizados) + packages/vscode-extension/tests (1 integration test) + packages/cli/tests (2 tests actualizados con seedDb helper refactorizado + 1 test nuevo de backward-compat) + 4 documentos. NO toca el cache global per-user. NO bump version del .vsix v0.3.5.",
+      "deliverable_core": "(a) NEW archivo `packages/core/src/colony/db-path.ts` con: 3 const exportadas `COLONY_DB_DIRNAME = '.sentinel'`, `COLONY_DB_DIRNAME_LEGACY = '.synaptic-sentinel'`, `COLONY_DB_FILENAME = 'colony.db'` (single source of truth); interface exportada `ColonyDbPathResolution { path, dir, isLegacy }`; función exportada `resolveColonyDbPath(projectRoot)` con preferencia (1) `.sentinel/colony.db` si existe → isLegacy=false; (2) sólo legacy existe → usa el legacy isLegacy=true; (3) ninguno (workspace nuevo) → defaultea a `.sentinel/` isLegacy=false; (4) ambos existen (caso anómalo) → gana el nuevo, isLegacy=false. (b) `packages/core/src/index.ts` agrega `export * from './colony/db-path.js'`.",
+      "deliverable_cli_commands": "Los 4 CLI commands reemplazan el hardcoded `join(projectRoot, '.synaptic-sentinel', 'colony.db')` por `resolveColonyDbPath(projectRoot)` + log informativo cuando `dbResolution.isLegacy === true`. (c) `packages/cli/src/commands/scan.ts`: NEW import; reemplaza dbDir + dbPath + warning log antes de `ColonyDb.open`. (d) `packages/cli/src/commands/triage.ts`: NEW import + remueve `join` unused; warning log antes de open. (e) `packages/cli/src/commands/mark-fp.ts`: NEW import + remueve `join` unused; warning log. (f) `packages/cli/src/commands/cost-history.ts`: NEW import + remueve `join` unused; warning log.",
+      "deliverable_tests": "+6 unit tests (524 vs baseline 518): (g) NEW archivo `packages/core/tests/colony/db-path.test.ts` con 5 tests: solo `.sentinel/` → isLegacy=false; solo legacy → isLegacy=true; ninguno (workspace nuevo) → defaultea a `.sentinel/` con isLegacy=false; ambos existen → gana el nuevo (caso anómalo defensivo); las 3 const tienen los nombres esperados (regresión guard). (h) `packages/cli/tests/mark-fp.test.ts`: helper `seedDb` refactorizado para aceptar `{legacy?: boolean}` y siembra en `.sentinel/` por default; 3 asserts del path actualizados a `.sentinel/`; +1 test nuevo `lee del legacy .synaptic-sentinel/colony.db si es el unico presente` cubriendo el dual-read end-to-end. (i) `packages/cli/tests/triage.test.ts`: helper `seedDb` y `openDb` actualizados a `.sentinel/`. (j) `packages/vscode-extension/tests/cli-runner.integration.test.ts`: afterAll() limpia ambos paths (`.sentinel/` + `.synaptic-sentinel/` legacy por si quedó residual).",
+      "deliverable_docs": "(k) `packages/vscode-extension/README.md`: 2 menciones de `.synaptic-sentinel/colony.db` actualizadas a `.sentinel/colony.db` con nota de backward-compat dual-read. La mención del cache global `~/.synaptic-sentinel/scanners/` (línea 110) NO se cambia (decisión user-side de mantener legacy en home). (l) `ONBOARDING.md`: 1 mención actualizada. (m) `README.md` root: 1 mención actualizada con nota dual-read. (n) `docs/colony-db.md`: párrafo de introducción reescrito; sección de `.gitignore` lista ambos paths (nuevo + legacy) para usuarios que quieran versionar la DB.",
+      "user_side_decisions_AskUserQuestion": "Antes de implementar pregunté al usuario 2 sub-decisiones grandes que decidió: (1) Cache global per-user `~/.synaptic-sentinel/scanners/`: **mantener legacy** (no migrar). Workspace y home son ámbitos distintos. (2) Backward-compat workspace DB: **dual-read sin migrar archivo**. La CLI sigue leyendo `.synaptic-sentinel/colony.db` de workspaces preexistentes + emite log informativo. Cero riesgo de data loss.",
+      "tests_agregados": "+6 unit tests (524 vs baseline 518): 5 de `resolveColonyDbPath` (las 4 ramas del decision tree + regresión guard de const names) + 1 de mark-fp backward-compat (`lee del legacy .synaptic-sentinel/colony.db si es el unico presente`).",
+      "smoke_test_passed": "pnpm verify VERDE end-to-end: 58 test files (+1 NEW db-path.test.ts) / 524 tests pasados (+6 vs baseline 518) + ambos gates OK (verify-extension-activate 7 commands + 13 subscriptions; verify-manifest 18 checks). Format/lint clean.",
+      "validacion_empirica_diferida_honestamente": "El IMPACTO REAL (usuario nuevo abre proyecto, la CLI escribe en `.sentinel/colony.db`; usuario antiguo conserva `.synaptic-sentinel/colony.db` y la CLI lo lee con log informativo) se valida con corrida en dev host F5 / installed-vsix. Diferido. Lo afirmable ahora: el helper puro está cubierto por unit tests en las 4 ramas; el dual-read end-to-end del CLI command `mark-fp` está cubierto por el test nuevo. Los otros 3 commands (scan, triage, cost-history) usan EL MISMO helper — si el helper funciona, ellos funcionan; sin embargo, NO hay tests integration por command. Riesgo bajo asumido.",
+      "phase_status": "Sin Phases abiertas. SYNAPTIC Sentinel v0.3.5 en GitHub Release sigue siendo el release público; DG-092 A + DG-093 A acumulados en main para próximo release. Verify gate cumulativo intacto. Caveats heredados de v0.3.x: 1 abierto (ground truth ai-draft). Deuda nueva del DG-092 A diagnóstico (inconsistencia de naming): **CERRADA por DG-093 A**. successfulCycles: 85. synapticStrength: 92.",
+      "next_step_options_to_present": "Tres caminos válidos para Cycle 86: (A) sub-DG **release v0.3.6** con los fixes acumulados DG-092 A + DG-093 A — empaqueta diagnóstico defensivo + unificación naming en un release real. Bump version + CHANGELOG + .vsix + GitHub Release. ~1 ciclo. (B) sub-DG **ground truth review structure** — el ÚLTIMO caveat heredado de v0.3.x. ~1 ciclo. (C) pausar el proyecto con el estado actual como hito final temporal. La recomendación va a ser explícita en el próximo DG.",
+      "checks": "pnpm verify VERDE (524 tests + 2 gates). Working tree DIRTY: 5 archivos directores synaptic + packages/core/src/index.ts + NEW packages/core/src/colony/db-path.ts + NEW packages/core/tests/colony/db-path.test.ts + 4 packages/cli/src/commands/{scan,triage,mark-fp,cost-history}.ts + packages/cli/tests/{mark-fp,triage}.test.ts + packages/vscode-extension/tests/cli-runner.integration.test.ts + packages/vscode-extension/README.md + README.md + ONBOARDING.md + docs/colony-db.md. Listo para feat commit + docs(synaptic) commit + push.",
+      "commits_split": "feat(core,cli,docs): DG-093 A — unificación de naming a `.sentinel/` con dual-read backward-compat. docs(synaptic): registro DG-093 A — Entry #103 + actualizaciones de director files."
+    }
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 92,
+  "complianceScore": 100
+}
+```
+
 ---
 
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-26T14:25:00.000Z*
+*Last Updated: 2026-05-26T15:30:00.000Z*
