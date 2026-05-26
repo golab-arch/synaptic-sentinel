@@ -415,4 +415,34 @@ describe('ColonyDb (base en disco)', () => {
     expect(second.getScan(scanId)?.id).toBe(scanId);
     second.close();
   });
+
+  describe('ColonyDb.open — diagnóstico defensivo (DG-092 A)', () => {
+    it('lanza un error accionable cuando el directorio parent no existe', () => {
+      const fakePath = join(tmpdir(), 'does-not-exist-' + randomUUID(), 'colony.db');
+      expect(() => ColonyDb.open(fakePath)).toThrow(/parent directory.*does not exist/);
+    });
+
+    it('el mensaje de error incluye el path absoluto solicitado', () => {
+      const fakePath = join(tmpdir(), 'does-not-exist-' + randomUUID(), 'colony.db');
+      const err = (() => {
+        try {
+          ColonyDb.open(fakePath);
+          return null;
+        } catch (e) {
+          return e instanceof Error ? e.message : String(e);
+        }
+      })();
+      expect(err).not.toBeNull();
+      // El path completo aparece textual en el mensaje.
+      expect(err).toContain(fakePath);
+    });
+
+    it(':memory: sigue funcionando sin pre-flight de directorio (legacy contract)', () => {
+      // El path-mágico ':memory:' es el contrato de sqlite para una DB en RAM.
+      // Pre-flight de directorio NO debe disparar para este caso.
+      const db = ColonyDb.open(':memory:');
+      expect(db.getSchemaVersion()).toBe('4');
+      db.close();
+    });
+  });
 });

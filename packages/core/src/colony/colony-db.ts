@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
+import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 // node-sqlite3-wasm es CJS. Bajo Node ESM, `import * as ... from` puede no
 // extraer los named exports si cjs-module-lexer no los detecta (verificado
@@ -229,9 +230,47 @@ export class ColonyDb {
   /**
    * Abre (o crea) la colony DB en `path` y aplica el schema de forma
    * idempotente. Usar `:memory:` para una base efimera en tests.
+   *
+   * **Diagnóstico defensivo (DG-092 A)**: el `unable to open database file`
+   * de SQLite WASM es opaco — solo dice "no pude abrir" sin causa. Antes
+   * de delegar al driver, hacemos un pre-flight chequeando el caso más
+   * común (dir parent inexistente). Si el driver igual falla por otro
+   * motivo (Norton AV lockeando, lockfile residual de un proceso muerto,
+   * permisos, path inválido), envolvemos el error con un mensaje que
+   * lista las 3 causas concretas observadas + el error SQLite original.
+   *
+   * No intentamos "auto-fix" (mkdir, retry, delete lockfile) porque cada
+   * causa requiere acción del usuario distinta — el mensaje accionable
+   * es el contrato. El caller (CLI commands) ya hace `mkdirSync(...,
+   * { recursive: true })` antes de open, así que el dir-inexistente solo
+   * se ve si el caller no hizo eso (e.g., tests con paths inválidos).
    */
   static open(path: string): ColonyDb {
-    const db = new sqliteWasm.Database(path);
+    if (path !== ':memory:') {
+      const dir = dirname(path);
+      if (!existsSync(dir)) {
+        throw new Error(
+          `Could not open colony.db at "${path}": parent directory "${dir}" ` +
+            `does not exist. Make sure the workspace path is correct and the ` +
+            `caller created the directory before opening the database.`,
+        );
+      }
+    }
+    let db: Database;
+    try {
+      db = new sqliteWasm.Database(path);
+    } catch (err) {
+      const original = err instanceof Error ? err.message : String(err);
+      throw new Error(
+        `Could not open colony.db at "${path}". This usually means one of:\n` +
+          `  (a) the file is locked by another Sentinel CLI run still in flight ` +
+          `(close other VS Code windows / kill stale node processes, then retry).\n` +
+          `  (b) Norton / Defender / corporate antivirus blocked the write — try ` +
+          `adding the workspace path to your AV exclusions.\n` +
+          `  (c) the workspace path is read-only or your user lacks write permissions.\n` +
+          `Original SQLite error: ${original}`,
+      );
+    }
     db.exec(readFileSync(SCHEMA_PATH, 'utf8'));
     // Migraciones aditivas (v2: triage_verdicts, v3: context_explanations,
     // v4: remediation_suggestions): las tablas se crean via CREATE TABLE IF
