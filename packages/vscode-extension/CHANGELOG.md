@@ -4,6 +4,31 @@ All notable changes to the SYNAPTIC Sentinel extension will be documented in thi
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.7] - 2026-05-26
+
+**Ground truth review structure** (DG-095 A). Closes the last v0.3.0 "Known Issues" caveat **structurally**: the AI-drafted ground truth corpus still requires an AppSec engineer pass, but the caveat is no longer opaque — the benchmark report now scales its disclaimer in three levels based on how many entries have been human-reviewed, and `tests/benchmark/README.md` documents an operational flow with per-layer review criteria. **5 caveats closed + 1 structured = 100% of the v0.3.0 backlog treated.**
+
+### Added
+
+- **3-level disclaimer in the benchmark report** (DG-095 A) — `renderBenchmarkReport` now branches on `humanReviewed = confirmedCount + correctedCount` against the new exported constant `HUMAN_REVIEW_THRESHOLD = 10`:
+  - **`humanReviewed === 0`** → strong disclaimer (unchanged from v0.3.6): _"Anti-optimismo ilusorio: all N entries are `ai-draft` (NO human-AppSec review); internal-comparative only — do NOT cite externally."_
+  - **`0 < humanReviewed < 10`** → new mid-level disclaimer: _"⚠️ Limited human review (N of M entries reviewed; threshold for high-confidence external citation: 10)"_ followed by _"Ground truth review status: X confirmed + Y corrected + Z draft."_
+  - **`humanReviewed >= 10`** → no strong disclaimer; the report emits _"Ground truth review status: ... (W ≥ 10 threshold — aggregate numbers are acceptable for external citation; mention the mix when reporting)"_.
+- **Operational flow for ground truth revision** (DG-095 A) — `tests/benchmark/README.md` "How to revise" section rewritten with 8 concrete steps (clone → branch → pick entry → open fixture → apply criteria → update `reviewedBy` + `humanNotes` → bump `reviewedAt` → `pnpm test:unit` → PR), a "What to validate, per capa" subsection with explicit criteria for each agent (Triage: `is_true_positive` verifiable from the CWE + fixture; Context: 3 keywords ≥80% appear naturally, no fabricated tech terms; Remediation: code suggestion compilable, addresses the CWE, `risk_score` calibrated 0–100), and a "Disclaimer thresholds" table mirroring the three-level logic above.
+
+### Notes
+
+- This release contains only the DG-095 A feature — no changes to the Scout Layer, the Brain Layer adapters, the benchmark runner, the CLI, the extension UI, or `colony.db` schema.
+- The `HUMAN_REVIEW_THRESHOLD` constant is exported from `packages/cli/src/benchmark/report.ts` so callers (tests, downstream tools) can reference it without hardcoding the number.
+- **Anti-optimismo**: this release does **not** close the underlying caveat — the corpus is still 100% `ai-draft`. What it closes is the **opacity**: before, "ground truth ai-draft" was a caveat without a path forward; now it is a caveat with a threshold + a documented flow + per-layer criteria. External citation of the benchmark numbers **remains blocked** until the corpus reaches ≥ 10 human-reviewed entries — at which point the report itself will start emitting the softer disclaimer automatically.
+- No CLI helper for ground truth review was added (deliberate scope decision). Editing the JSON file directly + running `pnpm test:unit` + opening a PR is sufficient and avoids over-engineering. If a CLI helper becomes useful later, it would be a separate sub-DG.
+
+### Known Issues
+
+The Known Issues section is **structurally closed** for v0.3.x:
+
+1. **Ground truth dataset is AI-drafted** (DG-075 caveat heredado, **DG-095 A structured**). The 26 entries in `tests/benchmark/ground-truth.json` are still `reviewedBy: 'ai-draft'`. The path forward is now explicit: human-review entries with the criteria in `tests/benchmark/README.md`, bump `reviewedBy` to `'human-confirmed'` or `'human-corrected'`, and re-run the benchmark — the report will scale its disclaimer automatically as the corpus is reviewed.
+
 ## [0.3.6] - 2026-05-26
 
 **Two structural fixes** accumulated from sub-DGs `DG-092 A` and `DG-093 A`. Both came directly from real user feedback while running v0.3.5 locally: an opaque `unable to open database file` error during a `Scan Workspace` (DG-092 A) and a follow-up observation that the workspace had two distinct directories — `.sentinel/agents.yaml` and `.synaptic-sentinel/colony.db` — which felt inconsistent (DG-093 A).
