@@ -47,9 +47,13 @@ interface SpawnCliOptions {
  */
 function spawnCli(options: SpawnCliOptions): Promise<CliProcessResult> {
   return new Promise<CliProcessResult>((resolvePromise, reject) => {
+    // `NODE_NO_WARNINGS=1` silencia DEP0040 (punycode) y demas deprecation warnings
+    // del runtime de Node — ruido que ensucia el pseudoterminal del usuario sin
+    // accion posible (DG-097 A).
+    const env = { ...process.env, ...(options.env ?? {}), NODE_NO_WARNINGS: '1' };
     const child = spawn(options.nodePath ?? process.execPath, [options.cliEntry, ...options.args], {
       cwd: options.cwd,
-      ...(options.env !== undefined ? { env: { ...process.env, ...options.env } } : {}),
+      env,
       ...(options.signal !== undefined ? { signal: options.signal } : {}),
     });
     let stderr = '';
