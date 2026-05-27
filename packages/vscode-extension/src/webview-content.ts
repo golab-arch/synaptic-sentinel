@@ -1,5 +1,5 @@
 import { triageLabel } from './diagnostics.js';
-import type { ExtensionFinding } from './tomo.js';
+import type { CostSummary, ExtensionFinding } from './tomo.js';
 
 /** Escapa los caracteres con significado en HTML (defensa anti-inyeccion). */
 export function escapeHtml(value: string): string {
@@ -126,6 +126,25 @@ const STYLE = `
   .msg { font-size: 0.9em; margin-top: 0.25rem; }
   .brain { font-size: 0.85em; margin-top: 0.3rem;
     color: var(--vscode-descriptionForeground); }
+  .cost-card { border: 1px solid var(--vscode-panel-border);
+    border-left: 3px solid #6aa1d6; border-radius: 4px;
+    padding: 0.5rem 0.6rem; margin: 0.4rem 0 0.8rem; font-size: 0.85em;
+    background: var(--vscode-textBlockQuote-background, transparent); }
+  .cost-card .cost-title { font-weight: 700; }
+  .cost-card .cost-caveat { color: var(--vscode-descriptionForeground);
+    font-size: 0.9em; margin-left: 0.4rem; }
+  .cost-card table { width: 100%; border-collapse: collapse;
+    margin: 0.4rem 0 0.25rem; font-family: var(--vscode-editor-font-family), monospace; }
+  .cost-card th, .cost-card td { padding: 0.15rem 0.4rem;
+    text-align: left; font-size: 0.85em; }
+  .cost-card th { font-weight: 600;
+    color: var(--vscode-descriptionForeground); }
+  .cost-card td.num { text-align: right;
+    font-variant-numeric: tabular-nums; }
+  .cost-card .cost-total { margin-top: 0.25rem;
+    color: var(--vscode-foreground); font-weight: 600; }
+  .cost-card .cost-empty { color: var(--vscode-descriptionForeground);
+    font-style: italic; }
 `;
 
 /** Formatea la confidence (0..1) como porcentaje entero ("95%"). */
@@ -218,6 +237,68 @@ const STATE_HEADING_GLYPH: Readonly<Record<TriageState, string>> = {
   fp: '✓',
 };
 
+/**
+ * Renderiza la cost card del Brain Layer (DG-099 A).
+ *
+ * Muestra una tabla compacta por `{provider/model, agente}` con calls + in
+ * tokens + out tokens + cost USD + avg latency, y el total al final. Si
+ * `rows` esta vacio (no hubo triage todavia o el JSON no parseo), emite
+ * un mensaje minimo invitando a correr Triage Findings.
+ *
+ * El caveat "~estimated" del CLI cost-history se preserva: los tokens
+ * son del provider (cuando expone `usage`) o `chars/4` proxy fallback
+ * (DG-085 A). La cost card no distingue por ahora; si hay drift entre
+ * runs el usuario lo nota en el cost-history del CLI.
+ */
+export function renderCostCard(summary: CostSummary): string {
+  if (summary.rows.length === 0) {
+    return (
+      `<div class="cost-card">` +
+      `<span class="cost-title">Brain Layer cost</span>` +
+      `<span class="cost-caveat">— run Triage Findings to start tracking cost</span>` +
+      `</div>`
+    );
+  }
+  const sessions = summary.limit === 1 ? 'last session' : `last ${String(summary.limit)} sessions`;
+  const rowsHtml = summary.rows
+    .map((row) => {
+      const avgLatency = Math.round(row.avgLatencyMs);
+      return (
+        `<tr>` +
+        `<td>${escapeHtml(row.providerLabel)}</td>` +
+        `<td>${escapeHtml(row.agentId)}</td>` +
+        `<td class="num">${String(row.calls)}</td>` +
+        `<td class="num">${String(row.inputTokens)} in</td>` +
+        `<td class="num">${String(row.outputTokens)} out</td>` +
+        `<td class="num">$${row.estimatedCostUsd.toFixed(4)}</td>` +
+        `<td class="num">${String(avgLatency)}ms</td>` +
+        `</tr>`
+      );
+    })
+    .join('');
+  return (
+    `<div class="cost-card">` +
+    `<span class="cost-title">Brain Layer cost · ${escapeHtml(sessions)}</span>` +
+    `<span class="cost-caveat">~estimated USD</span>` +
+    `<table>` +
+    `<thead><tr>` +
+    `<th>provider/model</th><th>agent</th>` +
+    `<th class="num">calls</th><th class="num">input</th>` +
+    `<th class="num">output</th><th class="num">cost</th>` +
+    `<th class="num">avg lat</th>` +
+    `</tr></thead>` +
+    `<tbody>${rowsHtml}</tbody>` +
+    `</table>` +
+    `<div class="cost-total">` +
+    `Total: ${String(summary.totals.calls)} calls · ` +
+    `${String(summary.totals.inputTokens)} in · ` +
+    `${String(summary.totals.outputTokens)} out · ` +
+    `$${summary.totals.estimatedCostUsd.toFixed(4)}` +
+    `</div>` +
+    `</div>`
+  );
+}
+
 /** Renderiza la summary card del header con el breakdown por triage state. */
 function renderSummary(
   buckets: Readonly<Record<TriageState, readonly ExtensionFinding[]>>,
@@ -255,6 +336,7 @@ function renderSummary(
 export function renderTomoWebviewHtml(
   findings: readonly ExtensionFinding[],
   options: WebviewHtmlOptions,
+  costSummary?: CostSummary | null,
 ): string {
   const csp =
     `default-src 'none'; ` +
@@ -281,7 +363,12 @@ export function renderTomoWebviewHtml(
         sections.push(renderCard(finding));
       }
     }
-    body = renderSummary(buckets) + sections.join('');
+    // DG-099 A: cost card opcional entre la summary card y las sections.
+    // Solo se emite si el caller pasa un CostSummary parseado (puede ser
+    // null si el CLI fallo o el JSON no validaba contra el schema).
+    const costHtml =
+      costSummary !== undefined && costSummary !== null ? renderCostCard(costSummary) : '';
+    body = renderSummary(buckets) + costHtml + sections.join('');
   }
 
   // El script: al hacer click en una tarjeta, pide a la extension abrir el

@@ -2,7 +2,7 @@ import { spawn } from 'node:child_process';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { parseTomo, type ExtensionTomo } from './tomo.js';
+import { parseCostSummary, parseTomo, type CostSummary, type ExtensionTomo } from './tomo.js';
 
 /**
  * Resuelve la ruta por defecto del entry de la CLI.
@@ -33,8 +33,21 @@ interface SpawnCliOptions {
   /** Ejecutable de Node a usar. Por defecto el del extension host (`process.execPath`). */
   readonly nodePath?: string;
   readonly signal?: AbortSignal;
-  /** Callback de streaming: recibe cada chunk de stdout/stderr del child. */
+  /**
+   * Callback de streaming: recibe cada chunk de stdout Y stderr del child
+   * (mezclados). Usado por los flujos verbose (scan / triage / install)
+   * que pintan todo en el pseudoterminal sin distinguir.
+   */
   readonly onOutput?: (chunk: string) => void;
+  /**
+   * Callback solo-stdout (DG-099 A). Cuando se necesita capturar el
+   * stdout del child para parsearlo como datos (p.ej. JSON del
+   * `cost-history --json`), `onStdout` aisla los chunks sin
+   * contaminacion de stderr. NO se acumula con `onOutput`: si ambos
+   * estan presentes, `onStdout` recibe los chunks de stdout y
+   * `onOutput` recibe SOLO stderr.
+   */
+  readonly onStdout?: (chunk: string) => void;
 }
 
 /**
@@ -58,7 +71,15 @@ function spawnCli(options: SpawnCliOptions): Promise<CliProcessResult> {
     });
     let stderr = '';
     child.stdout.on('data', (chunk: Buffer) => {
-      options.onOutput?.(chunk.toString('utf8'));
+      const text = chunk.toString('utf8');
+      // DG-099 A: si hay onStdout, las dos pipes se aislan (stdout va a
+      // onStdout, stderr a onOutput). Si no, comportamiento legacy: ambas
+      // mezcladas en onOutput.
+      if (options.onStdout !== undefined) {
+        options.onStdout(text);
+      } else {
+        options.onOutput?.(text);
+      }
     });
     child.stderr.on('data', (chunk: Buffer) => {
       const text = chunk.toString('utf8');
@@ -217,6 +238,66 @@ export async function runCliTriage(options: RunCliTriageOptions): Promise<void> 
     ...(options.signal !== undefined ? { signal: options.signal } : {}),
   });
   assertCliOk(result, 'triage');
+}
+
+/** Opciones para leer el cost summary de la CLI (DG-099 A). */
+export interface RunCliCostHistoryOptions {
+  /** Ruta al entry de la CLI (`cli/dist/index.js`). */
+  readonly cliEntry: string;
+  /** Carpeta del proyecto cuyo `colony.db` se consulta. */
+  readonly workspacePath: string;
+  /**
+   * Cuántas sesiones recientes incluir en el rollup. Default 1 — la cost
+   * card del sidebar muestra el costo de la última corrida; histórico mas
+   * largo queda para el sub-comando CLI `cost-history` sin flag.
+   */
+  readonly limit?: number;
+  /** Ejecutable de Node a usar. Por defecto el del extension host (`process.execPath`). */
+  readonly nodePath?: string;
+  /** Senal de cancelacion. */
+  readonly signal?: AbortSignal;
+}
+
+/**
+ * Lee el cost summary de la CLI (`synaptic-sentinel cost-history --json`)
+ * para mostrar en la cost card del sidebar webview (DG-099 A).
+ *
+ * `--json` es opt-in: el comando regular sigue emitiendo la tabla
+ * formateada para uso desde el terminal. La extension consume el JSON
+ * para integrarlo en la UI sin tener que parsear stdout.
+ *
+ * Si el comando falla o el JSON no parsea contra el schema, devuelve
+ * `null` defensivamente. El caller decide no renderear la cost card en
+ * ese caso en lugar de romper el render del sidebar entero.
+ */
+export async function runCliCostHistory(
+  options: RunCliCostHistoryOptions,
+): Promise<CostSummary | null> {
+  let stdout = '';
+  const result = await spawnCli({
+    cliEntry: options.cliEntry,
+    cwd: options.workspacePath,
+    args: [
+      'cost-history',
+      '--path',
+      options.workspacePath,
+      '--limit',
+      String(options.limit ?? 1),
+      '--json',
+    ],
+    ...(options.nodePath !== undefined ? { nodePath: options.nodePath } : {}),
+    ...(options.signal !== undefined ? { signal: options.signal } : {}),
+    onStdout: (chunk) => {
+      stdout += chunk;
+    },
+  });
+  if (result.code !== 0) return null;
+  try {
+    const raw: unknown = JSON.parse(stdout.trim());
+    return parseCostSummary(raw);
+  } catch {
+    return null;
+  }
 }
 
 /** Opciones para correr el install de scanners a traves de la CLI (DG-059). */

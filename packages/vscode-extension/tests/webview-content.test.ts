@@ -2,10 +2,11 @@ import { describe, it, expect } from 'vitest';
 import {
   escapeHtml,
   groupByTriageState,
+  renderCostCard,
   renderTomoWebviewHtml,
   triageStateOf,
 } from '../src/webview-content.js';
-import type { ExtensionFinding } from '../src/tomo.js';
+import { parseCostSummary, type CostSummary, type ExtensionFinding } from '../src/tomo.js';
 
 /** Construye un ExtensionFinding valido de base. */
 function makeFinding(overrides: Partial<ExtensionFinding> = {}): ExtensionFinding {
@@ -280,5 +281,207 @@ describe('renderTomoWebviewHtml', () => {
     const html = renderTomoWebviewHtml([makeFinding()], opts);
     expect(html).toContain('1 finding<');
     expect(html).not.toContain('1 findings');
+  });
+
+  it('renderiza la cost card cuando se pasa un CostSummary con rows (DG-099 A)', () => {
+    const summary: CostSummary = {
+      limit: 1,
+      rows: [
+        {
+          providerLabel: 'anthropic/claude-haiku-4-5-20251001',
+          agentId: 'triage',
+          calls: 25,
+          inputTokens: 7719,
+          outputTokens: 2417,
+          estimatedCostUsd: 0.0198,
+          avgLatencyMs: 1761,
+        },
+      ],
+      totals: { calls: 25, inputTokens: 7719, outputTokens: 2417, estimatedCostUsd: 0.0198 },
+    };
+    const html = renderTomoWebviewHtml([makeFinding()], opts, summary);
+    expect(html).toContain('<div class="cost-card">');
+    expect(html).toContain('Brain Layer cost');
+    expect(html).toContain('anthropic/claude-haiku-4-5-20251001');
+    expect(html).toContain('triage');
+    expect(html).toContain('$0.0198');
+    expect(html).toContain('1761ms');
+    expect(html).toContain('Total: 25 calls');
+  });
+
+  it('NO emite la cost card cuando costSummary es null o undefined (DG-099 A)', () => {
+    // Las clases .cost-card viven en el <style>; verificamos el TEXTO de la card.
+    const htmlNull = renderTomoWebviewHtml([makeFinding()], opts, null);
+    const htmlUndef = renderTomoWebviewHtml([makeFinding()], opts);
+    expect(htmlNull).not.toContain('Brain Layer cost');
+    expect(htmlUndef).not.toContain('Brain Layer cost');
+  });
+
+  it('NO emite la cost card cuando NO hay findings (no se renderea body principal — DG-099 A)', () => {
+    const summary: CostSummary = {
+      limit: 1,
+      rows: [],
+      totals: { calls: 0, inputTokens: 0, outputTokens: 0, estimatedCostUsd: 0 },
+    };
+    const html = renderTomoWebviewHtml([], opts, summary);
+    expect(html).not.toContain('Brain Layer cost');
+    expect(html).toContain('Scan Workspace');
+  });
+});
+
+describe('renderCostCard — DG-099 A', () => {
+  it('rinde el caveat "~estimated" + breakdown por (provider, agent)', () => {
+    const summary: CostSummary = {
+      limit: 1,
+      rows: [
+        {
+          providerLabel: 'anthropic/claude-haiku-4-5-20251001',
+          agentId: 'triage',
+          calls: 25,
+          inputTokens: 7719,
+          outputTokens: 2417,
+          estimatedCostUsd: 0.0198,
+          avgLatencyMs: 1761,
+        },
+        {
+          providerLabel: 'anthropic/claude-haiku-4-5-20251001',
+          agentId: 'context',
+          calls: 14,
+          inputTokens: 4052,
+          outputTokens: 2154,
+          estimatedCostUsd: 0.0148,
+          avgLatencyMs: 2311,
+        },
+        {
+          providerLabel: 'anthropic/claude-haiku-4-5-20251001',
+          agentId: 'remediation',
+          calls: 14,
+          inputTokens: 3954,
+          outputTokens: 2644,
+          estimatedCostUsd: 0.0172,
+          avgLatencyMs: 2773,
+        },
+      ],
+      totals: { calls: 53, inputTokens: 15725, outputTokens: 7215, estimatedCostUsd: 0.0518 },
+    };
+    const html = renderCostCard(summary);
+    expect(html).toContain('~estimated USD');
+    expect(html).toContain('triage');
+    expect(html).toContain('context');
+    expect(html).toContain('remediation');
+    expect(html).toContain('$0.0198');
+    expect(html).toContain('$0.0148');
+    expect(html).toContain('$0.0172');
+    expect(html).toContain('Total: 53 calls');
+    expect(html).toContain('$0.0518');
+  });
+
+  it('rinde "last session" cuando limit === 1 (DG-099 A)', () => {
+    const summary: CostSummary = {
+      limit: 1,
+      rows: [
+        {
+          providerLabel: 'p',
+          agentId: 'triage',
+          calls: 1,
+          inputTokens: 100,
+          outputTokens: 50,
+          estimatedCostUsd: 0.001,
+          avgLatencyMs: 1000,
+        },
+      ],
+      totals: { calls: 1, inputTokens: 100, outputTokens: 50, estimatedCostUsd: 0.001 },
+    };
+    expect(renderCostCard(summary)).toContain('last session');
+  });
+
+  it('rinde "last N sessions" cuando limit > 1 (DG-099 A)', () => {
+    const summary: CostSummary = {
+      limit: 10,
+      rows: [
+        {
+          providerLabel: 'p',
+          agentId: 'triage',
+          calls: 1,
+          inputTokens: 100,
+          outputTokens: 50,
+          estimatedCostUsd: 0.001,
+          avgLatencyMs: 1000,
+        },
+      ],
+      totals: { calls: 1, inputTokens: 100, outputTokens: 50, estimatedCostUsd: 0.001 },
+    };
+    expect(renderCostCard(summary)).toContain('last 10 sessions');
+  });
+
+  it('rinde mensaje minimo cuando no hay rows (DG-099 A)', () => {
+    const summary: CostSummary = {
+      limit: 1,
+      rows: [],
+      totals: { calls: 0, inputTokens: 0, outputTokens: 0, estimatedCostUsd: 0 },
+    };
+    const html = renderCostCard(summary);
+    expect(html).toContain('run Triage Findings');
+    expect(html).not.toContain('Total:');
+  });
+});
+
+describe('parseCostSummary — DG-099 A', () => {
+  it('parsea un JSON valido del CLI cost-history --json', () => {
+    const raw = {
+      limit: 1,
+      rows: [
+        {
+          providerLabel: 'anthropic/claude-haiku-4-5-20251001',
+          agentId: 'triage',
+          calls: 25,
+          inputTokens: 7719,
+          outputTokens: 2417,
+          estimatedCostUsd: 0.0198,
+          avgLatencyMs: 1761,
+        },
+      ],
+      totals: { calls: 25, inputTokens: 7719, outputTokens: 2417, estimatedCostUsd: 0.0198 },
+    };
+    const parsed = parseCostSummary(raw);
+    expect(parsed).not.toBeNull();
+    expect(parsed?.limit).toBe(1);
+    expect(parsed?.rows[0]?.agentId).toBe('triage');
+  });
+
+  it('parsea un JSON con rows vacio (DB sin triage previo)', () => {
+    const raw = {
+      limit: 10,
+      rows: [],
+      totals: { calls: 0, inputTokens: 0, outputTokens: 0, estimatedCostUsd: 0 },
+    };
+    const parsed = parseCostSummary(raw);
+    expect(parsed).not.toBeNull();
+    expect(parsed?.rows).toEqual([]);
+  });
+
+  it('devuelve null defensivamente si el shape no coincide', () => {
+    expect(parseCostSummary({ limit: 'no-int', rows: [], totals: {} })).toBeNull();
+    expect(parseCostSummary(null)).toBeNull();
+    expect(parseCostSummary({})).toBeNull();
+  });
+
+  it('devuelve null si agentId trae un valor desconocido (anti-drift schema)', () => {
+    const raw = {
+      limit: 1,
+      rows: [
+        {
+          providerLabel: 'p',
+          agentId: 'something_new',
+          calls: 1,
+          inputTokens: 1,
+          outputTokens: 1,
+          estimatedCostUsd: 0.001,
+          avgLatencyMs: 1,
+        },
+      ],
+      totals: { calls: 1, inputTokens: 1, outputTokens: 1, estimatedCostUsd: 0.001 },
+    };
+    expect(parseCostSummary(raw)).toBeNull();
   });
 });

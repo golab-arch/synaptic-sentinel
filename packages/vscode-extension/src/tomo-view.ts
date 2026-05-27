@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { join } from 'node:path';
 import * as vscode from 'vscode';
 import { renderTomoWebviewHtml } from './webview-content.js';
-import type { ExtensionFinding } from './tomo.js';
+import type { CostSummary, ExtensionFinding } from './tomo.js';
 
 /**
  * Proveedor del webview "tomo vivo" (v0.4 §4.3): un panel lateral con los
@@ -18,6 +18,7 @@ export class SentinelTomoViewProvider implements vscode.WebviewViewProvider {
 
   #view: vscode.WebviewView | undefined;
   #findings: readonly ExtensionFinding[] = [];
+  #costSummary: CostSummary | null = null;
   #workspacePath: string | undefined;
 
   /** Lo invoca VSCode cuando el panel se abre por primera vez. */
@@ -30,10 +31,21 @@ export class SentinelTomoViewProvider implements vscode.WebviewViewProvider {
     this.#render();
   }
 
-  /** Actualiza el panel con los hallazgos de un nuevo scan o triage. */
-  update(workspacePath: string, findings: readonly ExtensionFinding[]): void {
+  /**
+   * Actualiza el panel con los hallazgos de un nuevo scan o triage.
+   *
+   * `costSummary` es opcional (DG-099 A): se pasa solo desde el flow de
+   * triage (post-Triage Findings). Despues de un scan plano, queda null
+   * y el renderer no emite la cost card.
+   */
+  update(
+    workspacePath: string,
+    findings: readonly ExtensionFinding[],
+    costSummary?: CostSummary | null,
+  ): void {
     this.#workspacePath = workspacePath;
     this.#findings = findings;
+    if (costSummary !== undefined) this.#costSummary = costSummary;
     this.#render();
   }
 
@@ -41,10 +53,14 @@ export class SentinelTomoViewProvider implements vscode.WebviewViewProvider {
   #render(): void {
     const view = this.#view;
     if (view === undefined) return;
-    view.webview.html = renderTomoWebviewHtml(this.#findings, {
-      nonce: randomUUID(),
-      cspSource: view.webview.cspSource,
-    });
+    view.webview.html = renderTomoWebviewHtml(
+      this.#findings,
+      {
+        nonce: randomUUID(),
+        cspSource: view.webview.cspSource,
+      },
+      this.#costSummary,
+    );
   }
 
   /** Maneja un mensaje del webview: `reveal` abre el archivo en el editor. */

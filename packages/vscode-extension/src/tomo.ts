@@ -81,3 +81,49 @@ export type ExtensionFinding = z.infer<typeof ExtensionFindingSchema>;
 export function parseTomo(raw: unknown): ExtensionTomo {
   return ExtensionTomoSchema.parse(raw);
 }
+
+/**
+ * Cost summary del cross-provider Brain Layer (DG-099 A) — output del
+ * sub-comando `cost-history --json`. La extension lo muestra como card
+ * en el sidebar webview, al lado del summary card de findings.
+ *
+ * Forma identica a `CostHistoryJson` del CLI: si el contrato cambia ahi,
+ * ajustar este schema en el mismo cycle.
+ */
+const CostHistoryRowSchema = z.object({
+  providerLabel: z.string().min(1),
+  agentId: z.enum(['triage', 'context', 'remediation']),
+  calls: z.number().int().nonnegative(),
+  inputTokens: z.number().int().nonnegative(),
+  outputTokens: z.number().int().nonnegative(),
+  estimatedCostUsd: z.number().nonnegative(),
+  avgLatencyMs: z.number().nonnegative(),
+});
+
+const CostHistoryTotalsSchema = z.object({
+  calls: z.number().int().nonnegative(),
+  inputTokens: z.number().int().nonnegative(),
+  outputTokens: z.number().int().nonnegative(),
+  estimatedCostUsd: z.number().nonnegative(),
+});
+
+export const CostSummarySchema = z.object({
+  limit: z.number().int().positive(),
+  rows: z.array(CostHistoryRowSchema),
+  totals: CostHistoryTotalsSchema,
+});
+
+/** Cost summary del Brain Layer en la forma que consume la extension (DG-099 A). */
+export type CostSummary = z.infer<typeof CostSummarySchema>;
+
+/**
+ * Parsea el JSON emitido por `synaptic-sentinel cost-history --json`.
+ *
+ * Devuelve `null` defensivamente si el shape no coincide: la extension
+ * decide no renderear la cost card cuando recibe null, en lugar de
+ * romper el render del sidebar entero.
+ */
+export function parseCostSummary(raw: unknown): CostSummary | null {
+  const result = CostSummarySchema.safeParse(raw);
+  return result.success ? result.data : null;
+}

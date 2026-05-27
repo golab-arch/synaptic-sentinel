@@ -24,7 +24,7 @@ Usage:
   synaptic-sentinel mark-fp --fingerprint <fp> [--path <dir>] [--reason <text>]
   synaptic-sentinel triage [--path <dir>] [--limit <n>]
                           [--agent-provider <agent>=<provider>/<model>]...
-  synaptic-sentinel cost-history [--path <dir>] [--limit <n>]
+  synaptic-sentinel cost-history [--path <dir>] [--limit <n>] [--json]
   synaptic-sentinel scanners install [--global]
 
 Commands:
@@ -92,6 +92,7 @@ async function main(): Promise<void> {
       limit: { type: 'string' },
       'agent-provider': { type: 'string', multiple: true },
       global: { type: 'boolean' },
+      json: { type: 'boolean' },
       help: { type: 'boolean', short: 'h' },
     },
   });
@@ -187,6 +188,7 @@ async function main(): Promise<void> {
     process.exitCode = runCostHistoryCommand({
       path: values.path ?? process.cwd(),
       ...(limit !== undefined ? { limit } : {}),
+      ...(values.json === true ? { json: true } : {}),
     });
     return;
   }

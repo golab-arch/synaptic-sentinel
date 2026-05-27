@@ -13,6 +13,7 @@ import * as vscode from 'vscode';
 import {
   defaultCliEntry,
   runCliMarkFp,
+  runCliCostHistory,
   runCliScan,
   runCliScannersInstall,
   runCliTriage,
@@ -456,7 +457,18 @@ async function triageWorkspace(
         const tomo = await runCliScan({ cliEntry, workspacePath, signal: controller.signal });
         lastScan = { workspacePath, findings: tomo.findings };
         renderDiagnostics(diagnostics, workspacePath, tomo.findings);
-        tomoView?.update(workspacePath, tomo.findings);
+        // DG-099 A: lee el cost summary del ultimo triage session via
+        // `cost-history --json --limit 1` para mostrarlo como cost card
+        // en el sidebar webview. El helper devuelve null defensivamente
+        // si el comando falla o el JSON no parsea — el renderer en ese
+        // caso simplemente no emite la cost card.
+        const costSummary = await runCliCostHistory({
+          cliEntry,
+          workspacePath,
+          limit: 1,
+          signal: controller.signal,
+        });
+        tomoView?.update(workspacePath, tomo.findings, costSummary);
         setStatusResult(statusBar, tomo.findings.length);
         void vscode.window.showInformationMessage('SYNAPTIC Sentinel: triage complete.');
       } catch (err) {
