@@ -4,6 +4,37 @@ All notable changes to the SYNAPTIC Sentinel extension will be documented in thi
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.8] - 2026-05-26
+
+**Sidebar triage state visibility** (DG-097 A). The first **UI-visible improvement** to the SYNAPTIC Sentinel sidebar panel since v0.3.0: findings are now grouped by their triage state (TP / INC / Untriaged / FP) rather than rendered as a flat list, so the value of the Brain Layer triage actually surfaces in the IDE primary UI. Parallel small fix: deprecation warnings from Node internals (notably `DEP0040 punycode`) are no longer printed in the Sentinel pseudoterminal — they were noise the user couldn't act on.
+
+### Added
+
+- **Triage state grouping in the sidebar** (DG-097 A) — the **SYNAPTIC Sentinel** webview in the Explorer sidebar now organizes findings into four buckets, in this order, with a section header per non-empty bucket:
+  1. **To fix · true positive** (●) — findings the Brain Layer confirmed as real issues.
+  2. **Inconclusive · agent could not decide** (?) — findings where the agent reported low confidence.
+  3. **Untriaged · run Triage Findings** (○) — new findings from the scan that have not been triaged yet.
+  4. **Already false positive** (✓) — findings the Brain Layer dismissed; rendered with reduced opacity (0.55, full on hover) so they de-emphasize without disappearing.
+- **State badge on every finding card** showing the triage label + confidence percentage as a scan-fast signal: `TP 95%`, `INC 50%`, `FP 95%`, or `NEW` (for untriaged, since there is no confidence yet). The full rationale + context + remediation remain in the expanded card body as before.
+- **Summary card at the top** of the sidebar replaces the previous `N finding(s) · click to open in the editor` meta line. New format: `N findings · X TP · Y INC · Z NEW · W FP` with colored pills per bucket. Only pills for non-empty buckets appear. Singular/plural handled correctly.
+
+### Changed
+
+- **Node deprecation warnings suppressed in the pseudoterminal** (DG-097 A) — the extension now spawns the bundled CLI with `NODE_NO_WARNINGS=1` in the environment. The most visible effect is that `(node:NNNN) [DEP0040] DeprecationWarning: The 'punycode' module is deprecated...` no longer prints three times per scan in the **SYNAPTIC Sentinel** pseudoterminal. This was Node-internal noise that nobody — neither the user nor Sentinel — could act on; it just diluted the actual scan output.
+
+### Notes
+
+- This release contains only the DG-097 A feature — no changes to the Scout Layer, the Brain Layer adapters, the benchmark runner, the CLI, or `colony.db` schema.
+- The sidebar grouping is **fixed** (triage state first, severity within). If you'd like a toggle to group differently (by severity / category / file), open an issue — that would be a future sub-DG.
+- **Anti-optimismo**: the unit tests cover the rendering logic (538 tests, +13 vs v0.3.7 baseline), but they cannot tell us how the new colors and opacity actually feel under your VS Code theme — light themes in particular may make the dimmed FP cards harder to read than intended. Feedback on theme-specific issues is welcome.
+- The `untriaged` badge says `NEW` rather than `UNTRIAGED` because it communicates "pending action" more directly and fits the narrow badge slot. The text in the section header still uses the longer `Untriaged · run Triage Findings` for clarity.
+
+### Known Issues
+
+The Known Issues section is unchanged from v0.3.7 — **1 caveat structurally closed**:
+
+1. **Ground truth dataset is AI-drafted** (DG-075 caveat heredado, **DG-095 A structured** in v0.3.7). The 26 entries in `tests/benchmark/ground-truth.json` remain `reviewedBy: 'ai-draft'`. The path forward (per-layer criteria, threshold-driven disclaimer scaling) lives in `tests/benchmark/README.md`. External citation remains blocked until the corpus reaches ≥ 10 human-reviewed entries.
+
 ## [0.3.7] - 2026-05-26
 
 **Ground truth review structure** (DG-095 A). Closes the last v0.3.0 "Known Issues" caveat **structurally**: the AI-drafted ground truth corpus still requires an AppSec engineer pass, but the caveat is no longer opaque — the benchmark report now scales its disclaimer in three levels based on how many entries have been human-reviewed, and `tests/benchmark/README.md` documents an operational flow with per-layer review criteria. **5 caveats closed + 1 structured = 100% of the v0.3.0 backlog treated.**
