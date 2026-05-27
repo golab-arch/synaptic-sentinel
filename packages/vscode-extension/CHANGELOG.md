@@ -4,6 +4,32 @@ All notable changes to the SYNAPTIC Sentinel extension will be documented in thi
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.9] - 2026-05-26
+
+**Sidebar Cost Visibility** (DG-099 A). Closes the last UI value-prop gap from Phase 11: the Brain Layer cost summary (tokens + cost USD + latency, per `(provider/model, agent)`) was previously printed only in the pseudoterminal after each `Triage Findings` run — useful in the moment, invisible once the terminal was closed or scrolled. v0.3.9 surfaces it as a persistent **cost card** in the SYNAPTIC Sentinel sidebar, right between the findings summary (introduced in v0.3.8 / DG-097 A) and the bucketed findings sections.
+
+### Added
+
+- **Cost card in the sidebar** (DG-099 A) — every time you run `Triage Findings`, the sidebar refreshes with a new cost card showing:
+  - Title `Brain Layer cost · last session` (or `· last N sessions` if you raise the limit in a future iteration) plus the `~estimated USD` caveat.
+  - A compact table per `(provider/model, agent)` row: `calls`, `input tokens`, `output tokens`, `cost USD`, `avg latency ms`. Numeric columns use `tabular-nums` so the digits align across rows regardless of length.
+  - A total line below the table: `Total: N calls · X input · Y output · $Z`.
+  - When no triage has run yet in the workspace (empty `triage_token_usage` table or missing `colony.db`), the card collapses to a minimal `Brain Layer cost — run Triage Findings to start tracking cost` instead of disappearing.
+- **`synaptic-sentinel cost-history --json` flag** (DG-099 A) — the existing `cost-history` sub-command keeps emitting the human-readable table by default; `--json` opt-in emits a typed JSON payload (`{ limit, rows: CostHistoryRow[], totals: { calls, inputTokens, outputTokens, estimatedCostUsd } }`) to stdout. The extension consumes this JSON instead of parsing terminal output, so the contract between the CLI and the IDE is now structured and validated by a Zod schema.
+
+### Notes
+
+- This release contains only the DG-099 A feature — no changes to the Scout Layer, Brain Layer adapters, benchmark runner, or `colony.db` schema.
+- Tokens and cost remain `~estimated` (DG-078 B / DG-085 A caveats): when the provider exposes real `usage` (Anthropic, OpenAI-compat, Ollama native) the counts are real; when it doesn't, a `chars/4` proxy fallback applies. The cost card does not yet distinguish provider-reported vs proxy at the row level — the existing `(provider-reported)` / `~estimated` badge keeps appearing in the pseudoterminal output for that signal.
+- The cost card sits below the findings summary and above the bucketed sections deliberately: "what to fix" (the triage state breakdown) is the primary signal, "how much it cost" is secondary scan information. If you'd prefer it elsewhere, file an issue.
+- **Anti-optimismo** (continuing the v0.3.8 acknowledgement): the unit tests cover the renderer + JSON parsing (549 tests, +11 vs v0.3.8 baseline), but they cannot tell us how the card actually scales with multi-provider runs (3 providers × 3 agents = 9 rows) or how it feels on light themes. Feedback welcome.
+
+### Known Issues
+
+The Known Issues section is unchanged from v0.3.8 — **1 caveat structurally closed**:
+
+1. **Ground truth dataset is AI-drafted** (DG-075 caveat heredado, DG-095 A structured in v0.3.7). The 26 entries in `tests/benchmark/ground-truth.json` remain `reviewedBy: 'ai-draft'`. External citation remains blocked until the corpus reaches ≥ 10 human-reviewed entries.
+
 ## [0.3.8] - 2026-05-26
 
 **Sidebar triage state visibility** (DG-097 A). The first **UI-visible improvement** to the SYNAPTIC Sentinel sidebar panel since v0.3.0: findings are now grouped by their triage state (TP / INC / Untriaged / FP) rather than rendered as a flat list, so the value of the Brain Layer triage actually surfaces in the IDE primary UI. Parallel small fix: deprecation warnings from Node internals (notably `DEP0040 punycode`) are no longer printed in the Sentinel pseudoterminal — they were noise the user couldn't act on.
