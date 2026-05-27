@@ -3164,5 +3164,37 @@ Each entry follows this structure:
 
 ---
 
+### Entry #106 - DG-096 A: release v0.3.7 con ground truth review structure (DG-095 A); GitHub Release publicado, vsce publish queda al usuario
+
+```json
+{
+  "timestamp": "2026-05-26T17:30:00.000Z",
+  "cycle": 88,
+  "phase": null,
+  "action": "FEATURE_IMPLEMENTED",
+  "details": {
+    "DG-096-A": {
+      "title": "Empaquetar el fix de DG-095 A (ground truth review structure: disclaimer escalado 3 niveles + flujo operacional + criterios per capa) en un release real visible. Cierre del 'loop publicar' del DG-095 A; sin él, un usuario instalando v0.3.6 NO recibe el escalado del disclaimer ni el README actualizado. Mismo patrón operacional probado en DG-089 A (release v0.3.4) + DG-091 A (release v0.3.5) + DG-094 A (release v0.3.6): bump version + CHANGELOG entry + pnpm verify + vsce package + annotated tag + push + GitHub Release con asset .vsix; vsce publish al Marketplace queda al usuario con su PAT (cierre PARCIAL — mismo motivo de separación de responsabilidades).",
+      "scope": "Ciclo 88 atómico, sin Phases abiertas. Toca `packages/vscode-extension/package.json` (version bump 0.3.6 → 0.3.7) + `packages/vscode-extension/CHANGELOG.md` (nueva entry [0.3.7] al tope). Artefactos producidos: synaptic-sentinel-0.3.7.vsix (1838 archivos / 3.14 MB / SHA-256 d01ade1a08d66f49d1174be9d145dd0397c3eb6c3cfdb5d50357947af77a7122) + annotated tag v0.3.7 + GitHub Release v0.3.7 con asset .vsix descargable.",
+      "deliverable_changelog": "NEW entry [0.3.7] - 2026-05-26 al CHANGELOG con 3 secciones: (Added) 3-level disclaimer in the benchmark report con HUMAN_REVIEW_THRESHOLD = 10 + 3 ramas (=== 0 → strong; < 10 → 'Limited human review' + status line; >= 10 → 'aggregate acceptable for external citation') + operational flow for ground truth revision con 8 pasos + per-layer criteria (Triage / Context / Remediation) + thresholds table; (Notes) scope only DG-095 A; HUMAN_REVIEW_THRESHOLD exported; anti-optimismo sobre cierre estructural (la opacidad cierra, la deuda real sigue abierta hasta corpus ≥ 10 reviewed); no CLI helper (deliberate scope decision); (Known Issues) 1 caveat structurally closed (ground truth ai-draft DG-075 caveat heredado, DG-095 A structured con path forward).",
+      "deliverable_artifact": "vsce package exitoso: synaptic-sentinel-0.3.7.vsix 1838 archivos / 3.14 MB / SHA-256 d01ade1a08d66f49d1174be9d145dd0397c3eb6c3cfdb5d50357947af77a7122. Annotated tag v0.3.7 + push origin + push tag. gh release create v0.3.7 publicado en https://github.com/golab-arch/synaptic-sentinel/releases/tag/v0.3.7 con asset .vsix descargable + release notes basadas en CHANGELOG entry. isDraft=false.",
+      "deliverable_release_text": "Release notes incluyen: headline 'Ground truth review structure (DG-095 A)' + descripción del cierre estructural (5 caveats closed + 1 structured = 100% del backlog v0.3.0 tratado) + 3-level disclaimer breakdown + operational flow + Anti-optimismo block (release does NOT close the underlying caveat — corpus still 100% ai-draft; what closes is the opacity) + Known Issues section (structurally closed) + install instructions con SHA-256 + nota sobre Marketplace skip semantics.",
+      "vsce_publish_diferido": "vsce publish al Marketplace NO ejecutado en este DG — queda al usuario con su PAT siguiendo docs/PUBLISHING.md. AHORA HAY 4 releases GitHub-only pendientes de marketplace upload (v0.3.4 + v0.3.5 + v0.3.6 + v0.3.7); el Marketplace puede saltar de v0.3.3 directamente a v0.3.7 (semver permite skip de versiones intermedias). Decision cierre PARCIAL preserva separación de responsabilidades (yo no tengo credenciales del usuario — mismo motivo de seguridad que DG-089 A / DG-091 A / DG-094 A).",
+      "smoke_test_passed": "pnpm verify VERDE post-bump end-to-end: 58 test files / 525 tests pasados + ambos gates OK (verify-extension-activate 7 commands + 13 subscriptions; verify-manifest 18 checks — verificó la nueva semver 0.3.7 y todos los demás campos del manifest). vsce package validó el manifest completo al construir el .vsix.",
+      "anti_optimismo_ilusorio_activo": "(1) El marketplace upload del usuario tiene un riesgo no-cero de descubrir una clase de bug no cubierta por los gates locales (DG-082.1 demostró que el upload manual puede revelar mismatches no detectables localmente; el verify-manifest gate de DG-083 A cubre la clase publisher mismatch, pero pueden existir clases adicionales). (2) Acumulación creciente de 4 releases GitHub-only sin Marketplace sync amplía el rango de skip cuando el usuario haga upload — un usuario instalando desde Marketplace v0.3.3 saltaría directamente a v0.3.7, una distancia mayor que cualquier upgrade previo del proyecto. (3) El fix de DG-095 A es structural/documentation-centric — su IMPACTO REAL (un revisor humano usa la sección 'How to revise' para procesar entries; el reporter muestra el disclaimer correcto) sigue diferido honestamente hasta que un AppSec engineer real se sume.",
+      "phase_status": "Sin Phases abiertas. SYNAPTIC Sentinel v0.3.7 publicado en GitHub Release; producto live en Marketplace sigue siendo v0.3.3 hasta vsce publish USER-side. 100% del backlog v0.3.0 tratado: 5 caveats cerrados técnicamente (DG-084..DG-088) + 1 estructurado para revisión externa (DG-095 A). 14 sub-DGs consecutivos exitosos (DG-083 → DG-096). 4 releases reales (v0.3.4 + v0.3.5 + v0.3.6 + v0.3.7). successfulCycles: 88. synapticStrength: 95.",
+      "next_step_options_to_present": "Tres caminos válidos para Cycle 89 (DG-097): (A) sub-DG **sidebar webview Cost Visibility** en VSCode extension (Option C de DG-078 deferido) — mostrar el cost summary del CLI triage como webview persistente en el sidebar de la extensión; feature nueva sin deuda heredada, bounded scope similar a DG-087 A (Ollama heavy warning). ~1-2 ciclos. (B) sub-DG **@vscode/test-electron framework** completo — descarga VSCode headless + instala el .vsix + ejecuta comandos reales; cubriría runtime behavior de comandos / UI webview / interacción con SecretStorage que el headless simulator de DG-081 B no cubre. NO urgente (DG-081 B + DG-083 A ya cubrieron las 2 clases críticas que produjeron los 3 hotfixes). ~2 ciclos. (C) pausar el proyecto con SYNAPTIC Sentinel v0.3.7 en GitHub Release + **100% del backlog v0.3.0 tratado** + 14 sub-DGs consecutivos (DG-083 → DG-096) + 4 releases reales publicados como **hito final mayor** — el cierre del backlog v0.3.x + el publish del fix estructural marca el fin natural del ciclo grande de trabajo. La recomendación va a ser explícita en el próximo DG.",
+      "checks": "feat commit + tag + push + GitHub Release ya ejecutados. Working tree DIRTY: 5 archivos directores synaptic (BITACORA + DESIGN_DOC + INTELLIGENCE + CURRENT + session). Listo para docs(synaptic) commit + push.",
+      "commits_split": "feat(release) commit ya ejecutado en este DG (bump + CHANGELOG entry [0.3.7]). docs(synaptic): registro DG-096 A — Entry #106 + actualizaciones de director files."
+    }
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 95,
+  "complianceScore": 100
+}
+```
+
+---
+
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-26T17:00:00.000Z*
+*Last Updated: 2026-05-26T17:30:00.000Z*
