@@ -16,6 +16,7 @@ import {
   runCliCostHistory,
   runCliScan,
   runCliScannersInstall,
+  runCliShow,
   runCliTriage,
 } from './cli-runner.js';
 import {
@@ -148,6 +149,53 @@ export function activate(context: vscode.ExtensionContext): void {
     ),
     vscode.languages.registerHoverProvider('*', { provideHover }),
   );
+
+  // DG-103 A: hidratacion silenciosa al activar la extension. Si el
+  // workspace ya tiene un colony.db con una corrida previa (scan +/-
+  // triage), reconstruimos el sidebar webview + status bar + diagnostics
+  // sin re-correr scanners ni LLM. Cost: 0. Si falla por cualquier razon
+  // (DB corrupt, schema mismatch, sin scans aun, etc.) caemos al empty
+  // state actual silenciosamente — un fallo de hidratacion NO debe
+  // romper la activacion (los hotfixes DG-079.1/DG-079.2/DG-082.1
+  // enseñaron a defender el activate path).
+  void hydrateSidebarFromCache(diagnostics, statusBar, extensionRoot);
+}
+
+/**
+ * Carga la ultima corrida cacheada en colony.db y rehidrata el sidebar
+ * + diagnostics + status bar + cost card. Silencioso end-to-end: si
+ * algo falla, el sidebar queda en su empty state inicial.
+ *
+ * Decision de scope (DG-103 A): solo se invoca al activar la extension.
+ * No se re-llama al detectar cambios en colony.db ni al cambiar de
+ * workspace folder — eso seria scope creep. Si el usuario edita codigo
+ * fuera de la extension y quiere refresh, corre Scan Workspace de
+ * nuevo (mismo flujo de siempre).
+ */
+async function hydrateSidebarFromCache(
+  diagnostics: vscode.DiagnosticCollection,
+  statusBar: vscode.StatusBarItem,
+  extensionRoot: string,
+): Promise<void> {
+  try {
+    const folder = vscode.workspace.workspaceFolders?.[0];
+    if (folder === undefined) return;
+    const workspacePath = folder.uri.fsPath;
+    const cliEntry = resolveCliEntry(extensionRoot);
+    const tomo = await runCliShow({ cliEntry, workspacePath });
+    if (tomo === null) return; // No hay scans previos o la lectura fallo.
+    lastScan = { workspacePath, findings: tomo.findings };
+    renderDiagnostics(diagnostics, workspacePath, tomo.findings);
+    // Cost summary tambien viene de colony.db; si no hay triage previo
+    // devuelve null y la cost card simplemente no se renderea.
+    const costSummary = await runCliCostHistory({ cliEntry, workspacePath, limit: 1 });
+    tomoView?.update(workspacePath, tomo.findings, costSummary);
+    setStatusResult(statusBar, tomo.findings.length);
+  } catch {
+    // Hidratacion best-effort: cualquier error → empty state silencioso.
+    // No tocamos lastScan ni el sidebar para no enmascarar un bug real
+    // del usuario tipeando un comando.
+  }
 }
 
 /** Estado ocioso del status bar. */

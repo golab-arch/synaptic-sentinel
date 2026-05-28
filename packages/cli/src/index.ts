@@ -10,6 +10,7 @@ import { runScanCommand } from './commands/scan.js';
 import { runMarkFpCommand } from './commands/mark-fp.js';
 import { runTriageCommand } from './commands/triage.js';
 import { runCostHistoryCommand } from './commands/cost-history.js';
+import { runShowCommand } from './commands/show.js';
 import { parseAgentProviderFlags } from './commands/agent-provider-flag.js';
 import { runScannersInstallCommand } from './commands/scanners-install.js';
 
@@ -25,6 +26,7 @@ Usage:
   synaptic-sentinel triage [--path <dir>] [--limit <n>]
                           [--agent-provider <agent>=<provider>/<model>]...
   synaptic-sentinel cost-history [--path <dir>] [--limit <n>] [--json]
+  synaptic-sentinel show [--path <dir>] [--export <file>]
   synaptic-sentinel scanners install [--global]
 
 Commands:
@@ -33,6 +35,10 @@ Commands:
   triage             Triage the latest scan's findings with the Brain Layer (BYOK)
   cost-history       Show ~estimated cost USD + token usage of the last N
                      triage sessions (default 10), grouped by provider+agent
+  show               Reconstruct the tome of the LATEST scan from colony.db
+                     without running scanners or LLM (cost: 0). Used by the
+                     VSCode extension to hydrate the sidebar on workspace
+                     reopen — preserves the previous scan + triage state.
   scanners install   Download and verify the OSS scanner binaries pinned in
                      the manifest. Without --global installs to <cwd>/.scanners
                      (dev cache); with --global installs to the per-user cache
@@ -171,6 +177,14 @@ async function main(): Promise<void> {
       ...(limit !== undefined ? { limit } : {}),
       ...(agentProviderOverrides !== undefined ? { agentProviderOverrides } : {}),
       ...(values['no-color'] === true ? { noColor: true } : {}),
+    });
+    return;
+  }
+
+  if (command === 'show') {
+    process.exitCode = runShowCommand({
+      path: values.path ?? process.cwd(),
+      ...(values.export !== undefined ? { exportPath: values.export } : {}),
     });
     return;
   }

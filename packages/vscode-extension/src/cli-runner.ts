@@ -252,6 +252,59 @@ export async function runCliTriage(options: RunCliTriageOptions): Promise<void> 
   assertCliOk(result, 'triage');
 }
 
+/** Opciones para hidratar el sidebar desde colony.db (DG-103 A). */
+export interface RunCliShowOptions {
+  /** Ruta al entry de la CLI (`cli/dist/index.js`). */
+  readonly cliEntry: string;
+  /** Carpeta del proyecto cuyo colony.db se lee. */
+  readonly workspacePath: string;
+  /** Ejecutable de Node a usar. Por defecto el del extension host (`process.execPath`). */
+  readonly nodePath?: string;
+  /** Senal de cancelacion. */
+  readonly signal?: AbortSignal;
+}
+
+/**
+ * Reconstruye el tomo del scan mas reciente persistido en colony.db
+ * SIN re-correr scanners ni el Brain Layer (DG-103 A).
+ *
+ * Sirve para hidratar el sidebar webview al activar la extension cuando
+ * el usuario reabre un proyecto que ya tiene un scan/triage previo: en
+ * lugar del empty state "Run Scan Workspace to see findings here" se
+ * carga la ultima corrida cacheada (findings + triage verdicts +
+ * context + remediation).
+ *
+ * Costo: 0 (no LLM, no scout binaries). Solo lectura de colony.db +
+ * serializacion JSON.
+ *
+ * Devuelve `null` defensivamente si la CLI falla o el JSON no parsea
+ * contra el schema del tomo — el caller cae al empty state actual en
+ * lugar de romper la activacion. Mismo patron defensivo que
+ * `runCliCostHistory` (DG-099 A).
+ */
+export async function runCliShow(options: RunCliShowOptions): Promise<ExtensionTomo | null> {
+  const tmpDir = mkdtempSync(join(tmpdir(), 'synaptic-sentinel-show-'));
+  const tomoPath = join(tmpDir, 'tomo.json');
+  try {
+    const result = await spawnCli({
+      cliEntry: options.cliEntry,
+      cwd: options.workspacePath,
+      args: ['show', '--path', options.workspacePath, '--export', tomoPath],
+      ...(options.nodePath !== undefined ? { nodePath: options.nodePath } : {}),
+      ...(options.signal !== undefined ? { signal: options.signal } : {}),
+    });
+    if (result.code !== 0) return null;
+    const raw: unknown = JSON.parse(readFileSync(tomoPath, 'utf8'));
+    return parseTomo(raw);
+  } catch {
+    // Cualquier error (DB corrupt, schema mismatch, FS issues, JSON
+    // parse fail, etc.) → null y el caller cae al empty state.
+    return null;
+  } finally {
+    rmSync(tmpDir, { recursive: true, force: true });
+  }
+}
+
 /** Opciones para leer el cost summary de la CLI (DG-099 A). */
 export interface RunCliCostHistoryOptions {
   /** Ruta al entry de la CLI (`cli/dist/index.js`). */
