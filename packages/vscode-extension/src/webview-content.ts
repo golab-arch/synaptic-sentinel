@@ -84,6 +84,13 @@ const STYLE = `
   .summary .pill-inc { color: #d6b400; font-weight: 600; }
   .summary .pill-untriaged { color: var(--vscode-foreground); font-weight: 600; }
   .summary .pill-fp { color: #6aa1d6; font-weight: 600; }
+  .summary .triage-remaining-btn {
+    display: inline-block; margin-left: 0.6rem;
+    padding: 0.15rem 0.6rem; border-radius: 3px;
+    background: var(--vscode-button-background); color: var(--vscode-button-foreground);
+    border: 1px solid var(--vscode-button-border, transparent);
+    font-size: 0.85em; font-weight: 600; cursor: pointer; }
+  .summary .triage-remaining-btn:hover { background: var(--vscode-button-hoverBackground); }
   h3.section { font-size: 0.75em; text-transform: uppercase; letter-spacing: 0.5px;
     margin: 1rem 0 0.4rem; padding: 0.25rem 0; font-weight: 700;
     border-bottom: 1px solid var(--vscode-panel-border);
@@ -299,11 +306,21 @@ export function renderCostCard(summary: CostSummary): string {
   );
 }
 
-/** Renderiza la summary card del header con el breakdown por triage state. */
+/**
+ * Renderiza la summary card del header con el breakdown por triage state.
+ *
+ * DG-101 A: si hay findings untriaged (bucket NEW > 0), agrega un boton
+ * "Triage X untriaged" que dispara el comando interno
+ * `synaptic-sentinel.triageRemaining` via postMessage. Resuelve el silent
+ * UX trap del cap=25 — ahora el usuario ve explicitamente cuantos quedaron
+ * sin triar y puede dispararlos con un click sin tener que conocer el
+ * setting o el flag CLI.
+ */
 function renderSummary(
   buckets: Readonly<Record<TriageState, readonly ExtensionFinding[]>>,
 ): string {
   const total = STATE_ORDER.reduce((acc, s) => acc + buckets[s].length, 0);
+  const untriagedCount = buckets.untriaged.length;
   const segments: string[] = [];
   for (const state of STATE_ORDER) {
     const count = buckets[state].length;
@@ -312,12 +329,20 @@ function renderSummary(
       `<span class="pill-${state}">${String(count)} ${STATE_BADGE_LABEL[state]}</span>`,
     );
   }
+  const triageRemainingBtn =
+    untriagedCount > 0
+      ? `<button class="triage-remaining-btn" data-action="triage-remaining" ` +
+        `title="Run Brain Layer on the ${String(untriagedCount)} untriaged finding(s)">` +
+        `Triage ${String(untriagedCount)} untriaged` +
+        `</button>`
+      : '';
   return (
     `<div class="summary">` +
     `<span class="total">${String(total)} finding${total === 1 ? '' : 's'}</span>` +
     (segments.length > 0
       ? `<span class="sep">·</span>${segments.join('<span class="sep">·</span>')}`
       : '') +
+    triageRemainingBtn +
     `<div class="loc">click a card to open the file</div>` +
     `</div>`
   );
@@ -372,13 +397,20 @@ export function renderTomoWebviewHtml(
   }
 
   // El script: al hacer click en una tarjeta, pide a la extension abrir el
-  // archivo. `acquireVsCodeApi` lo expone el host del webview.
+  // archivo. `acquireVsCodeApi` lo expone el host del webview. DG-101 A:
+  // ademas registra un handler para el boton "Triage Remaining" que
+  // dispara el comando interno via postMessage type 'triage-remaining'.
   const script =
     `const api = acquireVsCodeApi();` +
     `for (const el of document.querySelectorAll('.finding')) {` +
     `el.addEventListener('click', () => {` +
     `api.postMessage({ type: 'reveal', path: el.dataset.path, ` +
     `line: Number(el.dataset.line) });` +
+    `});}` +
+    `const btn = document.querySelector('[data-action="triage-remaining"]');` +
+    `if (btn) { btn.addEventListener('click', (e) => {` +
+    `e.stopPropagation();` +
+    `api.postMessage({ type: 'triage-remaining' });` +
     `});}`;
 
   return `<!doctype html>

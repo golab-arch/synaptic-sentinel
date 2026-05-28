@@ -283,6 +283,45 @@ describe('renderTomoWebviewHtml', () => {
     expect(html).not.toContain('1 findings');
   });
 
+  it('summary header muestra boton "Triage Remaining" cuando untriaged > 0 (DG-101 A)', () => {
+    const html = renderTomoWebviewHtml(
+      [
+        makeFinding(),
+        makeFinding(),
+        makeFinding(),
+        makeFinding({
+          triage: { classification: 'true_positive', confidence: 0.95, rationale: 'r' },
+        }),
+      ],
+      opts,
+    );
+    expect(html).toContain('data-action="triage-remaining"');
+    expect(html).toContain('Triage 3 untriaged');
+  });
+
+  it('summary header NO muestra el boton cuando untriaged === 0 (DG-101 A)', () => {
+    const html = renderTomoWebviewHtml(
+      [
+        makeFinding({
+          triage: { classification: 'true_positive', confidence: 0.95, rationale: 'r' },
+        }),
+        makeFinding({
+          triage: { classification: 'false_positive', confidence: 0.85, rationale: 'r' },
+        }),
+      ],
+      opts,
+    );
+    // El querySelector 'data-action="triage-remaining"' vive en el <script>
+    // siempre; chequeamos el elemento <button> directamente y el texto.
+    expect(html).not.toContain('<button class="triage-remaining-btn"');
+    expect(html).not.toContain('untriaged</button>');
+  });
+
+  it('script del webview registra handler para el boton Triage Remaining (DG-101 A)', () => {
+    const html = renderTomoWebviewHtml([makeFinding()], opts);
+    expect(html).toContain("type: 'triage-remaining'");
+  });
+
   it('renderiza la cost card cuando se pasa un CostSummary con rows (DG-099 A)', () => {
     const summary: CostSummary = {
       limit: 1,

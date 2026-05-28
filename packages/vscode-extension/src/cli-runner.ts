@@ -209,6 +209,14 @@ export interface RunCliTriageOptions {
   /** Senal de cancelacion. */
   readonly signal?: AbortSignal;
   /**
+   * Cap de findings a triar en esta corrida (DG-101 A). Si no se provee,
+   * la CLI usa su default historico (25). El comando `Triage Remaining`
+   * del sidebar pasa un valor alto para procesar todos los untriaged
+   * restantes en una sola corrida; el flujo normal lee
+   * `synaptic-sentinel.triageLimit` de las settings del workspace.
+   */
+  readonly limit?: number;
+  /**
    * Callback de streaming de la salida de la CLI. Si se provee, la CLI corre
    * con `FORCE_COLOR=1` para que emita ANSI hacia el pseudoterminal (DG-038 B).
    */
@@ -225,10 +233,14 @@ export interface RunCliTriageOptions {
  * con codigo 0.
  */
 export async function runCliTriage(options: RunCliTriageOptions): Promise<void> {
+  const args: string[] = ['triage', '--path', options.workspacePath];
+  if (options.limit !== undefined) {
+    args.push('--limit', String(options.limit));
+  }
   const result = await spawnCli({
     cliEntry: options.cliEntry,
     cwd: options.workspacePath,
-    args: ['triage', '--path', options.workspacePath],
+    args,
     env: {
       ...options.apiKeyEnv,
       ...(options.onOutput !== undefined ? { FORCE_COLOR: '1' } : {}),

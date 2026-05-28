@@ -46,6 +46,13 @@ const COMMAND_MARK_FP = 'synaptic-sentinel.markFalsePositive';
 const COMMAND_COPY_REMEDIATION = 'synaptic-sentinel.copyRemediation';
 /** Id del comando de triage del Brain Layer. */
 const COMMAND_TRIAGE = 'synaptic-sentinel.triageWorkspace';
+/**
+ * Id del comando interno "Triage Remaining" (DG-101 A) — lo invoca el
+ * boton del sidebar cuando hay findings untriaged tras un triage previo
+ * (capeado por `synaptic-sentinel.triageLimit`). NO se expone en el
+ * Command Palette: solo el sidebar lo dispara.
+ */
+const COMMAND_TRIAGE_REMAINING = 'synaptic-sentinel.triageRemaining';
 /** Id del comando para configurar la API key de Anthropic (BYOK). */
 const COMMAND_SET_API_KEY = 'synaptic-sentinel.setAnthropicApiKey';
 /** Id del comando que instala los binarios de los scanners (FI-008, DG-059). */
@@ -110,6 +117,20 @@ export function activate(context: vscode.ExtensionContext): void {
     }),
     vscode.commands.registerCommand(COMMAND_TRIAGE, () => {
       void triageWorkspace(diagnostics, statusBar, extensionRoot, secrets, terminal);
+    }),
+    // DG-101 A: comando interno invocado desde el sidebar webview cuando
+    // hay untriaged findings tras un triage capeado. Reusa triageWorkspace
+    // con un limit alto para procesar todos los untriaged restantes en
+    // una sola corrida.
+    vscode.commands.registerCommand(COMMAND_TRIAGE_REMAINING, () => {
+      void triageWorkspace(
+        diagnostics,
+        statusBar,
+        extensionRoot,
+        secrets,
+        terminal,
+        TRIAGE_REMAINING_LIMIT,
+      );
     }),
     vscode.commands.registerCommand(COMMAND_SET_API_KEY, () => {
       void setApiKey(secrets);
@@ -387,6 +408,27 @@ async function setApiKey(secrets: vscode.SecretStorage): Promise<void> {
   void vscode.window.showInformationMessage('SYNAPTIC Sentinel: API key saved.');
 }
 
+/**
+ * Lee el cap configurado en `synaptic-sentinel.triageLimit` (DG-101 A) — el
+ * usuario puede subirlo desde VSCode settings sin tener que invocar la CLI
+ * directamente. Si la lectura devuelve algo no-positivo, cae al default
+ * que la CLI tiene definido (25).
+ */
+function readTriageLimitSetting(): number | undefined {
+  const raw = vscode.workspace.getConfiguration('synaptic-sentinel').get<number>('triageLimit');
+  if (typeof raw !== 'number' || !Number.isFinite(raw) || raw < 1) return undefined;
+  return Math.floor(raw);
+}
+
+/**
+ * Limite usado por el comando `Triage Remaining` del sidebar (DG-101 A):
+ * lo suficientemente alto como para procesar todos los untriaged restantes
+ * en una sola corrida sin obligar al usuario a tocar settings. La CLI
+ * skip-ea los ya triaged y los known FP, asi que el cap solo aplica a los
+ * untriaged reales — incluso valores enormes son seguros.
+ */
+const TRIAGE_REMAINING_LIMIT = 9999;
+
 /** Maneja el comando `Triage Findings`: corre el Brain Layer sobre el scan. */
 async function triageWorkspace(
   diagnostics: vscode.DiagnosticCollection,
@@ -394,6 +436,7 @@ async function triageWorkspace(
   extensionRoot: string,
   secrets: vscode.SecretStorage,
   terminal: SentinelTerminal,
+  limitOverride?: number,
 ): Promise<void> {
   const folder = vscode.workspace.workspaceFolders?.[0];
   if (folder === undefined) {
@@ -443,11 +486,13 @@ async function triageWorkspace(
       });
       setStatusTriaging(statusBar);
       try {
+        const limit = limitOverride ?? readTriageLimitSetting();
         await runCliTriage({
           cliEntry,
           workspacePath,
           apiKeyEnv,
           signal: controller.signal,
+          ...(limit !== undefined ? { limit } : {}),
           onOutput: (chunk) => {
             terminal.write(chunk);
           },

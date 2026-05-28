@@ -63,10 +63,19 @@ export class SentinelTomoViewProvider implements vscode.WebviewViewProvider {
     );
   }
 
-  /** Maneja un mensaje del webview: `reveal` abre el archivo en el editor. */
+  /**
+   * Maneja un mensaje del webview:
+   * - `reveal` abre el archivo en el editor.
+   * - `triage-remaining` (DG-101 A) dispara el comando interno que corre
+   *   el Brain Layer sobre los findings untriaged restantes.
+   */
   async #onMessage(message: unknown): Promise<void> {
     if (typeof message !== 'object' || message === null) return;
     const msg = message as { type?: unknown; path?: unknown; line?: unknown };
+    if (msg.type === 'triage-remaining') {
+      await vscode.commands.executeCommand('synaptic-sentinel.triageRemaining');
+      return;
+    }
     if (msg.type !== 'reveal' || typeof msg.path !== 'string') return;
     const base = this.#workspacePath;
     if (base === undefined) return;

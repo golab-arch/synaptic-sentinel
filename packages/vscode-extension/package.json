@@ -92,6 +92,13 @@
           "type": "string",
           "default": "",
           "description": "Path to the CLI entry (cli/dist/index.js). Empty = resolved next to the extension."
+        },
+        "synaptic-sentinel.triageLimit": {
+          "type": "number",
+          "default": 25,
+          "minimum": 1,
+          "maximum": 10000,
+          "description": "Maximum number of pending findings the Brain Layer will triage in a single 'Triage Findings' run. Findings beyond this cap stay 'untriaged'; click 'Triage Remaining' in the sidebar to triage them in a follow-up run. Default 25 limits cost on the first run; raise it if your workspace has more findings and you want them all triaged at once."
         }
       }
     }
