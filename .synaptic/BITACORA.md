@@ -3498,5 +3498,37 @@ Each entry follows this structure:
 
 ---
 
+### Entry #116 - DG-106 A: release v0.3.12 con cost card workflow ordering (DG-105 A) acumulado; GitHub Release publicado, vsce publish queda al usuario
+
+```json
+{
+  "timestamp": "2026-05-28T14:00:00.000Z",
+  "cycle": 98,
+  "phase": null,
+  "action": "FEATURE_IMPLEMENTED",
+  "details": {
+    "DG-106-A": {
+      "title": "Empaquetar el fix de DG-105 A (cost card polish v2 PARTE 1 — reordenar agentes por workflow del Brain Layer en lugar de cost USD descendente) en un release real visible. Patron operacional probado 9 veces consecutivas (DG-089/DG-091/DG-094/DG-096/DG-098/DG-100/DG-102/DG-104/DG-106). Cierra el ULTIMO item de feedback empirico explicito del usuario (captura v0.3.9 con orden raro de agentes en cost card) en un release real — postergado dos veces en DG-103 y DG-104, atendido en DG-105 A (fix), empaquetado ahora.",
+      "scope": "Ciclo 98 atomico, sin Phases abiertas. Toca packages/vscode-extension/package.json (version bump 0.3.11 → 0.3.12) + packages/vscode-extension/CHANGELOG.md (nueva entry [0.3.12] al tope con 3 secciones). Artefactos producidos: synaptic-sentinel-0.3.12.vsix (1838 archivos / 3.15 MB / SHA-256 c5031f8da5b48a898c88c247a2c5d6c16712d2b070929ae66a2d18d6eea42406) + annotated tag v0.3.12 + GitHub Release v0.3.12 con asset .vsix descargable.",
+      "deliverable_changelog": "NEW entry [0.3.12] - 2026-05-28 al CHANGELOG con 3 secciones: (Changed) Cost card agents are now ordered by Brain Layer workflow (triage → context → remediation) instead of by descending cost; new SQL order in getCostHistory con CASE statement por agent_id + secondary order por provider_label alfabetico; afecta sidebar cost card + CLI cost-history table output + JSON output; (Notes) scope only DG-105 A; 1-line SQL change covered by 2 unit tests; how to validate (install + open workspace con previous triage); deferred provider-reported badge per-row (requires schema migration v5 → v6); (Known Issues) 1 caveat structurally closed (ground truth ai-draft) sin cambios desde v0.3.11.",
+      "deliverable_artifact": "vsce package exitoso: synaptic-sentinel-0.3.12.vsix 1838 archivos / 3.15 MB / SHA-256 c5031f8da5b48a898c88c247a2c5d6c16712d2b070929ae66a2d18d6eea42406. Bytes: 3301828. Annotated tag v0.3.12 + push origin main + push tag. gh release create v0.3.12 publicado en https://github.com/golab-arch/synaptic-sentinel/releases/tag/v0.3.12 con asset .vsix descargable + release notes basadas en CHANGELOG entry + sección 'How to validate' (install + open workspace con previous triage + confirm orden triage → context → remediation). isDraft=false.",
+      "vsce_publish_diferido": "vsce publish al Marketplace NO ejecutado en este DG — queda al usuario con su PAT siguiendo docs/PUBLISHING.md. AHORA HAY 9 releases GitHub-only pendientes de marketplace upload (v0.3.4 + v0.3.5 + v0.3.6 + v0.3.7 + v0.3.8 + v0.3.9 + v0.3.10 + v0.3.11 + v0.3.12) — DISTANCIA MAXIMA DEL PROYECTO desde v0.3.3 → v0.3.12 (9 versiones skip). Decision cierre PARCIAL preserva separacion de responsabilidades.",
+      "smoke_test_passed": "pnpm verify VERDE post-bump end-to-end: 59 test files / 559 tests pasados + ambos gates OK (verify-extension-activate 8 commands + 14 subscriptions; verify-manifest 18 checks verifico la nueva semver 0.3.12). vsce package valido el manifest completo al construir el .vsix.",
+      "milestone_narrativa": "Despues de v0.3.12, TODOS los items de feedback empirico explicito que el usuario reporto en capturas previas estan publicados en releases reales: (1) DG-097 A sidebar triage state v0.3.8; (2) DG-099 A sidebar Cost Visibility v0.3.9; (3) DG-101 A triage cap silencioso v0.3.10; (4) DG-103 A sidebar hydration on activate v0.3.11; (5) DG-105 A cost card workflow ordering v0.3.12. El producto entra en estado 'feedback empirico-del-usuario backlog vacio' — la unica deuda visible explicita es la diferida del Parte 2 (provider-reported badge per-row con schema migration v5 → v6), que es nice-to-have sin demanda. 24 sub-DGs consecutivos sin failed cycle. 9 releases reales. 106 Decision Gates totales.",
+      "anti_optimismo_ilusorio_activo": "(1) DG-106 publica el DG-105 A pero el IMPACTO REAL del reorden sigue DIFERIDO hasta que el usuario instale v0.3.12 y abra un workspace con un triage previo. El fix es 1-line SQL covered by 2 unit tests, validacion empirica trivial (instalar + abrir workspace + ver orden), pero NO garantizada sin install. (2) **9 releases GitHub-only pendientes USER-side — DISTANCIA MAXIMA DEL PROYECTO** desde v0.3.3 → v0.3.12 (9 versiones skip). Si el usuario decide hacer upload manual al Marketplace, el riesgo de descubrir clase de bug latente compose risk aumenta con cada release acumulado (DG-082.1 lesson sigue valida). El verify-manifest gate cubre la clase publisher mismatch pero NO cubre 9 versiones de delta acumulado. (3) El milestone 'feedback empirico backlog vacio' es validacion de SCOPE — el producto ha atendido TODO el feedback explicito del usuario hasta ahora, pero el feedback no es exhaustivo. Otros usuarios podrian descubrir issues UX nuevos no anticipados. (4) N=1 testeador del orden: el usuario (founder) reporto que el orden era contraintuitivo y los unit tests verifican el nuevo orden, pero la preferencia por workflow order vs cost order es subjetiva — podria emerger feedback contrario de otros usuarios. La UI sidebar es opinionated; coherente con el value-prop.",
+      "phase_status": "Sin Phases abiertas. SYNAPTIC Sentinel v0.3.12 publicado en GitHub Release con asset .vsix descargable; producto live en Marketplace sigue siendo v0.3.3 hasta vsce publish USER-side. 24 sub-DGs consecutivos exitosos (DG-083 → DG-106). 9 releases reales (v0.3.4 → v0.3.12). 106 Decision Gates totales desde Cycle 1 (compliance 100%). successfulCycles: 98. synapticStrength: 100 (techo del schema mantenido).",
+      "next_step_options_to_present": "Tres caminos para Cycle 99 (DG-107): (A) **PAUSA EMPIRICA fuerte (RECOMENDADO)**: 24 sub-DGs consecutivos sin failed cycle es record del proyecto pero el feedback empirico backlog quedo vacio post-DG-106 — el siguiente input natural es real-world usage feedback del usuario sobre v0.3.12 (y los 8 releases anteriores acumulados sin upload al Marketplace). Sin nueva demanda empirica, construir mas features es riesgo asimetrico (compose risk del activate path / schema migrations / etc.). ~0 ciclos. (B) sub-DG cost card polish v2 PARTE 2 (provider-reported badge per-row, schema migration v5 → v6) — atender la deuda explicitamente diferida en DG-105 A. ~1.5-2 ciclos. Riesgo MEDIUM (schema migration aditiva). Sin demanda empirica explicita. (C) sub-DG diff scans + NEW indicator usando lifecycleState — feature nueva ambiciosa sin demanda explicita. ~1-2 ciclos. La recomendacion sera Option A (pausa empirica) — el patron 'fix → release' tiene momentum pero alcanzo su techo natural; sin nuevo input del usuario, construir mas es speculation.",
+      "checks": "feat commit + tag + push + GitHub Release ya ejecutados. Working tree DIRTY: 5 archivos directores synaptic. Listo para docs(synaptic) commit + push.",
+      "commits_split": "feat(release) commit ya ejecutado (bump + CHANGELOG entry [0.3.12]). docs(synaptic): registro DG-106 A — Entry #116 + actualizaciones de director files."
+    }
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 100,
+  "complianceScore": 100
+}
+```
+
+---
+
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-28T13:30:00.000Z*
+*Last Updated: 2026-05-28T14:00:00.000Z*
