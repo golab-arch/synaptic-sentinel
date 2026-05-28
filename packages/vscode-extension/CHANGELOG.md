@@ -4,6 +4,55 @@ All notable changes to the SYNAPTIC Sentinel extension will be documented in thi
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.11] - 2026-05-28
+
+**Sidebar hydration on activate** (DG-103 A). Closes a real-world UX bug reported in feedback after using v0.3.10 on a 105-finding project: when you closed the workspace and reopened it later, the SYNAPTIC Sentinel sidebar always showed the empty state (`Run "Scan Workspace" to see findings here`) — as if no scan had ever run — even though the previous scan + triage + cost data was sitting right there in `<workspace>/.sentinel/colony.db`. After v0.3.11, the sidebar **rehydrates automatically on activate** from the cached `colony.db`, with cost: 0 (no scanners re-run, no LLM re-invoked).
+
+### Added
+
+- **Sidebar hydration on activate** (DG-103 A) — when the extension activates in a workspace whose `.sentinel/colony.db` (or legacy `.synaptic-sentinel/colony.db`) already contains a previous scan, the sidebar restores **silently**:
+  - All findings from the latest scan grouped into the four buckets (`To fix · TP` / `Inconclusive` / `Untriaged` / `Already false positive`)
+  - The triage verdict + context explanation + remediation suggestion on every previously-triaged finding (joined by stable fingerprint)
+  - The **cost card** from the last triage session (loaded via the existing `cost-history --json` mechanism from DG-099 A)
+  - Diagnostics in the editor (squiggly underlines in vulnerable files) and the status bar counter (`Sentinel: N finding(s)`)
+- **`synaptic-sentinel show` CLI command** (DG-103 A) — reconstructs the tome of the latest scan from `colony.db` **without running scanners or LLM** (cost: 0). Used internally by the extension for the hydration above; also exposed as a regular CLI command for scripting:
+  - `synaptic-sentinel show --path <dir>` → JSON tome to stdout
+  - `synaptic-sentinel show --path <dir> --export <file>` → JSON tome to a file
+  - Exit 0 on success, 1 if `colony.db` is missing or has no scans yet
+
+### Notes
+
+- Scope only DG-103 A. No changes to the Scout Layer, Brain Layer adapters, benchmark runner, sidebar layout, or `colony.db` schema.
+- The hydration is **best-effort defensive**: if `colony.db` is missing, corrupted, has a schema mismatch, or any other read failure, the sidebar falls back to the empty state (`Run "Scan Workspace"...`) silently. A hydration failure will never crash the extension activation — the `try/catch` is doubled (helper + handler).
+- The hydration is **async after** `activate()` returns, so it does NOT delay the extension being ready. There can be a brief moment (sub-second on small workspaces) where the sidebar shows the empty state and then snaps to the hydrated view.
+- The hydration runs **once per activation** (not on file change, not on workspace folder change). If you edit code outside the extension and want a fresh scan, run `Scan Workspace` as usual.
+- **Anti-optimismo**: the IMPACT validates empirically only by reproducing the flow. Recommended 4-step validation in the section below.
+
+### How to validate empirically
+
+If you already have a workspace with previous scan + triage data in `<workspace>/.sentinel/colony.db` (e.g. the project where you ran v0.3.10):
+
+1. **Uninstall the previous version** (Ctrl+Shift+P → `Extensions: Uninstall Extension`, pick SYNAPTIC Sentinel; or `code --uninstall-extension RealGoLab.synaptic-sentinel`)
+2. **Install v0.3.11**:
+   - Download `synaptic-sentinel-0.3.11.vsix` from this release
+   - `code --install-extension synaptic-sentinel-0.3.11.vsix` (or use _Install from VSIX..._ in the Extensions view)
+3. **Close the project folder entirely** (File → Close Folder)
+4. **Reopen the same folder** (File → Open Folder)
+
+What you should see in the SYNAPTIC Sentinel sidebar **without running anything**:
+
+- Summary card with the previous breakdown (e.g. `105 findings · 52 TP · 36 INC · 17 FP`)
+- Cost card with the last triage session's spending
+- The four bucketed sections with all your previous findings + triage verdicts + contexts + remediations
+- Diagnostics squiggles in the editor
+- `Sentinel: N finding(s)` in the status bar
+
+### Known Issues
+
+The Known Issues section is unchanged from v0.3.10 — **1 caveat structurally closed**:
+
+1. **Ground truth dataset is AI-drafted** (DG-075 caveat heredado, DG-095 A structured in v0.3.7). External citation remains blocked until the corpus reaches ≥ 10 human-reviewed entries.
+
 ## [0.3.10] - 2026-05-28
 
 **Triage cap controls** (DG-101 A). Closes the last silent UX trap from the v0.3.x backlog. Before this release the `Triage Findings` command silently capped at **25 findings per run** (the CLI default), skipping the rest with only a one-line note in the pseudoterminal that was easy to miss. If you ran `Triage Findings` on a workspace with 38 findings, the sidebar would show 25 classified plus 13 sitting in the `Untriaged` bucket — with no obvious next step. v0.3.10 surfaces the cap, makes it configurable, and gives you a one-click way to triage the remainder.
