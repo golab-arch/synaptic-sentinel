@@ -4,6 +4,28 @@ All notable changes to the SYNAPTIC Sentinel extension will be documented in thi
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.10] - 2026-05-28
+
+**Triage cap controls** (DG-101 A). Closes the last silent UX trap from the v0.3.x backlog. Before this release the `Triage Findings` command silently capped at **25 findings per run** (the CLI default), skipping the rest with only a one-line note in the pseudoterminal that was easy to miss. If you ran `Triage Findings` on a workspace with 38 findings, the sidebar would show 25 classified plus 13 sitting in the `Untriaged` bucket — with no obvious next step. v0.3.10 surfaces the cap, makes it configurable, and gives you a one-click way to triage the remainder.
+
+### Added
+
+- **`synaptic-sentinel.triageLimit` setting** (DG-101 A) — open VS Code Settings (Ctrl+,), search for `SYNAPTIC Sentinel`, and adjust the cap to any value between 1 and 10000. The default stays at **25** to limit the cost of the first triage on a new workspace; raise it (e.g. 100, 500) when you want every finding triaged in one go. The setting only applies when you invoke `Triage Findings` from the Command Palette or the status bar — the new `Triage Remaining` button (below) intentionally ignores it.
+- **`Triage N untriaged` button in the sidebar** (DG-101 A) — appears in the summary card of the **SYNAPTIC Sentinel** webview whenever there are findings sitting in the `Untriaged` bucket (the `NEW` pill in the breakdown is > 0). One click runs the Brain Layer on **all** untriaged findings — not just the next 25 — so the bucket clears in a single pass. The button uses VS Code's native button theming (`var(--vscode-button-*)`) so it blends with whatever dark/light theme you use.
+
+### Notes
+
+- Scope only DG-101 A. No changes to the Scout Layer, Brain Layer adapters, benchmark runner, cost card, or `colony.db` schema.
+- The new command `synaptic-sentinel.triageRemaining` is deliberately **not** exposed in the Command Palette. The intent is to surface it contextually only when there's something to do — in the sidebar, next to the count of untriaged findings. If you'd prefer a palette entry too, open an issue.
+- The button uses an internal cap of 9999 (rather than reading `triageLimit`) because it says `Triage N untriaged` where N is the exact bucket count — limiting it to the configured cap would be misleading. If your workspace has 10000+ pending findings, fall back to running `synaptic-sentinel triage --limit <N>` from the terminal.
+- **Anti-optimismo**: the IMPACT validates empirically only by reproducing the cap. The quickest way: open VS Code Settings, set `synaptic-sentinel.triageLimit` to `5`, run `Scan Workspace` then `Triage Findings` on a project with ≥ 6 findings, and confirm that (a) only 5 get triaged, (b) the sidebar shows the rest under `Untriaged · run Triage Findings`, and (c) the `Triage N untriaged` button appears in the summary card.
+
+### Known Issues
+
+The Known Issues section is unchanged from v0.3.9 — **1 caveat structurally closed**:
+
+1. **Ground truth dataset is AI-drafted** (DG-075 caveat heredado, DG-095 A structured in v0.3.7). External citation remains blocked until the corpus reaches ≥ 10 human-reviewed entries.
+
 ## [0.3.9] - 2026-05-26
 
 **Sidebar Cost Visibility** (DG-099 A). Closes the last UI value-prop gap from Phase 11: the Brain Layer cost summary (tokens + cost USD + latency, per `(provider/model, agent)`) was previously printed only in the pseudoterminal after each `Triage Findings` run — useful in the moment, invisible once the terminal was closed or scrolled. v0.3.9 surfaces it as a persistent **cost card** in the SYNAPTIC Sentinel sidebar, right between the findings summary (introduced in v0.3.8 / DG-097 A) and the bucketed findings sections.
