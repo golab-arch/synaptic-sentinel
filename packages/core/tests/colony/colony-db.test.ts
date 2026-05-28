@@ -445,4 +445,77 @@ describe('ColonyDb (base en disco)', () => {
       db.close();
     });
   });
+
+  describe('getCostHistory order — DG-105 A', () => {
+    it('ordena por workflow del Brain Layer: triage → context → remediation', () => {
+      const db = ColonyDb.open(':memory:');
+      const scanId = randomUUID();
+      db.insertScan({ id: scanId, startedAt: new Date().toISOString() });
+      const sessionId = randomUUID();
+      const baseRecord = {
+        triageSessionId: sessionId,
+        scanId,
+        fingerprint: 'fp-test',
+        providerLabel: 'anthropic/claude-haiku-4-5-20251001',
+        inputTokens: 100,
+        outputTokens: 50,
+        latencyMs: 1000,
+        createdAt: new Date().toISOString(),
+      };
+      // Inserto en orden REMEDIATION → TRIAGE → CONTEXT a propósito,
+      // con distintos cost USD, para garantizar que el orden de salida NO
+      // dependa del orden de insercion ni del cost (la SQL antigua los
+      // ordenaba por estimated_cost_usd DESC, que producia ordenes
+      // contraintuitivos observados empíricamente en captura v0.3.9).
+      db.insertTokenUsages([
+        {
+          id: randomUUID(),
+          ...baseRecord,
+          agentId: 'remediation',
+          estimatedCostUsd: 0.05, // El mas alto — al usar cost DESC seria el primero.
+        },
+        {
+          id: randomUUID(),
+          ...baseRecord,
+          agentId: 'triage',
+          estimatedCostUsd: 0.01,
+        },
+        {
+          id: randomUUID(),
+          ...baseRecord,
+          agentId: 'context',
+          estimatedCostUsd: 0.03,
+        },
+      ]);
+      const rows = db.getCostHistory(10);
+      expect(rows.map((r) => r.agentId)).toEqual(['triage', 'context', 'remediation']);
+      db.close();
+    });
+
+    it('dentro de cada agente, ordena por provider_label estable (multi-provider)', () => {
+      const db = ColonyDb.open(':memory:');
+      const scanId = randomUUID();
+      db.insertScan({ id: scanId, startedAt: new Date().toISOString() });
+      const sessionId = randomUUID();
+      const baseRecord = {
+        triageSessionId: sessionId,
+        scanId,
+        fingerprint: 'fp-test',
+        agentId: 'triage' as const,
+        inputTokens: 100,
+        outputTokens: 50,
+        estimatedCostUsd: 0.01,
+        latencyMs: 1000,
+        createdAt: new Date().toISOString(),
+      };
+      db.insertTokenUsages([
+        { id: randomUUID(), ...baseRecord, providerLabel: 'zzz/last' },
+        { id: randomUUID(), ...baseRecord, providerLabel: 'aaa/first' },
+        { id: randomUUID(), ...baseRecord, providerLabel: 'mmm/middle' },
+      ]);
+      const rows = db.getCostHistory(10);
+      expect(rows.map((r) => r.providerLabel)).toEqual(['aaa/first', 'mmm/middle', 'zzz/last']);
+      db.close();
+    });
+  });
 });

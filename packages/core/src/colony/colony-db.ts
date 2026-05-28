@@ -662,8 +662,12 @@ export class ColonyDb {
    * fila acumula calls, tokens y costo USD sobre todas las invocaciones
    * dentro de esas sesiones.
    *
-   * El order es desc por `last_created_at` de la sesion (las sesiones mas
-   * recientes primero) y dentro de cada sesion, por costo descendente.
+   * Order DESDE DG-105 A: workflow del Brain Layer — triage → context →
+   * remediation (1, 2, 3) y secundariamente por `provider_label` para
+   * estabilidad cuando hay multi-provider. Antes era `ORDER BY
+   * estimated_cost_usd DESC` lo que producia ordenes contraintuitivos
+   * (ej: `triage → remediation → context` en lugar del flujo natural)
+   * observados empiricamente por el usuario en la captura de v0.3.9.
    */
   getCostHistory(limit: number = 10): CostHistoryRow[] {
     // Subquery: ultimas `limit` sesiones (por created_at MAX).
@@ -688,7 +692,12 @@ export class ColonyDb {
         'FROM triage_token_usage ' +
         `WHERE triage_session_id IN (${placeholders}) ` +
         'GROUP BY provider_label, agent_id ' +
-        'ORDER BY estimated_cost_usd DESC',
+        'ORDER BY CASE agent_id ' +
+        "  WHEN 'triage' THEN 1 " +
+        "  WHEN 'context' THEN 2 " +
+        "  WHEN 'remediation' THEN 3 " +
+        '  ELSE 99 ' +
+        'END, provider_label',
       sessionIds,
     ) as unknown as readonly {
       provider_label: string;
