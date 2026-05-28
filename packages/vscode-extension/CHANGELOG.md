@@ -4,6 +4,29 @@ All notable changes to the SYNAPTIC Sentinel extension will be documented in thi
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.12] - 2026-05-28
+
+**Cost card agent ordering fix** (DG-105 A). Closes a small but persistent user-feedback item from the v0.3.9 capture: the Brain Layer cost card in the sidebar was showing agents in a counter-intuitive order. Root cause was on the CLI/core side — `getCostHistory` ordered rows by `estimated_cost_usd DESC`, which is fine for "which agent is the most expensive" reporting but feels wrong as a primary signal in a sidebar card that's organized around the **workflow** of the Brain Layer.
+
+### Changed
+
+- **Cost card agents are now ordered by Brain Layer workflow** (DG-105 A) — `triage → context → remediation`, instead of by descending cost. The new SQL order in `getCostHistory` is `CASE agent_id WHEN 'triage' THEN 1 WHEN 'context' THEN 2 WHEN 'remediation' THEN 3 ELSE 99 END, provider_label`. Within each agent, rows are stable-sorted alphabetically by `provider_label`, so multi-provider setups (e.g. 3 providers × 3 agents = 9 rows) render in a predictable order. This affects:
+  - The cost card in the **SYNAPTIC Sentinel sidebar** (after `Triage Findings`)
+  - The CLI table output of `synaptic-sentinel cost-history`
+  - The JSON output of `synaptic-sentinel cost-history --json`
+
+### Notes
+
+- Scope only DG-105 A. No changes to the Scout Layer, Brain Layer adapters, benchmark runner, sidebar layout, schema, or activate path.
+- **Anti-optimismo**: this is a 1-line SQL change covered by 2 new unit tests. The IMPACT validates immediately after install — open any workspace with a previous triage in `.sentinel/colony.db` and confirm the cost card shows `triage → context → remediation` (alphabetical by `provider_label` within each agent for multi-provider).
+- **Deferred — provider-reported badge per-row**: the cost card surfaces a `~estimated USD` caveat at the card header (since v0.3.9 / DG-099 A), but doesn't yet distinguish per-row whether the tokens came from the provider's own `usage` field (real) or the `chars/4` fallback proxy. That breakdown lives in the `synaptic-sentinel triage` terminal output today. Surfacing it per-row in the sidebar requires a small schema migration (`triage_token_usage` v5 → v6 to persist `usage_source`); will land in a future release if there's empirical demand. Open an issue if you need it sooner.
+
+### Known Issues
+
+The Known Issues section is unchanged from v0.3.11 — **1 caveat structurally closed**:
+
+1. **Ground truth dataset is AI-drafted** (DG-075 caveat heredado, DG-095 A structured in v0.3.7). External citation remains blocked until the corpus reaches ≥ 10 human-reviewed entries.
+
 ## [0.3.11] - 2026-05-28
 
 **Sidebar hydration on activate** (DG-103 A). Closes a real-world UX bug reported in feedback after using v0.3.10 on a 105-finding project: when you closed the workspace and reopened it later, the SYNAPTIC Sentinel sidebar always showed the empty state (`Run "Scan Workspace" to see findings here`) — as if no scan had ever run — even though the previous scan + triage + cost data was sitting right there in `<workspace>/.sentinel/colony.db`. After v0.3.11, the sidebar **rehydrates automatically on activate** from the cached `colony.db`, with cost: 0 (no scanners re-run, no LLM re-invoked).
