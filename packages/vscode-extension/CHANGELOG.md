@@ -4,6 +4,45 @@ All notable changes to the SYNAPTIC Sentinel extension will be documented in thi
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.13] - 2026-05-28
+
+**Re-triage controls + cost card freshness timestamp** (DG-107 A). Closes 2 UX issues reported in empirical feedback after installing v0.3.12 and running Sentinel on a real workspace where the user changed the Brain provider mid-flow (in `.sentinel/agents.yaml`). The `feedback backlog vacío` milestone declared in v0.3.12 release notes lasted **~30 minutes** — a strong validation of the explicit anti-optimismo declared back then ("the feedback received is not exhaustive; other users could uncover new UX issues").
+
+### Added
+
+- **Re-triage all button in the sidebar** (DG-107 A, Issue #1) — when there are already triaged findings in the current scan, a new `Re-triage all` button appears in the sidebar summary card, next to the existing `Triage N untriaged` button (DG-101 A). Clicking it shows a modal warning dialog with the exact count of verdicts that will be overwritten, plus a caveat about LLM cost being incurred again, and explicit reassurance that **false positives marked manually (`mark-fp`) and the cost history rollup are preserved**. The button is styled with `var(--vscode-button-secondaryBackground)` so it visually distinguishes from the primary `Triage N untriaged` button. Use case: after changing the Brain provider in `.sentinel/agents.yaml` (e.g. `deepseek/v4-flash` → `anthropic/claude-sonnet-4-6`), click `Re-triage all` to re-evaluate the same findings with the new provider — otherwise the previous run's verdicts would silently skip every finding (since they're already triaged).
+- **`synaptic-sentinel triage --re-triage` CLI flag** (DG-107 A, Issue #1) — equivalent to the sidebar button at the CLI level: clears all existing triage verdicts + context explanations + remediation suggestions for the scan's findings (transactional, with batches of 500 for large workspaces), then runs the full triage pipeline as if from scratch. Preserves `fp_known` (manual false positives) and `triage_token_usage` (cost history). Use for scripting / CI workflows where you want to re-benchmark a provider change without dropping the database.
+- **Cost card freshness timestamp** (DG-107 A, Issue #2) — the cost card in the sidebar now shows `as of YYYY-MM-DD HH:MM` (UTC) in its header when there's at least one record in `triage_token_usage`. This timestamp comes from the latest session in the database, **not** from the run that just finished. Surfaces the case where the current triage run made 0 LLM calls (e.g. provider changed and everything was already triaged), and the cost card would otherwise look "fresh" even though it's showing data from a previous session with a different provider. The format uses pure regex parsing without `new Date()` to avoid timezone conversion — the displayed time matches what was persisted, deterministic cross-OS.
+
+### Notes
+
+- Scope only DG-107 A. No changes to the Scout Layer, Brain Layer adapters, benchmark runner, sidebar layout, or `colony.db` schema.
+- The destructive `Re-triage all` action **only** clears the 3 enrichment tables (`triage_verdicts` + `context_explanations` + `remediation_suggestions`) for the fingerprints in the current scan. It does NOT touch:
+  - `fp_known` (manual false positive marks survive)
+  - `triage_token_usage` (cost history accumulates across re-triages — useful for comparing providers)
+  - `learning_records` (colony memory persists)
+- The MODAL warning dialog is opt-in (the user must explicitly click `Re-triage all` and then confirm). There is no "soft mode" / preview of which verdicts will be overwritten — the count is shown but not the per-finding breakdown.
+- **Anti-optimismo**: the IMPACT validates empirically only by reproducing the flow (see below). Recommended 5-step validation in the next section.
+- **Deferred — provider-reported badge per-row**: same deferral as v0.3.12. The cost card now has an `as of` freshness timestamp (this release) and the workflow ordering (v0.3.12), but still doesn't distinguish per-row whether the tokens came from the provider's own `usage` field (real) or the `chars/4` fallback proxy. Surfacing it per-row requires a `triage_token_usage` v5 → v6 schema migration; will land if there's empirical demand. Open an issue if you need it sooner.
+
+### How to validate empirically
+
+If you have a workspace with previous scan + triage data in `<workspace>/.sentinel/colony.db` (e.g. the project where you ran v0.3.12):
+
+1. **Uninstall the previous version** (Ctrl+Shift+P → `Extensions: Uninstall Extension`, pick SYNAPTIC Sentinel; or `code --uninstall-extension RealGoLab.synaptic-sentinel`)
+2. **Install v0.3.13**:
+   - Download `synaptic-sentinel-0.3.13.vsix` from this release
+   - `code --install-extension synaptic-sentinel-0.3.13.vsix` (or use _Install from VSIX..._ in the Extensions view)
+3. **Edit `<workspace>/.sentinel/agents.yaml`** and switch the triage agent provider (e.g. from `deepseek/v4-flash` to `anthropic/claude-sonnet-4-6`, or vice versa)
+4. **Reload the VS Code window** (`Ctrl+Shift+P` → `Developer: Reload Window`) so the sidebar rehydrates from cache (DG-103 A)
+5. **In the SYNAPTIC Sentinel sidebar**, you should see the `Re-triage all` button in the summary card (because findings are triaged). Click it → confirm the MODAL → the triage pipeline runs again with the new provider. Inspect the cost card after: the `as of` timestamp updates to the new session, and the new provider/model appears in the breakdown.
+
+### Known Issues
+
+The Known Issues section is unchanged from v0.3.12 — **1 caveat structurally closed**:
+
+1. **Ground truth dataset is AI-drafted** (DG-075 caveat heredado, DG-095 A structured in v0.3.7). External citation remains blocked until the corpus reaches ≥ 10 human-reviewed entries.
+
 ## [0.3.12] - 2026-05-28
 
 **Cost card agent ordering fix** (DG-105 A). Closes a small but persistent user-feedback item from the v0.3.9 capture: the Brain Layer cost card in the sidebar was showing agents in a counter-intuitive order. Root cause was on the CLI/core side — `getCostHistory` ordered rows by `estimated_cost_usd DESC`, which is fine for "which agent is the most expensive" reporting but feels wrong as a primary signal in a sidebar card that's organized around the **workflow** of the Brain Layer.
