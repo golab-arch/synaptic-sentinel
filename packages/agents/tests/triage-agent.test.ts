@@ -1,7 +1,16 @@
 import { describe, it, expect } from 'vitest';
 import { runAgent } from '../src/brain-agent.js';
 import type { LlmClient } from '../src/llm-client.js';
-import { TRIAGE_CLASSIFICATIONS, TriageAgent } from '../src/triage-agent.js';
+import {
+  FABRICATED_DISMISSAL_PATTERNS,
+  TRIAGE_CLASSIFICATIONS,
+  TriageAgent,
+  guardAgainstFabricatedDismissals,
+} from '../src/triage-agent.js';
+import type { TriageVerdict } from '../src/triage-agent.js';
+
+/** Fecha fija para los tests del buildPrompt (DG-111 Step 2 — determinism). */
+const FIXED_DATE = '2026-05-29';
 
 /** Construye un Finding valido para alimentar al Triage Agent. */
 function makeFinding(overrides: Record<string, unknown> = {}): Record<string, unknown> {
@@ -25,7 +34,7 @@ function makeFinding(overrides: Record<string, unknown> = {}): Record<string, un
 
 describe('TriageAgent.buildPrompt', () => {
   it('incluye los datos del hallazgo y pide una respuesta JSON', () => {
-    const prompt = new TriageAgent().buildPrompt(makeFinding() as never);
+    const prompt = new TriageAgent({ currentDate: FIXED_DATE }).buildPrompt(makeFinding() as never);
     expect(prompt.system).toContain('JSON');
     expect(prompt.user).toContain('test-rule');
     expect(prompt.user).toContain('src/x.ts:3');
@@ -33,10 +42,48 @@ describe('TriageAgent.buildPrompt', () => {
   });
 
   it('usa "(no disponible)" cuando el hallazgo no trae snippet', () => {
-    const prompt = new TriageAgent().buildPrompt(
+    const prompt = new TriageAgent({ currentDate: FIXED_DATE }).buildPrompt(
       makeFinding({ location: { path: 'a.js', startLine: 1 } }) as never,
     );
     expect(prompt.user).toContain('(not available)');
+  });
+
+  it('system prompt modela explicitamente SCA (DG-111 Step 2 — §4 #1)', () => {
+    const prompt = new TriageAgent({ currentDate: FIXED_DATE }).buildPrompt(makeFinding() as never);
+    expect(prompt.system).toMatch(/\bSCA\b/);
+    expect(prompt.system).toMatch(/Software Composition Analysis/);
+  });
+
+  it('system prompt fija scanner metadata como GROUND TRUTH (DG-111 Step 2)', () => {
+    const prompt = new TriageAgent({ currentDate: FIXED_DATE }).buildPrompt(makeFinding() as never);
+    expect(prompt.system).toMatch(/GROUND TRUTH/);
+    expect(prompt.system).toMatch(/CVE.*authoritative|authoritative.*CVE/is);
+    expect(prompt.system).toMatch(/training cutoff is NOT/i);
+  });
+
+  it('system prompt prohibe FP por "CVE no existe" / fabricated (DG-111 Step 2)', () => {
+    const prompt = new TriageAgent({ currentDate: FIXED_DATE }).buildPrompt(makeFinding() as never);
+    // `Do NOT classify ... false_positive` puede tener un line-break interno
+    // por wrapping del prompt; matcheamos cross-line con [\s\S].
+    expect(prompt.system).toMatch(/Do NOT classify[\s\S]*?false_positive/);
+    expect(prompt.system).toMatch(/fabricated/);
+    expect(prompt.system).toMatch(/future-dated/);
+  });
+
+  it('user prompt incluye la current date inyectada (DG-111 Step 2)', () => {
+    const prompt = new TriageAgent({ currentDate: '2026-05-29' }).buildPrompt(
+      makeFinding() as never,
+    );
+    expect(prompt.user).toContain('Current date (real-world authoritative): 2026-05-29');
+  });
+
+  it('user prompt usa hoy como default cuando NO se inyecta currentDate (DG-111 Step 2)', () => {
+    const prompt = new TriageAgent().buildPrompt(makeFinding() as never);
+    // Hoy en formato YYYY-MM-DD (UTC). El test es deterministico al
+    // dia: ambas llamadas a new Date() ocurren en la misma milesima.
+    const today = new Date().toISOString().slice(0, 10);
+    expect(prompt.user).toContain(`Current date (real-world authoritative): ${today}`);
+    expect(today).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 });
 
@@ -84,9 +131,165 @@ describe('runAgent con TriageAgent', () => {
           '{"classification":"true_positive","confidence":0.85,"rationale":"eval con entrada del usuario"}',
         ),
     };
-    const verdict = await runAgent(new TriageAgent(), makeFinding() as never, llm);
+    const verdict = await runAgent(
+      new TriageAgent({ currentDate: FIXED_DATE }),
+      makeFinding() as never,
+      llm,
+    );
     expect(TRIAGE_CLASSIFICATIONS).toContain(verdict.classification);
     expect(verdict.classification).toBe('true_positive');
     expect(verdict.confidence).toBe(0.85);
+  });
+
+  it('end-to-end: un FP "fabricated" del LLM es overridden a inconclusive por el guard (DG-111 Step 2)', async () => {
+    const llm: LlmClient = {
+      complete: () =>
+        Promise.resolve(
+          '{"classification":"false_positive","confidence":0.85,"rationale":"CVE-2026-33896 appears fabricated; no such CVE exists in NVD."}',
+        ),
+    };
+    const verdict = await runAgent(
+      new TriageAgent({ currentDate: FIXED_DATE }),
+      makeFinding() as never,
+      llm,
+    );
+    expect(verdict.classification).toBe('inconclusive');
+    expect(verdict.rationale).toContain('Brain Layer guard (DG-111 Step 2)');
+    expect(verdict.rationale).toContain('CVE-2026-33896 appears fabricated');
+  });
+});
+
+describe('guardAgainstFabricatedDismissals — DG-111 Step 2 / §4 #1', () => {
+  /** Helper: construye un TriageVerdict bien-formado para el guard. */
+  function makeVerdict(overrides: Partial<TriageVerdict> = {}): TriageVerdict {
+    return {
+      classification: 'false_positive',
+      confidence: 0.85,
+      rationale: 'pattern matched but no real risk in this context',
+      ...overrides,
+    } as TriageVerdict;
+  }
+
+  it('override FP a inconclusive cuando el rationale dice "fabricated"', () => {
+    const v = guardAgainstFabricatedDismissals(
+      makeVerdict({ rationale: 'CVE-2026-33896 appears fabricated.' }),
+    );
+    expect(v.classification).toBe('inconclusive');
+    expect(v.confidence).toBe(0.5);
+  });
+
+  it('override FP a inconclusive cuando el rationale dice "fictional"', () => {
+    const v = guardAgainstFabricatedDismissals(
+      makeVerdict({ rationale: 'The version 11.1.0 of uuid is fictional.' }),
+    );
+    expect(v.classification).toBe('inconclusive');
+  });
+
+  it('override FP a inconclusive cuando el rationale dice "spurious"', () => {
+    const v = guardAgainstFabricatedDismissals(
+      makeVerdict({ rationale: 'Further indicating this CVE is spurious.' }),
+    );
+    expect(v.classification).toBe('inconclusive');
+  });
+
+  it('override FP a inconclusive cuando el rationale dice "non-existent"', () => {
+    const v = guardAgainstFabricatedDismissals(
+      makeVerdict({ rationale: 'This CVE is non-existent in NVD.' }),
+    );
+    expect(v.classification).toBe('inconclusive');
+  });
+
+  it('override FP a inconclusive cuando el rationale dice "nonexistent" (sin guion)', () => {
+    const v = guardAgainstFabricatedDismissals(
+      makeVerdict({ rationale: 'CVE id is nonexistent.' }),
+    );
+    expect(v.classification).toBe('inconclusive');
+  });
+
+  it('override FP a inconclusive cuando el rationale dice "not a real release"', () => {
+    const v = guardAgainstFabricatedDismissals(
+      makeVerdict({ rationale: 'uuid 11.1.0 is not a real release history entry.' }),
+    );
+    expect(v.classification).toBe('inconclusive');
+  });
+
+  it('override FP a inconclusive cuando el rationale dice "future-dated"', () => {
+    const v = guardAgainstFabricatedDismissals(
+      makeVerdict({ rationale: 'This is a future-dated CVE that cannot exist yet.' }),
+    );
+    expect(v.classification).toBe('inconclusive');
+  });
+
+  it('override FP a inconclusive cuando el rationale dice "future CVE" / "future release"', () => {
+    expect(
+      guardAgainstFabricatedDismissals(
+        makeVerdict({ rationale: 'Reference to a future CVE we cannot validate.' }),
+      ).classification,
+    ).toBe('inconclusive');
+    expect(
+      guardAgainstFabricatedDismissals(
+        makeVerdict({ rationale: 'Looks like a future release of the package.' }),
+      ).classification,
+    ).toBe('inconclusive');
+    expect(
+      guardAgainstFabricatedDismissals(
+        makeVerdict({ rationale: 'Future advisory beyond training cutoff.' }),
+      ).classification,
+    ).toBe('inconclusive');
+  });
+
+  it('NO override de TP aunque el rationale tenga keywords de dismissal (proteccion narrow al FP)', () => {
+    const verdict = makeVerdict({
+      classification: 'true_positive',
+      rationale: 'Even though some users call this fabricated, the pattern is exploitable.',
+    });
+    const v = guardAgainstFabricatedDismissals(verdict);
+    expect(v.classification).toBe('true_positive');
+    expect(v.rationale).toBe(verdict.rationale);
+  });
+
+  it('NO override de INC aunque el rationale tenga keywords de dismissal', () => {
+    const verdict = makeVerdict({
+      classification: 'inconclusive',
+      rationale: 'Hard to tell if the CVE is fictional or real without more context.',
+    });
+    const v = guardAgainstFabricatedDismissals(verdict);
+    expect(v.classification).toBe('inconclusive');
+    expect(v.rationale).toBe(verdict.rationale); // preservado intacto
+  });
+
+  it('NO override de FP cuando el rationale es legitimo (sin dismissal keywords)', () => {
+    const verdict = makeVerdict({
+      classification: 'false_positive',
+      rationale: 'Test fixture file with intentional vulnerable code; not production.',
+    });
+    const v = guardAgainstFabricatedDismissals(verdict);
+    expect(v.classification).toBe('false_positive');
+    expect(v.rationale).toBe(verdict.rationale);
+    expect(v.confidence).toBe(verdict.confidence);
+  });
+
+  it('preserva el rationale original (truncado a 200 chars) en el verdict overridden', () => {
+    const longRationale =
+      'CVE-2026-33896 is fabricated. '.repeat(20) +
+      'plus extra noise that should be truncated past 200 chars.';
+    const v = guardAgainstFabricatedDismissals(makeVerdict({ rationale: longRationale }));
+    expect(v.classification).toBe('inconclusive');
+    expect(v.rationale).toContain('Original rationale:');
+    expect(v.rationale).toContain('...'); // truncation marker
+    // No debe contener la noise del final (corroborates truncation).
+    expect(v.rationale).not.toContain('plus extra noise that should be truncated');
+  });
+
+  it('preserva el rationale completo (sin truncacion) cuando es < 200 chars', () => {
+    const shortRationale = 'CVE-2026-33896 appears fabricated.';
+    const v = guardAgainstFabricatedDismissals(makeVerdict({ rationale: shortRationale }));
+    expect(v.rationale).toContain(shortRationale);
+    expect(v.rationale).not.toContain('...'); // no truncation
+  });
+
+  it('FABRICATED_DISMISSAL_PATTERNS exporta los regex (anti-drift)', () => {
+    expect(FABRICATED_DISMISSAL_PATTERNS.length).toBeGreaterThanOrEqual(7);
+    for (const p of FABRICATED_DISMISSAL_PATTERNS) expect(p).toBeInstanceOf(RegExp);
   });
 });
