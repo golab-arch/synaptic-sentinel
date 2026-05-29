@@ -555,6 +555,77 @@ export class ColonyDb {
   }
 
   /**
+   * Borra todos los `triage_verdicts`, `context_explanations` y
+   * `remediation_suggestions` para el conjunto de fingerprints dado
+   * (DG-107 A).
+   *
+   * Operacion destructiva controlada, ejecutada en una unica transaccion
+   * para que un fallo intermedio no deje datos parciales. Sirve al flow
+   * de re-triage: el usuario cambia de provider y quiere re-evaluar las
+   * mismas findings sin tener que tocar `colony.db` manualmente.
+   *
+   * **NO toca** `fp_known` (los falsos positivos marcados por el usuario
+   * via `mark-fp` son acciones manuales y no deben perderse) ni
+   * `triage_token_usage` (la historia de costo del rollup `cost-history`
+   * debe persistir aunque se re-corra el triage).
+   *
+   * Devuelve el numero total de filas borradas en las 3 tablas.
+   */
+  clearTriageDataForFingerprints(fingerprints: readonly string[]): number {
+    if (fingerprints.length === 0) return 0;
+    // SQLite tiene un limite de host parameters (~999). Para el caso de
+    // un workspace con miles de findings hacemos batches de 500.
+    const BATCH_SIZE = 500;
+    let totalDeleted = 0;
+    this.#db.exec('BEGIN');
+    try {
+      for (let i = 0; i < fingerprints.length; i += BATCH_SIZE) {
+        const batch = fingerprints.slice(i, i + BATCH_SIZE);
+        const placeholders = batch.map(() => '?').join(', ');
+        const r1 = this.#db.run(
+          `DELETE FROM triage_verdicts WHERE fingerprint IN (${placeholders})`,
+          [...batch],
+        );
+        const r2 = this.#db.run(
+          `DELETE FROM context_explanations WHERE fingerprint IN (${placeholders})`,
+          [...batch],
+        );
+        const r3 = this.#db.run(
+          `DELETE FROM remediation_suggestions WHERE fingerprint IN (${placeholders})`,
+          [...batch],
+        );
+        // node-sqlite3-wasm RunResult expone changes; tipos defensivos.
+        const c1 = typeof r1?.changes === 'number' ? r1.changes : 0;
+        const c2 = typeof r2?.changes === 'number' ? r2.changes : 0;
+        const c3 = typeof r3?.changes === 'number' ? r3.changes : 0;
+        totalDeleted += c1 + c2 + c3;
+      }
+      this.#db.exec('COMMIT');
+    } catch (err) {
+      this.#db.exec('ROLLBACK');
+      throw err;
+    }
+    return totalDeleted;
+  }
+
+  /**
+   * Devuelve el timestamp (ISO 8601) del registro mas reciente en
+   * `triage_token_usage`, o `undefined` si la tabla esta vacia (DG-107 A).
+   *
+   * Usado por `cost-history --json` para que la extension pueda mostrar
+   * "hace cuanto" fue el ultimo triage con LLM calls reales — clave para
+   * que el sidebar no parezca mostrar datos stale cuando una corrida
+   * reciente hizo 0 calls (caso clasico del flow cambiar-de-provider).
+   */
+  getLatestTriageSessionTimestamp(): string | undefined {
+    const row = this.#db.get(
+      'SELECT created_at FROM triage_token_usage ORDER BY created_at DESC LIMIT 1',
+    ) as { created_at?: string } | null | undefined;
+    if (row === undefined || row === null) return undefined;
+    return typeof row.created_at === 'string' ? row.created_at : undefined;
+  }
+
+  /**
    * Registra un lote de observaciones de aprendizaje (`learning_records`,
    * v0.4 §3.5), en una unica transaccion. Cada entrada es un upsert por
    * `(pattern_signature, classification)`: si el patron ya fue clasificado

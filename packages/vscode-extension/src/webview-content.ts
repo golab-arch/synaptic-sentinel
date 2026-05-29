@@ -84,13 +84,20 @@ const STYLE = `
   .summary .pill-inc { color: #d6b400; font-weight: 600; }
   .summary .pill-untriaged { color: var(--vscode-foreground); font-weight: 600; }
   .summary .pill-fp { color: #6aa1d6; font-weight: 600; }
-  .summary .triage-remaining-btn {
+  .summary .triage-remaining-btn,
+  .summary .re-triage-btn {
     display: inline-block; margin-left: 0.6rem;
     padding: 0.15rem 0.6rem; border-radius: 3px;
     background: var(--vscode-button-background); color: var(--vscode-button-foreground);
     border: 1px solid var(--vscode-button-border, transparent);
     font-size: 0.85em; font-weight: 600; cursor: pointer; }
-  .summary .triage-remaining-btn:hover { background: var(--vscode-button-hoverBackground); }
+  .summary .triage-remaining-btn:hover,
+  .summary .re-triage-btn:hover { background: var(--vscode-button-hoverBackground); }
+  .summary .re-triage-btn {
+    background: var(--vscode-button-secondaryBackground, var(--vscode-button-background));
+    color: var(--vscode-button-secondaryForeground, var(--vscode-button-foreground)); }
+  .summary .re-triage-btn:hover {
+    background: var(--vscode-button-secondaryHoverBackground, var(--vscode-button-hoverBackground)); }
   h3.section { font-size: 0.75em; text-transform: uppercase; letter-spacing: 0.5px;
     margin: 1rem 0 0.4rem; padding: 0.25rem 0; font-weight: 700;
     border-bottom: 1px solid var(--vscode-panel-border);
@@ -140,6 +147,8 @@ const STYLE = `
   .cost-card .cost-title { font-weight: 700; }
   .cost-card .cost-caveat { color: var(--vscode-descriptionForeground);
     font-size: 0.9em; margin-left: 0.4rem; }
+  .cost-card .cost-asof { color: var(--vscode-descriptionForeground);
+    font-size: 0.9em; margin-left: 0.4rem; font-style: italic; }
   .cost-card table { width: 100%; border-collapse: collapse;
     margin: 0.4rem 0 0.25rem; font-family: var(--vscode-editor-font-family), monospace; }
   .cost-card th, .cost-card td { padding: 0.15rem 0.4rem;
@@ -267,6 +276,13 @@ export function renderCostCard(summary: CostSummary): string {
     );
   }
   const sessions = summary.limit === 1 ? 'last session' : `last ${String(summary.limit)} sessions`;
+  // DG-107 A: timestamp opcional para que el usuario sepa que la cost
+  // summary es de hace X tiempo y no del triage que acaba de correr
+  // (caso: cambio de provider con todos ya triaged → 0 LLM calls).
+  const asOfHtml =
+    summary.latestSessionAt !== undefined
+      ? `<span class="cost-asof">as of ${escapeHtml(formatLastSessionAt(summary.latestSessionAt))}</span>`
+      : '';
   const rowsHtml = summary.rows
     .map((row) => {
       const avgLatency = Math.round(row.avgLatencyMs);
@@ -287,6 +303,7 @@ export function renderCostCard(summary: CostSummary): string {
     `<div class="cost-card">` +
     `<span class="cost-title">Brain Layer cost · ${escapeHtml(sessions)}</span>` +
     `<span class="cost-caveat">~estimated USD</span>` +
+    asOfHtml +
     `<table>` +
     `<thead><tr>` +
     `<th>provider/model</th><th>agent</th>` +
@@ -321,6 +338,7 @@ function renderSummary(
 ): string {
   const total = STATE_ORDER.reduce((acc, s) => acc + buckets[s].length, 0);
   const untriagedCount = buckets.untriaged.length;
+  const triagedCount = total - untriagedCount;
   const segments: string[] = [];
   for (const state of STATE_ORDER) {
     const count = buckets[state].length;
@@ -336,6 +354,19 @@ function renderSummary(
         `Triage ${String(untriagedCount)} untriaged` +
         `</button>`
       : '';
+  // DG-107 A: boton Re-triage all aparece cuando hay findings ya triagados.
+  // Sirve al caso de "cambie de provider en .sentinel/agents.yaml y quiero
+  // re-evaluar las mismas findings con el nuevo provider". El comando
+  // interno reTriageAll muestra un confirm dialog destructivo antes de
+  // borrar los verdicts existentes.
+  const reTriageBtn =
+    triagedCount > 0
+      ? `<button class="re-triage-btn" data-action="re-triage-all" ` +
+        `title="Clear ${String(triagedCount)} existing verdict(s) and re-evaluate with the ` +
+        `current Brain Layer provider (e.g. after changing .sentinel/agents.yaml)">` +
+        `Re-triage all` +
+        `</button>`
+      : '';
   return (
     `<div class="summary">` +
     `<span class="total">${String(total)} finding${total === 1 ? '' : 's'}</span>` +
@@ -343,9 +374,24 @@ function renderSummary(
       ? `<span class="sep">·</span>${segments.join('<span class="sep">·</span>')}`
       : '') +
     triageRemainingBtn +
+    reTriageBtn +
     `<div class="loc">click a card to open the file</div>` +
     `</div>`
   );
+}
+
+/**
+ * Formatea un ISO 8601 timestamp como "YYYY-MM-DD HH:MM" (UTC truncado)
+ * para mostrarlo legible en la cost card (DG-107 A). Pure: NO usa
+ * timezone local ni `Date.now()`, asi que el renderer queda testeable.
+ * Si el input no es un ISO valido devuelve el string raw como fallback.
+ */
+export function formatLastSessionAt(iso: string): string {
+  // ISO 8601 es estrictamente parseable con regex — evitamos new Date()
+  // para no pasar por timezone conversion.
+  const m = /^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})/.exec(iso);
+  if (m === null) return iso;
+  return `${m[1] ?? ''} ${m[2] ?? ''}`;
 }
 
 /**
@@ -411,6 +457,11 @@ export function renderTomoWebviewHtml(
     `if (btn) { btn.addEventListener('click', (e) => {` +
     `e.stopPropagation();` +
     `api.postMessage({ type: 'triage-remaining' });` +
+    `});}` +
+    `const rtBtn = document.querySelector('[data-action="re-triage-all"]');` +
+    `if (rtBtn) { rtBtn.addEventListener('click', (e) => {` +
+    `e.stopPropagation();` +
+    `api.postMessage({ type: 're-triage-all' });` +
     `});}`;
 
   return `<!doctype html>

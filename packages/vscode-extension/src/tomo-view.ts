@@ -76,6 +76,10 @@ export class SentinelTomoViewProvider implements vscode.WebviewViewProvider {
       await vscode.commands.executeCommand('synaptic-sentinel.triageRemaining');
       return;
     }
+    if (msg.type === 're-triage-all') {
+      await vscode.commands.executeCommand('synaptic-sentinel.reTriageAll');
+      return;
+    }
     if (msg.type !== 'reveal' || typeof msg.path !== 'string') return;
     const base = this.#workspacePath;
     if (base === undefined) return;

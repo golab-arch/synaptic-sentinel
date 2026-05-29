@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   escapeHtml,
+  formatLastSessionAt,
   groupByTriageState,
   renderCostCard,
   renderTomoWebviewHtml,
@@ -322,6 +323,41 @@ describe('renderTomoWebviewHtml', () => {
     expect(html).toContain("type: 'triage-remaining'");
   });
 
+  it('summary header muestra boton "Re-triage all" cuando triagedCount > 0 (DG-107 A)', () => {
+    const html = renderTomoWebviewHtml(
+      [
+        makeFinding({
+          triage: { classification: 'true_positive', confidence: 0.95, rationale: 'r' },
+        }),
+        makeFinding({
+          triage: { classification: 'false_positive', confidence: 0.85, rationale: 'r' },
+        }),
+        makeFinding(), // untriaged
+      ],
+      opts,
+    );
+    expect(html).toContain('data-action="re-triage-all"');
+    expect(html).toContain('Re-triage all');
+  });
+
+  it('summary header NO muestra boton "Re-triage all" cuando triagedCount === 0 (DG-107 A)', () => {
+    const html = renderTomoWebviewHtml([makeFinding(), makeFinding()], opts);
+    expect(html).not.toContain('<button class="re-triage-btn"');
+    expect(html).not.toContain('>Re-triage all<');
+  });
+
+  it('script del webview registra handler para el boton Re-triage all (DG-107 A)', () => {
+    const html = renderTomoWebviewHtml(
+      [
+        makeFinding({
+          triage: { classification: 'true_positive', confidence: 0.95, rationale: 'r' },
+        }),
+      ],
+      opts,
+    );
+    expect(html).toContain("type: 're-triage-all'");
+  });
+
   it('renderiza la cost card cuando se pasa un CostSummary con rows (DG-099 A)', () => {
     const summary: CostSummary = {
       limit: 1,
@@ -462,6 +498,66 @@ describe('renderCostCard — DG-099 A', () => {
     const html = renderCostCard(summary);
     expect(html).toContain('run Triage Findings');
     expect(html).not.toContain('Total:');
+  });
+
+  it('rinde "as of YYYY-MM-DD HH:MM" cuando latestSessionAt esta presente (DG-107 A)', () => {
+    const summary: CostSummary = {
+      limit: 1,
+      rows: [
+        {
+          providerLabel: 'anthropic/claude-sonnet-4-6',
+          agentId: 'triage',
+          calls: 1,
+          inputTokens: 100,
+          outputTokens: 50,
+          estimatedCostUsd: 0.001,
+          avgLatencyMs: 1000,
+        },
+      ],
+      totals: { calls: 1, inputTokens: 100, outputTokens: 50, estimatedCostUsd: 0.001 },
+      latestSessionAt: '2026-05-26T14:32:18.000Z',
+    };
+    const html = renderCostCard(summary);
+    expect(html).toContain('as of 2026-05-26 14:32');
+  });
+
+  it('NO emite el "as of" cuando latestSessionAt es undefined (DG-107 A)', () => {
+    const summary: CostSummary = {
+      limit: 1,
+      rows: [
+        {
+          providerLabel: 'p',
+          agentId: 'triage',
+          calls: 1,
+          inputTokens: 100,
+          outputTokens: 50,
+          estimatedCostUsd: 0.001,
+          avgLatencyMs: 1000,
+        },
+      ],
+      totals: { calls: 1, inputTokens: 100, outputTokens: 50, estimatedCostUsd: 0.001 },
+    };
+    expect(renderCostCard(summary)).not.toContain('as of');
+  });
+});
+
+describe('formatLastSessionAt — DG-107 A', () => {
+  it('formatea un ISO 8601 valido como "YYYY-MM-DD HH:MM"', () => {
+    expect(formatLastSessionAt('2026-05-26T14:32:18.000Z')).toBe('2026-05-26 14:32');
+  });
+
+  it('formatea un ISO 8601 sin milisegundos correctamente', () => {
+    expect(formatLastSessionAt('2026-01-01T00:00:00Z')).toBe('2026-01-01 00:00');
+  });
+
+  it('devuelve el string raw si el input no es un ISO valido (fallback defensivo)', () => {
+    expect(formatLastSessionAt('not-an-iso')).toBe('not-an-iso');
+    expect(formatLastSessionAt('')).toBe('');
+  });
+
+  it('NO usa Date() / timezone conversion (pure regex extract)', () => {
+    // 14:32 UTC debe quedar 14:32 sin importar la TZ del runtime de tests.
+    expect(formatLastSessionAt('2026-05-26T14:32:00.000Z')).toBe('2026-05-26 14:32');
   });
 });
 

@@ -53,6 +53,16 @@ export interface TriageCommandOptions {
   /** Tope de hallazgos a triar en esta corrida. Por defecto 25. */
   readonly limit?: number;
   /**
+   * Si `true` (DG-107 A), antes de triar borra todos los `triage_verdicts`,
+   * `context_explanations` y `remediation_suggestions` para los
+   * fingerprints del scan actual. Resuelve el caso de uso "cambie de
+   * provider y quiero re-evaluar las mismas findings" — sin esto el flow
+   * normal salta lo ya triado y el cambio de provider es invisible. NO
+   * toca `fp_known` (FPs manuales preservados) ni `triage_token_usage`
+   * (historia de costo del rollup preservada).
+   */
+  readonly reTriage?: boolean;
+  /**
    * Cliente LLM unico a usar para los 3 agentes (retro-compat con tests
    * existentes que inyectan un mock unico). Si esta presente, GANA sobre
    * `agents.yaml` y `agentProviderOverrides`.
@@ -284,6 +294,20 @@ export async function runTriageCommand(options: TriageCommandOptions): Promise<n
       .getPheromonesByScan(scanId)
       .filter((pheromone) => pheromone.type === 'finding')
       .map((pheromone) => FindingSchema.parse(pheromone.payload));
+
+    // DG-107 A: re-triage controlado. Borra los verdicts/contexts/
+    // remediations existentes para los fingerprints del scan actual ANTES
+    // de calcular `pending`, para que todos vuelvan a entrar al flow del
+    // triage. NO toca `fp_known` ni `triage_token_usage` (caveats
+    // documentados en el JSDoc de `clearTriageDataForFingerprints`).
+    if (options.reTriage === true) {
+      const fingerprints = findings.map((f) => f.fingerprint);
+      const deleted = db.clearTriageDataForFingerprints(fingerprints);
+      console.log(
+        `Re-triage requested: cleared ${String(deleted)} previous record(s) ` +
+          `across triage_verdicts + context_explanations + remediation_suggestions.`,
+      );
+    }
 
     // Economia de tokens: no se tria lo ya descartado ni lo ya triado.
     const knownFalsePositives = db.getKnownFingerprints('fp_known');

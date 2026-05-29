@@ -44,15 +44,19 @@ const __dirname = dirname(__filename);
 const repoRoot = resolve(__dirname, '..');
 const extensionBundle = resolve(repoRoot, 'packages/vscode-extension/dist/extension.cjs');
 
-// ── 8 comandos esperados (los que index.ts registra via vscode.commands.registerCommand).
+// ── 9 comandos esperados (los que index.ts registra via vscode.commands.registerCommand).
 // DG-101 A: agrega triageRemaining (comando interno invocado desde el sidebar
 // webview cuando hay findings untriaged tras un triage capeado).
+// DG-107 A: agrega reTriageAll (comando interno invocado desde el sidebar
+// cuando hay findings ya triagados y el usuario quiere re-evaluar tras
+// cambiar el provider en `.sentinel/agents.yaml`).
 const EXPECTED_COMMANDS = [
   'synaptic-sentinel.scanWorkspace',
   'synaptic-sentinel.markFalsePositive',
   'synaptic-sentinel.copyRemediation',
   'synaptic-sentinel.triageWorkspace',
   'synaptic-sentinel.triageRemaining',
+  'synaptic-sentinel.reTriageAll',
   'synaptic-sentinel.setAnthropicApiKey',
   'synaptic-sentinel.installScanners',
   'synaptic-sentinel.configureProviders',
@@ -61,8 +65,8 @@ const EXPECTED_COMMANDS = [
 // ── Cantidad total esperada de `context.subscriptions.push(...)`.
 // Empirico de DG-079.2: 7 commands + diagnostics + statusBar + terminal +
 // webviewView (tomo) + codeActions + hover = 13. DG-101 A suma el comando
-// triageRemaining = 14.
-const EXPECTED_SUBSCRIPTIONS_COUNT = 14;
+// triageRemaining = 14. DG-107 A suma el comando reTriageAll = 15.
+const EXPECTED_SUBSCRIPTIONS_COUNT = 15;
 
 /**
  * Construye un fake del modulo `vscode` con la API minima que `activate()`

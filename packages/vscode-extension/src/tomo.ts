@@ -111,6 +111,15 @@ export const CostSummarySchema = z.object({
   limit: z.number().int().positive(),
   rows: z.array(CostHistoryRowSchema),
   totals: CostHistoryTotalsSchema,
+  /**
+   * ISO 8601 timestamp del registro mas reciente en `triage_token_usage`
+   * (DG-107 A). Opcional. Cuando esta presente, el renderer muestra
+   * "as of <date>" en el header de la cost card — clave para que el
+   * usuario sepa que la cost summary es de hace X tiempo y no del
+   * triage que acaba de correr (caso: cambio de provider con todos
+   * findings ya triaged → 0 LLM calls → cost card stale).
+   */
+  latestSessionAt: z.string().datetime().optional(),
 });
 
 /** Cost summary del Brain Layer en la forma que consume la extension (DG-099 A). */

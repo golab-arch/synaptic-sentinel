@@ -217,6 +217,14 @@ export interface RunCliTriageOptions {
    */
   readonly limit?: number;
   /**
+   * Si `true` (DG-107 A), pasa `--re-triage` al child process: la CLI
+   * borra todos los triage verdicts + context + remediation del scan
+   * actual ANTES de triar. Resuelve el caso "cambie de provider y
+   * quiero re-evaluar las mismas findings". `fp_known` y
+   * `triage_token_usage` se preservan.
+   */
+  readonly reTriage?: boolean;
+  /**
    * Callback de streaming de la salida de la CLI. Si se provee, la CLI corre
    * con `FORCE_COLOR=1` para que emita ANSI hacia el pseudoterminal (DG-038 B).
    */
@@ -236,6 +244,9 @@ export async function runCliTriage(options: RunCliTriageOptions): Promise<void> 
   const args: string[] = ['triage', '--path', options.workspacePath];
   if (options.limit !== undefined) {
     args.push('--limit', String(options.limit));
+  }
+  if (options.reTriage === true) {
+    args.push('--re-triage');
   }
   const result = await spawnCli({
     cliEntry: options.cliEntry,

@@ -23,7 +23,7 @@ Usage:
                          [--export <file>] [--export-html <file>]
                          [--export-sarif <file>] [--fail-on <severity>]
   synaptic-sentinel mark-fp --fingerprint <fp> [--path <dir>] [--reason <text>]
-  synaptic-sentinel triage [--path <dir>] [--limit <n>]
+  synaptic-sentinel triage [--path <dir>] [--limit <n>] [--re-triage]
                           [--agent-provider <agent>=<provider>/<model>]...
   synaptic-sentinel cost-history [--path <dir>] [--limit <n>] [--json]
   synaptic-sentinel show [--path <dir>] [--export <file>]
@@ -59,6 +59,12 @@ Options:
   --fingerprint <fp>     Fingerprint of the finding to mark (mark-fp command)
   --reason <text>        Reason for the dismissal (mark-fp command)
   --limit <n>            Cap of findings to triage (triage command; default 25)
+  --re-triage            Clear triage verdicts + context + remediation for the
+                         latest scan BEFORE triaging (triage command). Use this
+                         after changing the configured provider in
+                         .sentinel/agents.yaml to re-evaluate the same findings.
+                         Preserves fp_known (manual FPs) and triage_token_usage
+                         (cost history rollup).
   --agent-provider <a>=<p>/<m>
                          Override the LLM provider/model used by an agent in
                          the triage command (repeatable). Example:
@@ -99,6 +105,7 @@ async function main(): Promise<void> {
       'agent-provider': { type: 'string', multiple: true },
       global: { type: 'boolean' },
       json: { type: 'boolean' },
+      're-triage': { type: 'boolean' },
       help: { type: 'boolean', short: 'h' },
     },
   });
@@ -177,6 +184,7 @@ async function main(): Promise<void> {
       ...(limit !== undefined ? { limit } : {}),
       ...(agentProviderOverrides !== undefined ? { agentProviderOverrides } : {}),
       ...(values['no-color'] === true ? { noColor: true } : {}),
+      ...(values['re-triage'] === true ? { reTriage: true } : {}),
     });
     return;
   }

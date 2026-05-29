@@ -446,6 +446,154 @@ describe('ColonyDb (base en disco)', () => {
     });
   });
 
+  describe('clearTriageDataForFingerprints + getLatestTriageSessionTimestamp — DG-107 A', () => {
+    function seedFullTriageSession(
+      db: ColonyDb,
+      fingerprints: readonly string[],
+    ): {
+      scanId: string;
+      sessionId: string;
+    } {
+      const scanId = randomUUID();
+      db.insertScan({ id: scanId, startedAt: '2026-05-28T10:00:00.000Z' });
+      const sessionId = randomUUID();
+      const now = '2026-05-28T11:00:00.000Z';
+      db.insertTriageVerdicts(
+        fingerprints.map((fp) => ({
+          id: randomUUID(),
+          scanId,
+          fingerprint: fp,
+          classification: 'true_positive',
+          confidence: 0.9,
+          rationale: 'r',
+          agentId: 'triage',
+          createdAt: now,
+        })),
+      );
+      db.insertContextExplanations(
+        fingerprints.map((fp) => ({
+          id: randomUUID(),
+          scanId,
+          fingerprint: fp,
+          summary: 's',
+          entryPoint: 'e',
+          sink: 'k',
+          exposure: 'x',
+          agentId: 'context',
+          createdAt: now,
+        })),
+      );
+      db.insertRemediationSuggestions(
+        fingerprints.map((fp) => ({
+          id: randomUUID(),
+          scanId,
+          fingerprint: fp,
+          summary: 's',
+          recommendation: 'r',
+          agentId: 'remediation',
+          createdAt: now,
+        })),
+      );
+      db.insertTokenUsages(
+        fingerprints.map((fp) => ({
+          id: randomUUID(),
+          triageSessionId: sessionId,
+          scanId,
+          fingerprint: fp,
+          providerLabel: 'anthropic/claude-haiku',
+          agentId: 'triage' as const,
+          inputTokens: 100,
+          outputTokens: 50,
+          estimatedCostUsd: 0.01,
+          latencyMs: 1000,
+          createdAt: now,
+        })),
+      );
+      return { scanId, sessionId };
+    }
+
+    it('borra verdicts + contexts + remediations para los fingerprints dados; preserva fp_known + token_usage', () => {
+      const db = ColonyDb.open(':memory:');
+      const { scanId } = seedFullTriageSession(db, ['fp-1', 'fp-2', 'fp-3']);
+      // mark-fp manual para fp-1 (NO debe perderse)
+      db.insertPheromone(buildFpKnownPheromone({ scanId, agentId: 'user', fingerprint: 'fp-1' }));
+
+      const deleted = db.clearTriageDataForFingerprints(['fp-1', 'fp-2', 'fp-3']);
+
+      // 3 verdicts + 3 contexts + 3 remediations = 9 rows
+      expect(deleted).toBe(9);
+      expect(db.getTriagedFingerprints().size).toBe(0);
+      expect(db.getContextExplanations()).toHaveLength(0);
+      expect(db.getRemediationSuggestions()).toHaveLength(0);
+      // PRESERVADOS:
+      expect([...db.getKnownFingerprints('fp_known')]).toContain('fp-1');
+      expect(db.getCostHistory(10)).toHaveLength(1); // token_usage rollup intacto
+      db.close();
+    });
+
+    it('no borra verdicts de fingerprints que NO estan en la lista', () => {
+      const db = ColonyDb.open(':memory:');
+      seedFullTriageSession(db, ['fp-keep-1', 'fp-clear', 'fp-keep-2']);
+
+      const deleted = db.clearTriageDataForFingerprints(['fp-clear']);
+
+      expect(deleted).toBe(3); // 1 verdict + 1 context + 1 remediation
+      expect([...db.getTriagedFingerprints()].sort()).toEqual(['fp-keep-1', 'fp-keep-2']);
+      db.close();
+    });
+
+    it('devuelve 0 cuando la lista de fingerprints esta vacia (no-op)', () => {
+      const db = ColonyDb.open(':memory:');
+      seedFullTriageSession(db, ['fp-1']);
+      expect(db.clearTriageDataForFingerprints([])).toBe(0);
+      expect(db.getTriagedFingerprints().size).toBe(1);
+      db.close();
+    });
+
+    it('getLatestTriageSessionTimestamp devuelve undefined sin token_usage', () => {
+      const db = ColonyDb.open(':memory:');
+      expect(db.getLatestTriageSessionTimestamp()).toBeUndefined();
+      db.close();
+    });
+
+    it('getLatestTriageSessionTimestamp devuelve el created_at mas reciente', () => {
+      const db = ColonyDb.open(':memory:');
+      const scanId = randomUUID();
+      db.insertScan({ id: scanId, startedAt: '2026-05-28T10:00:00.000Z' });
+      const sessionId = randomUUID();
+      db.insertTokenUsages([
+        {
+          id: randomUUID(),
+          triageSessionId: sessionId,
+          scanId,
+          fingerprint: 'fp-1',
+          providerLabel: 'anthropic/claude-haiku',
+          agentId: 'triage',
+          inputTokens: 100,
+          outputTokens: 50,
+          estimatedCostUsd: 0.01,
+          latencyMs: 1000,
+          createdAt: '2026-05-28T11:00:00.000Z',
+        },
+        {
+          id: randomUUID(),
+          triageSessionId: sessionId,
+          scanId,
+          fingerprint: 'fp-2',
+          providerLabel: 'anthropic/claude-haiku',
+          agentId: 'triage',
+          inputTokens: 100,
+          outputTokens: 50,
+          estimatedCostUsd: 0.01,
+          latencyMs: 1000,
+          createdAt: '2026-05-28T14:35:00.000Z', // mas reciente
+        },
+      ]);
+      expect(db.getLatestTriageSessionTimestamp()).toBe('2026-05-28T14:35:00.000Z');
+      db.close();
+    });
+  });
+
   describe('getCostHistory order — DG-105 A', () => {
     it('ordena por workflow del Brain Layer: triage → context → remediation', () => {
       const db = ColonyDb.open(':memory:');

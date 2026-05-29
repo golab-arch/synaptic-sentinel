@@ -50,6 +50,17 @@ export interface CostHistoryJson {
     readonly outputTokens: number;
     readonly estimatedCostUsd: number;
   };
+  /**
+   * ISO 8601 timestamp del registro mas reciente en `triage_token_usage`
+   * (DG-107 A). Opcional — `undefined` cuando no hay sesiones de triage
+   * con LLM calls reales todavia. Usado por la extension para mostrar
+   * "as of <timestamp>" en el header de la cost card del sidebar — clave
+   * para que el usuario sepa que la cost summary es de hace X tiempo y
+   * no del triage que acaba de correr (caso: cambie de provider y todos
+   * los findings ya estaban triaged → 0 LLM calls → la cost card sigue
+   * mostrando la sesion anterior).
+   */
+  readonly latestSessionAt?: string;
 }
 
 /**
@@ -108,10 +119,12 @@ export function runCostHistoryCommand(options: CostHistoryCommandOptions): numbe
   try {
     const rows = db.getCostHistory(limit);
     if (options.json === true) {
+      const latestSessionAt = db.getLatestTriageSessionTimestamp();
       const payload: CostHistoryJson = {
         limit,
         rows,
         totals: computeCostHistoryTotals(rows),
+        ...(latestSessionAt !== undefined ? { latestSessionAt } : {}),
       };
       console.log(JSON.stringify(payload));
       return 0;

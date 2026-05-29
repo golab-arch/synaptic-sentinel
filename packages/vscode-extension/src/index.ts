@@ -54,6 +54,13 @@ const COMMAND_TRIAGE = 'synaptic-sentinel.triageWorkspace';
  * Command Palette: solo el sidebar lo dispara.
  */
 const COMMAND_TRIAGE_REMAINING = 'synaptic-sentinel.triageRemaining';
+/**
+ * Id del comando interno "Re-triage All" (DG-107 A) — lo invoca el boton
+ * del sidebar cuando hay findings ya triagados y el usuario quiere
+ * re-evaluar (tipico caso: cambio de provider en `.sentinel/agents.yaml`).
+ * NO se expone en el Command Palette: el flujo es contextual al sidebar.
+ */
+const COMMAND_RE_TRIAGE_ALL = 'synaptic-sentinel.reTriageAll';
 /** Id del comando para configurar la API key de Anthropic (BYOK). */
 const COMMAND_SET_API_KEY = 'synaptic-sentinel.setAnthropicApiKey';
 /** Id del comando que instala los binarios de los scanners (FI-008, DG-059). */
@@ -132,6 +139,13 @@ export function activate(context: vscode.ExtensionContext): void {
         terminal,
         TRIAGE_REMAINING_LIMIT,
       );
+    }),
+    // DG-107 A: comando interno invocado desde el sidebar webview cuando
+    // el usuario quiere re-evaluar findings ya triagados (cambio de
+    // provider). Muestra un confirm dialog destructivo y, si confirmado,
+    // corre triage con `reTriage: true` + limit alto.
+    vscode.commands.registerCommand(COMMAND_RE_TRIAGE_ALL, () => {
+      void reTriageAllWorkspace(diagnostics, statusBar, extensionRoot, secrets, terminal);
     }),
     vscode.commands.registerCommand(COMMAND_SET_API_KEY, () => {
       void setApiKey(secrets);
@@ -485,6 +499,7 @@ async function triageWorkspace(
   secrets: vscode.SecretStorage,
   terminal: SentinelTerminal,
   limitOverride?: number,
+  reTriage?: boolean,
 ): Promise<void> {
   const folder = vscode.workspace.workspaceFolders?.[0];
   if (folder === undefined) {
@@ -541,6 +556,7 @@ async function triageWorkspace(
           apiKeyEnv,
           signal: controller.signal,
           ...(limit !== undefined ? { limit } : {}),
+          ...(reTriage === true ? { reTriage: true } : {}),
           onOutput: (chunk) => {
             terminal.write(chunk);
           },
@@ -570,6 +586,57 @@ async function triageWorkspace(
         void vscode.window.showErrorMessage(`SYNAPTIC Sentinel: the triage failed. ${message}`);
       }
     },
+  );
+}
+
+/**
+ * Maneja el comando interno "Re-triage All" (DG-107 A): cuenta cuantos
+ * findings tienen verdict actualmente, muestra un confirm dialog
+ * destructivo, y si el usuario confirma corre `triageWorkspace` con
+ * `reTriage: true` + limit alto para procesar todos.
+ *
+ * Resuelve el caso de uso reportado en feedback empirico: el usuario
+ * cambio de provider en `.sentinel/agents.yaml`, corrio Triage Findings,
+ * y la CLI hizo skip de los 83 findings ya triagados (correcto pero
+ * UX-engañoso: cero verdicts nuevos, cero cost). Re-triage limpia los
+ * verdicts viejos y deja que el nuevo provider re-evalue.
+ */
+async function reTriageAllWorkspace(
+  diagnostics: vscode.DiagnosticCollection,
+  statusBar: vscode.StatusBarItem,
+  extensionRoot: string,
+  secrets: vscode.SecretStorage,
+  terminal: SentinelTerminal,
+): Promise<void> {
+  if (lastScan === undefined) {
+    void vscode.window.showWarningMessage(
+      'SYNAPTIC Sentinel: run "Scan Workspace" before re-triaging.',
+    );
+    return;
+  }
+  const triagedCount = lastScan.findings.filter((f) => f.triage !== undefined).length;
+  if (triagedCount === 0) {
+    void vscode.window.showInformationMessage(
+      'SYNAPTIC Sentinel: no findings are currently triaged. Run "Triage Findings" instead.',
+    );
+    return;
+  }
+  const pick = await vscode.window.showWarningMessage(
+    `SYNAPTIC Sentinel: re-triage will overwrite ${String(triagedCount)} existing verdict(s) ` +
+      'and incur LLM cost again. False positives marked manually (`mark-fp`) and the cost ' +
+      'history rollup are preserved. Continue?',
+    { modal: true },
+    'Re-triage all',
+  );
+  if (pick !== 'Re-triage all') return;
+  await triageWorkspace(
+    diagnostics,
+    statusBar,
+    extensionRoot,
+    secrets,
+    terminal,
+    TRIAGE_REMAINING_LIMIT,
+    true,
   );
 }
 
