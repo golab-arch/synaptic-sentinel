@@ -85,6 +85,27 @@ describe('TriageAgent.buildPrompt', () => {
     expect(prompt.user).toContain(`Current date (real-world authoritative): ${today}`);
     expect(today).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
+
+  it('system prompt declara rationale ANTES de classification en el JSON shape (DG-111.1 A — Step 2 hotfix CoT)', () => {
+    const prompt = new TriageAgent({ currentDate: FIXED_DATE }).buildPrompt(makeFinding() as never);
+    const rationaleIdx = prompt.system.indexOf('"rationale"');
+    const classificationIdx = prompt.system.indexOf('"classification"');
+    const confidenceIdx = prompt.system.indexOf('"confidence"');
+    expect(rationaleIdx).toBeGreaterThan(-1);
+    expect(classificationIdx).toBeGreaterThan(-1);
+    expect(confidenceIdx).toBeGreaterThan(-1);
+    // Orden CoT: rationale → classification → confidence.
+    expect(rationaleIdx).toBeLessThan(classificationIdx);
+    expect(classificationIdx).toBeLessThan(confidenceIdx);
+  });
+
+  it('system prompt instruye explicitamente "write the rationale FIRST" (DG-111.1 A)', () => {
+    const prompt = new TriageAgent({ currentDate: FIXED_DATE }).buildPrompt(makeFinding() as never);
+    expect(prompt.system).toMatch(/write the rationale FIRST/);
+    expect(prompt.system).toMatch(/THEN derive[\s\S]*?classification/);
+    expect(prompt.system).toMatch(/order matters/);
+    expect(prompt.system).toMatch(/contradict their own rationale/);
+  });
 });
 
 describe('TriageAgent.parseResponse', () => {
@@ -120,6 +141,24 @@ describe('TriageAgent.parseResponse', () => {
 
   it('rechaza una respuesta sin JSON', () => {
     expect(() => agent.parseResponse('no puedo decidir')).toThrow();
+  });
+
+  it('parsea un veredicto con el NUEVO orden CoT rationale→classification→confidence (DG-111.1 A)', () => {
+    const verdict = agent.parseResponse(
+      '{"rationale":"scanner confirma el CVE; reachability clara","classification":"true_positive","confidence":0.85}',
+    );
+    expect(verdict.classification).toBe('true_positive');
+    expect(verdict.confidence).toBe(0.85);
+    expect(verdict.rationale).toBe('scanner confirma el CVE; reachability clara');
+  });
+
+  it('parsea un veredicto con el ORDEN VIEJO classification→confidence→rationale (backward compat — Zod field-order-independent)', () => {
+    const verdict = agent.parseResponse(
+      '{"classification":"false_positive","confidence":0.9,"rationale":"patron sin riesgo"}',
+    );
+    expect(verdict.classification).toBe('false_positive');
+    expect(verdict.confidence).toBe(0.9);
+    expect(verdict.rationale).toBe('patron sin riesgo');
   });
 });
 

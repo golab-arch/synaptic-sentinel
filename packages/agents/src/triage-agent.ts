@@ -70,9 +70,13 @@ Criteria:
 - inconclusive: missing context (surrounding code, data flow, configuration)
   to decide between true_positive and false_positive.
 
-Respond ONLY with a valid JSON object, no markdown and no extra text, with
-this exact shape:
-{"classification":"true_positive"|"false_positive"|"inconclusive","confidence":<number between 0 and 1>,"rationale":"<brief explanation in English, at most 2 sentences>"}`;
+Respond ONLY with a valid JSON object, no markdown and no extra text. Use the
+field order shown below: write the rationale FIRST as a brief reasoning chain
+over the scanner-confirmed facts and the exploitability question, THEN derive
+the classification and confidence from your reasoning. The order matters —
+committing to a classification before reasoning produces verdicts that
+contradict their own rationale.
+{"rationale":"<brief reasoning in English, at most 2 sentences, walking through the scanner-confirmed facts and the exploitability question before committing to a verdict>","classification":"true_positive"|"false_positive"|"inconclusive","confidence":<number between 0 and 1>}`;
 
 /** Opciones del TriageAgent (DG-111 Step 2). */
 export interface TriageAgentOptions {
