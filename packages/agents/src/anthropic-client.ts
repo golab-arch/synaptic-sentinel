@@ -45,6 +45,19 @@ function quotaErrorFromAnthropic(err: unknown): QuotaExhaustedError | null {
 const DEFAULT_MODEL = 'claude-haiku-4-5-20251001';
 /** Tope de tokens por defecto de una respuesta. */
 const DEFAULT_MAX_TOKENS = 1024;
+/**
+ * Temperature hardcoded a 0 (DG-110 A — Step 1 del SENTINEL-EVALUATION-REPORT
+ * contra SYNAPTIC_SAAS, 2026-05-29). Sentinel es una security tool y necesita
+ * determinism cross-provider. El cliente OpenAI-compat ya tenia esta politica
+ * desde DG-071 A; el cliente Anthropic la omitia y el SDK quedaba corriendo a
+ * temperature=1.0 (default). Reportado empiricamente como driver de la TP%
+ * noise (0.40-0.90 sin correlacion con risk/reachability) y de la dificultad
+ * de diagnosticar otras failures del Brain Layer — la triage era no-deterministica
+ * y confounded content-driven failures con sampling noise. Sin esto, re-runs del
+ * mismo workspace producen verdicts distintos, lo cual hace imposible un
+ * before/after comparison para los Steps 2-5 del reporte.
+ */
+const DETERMINISTIC_TEMPERATURE = 0;
 
 /** Opciones de construccion de un `AnthropicLlmClient`. */
 export interface AnthropicClientOptions {
@@ -152,6 +165,7 @@ export class AnthropicLlmClient implements LlmClient {
       message = await this.#client.messages.create({
         model: this.#model,
         max_tokens: request.maxTokens ?? DEFAULT_MAX_TOKENS,
+        temperature: DETERMINISTIC_TEMPERATURE,
         system: request.system,
         messages: [{ role: 'user', content: request.user }],
       });

@@ -82,6 +82,35 @@ describe('AnthropicLlmClient.complete (vs @anthropic-ai/sdk)', () => {
     expect(body['messages']).toEqual([{ role: 'user', content: 'u' }]);
   });
 
+  it('envia temperature: 0 al SDK para determinism cross-provider (DG-110 A Step 1)', async () => {
+    let capturedBody: unknown;
+    const fakeFetch = ((url: string | URL, init?: RequestInit): Promise<Response> => {
+      capturedBody = init?.body !== undefined ? JSON.parse(String(init.body)) : undefined;
+      return Promise.resolve(
+        new Response(
+          JSON.stringify({
+            id: 'msg_x',
+            type: 'message',
+            role: 'assistant',
+            model: 'claude-haiku-4-5-20251001',
+            content: [{ type: 'text', text: 'ok' }],
+            stop_reason: 'end_turn',
+            usage: { input_tokens: 1, output_tokens: 1 },
+          }),
+          { status: 200, headers: { 'content-type': 'application/json' } },
+        ),
+      );
+    }) as typeof fetch;
+    const client = new AnthropicLlmClient({
+      apiKey: 'sk-x',
+      fetchImpl: fakeFetch,
+      maxRetries: 0,
+    });
+    await client.complete({ system: 's', user: 'u' });
+    const body = capturedBody as Record<string, unknown>;
+    expect(body['temperature']).toBe(0);
+  });
+
   it('lanza si el endpoint responde con un estado de error (sin reintentos)', async () => {
     const fakeFetch = ((): Promise<Response> =>
       Promise.resolve(
