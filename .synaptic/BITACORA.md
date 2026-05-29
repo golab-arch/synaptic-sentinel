@@ -3688,5 +3688,36 @@ Each entry follows this structure:
 
 ---
 
+### Entry #122 - DG-110 A Step 1 follow-up: BASELINE_CAPTURE_ARTIFACT_BUILT — synaptic-sentinel-0.3.13-step1.vsix construido para captura de Baseline-1 deterministic en SYNAPTIC_SAAS
+
+```json
+{
+  "timestamp": "2026-05-29T12:50:00.000Z",
+  "cycle": 102,
+  "phase": null,
+  "action": "ARTIFACT_BUILT",
+  "details": {
+    "DG-110-A-Step-1-follow-up": {
+      "title": "Build artifact operacional para que el usuario pueda capturar Baseline-1 deterministic (acceptance criteria #2 del SENTINEL-EVALUATION-REPORT: 'Re-running twice yields identical verdicts/confidence'). NO es release oficial — package.json version sigue siendo 0.3.13; el GitHub Release v0.3.13 publicado anteriormente queda como artefacto canonico para el Marketplace future upload.",
+      "scope": "Follow-up dentro de Cycle 102 (no abre cycle nuevo). Build operacional puro: pnpm build + vsce package --no-dependencies --out synaptic-sentinel-0.3.13-step1.vsix. No toca codigo, no toca director files mas que esta Entry + session lastActivity. Solo docs(synaptic) commit con la entry registrada.",
+      "deliverable_artifact": "synaptic-sentinel-0.3.13-step1.vsix construido en packages/vscode-extension/. 1838 archivos / 3.15 MB / 3,306,193 bytes / SHA-256 9536940845a1170d851de651bfd32dedd7586c81097966815614f1e708e1f39a. Patron de re-packaging precedente: DG-080 B (re-empaquetado v0.3.0.vsix con README updated; SHA distinto del GitHub Release v0.3.0; ambos artefactos divergentes coexisten sin regresion).",
+      "comparacion_con_github_release_v0_3_13": "GitHub Release v0.3.13 (artefacto canonico): synaptic-sentinel-0.3.13.vsix, 3,306,182 bytes, SHA-256 f889c9d96d128fac09095f172473cfba6c062068e6ccd1641d45119dda58b4f1. Step1 build: 3,306,193 bytes, SHA-256 9536940845a1170d851de651bfd32dedd7586c81097966815614f1e708e1f39a. Delta 11 bytes coherente con el cambio minimal: nueva constante DETERMINISTIC_TEMPERATURE = 0 + nuevo field 'temperature' en el objeto literal del messages.create call dentro del bundled CJS (~10 chars de codigo source que con minification + bundling produce delta de un orden similar). Same internal version stamp 0.3.13 — instalable sobre la v0.3.13 existente sin warning de upgrade/downgrade (VS Code lo trata como replace-in-place).",
+      "purpose_y_uso_intencionado": "Este .vsix existe SOLO para que el usuario pueda capturar Baseline-1 deterministic en SYNAPTIC_SAAS. El reporte mandata: 'Baseline-1 will still contain the temporal-bug FPs, duplicates, etc. — but now stable and reproducible.' Esperable post-install: mismas FPs / INC dudosos del Baseline-0 capturado en el reporte original (node-forge CVE-2026-33896 sigue FP fabricated, uuid CVE-2026-41907 sigue FP fabricated, fast-uri CVE-2026-6321 sigue INC 40%, ~13 protobufjs duplicates siguen apareciendo, etc.). La diferencia clave: ahora REPRODUCIBLE. Acceptance criteria del reporte: 're-running twice yields identical verdicts/confidence'. Si NO son identicos entre dos re-runs consecutivos, hay otro path no-deterministic (e.g. learning_records con timestamps influyendo en order, fingerprint generation con randomness oculta, file system ordering del workspace scan, etc.) que debe diagnosticarse ANTES de avanzar a Step 2.",
+      "NO_es_release": "NO se hizo bump (sigue 0.3.13). NO se actualizo CHANGELOG. NO se creo annotated tag. NO se publico GitHub Release con asset. NO se ejecuto vsce publish al Marketplace. Es artefacto local-only para la captura empirica del usuario. Si Baseline-1 captura confirma determinism + el usuario aprueba avanzar a Step 2, el patron natural seria: implementar Step 2 → Step 3 → Step 4 → Step 5 → bump v0.3.14 con CHANGELOG referenciando los 5 Steps + nueva release con todos los fixes acumulados (analogo a DG-089 A bump v0.3.4 con 6 fixes DG-083..DG-088). Mientras tanto, este step1.vsix queda como artefacto intermedio sin estatus publico.",
+      "anti_optimismo_ilusorio_activo": "(1) **Mismo version stamp 0.3.13 puede confundir**: si el usuario quiere comparar 'antes' vs 'despues' del Step 1, NO basta con mirar la version en la UI de VS Code Extensions — ambas versiones se muestran como '0.3.13'. La unica forma de saber cual esta instalada es: (a) recordar cual .vsix se instalo ultimo; (b) confirmar el SHA-256 del .vsix antes de install via certutil; (c) re-scanear y observar el determinism (acceptance criteria). Mitigacion futura: si pasamos varios Steps en build-only sin release, usar tags --pre-release de vsce o naming convention que el package.json refleje. (2) **Re-empaquetar sin release introduce divergencia de artefactos** — DG-080 B fue el primer caso documentado; ahora hay un segundo (v0.3.13 vs v0.3.13-step1). Acumular mas divergencias sin release oficial podria erosionar la 'unica fuente de verdad' del producto. Mitigacion: limitar el patron a captura empirica explicita (Baseline-1, Baseline-2, etc.); preferir release oficial (DG-111 candidato si Steps 2-5 se completan) sobre acumulacion de builds intermedios. (3) **Si Baseline-1 NO emerge deterministic** (dos re-runs producen verdicts distintos), el fix de temperature: 0 no fue suficiente, y hay otra fuente de no-determinism a diagnosticar. Casos posibles a investigar en ese escenario: (a) order de findings que entra al triage (puede depender de fs scan order); (b) timestamps en learning_records que influyen confidence; (c) batching parcial cuando se hit cap=25 (DG-101 A) — el ORDER de cuales caen en el cap puede variar; (d) parallel scout execution con race conditions en colony.db; (e) algun otro path no-deterministic en agents que el reporte no identifico. (4) **El usuario debe instalar el step1.vsix limpio**, idealmente uninstall previo + reload + install. Si VS Code cachea binarios del extension entre installs (poco probable pero posible), podria seguir corriendo el codigo viejo. Mitigacion: incluir 'Developer: Reload Window' o cerrar+abrir VS Code despues del install.",
+      "phase_status": "Sin Phases abiertas. SYNAPTIC Sentinel v0.3.13 GitHub Release inmutable. Step1 build artefacto local pendiente captura Baseline-1. 28 sub-DGs consecutivos (DG-083 → DG-110 A Step 1). 10 releases reales (v0.3.4 → v0.3.13). 110 Decision Gates totales. successfulCycles: 102 (sin bump por Entry #122 — follow-up dentro de Cycle 102). synapticStrength: 100 (techo mantenido).",
+      "next_step": "Awaiting captura Baseline-1 del usuario. Si determinism confirmado (acceptance criteria #2 del reporte: 're-running twice yields identical verdicts/confidence'), abrir DG-111 (Step 2 — temporal-cutoff bug fix). Si NO determinism, diagnosticar sources adicionales antes de avanzar (sub-DG investigacion ~0.5-1 ciclos).",
+      "checks": "Build artefacto ejecutado exitosamente. Working tree DIRTY: BITACORA + session.json. Sin feat commit (solo artefacto operacional, no codigo nuevo). Listo para docs(synaptic) commit + push.",
+      "commits_split": "Solo docs(synaptic): follow-up DG-110 A Step 1 — Entry #122 + session.json lastActivity. El .vsix queda en packages/vscode-extension/ pero NO se committea al repo (mismo patron de los .vsix anteriores: artefactos build no van al repo, solo a GitHub Releases o local user-side)."
+    }
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 100,
+  "complianceScore": 100
+}
+```
+
+---
+
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-05-29T01:00:00.000Z*
+*Last Updated: 2026-05-29T12:50:00.000Z*
