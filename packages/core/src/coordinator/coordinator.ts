@@ -4,6 +4,7 @@ import type { Finding, LifecycleState } from '../types/finding.js';
 import type { Pheromone } from '../types/pheromone.js';
 import type { Scan, ScanMode } from '../types/scan.js';
 import type { ScanRequest, ScoutAgent, ScoutResult, ScoutStatus } from '../types/scout-agent.js';
+import { isPathExcluded } from './excluded-paths.js';
 
 /**
  * Presupuesto de tiempo por defecto para un scout: 5 minutos. Es un
@@ -146,10 +147,29 @@ export class Coordinator {
       }),
     );
 
+    // DG-117 A (Cycle 108) — Stage 1.5: filtro de paths estructuralmente
+    // ruidosos (fixtures/, dist/, build/, node_modules/, ...). Descarta
+    // findings antes del stage 2 para que no entren al dedup ni se persistan.
+    // Los descartados se cuentan como `suppressedCount` (mismo bucket que
+    // dedup + fp_known) — el usuario ve el agregado, no el desglose.
+    // Rationale: empirica del Cycle 107 — 5 findings de Trivy en
+    // `packages/scouts/tests/trivy/fixtures/...` + ruido de vibe-detect en
+    // fixtures generaron 2 TPs falsos a nivel proyecto + 30 FPs visuales.
+    const rawAllFindings = results.flatMap((result) => result.findings);
+    const rawFindings: Finding[] = [];
+    let excludedByPathCount = 0;
+    for (const finding of rawAllFindings) {
+      if (isPathExcluded(finding.location.path)) {
+        excludedByPathCount += 1;
+        continue;
+      }
+      rawFindings.push(finding);
+    }
+
     // Stage 2 — dedup por fingerprint, supresion de falsos positivos
     // conocidos y clasificacion del ciclo de vida.
-    const rawFindings = results.flatMap((result) => result.findings);
-    const { persisted, suppressedCount } = this.#applyStage2(rawFindings);
+    const { persisted, suppressedCount: stage2SuppressedCount } = this.#applyStage2(rawFindings);
+    const suppressedCount = stage2SuppressedCount + excludedByPathCount;
     this.#db.insertPheromones(persisted.map(findingToPheromone));
 
     const finishedAt = new Date().toISOString();

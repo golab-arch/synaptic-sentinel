@@ -15,6 +15,7 @@ export * from './correlation/index.js';
 export * from './colony/colony-db.js';
 export * from './colony/db-path.js';
 export * from './coordinator/coordinator.js';
+export * from './coordinator/excluded-paths.js';
 export * from './config/agents-config.js';
 export * from './config/agent-output-schemas.js';
 export * from './config/benchmark-ground-truth.js';

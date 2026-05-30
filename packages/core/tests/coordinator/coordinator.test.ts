@@ -315,3 +315,169 @@ describe('Coordinator (kill-switch — presupuesto de tiempo, v0.4 §9.6)', () =
     db.close();
   });
 });
+
+/**
+ * DG-117 A (Cycle 108) — exclude-list de paths estructuralmente ruidosos
+ * (fixtures, dist, build, node_modules, vendor, coverage, out, __pycache__,
+ * __fixtures__). Filtro post-hoc en Coordinator pre-stage-2; findings
+ * descartados se contabilizan como `suppressedCount`.
+ */
+describe('Coordinator (DG-117 A — exclude paths ruidosos)', () => {
+  /** Construye un Finding con path arbitrario para test del exclude filter. */
+  function makeFindingWithPath(
+    scanId: string,
+    path: string,
+    fingerprint: string,
+  ): Record<string, unknown> {
+    return {
+      id: randomUUID(),
+      scanId,
+      scoutId: 'trivy',
+      severity: 'high',
+      category: 'SCA',
+      ruleId: 'CVE-TEST',
+      title: 'test finding',
+      message: 'msg',
+      location: { path, startLine: 1 },
+      complianceRefs: [],
+      fingerprint,
+      lifecycleState: 'new',
+      createdAt: new Date().toISOString(),
+    };
+  }
+
+  /** Scout que emite findings con paths controlados (para test del exclude). */
+  function scoutWithPaths(id: string, paths: readonly string[]): ScoutAgent {
+    return {
+      id,
+      displayName: id,
+      category: 'SCA',
+      isAvailable: (): Promise<boolean> => Promise.resolve(true),
+      scan: (request: ScanRequest): Promise<ScoutResult> => {
+        const now = new Date().toISOString();
+        const findings = paths.map((p, i) =>
+          makeFindingWithPath(request.scanId, p, `fp-${id}-${String(i)}`),
+        );
+        return Promise.resolve({
+          scoutId: id,
+          scanId: request.scanId,
+          findings: findings as unknown as ScoutResult['findings'],
+          status: 'ok',
+          startedAt: now,
+          finishedAt: now,
+        });
+      },
+    };
+  }
+
+  it('descarta findings cuyo path contiene segmento "fixtures" (caso prismjs/lodash empirico)', async () => {
+    const db = ColonyDb.open(':memory:');
+    const coordinator = new Coordinator(db, [
+      scoutWithPaths('trivy', [
+        'packages/scouts/tests/trivy/fixtures/vulnerable-deps/package-lock.json',
+        'packages/scouts/tests/trivy/fixtures/vulnerable-deps/package-lock.json',
+      ]),
+    ]);
+
+    const outcome = await coordinator.runScan({ rootPath: '/p', mode: 'full' });
+
+    expect(outcome.findingsCount).toBe(0);
+    expect(outcome.suppressedCount).toBe(2);
+    expect(db.getPheromonesByScan(outcome.scanId)).toHaveLength(0);
+    db.close();
+  });
+
+  it('descarta findings en node_modules, dist, build, coverage, vendor, out, __pycache__, __fixtures__', async () => {
+    const db = ColonyDb.open(':memory:');
+    const noisePaths = [
+      'node_modules/foo/index.js',
+      'dist/bundle.js',
+      'build/output/file.ts',
+      'coverage/lcov.info',
+      'vendor/lib.go',
+      'out/file.cjs',
+      'src/__pycache__/cache.pyc',
+      'app/__fixtures__/test.json',
+    ];
+    const coordinator = new Coordinator(db, [scoutWithPaths('s', noisePaths)]);
+
+    const outcome = await coordinator.runScan({ rootPath: '/p', mode: 'full' });
+
+    expect(outcome.findingsCount).toBe(0);
+    expect(outcome.suppressedCount).toBe(noisePaths.length);
+    db.close();
+  });
+
+  it('NO descarta findings cuyo path NO contiene segmentos del exclude-list', async () => {
+    const db = ColonyDb.open(':memory:');
+    const realPaths = [
+      'src/app.ts',
+      'package.json',
+      'lib/utils/helper.js',
+      'mything/distro/file.ts', // 'distro' != 'dist' (segment-exact match)
+    ];
+    const coordinator = new Coordinator(db, [scoutWithPaths('s', realPaths)]);
+
+    const outcome = await coordinator.runScan({ rootPath: '/p', mode: 'full' });
+
+    expect(outcome.findingsCount).toBe(realPaths.length);
+    expect(outcome.suppressedCount).toBe(0);
+    db.close();
+  });
+
+  it('combina excludedByPath + dedup stage 2 en un mismo suppressedCount', async () => {
+    const db = ColonyDb.open(':memory:');
+    /**
+     * Stage 1.5: 1 finding en `tests/fixtures/...` → excluded por path.
+     * Stage 2: scout `a` y `b` ambos emiten `fp-dup` con paths distintos
+     * → dedup descarta el segundo.
+     * Total: 3 findings emitidos, 1 persisted, 2 suppressed (1 por path
+     * + 1 por dedup).
+     */
+    const scoutA: ScoutAgent = {
+      id: 'a',
+      displayName: 'a',
+      category: 'SCA',
+      isAvailable: (): Promise<boolean> => Promise.resolve(true),
+      scan: (req: ScanRequest): Promise<ScoutResult> => {
+        const now = new Date().toISOString();
+        return Promise.resolve({
+          scoutId: 'a',
+          scanId: req.scanId,
+          findings: [
+            makeFindingWithPath(req.scanId, 'tests/fixtures/pkg.json', 'fp-exc'),
+            makeFindingWithPath(req.scanId, 'src/real.ts', 'fp-dup'),
+          ] as unknown as ScoutResult['findings'],
+          status: 'ok',
+          startedAt: now,
+          finishedAt: now,
+        });
+      },
+    };
+    const scoutB: ScoutAgent = {
+      id: 'b',
+      displayName: 'b',
+      category: 'SCA',
+      isAvailable: (): Promise<boolean> => Promise.resolve(true),
+      scan: (req: ScanRequest): Promise<ScoutResult> => {
+        const now = new Date().toISOString();
+        return Promise.resolve({
+          scoutId: 'b',
+          scanId: req.scanId,
+          findings: [
+            makeFindingWithPath(req.scanId, 'src/other.ts', 'fp-dup'),
+          ] as unknown as ScoutResult['findings'],
+          status: 'ok',
+          startedAt: now,
+          finishedAt: now,
+        });
+      },
+    };
+    const coordinator = new Coordinator(db, [scoutA, scoutB]);
+    const outcome = await coordinator.runScan({ rootPath: '/p', mode: 'full' });
+
+    expect(outcome.findingsCount).toBe(1);
+    expect(outcome.suppressedCount).toBe(2);
+    db.close();
+  });
+});
