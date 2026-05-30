@@ -774,21 +774,65 @@ describe('renderOverrideDirective — DG-115 A Step 5 / §4 #15 (prismjs)', () =
     expect(html).not.toContain('TOP-LEVEL BUMP ALONE WILL NOT FIX THIS');
   });
 
-  it('variant SOFT cuando hasSiblingFixedCopy=false', () => {
+  it('STRONG NO se envuelve en <details> (queda expandido por default)', () => {
+    const html = renderOverrideDirective(makeDirective({ hasSiblingFixedCopy: true }), '1.30.0');
+    expect(html).not.toContain('override-collapsed');
+    expect(html.startsWith('<div class="override-directive strong"')).toBe(true);
+  });
+
+  it('SOFT (DG-115.1 A G7): se envuelve en <details class="override-collapsed soft"> con summary one-liner', () => {
+    const html = renderOverrideDirective(
+      makeDirective({ hasSiblingFixedCopy: false, pinnedBy: ['refractor@3.6.0'] }),
+      '1.30.0',
+    );
+    expect(html).toContain('<details class="override-collapsed soft"');
+    expect(html).toContain('<summary>');
+    expect(html).toContain('Transitive (via <code>refractor@3.6.0</code>)');
+    expect(html).toContain('plain bump usually works; override if it persists');
+  });
+
+  it('SOFT summary cita pinnedBy[0] real (G4 + user-mandate: no placeholder)', () => {
+    const html = renderOverrideDirective(
+      makeDirective({ hasSiblingFixedCopy: false, pinnedBy: ['@grpc/grpc-js@1.10.0'] }),
+      '1.30.0',
+    );
+    expect(html).toContain('Transitive (via <code>@grpc/grpc-js@1.10.0</code>)');
+  });
+
+  it('SOFT con multiples pinners: summary cita el primero + "+ N more"', () => {
+    const html = renderOverrideDirective(
+      makeDirective({
+        hasSiblingFixedCopy: false,
+        pinnedBy: ['parentA@1.0.0', 'parentB@2.0.0', 'parentC@3.0.0'],
+      }),
+      '1.30.0',
+    );
+    expect(html).toContain('Transitive (via <code>parentA@1.0.0</code> + 2 more)');
+  });
+
+  it('SOFT sin pinners (degenerado): summary cae a "Transitive" sin via', () => {
+    const html = renderOverrideDirective(
+      makeDirective({ hasSiblingFixedCopy: false, pinnedBy: [] }),
+      '1.30.0',
+    );
+    expect(html).toContain('<summary>Transitive — plain bump usually works');
+    expect(html).not.toContain('via <code>');
+  });
+
+  it('SOFT body contiene el override completo (caveat + plain bump + snippet + Copy + risk) dentro del <details>', () => {
     const html = renderOverrideDirective(makeDirective({ hasSiblingFixedCopy: false }), '1.30.0');
-    expect(html).toContain('override-directive soft');
-    expect(html).toContain('may not fix this');
+    // El override-directive-body es el wrapper interno del details.
+    expect(html).toContain('override-directive-body');
+    expect(html).toContain('A plain update of');
+    expect(html).toContain('Plain bump:');
+    expect(html).toContain('prismjs@1.30.0');
+    expect(html).toContain('data-action="copy-override"');
+    expect(html).toContain('Conservative alternative');
   });
 
   it('OMITE la linea "Plain bump:" cuando hasSiblingFixedCopy=true', () => {
     const html = renderOverrideDirective(makeDirective({ hasSiblingFixedCopy: true }), '1.30.0');
     expect(html).not.toContain('Plain bump:');
-  });
-
-  it('INCLUYE la linea "Plain bump:" cuando hasSiblingFixedCopy=false', () => {
-    const html = renderOverrideDirective(makeDirective({ hasSiblingFixedCopy: false }), '1.30.0');
-    expect(html).toContain('Plain bump:');
-    expect(html).toContain('prismjs@1.30.0');
   });
 
   it('incluye Copy button con data-snippet y data-action', () => {

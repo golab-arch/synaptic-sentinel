@@ -236,6 +236,31 @@ const STYLE = `
     color: var(--vscode-descriptionForeground); }
   .override-pinner-risk code { font-family: var(--vscode-editor-font-family), monospace;
     background: var(--vscode-textCodeBlock-background, transparent); padding: 0 0.2rem; }
+  /* DG-115.1 A G7 refinamiento: SOFT directive colapsado por default.
+     Suaviza el bloque para el caso comun (8 soft vs 1 strong prismjs)
+     manteniendo el override completo accesible al expandir. */
+  .override-collapsed { margin-top: 0.5rem; }
+  .override-collapsed summary { cursor: pointer; outline: none;
+    padding: 0.35rem 0.5rem; border-radius: 3px;
+    border: 1px solid var(--vscode-inputValidation-warningBorder);
+    border-left: 3px solid var(--vscode-editorWarning-foreground);
+    background: var(--vscode-inputValidation-warningBackground, transparent);
+    font-size: 0.9em;
+    color: var(--vscode-editorWarning-foreground); }
+  .override-collapsed summary:hover {
+    background: var(--vscode-list-hoverBackground, transparent); }
+  .override-collapsed summary code {
+    font-family: var(--vscode-editor-font-family), monospace;
+    background: var(--vscode-textCodeBlock-background, transparent);
+    padding: 0 0.2rem; color: var(--vscode-foreground); }
+  .override-collapsed .override-collapsed-mgr {
+    color: var(--vscode-descriptionForeground); font-size: 0.9em; }
+  .override-collapsed[open] > summary { margin-bottom: 0.35rem; }
+  .override-collapsed .override-directive-body { padding: 0.4rem 0.5rem;
+    border: 1px solid var(--vscode-panel-border);
+    border-left: 3px solid var(--vscode-editorWarning-foreground);
+    border-radius: 3px;
+    background: var(--vscode-textBlockQuote-background, transparent); }
 `;
 
 /** Formatea la confidence (0..1) como porcentaje entero ("95%"). */
@@ -491,24 +516,34 @@ export function formatLastSessionAt(iso: string): string {
  */
 /**
  * Renderiza el bloque del override directive (DG-115 A Step 5 — §4 #15
- * 'prismjs misleading remediation'). Diseño dominante sobre el rationale
- * del LLM para evitar el caso clasico: usuario lee solo el rationale,
- * ignora el directive y aplica un bump top-level inutil.
+ * 'prismjs misleading remediation' + DG-115.1 A refinamiento G7
+ * 'reduce noise of 8 soft blocks').
  *
  * Variantes:
- * - `strong` (rojo, `--vscode-editorError-foreground`): `hasSiblingFixedCopy:true`
- *   — una copia fixeada ya existe top-level; un bump top-level NO resuelve.
- * - `soft` (amarillo, `--vscode-editorWarning-foreground`): un plain bump
- *   PUEDE resolver; si la nested persiste, aplicar el override.
+ * - `STRONG` (`hasSiblingFixedCopy:true`, rojo) — caso prismjs: una copia
+ *   fixeada ya existe top-level; un bump top-level NO resuelve la nested
+ *   pineada. Render: bloque prominente expandido, header "Top-level
+ *   bump alone will NOT fix this", caveat fuerte, snippet + Copy + risk.
+ * - `SOFT` (`hasSiblingFixedCopy:false`, soft warning) — caso protobufjs/
+ *   node-forge/fast-uri/etc: el plain bump del package puede ser
+ *   suficiente. Render: `<details>` colapsado por default con summary
+ *   one-liner ("Transitive (via X@v) — plain bump usually works;
+ *   override if it persists"); el override completo (caveat + plain bump
+ *   line + snippet + Copy + risk caveat) queda DENTRO del `<details>`,
+ *   accesible al expandir. Reduce el ruido visual: el plain-bump
+ *   (display) y la heteroNote del FindingGroupCard quedan como accion
+ *   primaria visible; el override no compite por atencion en los 8
+ *   casos SOFT donde el bump suele bastar.
  *
- * UX (per Q1-Q4 user-approved):
- * - CSS vars semanticas (no hex) → accesibilidad + theme-coherence (high
- *   contrast/light themes incluidos).
- * - Header: "Top-level bump alone will NOT fix this" (mixed case, no full-caps).
- * - "Plain bump:" linea subordinada — OMITIDA cuando `hasSiblingFixedCopy:true`
- *   (en ese caso el bump top-level es no-op, no hay nada que ofrecer).
- * - Copy button: try `navigator.clipboard.writeText` con fallback a
- *   `getSelection().selectAllChildren` (handler en el script tomo-wide).
+ * Data del tomo NO cambia (`overrideDirective` se sigue computando para
+ * ambos) — solo cambia el render webview.
+ *
+ * UX (heredada de DG-115 A Q1-Q4 user-approved):
+ * - CSS vars semanticas (no hex) → accesibilidad + theme-coherence.
+ * - Header STRONG mixed case (NO full-caps).
+ * - "Plain bump:" linea subordinada en SOFT; OMITIDA en STRONG.
+ * - Copy button: try `clipboard.writeText` con fallback a
+ *   `getSelection().selectAllChildren` (handler tomo-wide).
  * - Risk caveat: cita pinner(s) + version conservadora exacta como alt.
  */
 export function renderOverrideDirective(
@@ -522,42 +557,72 @@ export function renderOverrideDirective(
   },
   fixExact: string | undefined,
 ): string {
-  const variant = directive.hasSiblingFixedCopy ? 'strong' : 'soft';
-  const headerText = directive.hasSiblingFixedCopy
-    ? 'Top-level bump alone will NOT fix this'
-    : 'Top-level bump alone may not fix this';
-  const caveat = directive.hasSiblingFixedCopy
-    ? `A fixed copy of <code>${escapeHtml(directive.packageName)}</code> already exists top-level, ` +
-      `but a transitive dependency is pinning a vulnerable nested copy. ` +
-      `You MUST apply the override below.`
-    : `A plain update of <code>${escapeHtml(directive.packageName)}</code> may suffice. ` +
-      `If the nested copy persists after the bump, apply the override below.`;
-  const plainBump =
-    !directive.hasSiblingFixedCopy && fixExact !== undefined
-      ? `<div class="override-plain-bump">Plain bump: <code>${escapeHtml(directive.packageName)}@${escapeHtml(fixExact)}</code> (try first).</div>`
-      : '';
-  const pinnerStr = directive.pinnedBy.length > 0 ? directive.pinnedBy.join(', ') : 'a parent';
-  const pinnerRisk =
-    fixExact !== undefined
-      ? `<div class="override-pinner-risk">This overrides the version pinned by ` +
-        `<code>${escapeHtml(pinnerStr)}</code>; verify <code>${escapeHtml(pinnerStr)}</code> ` +
-        `still works after applying — test. Conservative alternative: use exact ` +
-        `<code>${escapeHtml(directive.packageName)}@${escapeHtml(fixExact)}</code>.</div>`
-      : `<div class="override-pinner-risk">This overrides the version pinned by ` +
-        `<code>${escapeHtml(pinnerStr)}</code>; verify <code>${escapeHtml(pinnerStr)}</code> ` +
-        `still works after applying — test.</div>`;
+  // Cuerpo del directive (caveat + plain bump + snippet + Copy + risk).
+  // Compartido entre STRONG (renderizado directo) y SOFT (envuelto en
+  // <details>). No incluye el header "Top-level bump alone..." porque
+  // STRONG lo agrega arriba y SOFT lo reemplaza con el summary one-liner.
+  const renderBody = (): string => {
+    const caveat = directive.hasSiblingFixedCopy
+      ? `A fixed copy of <code>${escapeHtml(directive.packageName)}</code> already exists top-level, ` +
+        `but a transitive dependency is pinning a vulnerable nested copy. ` +
+        `You MUST apply the override below.`
+      : `A plain update of <code>${escapeHtml(directive.packageName)}</code> may suffice. ` +
+        `If the nested copy persists after the bump, apply the override below.`;
+    const plainBump =
+      !directive.hasSiblingFixedCopy && fixExact !== undefined
+        ? `<div class="override-plain-bump">Plain bump: <code>${escapeHtml(directive.packageName)}@${escapeHtml(fixExact)}</code> (try first).</div>`
+        : '';
+    const pinnerStr = directive.pinnedBy.length > 0 ? directive.pinnedBy.join(', ') : 'a parent';
+    const pinnerRisk =
+      fixExact !== undefined
+        ? `<div class="override-pinner-risk">This overrides the version pinned by ` +
+          `<code>${escapeHtml(pinnerStr)}</code>; verify <code>${escapeHtml(pinnerStr)}</code> ` +
+          `still works after applying — test. Conservative alternative: use exact ` +
+          `<code>${escapeHtml(directive.packageName)}@${escapeHtml(fixExact)}</code>.</div>`
+        : `<div class="override-pinner-risk">This overrides the version pinned by ` +
+          `<code>${escapeHtml(pinnerStr)}</code>; verify <code>${escapeHtml(pinnerStr)}</code> ` +
+          `still works after applying — test.</div>`;
+    return (
+      `<div class="override-caveat">${caveat}</div>` +
+      plainBump +
+      `<div class="override-snippet-row">` +
+      `<pre class="override-snippet" tabindex="0">${escapeHtml(directive.snippet)}</pre>` +
+      `<button type="button" class="override-copy-btn" data-action="copy-override" ` +
+      `data-snippet="${escapeHtml(directive.snippet)}">Copy</button>` +
+      `</div>` +
+      pinnerRisk
+    );
+  };
+
+  if (directive.hasSiblingFixedCopy) {
+    // STRONG: bloque prominente expandido (caso prismjs).
+    return (
+      `<div class="override-directive strong" data-directive="override">` +
+      `<div class="override-header">${escapeHtml(`Top-level bump alone will NOT fix this`)} (${escapeHtml(directive.manager)})</div>` +
+      renderBody() +
+      `</div>`
+    );
+  }
+
+  // SOFT: <details> colapsado por default. Summary one-liner cita el
+  // primer pinner real (pinnedBy[0]); si hay multiples, indica "+ N
+  // more". Si no hay pinner (degenerado), summary cae al wording sin via.
+  const firstPinner = directive.pinnedBy[0];
+  const extraPinners = directive.pinnedBy.length - 1;
+  const viaPhrase =
+    firstPinner === undefined
+      ? 'Transitive'
+      : extraPinners > 0
+        ? `Transitive (via <code>${escapeHtml(firstPinner)}</code> + ${String(extraPinners)} more)`
+        : `Transitive (via <code>${escapeHtml(firstPinner)}</code>)`;
+  const summaryHtml =
+    `${viaPhrase} — plain bump usually works; override if it persists ` +
+    `<span class="override-collapsed-mgr">(${escapeHtml(directive.manager)})</span>`;
   return (
-    `<div class="override-directive ${variant}" data-directive="override">` +
-    `<div class="override-header">${escapeHtml(headerText)} (${escapeHtml(directive.manager)})</div>` +
-    `<div class="override-caveat">${caveat}</div>` +
-    plainBump +
-    `<div class="override-snippet-row">` +
-    `<pre class="override-snippet" tabindex="0">${escapeHtml(directive.snippet)}</pre>` +
-    `<button type="button" class="override-copy-btn" data-action="copy-override" ` +
-    `data-snippet="${escapeHtml(directive.snippet)}">Copy</button>` +
-    `</div>` +
-    pinnerRisk +
-    `</div>`
+    `<details class="override-collapsed soft" data-directive="override">` +
+    `<summary>${summaryHtml}</summary>` +
+    `<div class="override-directive-body">${renderBody()}</div>` +
+    `</details>`
   );
 }
 
