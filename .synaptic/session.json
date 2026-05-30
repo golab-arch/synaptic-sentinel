@@ -3,8 +3,8 @@
   "projectId": "sentinel-1779304140796",
   "projectName": "SENTINEL",
   "initializedAt": "2026-05-20T19:09:00.816Z",
-  "lastActivity": "2026-05-30T23:30:00.000Z",
-  "currentCycle": 107,
+  "lastActivity": "2026-05-31T00:00:00.000Z",
+  "currentCycle": 108,
   "currentPhase": 12,
   "synapticStrength": 100,
   "enforcement": {
@@ -19,19 +19,22 @@
   "agentState": {
     "complianceScore": 100,
     "violationsCount": 0,
-    "successfulCycles": 108,
+    "successfulCycles": 109,
     "marketplacePublishedExtensionId": "RealGoLab.synaptic-sentinel",
     "marketplacePublishedVersion": "0.3.3",
     "githubReleaseLatest": "v0.3.15"
   },
   "activeDG": {
-    "id": "DG-116-A",
-    "title": "Release v0.3.15 packaging DG-115 A + DG-115.1 A G7 — retira el warning prismjs de v0.3.14",
-    "status": "SHIPPED",
-    "artifact": "packages/vscode-extension/synaptic-sentinel-0.3.15.vsix",
-    "artifact_sha256": "6e435c0b5a7ae6d43ef6b7a69b9911a00e2694edac92ce2cd42c6c75dd9e89b7",
-    "github_release_url": "https://github.com/golab-arch/synaptic-sentinel/releases/tag/v0.3.15",
-    "marketplace_publish": "DEFERRED_TO_USER",
-    "bitacora_entries": [146]
+    "id": "DG-117-A",
+    "title": "Scout exclude-list post-hoc filter en Coordinator pre-stage-2 — fixtures/dist/build/node_modules/coverage/vendor/out/__pycache__/__fixtures__",
+    "status": "AWAITING_USER_BASELINE_6",
+    "artifact": "packages/vscode-extension/synaptic-sentinel-0.3.15-step6.vsix",
+    "artifact_sha256": "12fdd0543d0d36fa733f94e0736fc7ad9ec8da2a16f5d292a4232c4a3c06219e",
+    "option_selected": "A (Conservative, LOW RISK)",
+    "marketplace_publish": "N_A_CAPTURE_VSIX",
+    "bitacora_entries": [
+      147,
+      148
+    ]
   }
 }
