@@ -4,6 +4,50 @@ All notable changes to the SYNAPTIC Sentinel extension will be documented in thi
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.14] - 2026-05-30
+
+**Brain Layer + SCA major release** — packages 5 cycles of work (Cycles 99-105, DG-110 → DG-113.1 A) responding to the SENTINEL-EVALUATION-REPORT empirical evaluation against a real codebase.
+
+> **⚠️ Safety-critical upgrade**. The previous release v0.3.13 (and the v0.3.3 currently on the Marketplace) contains a temporal-cutoff bug that causes the Brain Layer to dismiss real 2026 CVEs as "fabricated" with high confidence — burying a serious vulnerability with a confident false-positive. Step 2 of this release fixes that bug with a 3-layer defense in depth. **Upgrade strongly recommended for any user on v0.3.3 or v0.3.13.**
+
+### Added
+
+- **Step 1 (DG-110 A) — Determinism**: `temperature: 0` hardcoded in `AnthropicLlmClient.completeWithUsage`. The Anthropic client was running at the default `1.0`; the OpenAI-compatible client already pinned `0` for security-tool determinism. Aligns both adapters under the same explicit policy.
+
+- **Step 2 (DG-111 A) — Temporal-cutoff bug fix (BLOCKER from the report §4 #1)**. 3-layer defense in depth against the LLM dismissing real, scanner-confirmed CVEs as "fabricated"/"non-existent"/"future":
+  - **Capa 1 (prompt)**: `SYSTEM_PROMPT` rewrite — Software Composition Analysis (SCA) explicitly modeled (was only SAST/secrets); NEW `GROUND TRUTH` section fixing scanner-provided metadata (CVE IDs, package names, versions, advisory dates) as authoritative; explicit instruction: "Your training cutoff is NOT the authoritative source of CVE existence — the scanner's CVE feed is"; criteria for `false_positive` expanded with a negative rule: "Do NOT classify as `false_positive` on the basis that a CVE, version, release, or advisory date does not exist, is fabricated, is fictional, is future-dated, or similar".
+  - **Capa 2 (date injection)**: NEW `TriageAgentOptions.currentDate` (defaults to today's UTC ISO date); user prompt now starts with `Current date (real-world authoritative): <YYYY-MM-DD>`. Defense in depth: even if the model strips/caches the system prompt, the user prompt asserts the real-world temporal frame on every call.
+  - **Capa 3 (deterministic guard)**: NEW `guardAgainstFabricatedDismissals(verdict, category)` overrides `false_positive` to `inconclusive` (confidence 0.5) when the rationale contains dismissal patterns (`fabricated`, `fictional`, `spurious`, `non-existent`, `not a real`, `future-dated`, `future cve/release/version/advisory`). Overrides preserve the original rationale (truncated to 200 chars) for audit.
+
+- **DG-111.1 A — Chain-of-Thought schema field order**: the JSON shape in the `SYSTEM_PROMPT` now lists `rationale` BEFORE `classification` and `confidence`. The LLM emits fields in the order shown, so writing the rationale first forces it to reason through the scanner-confirmed facts before committing to a verdict. Fixes verdict↔rationale contradictions observed in multi-branch fix cases (e.g. `agentLoop.execute()` rationales concluding "this appears to be a true positive" while the verdict said `false_positive`).
+
+- **DG-111.2 A — Guard precision (scope to SCA)**: the temporal-cutoff guard now only applies to findings of `category: 'SCA'`. Avoids misfire on Secrets/SAST/IaC/VibeCoded/BusinessLogic findings whose legitimate FP rationales may contain words like "not a real production secret" (test fixtures) — a regression observed in the real-world re-scan of v0.3.13.
+
+- **Step 3 (DG-112 A) — SAST taint dataflow trace (from report §4 #3)**. OpenGrep's `dataflow_trace` (emitted by `mode: taint` rules) is now captured by the normalizer, canonized to a new optional `Finding.dataflowTrace` field (additive, backward-compatible), and included in the Triage Agent's user prompt as `Dataflow trace (source → intermediate → sink)`. Defensive caps on the prompt section: max 25 intermediate steps (middle elided with a marker if more), max 200 chars per step `content` (truncated with `…`). Resolves "sink not visible" hedging — the LLM can now reason about the real `agentLoop.execute(orchestrationRequest)` sink instead of just the rule-match snippet.
+
+- **Step 4 (DG-113 A) — SCA correlation/dedup (from report §4 #4)**. SCA findings are now grouped by package family (exact package-name match — `protobufjs` ≠ `@protobufjs/utf8`) in the tomo output. Each group includes the unified remediation target as the **MAX semver per major track** of all known fix versions in the group (e.g. `{"7": "7.5.8", "8": "8.2.0"}` with display `"7.5.8 / 8.2.0"`), with a heterogeneity flag when the fix set crosses multiple major tracks. Captures cross-lockfile (root + web/server) + intra-package (multiple CVEs against the same package) duplications. The sidebar renders an expandable "SCA grouped remediations" section above the individual findings. Parent/child resolution (e.g. `@protobufjs/utf8` ↔ `protobufjs`) requires a dep-graph traversal and is **deferred — see Known Issues**.
+
+- **DG-113.1 A — Discard downgrade tracks**: `computeRemediationTarget` now filters major tracks below the MIN installed major across the group. Empirical trigger from a real-world re-scan: `fast-xml-parser` 5.5.6 was being recommended `4.5.5 / 5.7.0` — `4.5.5` is a major-version downgrade that would break user code. Post-fix the same input yields `5.7.0` only.
+
+### Changed
+
+- `FindingSchema` extended with optional `dataflowTrace?` (Step 3) and `sca?` (Step 4) sub-objects. Additive + backward-compatible: Findings persisted in `colony.db` from earlier scans are accepted unchanged; re-scan to populate the new fields.
+- `TomoBodySchema` extended with optional `groups?: FindingGroup[]`. The canonical integrity hash includes `groups`, so tomos before and after this release have different hashes by design.
+- New dependency: `semver` in `@synaptic-sentinel/core` (for `RemediationTarget` semver math).
+
+### Known Issues
+
+> **🚨 prismjs CVE-2024-53382 — false sense of remediation (deferred from report §4 #15)**. The Brain Layer correctly identifies `prismjs` 1.27.0 as a true positive and recommends "upgrade to 1.30.0". However in many repos the top-level `prismjs` is already 1.30.0 — the vulnerable 1.27.0 is nested under `refractor` pinned to `~1.27.0`. **A naive top-level bump does NOT fix the vulnerability**. Resolving this requires `npm:resolutions` / `yarn:resolutions` overrides or dep-graph-aware remediation, which is deferred to a future release (tracked as `DG-future-SCA-dep-graph` in the project). **For any prismjs advisory, verify manually with `npm ls prismjs` after applying the recommended bump** — and apply an `overrides` directive if a transitive copy remains.
+
+- **Parent/child SCA correlation** (e.g. `@protobufjs/utf8` finding listed as a separate group from its parent `protobufjs`). The exact-match family key in Step 4 was a deliberate trade-off to avoid over-merging unrelated packages (`@types/node` + `@types/lodash` etc. would be wrongly clustered by a naive scope-strip). Resolving parent/child correctly requires a dep-graph, deferred to the same future release.
+- **Inconclusive-but-well-reasoned SAST taint verdicts**: even with the dataflow trace, the LLM sees the sink _expression_ but not its _implementation_ (which lives in another file). For sinks like `agentLoop.execute()`, an `inconclusive` verdict with a well-reasoned rationale about the visible sink is the expected ceiling without AST cross-file resolution. **`inconclusive`-well-reasoned is success by design** for this class of finding; FP is a bonus when the sink expression is recognizable as non-vulnerable in itself.
+
+### Notes
+
+- The previous release v0.3.13 saw 2 hotfix iterations (DG-111.1, DG-111.2) discovered empirically during real-world re-scans. Both are folded into this v0.3.14 release. Step 4 added a third hotfix (DG-113.1, downgrade-track filter).
+- `pnpm verify` VERDE: 60 test files / 679 tests + manifest gate + activation gate (9 commands + 15 subscriptions).
+- `vsce publish` to the VS Code Marketplace is **not** part of this release. The Marketplace listing is on v0.3.3; the 11 GitHub-only releases (v0.3.4 → v0.3.14) are user-side publishing operations. To install in VS Code, download the `.vsix` and use `code --install-extension synaptic-sentinel-0.3.14.vsix` or _Install from VSIX..._ in the Extensions view.
+
 ## [0.3.13] - 2026-05-28
 
 **Re-triage controls + cost card freshness timestamp** (DG-107 A). Closes 2 UX issues reported in empirical feedback after installing v0.3.12 and running Sentinel on a real workspace where the user changed the Brain provider mid-flow (in `.sentinel/agents.yaml`). The `feedback backlog vacío` milestone declared in v0.3.12 release notes lasted **~30 minutes** — a strong validation of the explicit anti-optimismo declared back then ("the feedback received is not exhaustive; other users could uncover new UX issues").
