@@ -180,25 +180,50 @@ describe('runAgent con TriageAgent', () => {
     expect(verdict.confidence).toBe(0.85);
   });
 
-  it('end-to-end: un FP "fabricated" del LLM es overridden a inconclusive por el guard (DG-111 Step 2)', async () => {
+  it('end-to-end: un FP "fabricated" del LLM en un finding SCA es overridden a inconclusive por el guard (DG-111 Step 2 + DG-111.2 A)', async () => {
     const llm: LlmClient = {
       complete: () =>
         Promise.resolve(
           '{"classification":"false_positive","confidence":0.85,"rationale":"CVE-2026-33896 appears fabricated; no such CVE exists in NVD."}',
         ),
     };
+    // DG-111.2 A: el guard solo aplica a SCA. Para validar el happy path
+    // post-fix, el finding debe ser SCA (la categoria de los CVE-related).
     const verdict = await runAgent(
       new TriageAgent({ currentDate: FIXED_DATE }),
-      makeFinding() as never,
+      makeFinding({ category: 'SCA' }) as never,
       llm,
     );
     expect(verdict.classification).toBe('inconclusive');
     expect(verdict.rationale).toContain('Brain Layer guard (DG-111 Step 2)');
     expect(verdict.rationale).toContain('CVE-2026-33896 appears fabricated');
   });
+
+  it('end-to-end: un FP de Secrets con rationale tipo-dismissal NO es overridden (DG-111.2 A precision hotfix)', async () => {
+    // Caso documentado en Entry #129: generic-api-key en
+    // src/tests/sai-checks.test.ts pasaba de FP 0.9 a INC 0.5 porque el
+    // guard interpretaba 'not a real production secret' del rationale del
+    // fixture como dismissal de CVE fabricado. El finding es Secrets, sin
+    // CVE — el guard NO debe activarse.
+    const llm: LlmClient = {
+      complete: () =>
+        Promise.resolve(
+          '{"classification":"false_positive","confidence":0.9,"rationale":"test file fixture; the credential string is redacted by Gitleaks --redact and serves as a placeholder, not a real production secret."}',
+        ),
+    };
+    const verdict = await runAgent(
+      new TriageAgent({ currentDate: FIXED_DATE }),
+      makeFinding({ category: 'Secrets', ruleId: 'generic-api-key' }) as never,
+      llm,
+    );
+    expect(verdict.classification).toBe('false_positive');
+    expect(verdict.confidence).toBe(0.9);
+    expect(verdict.rationale).toContain('not a real production secret');
+    expect(verdict.rationale).not.toContain('Brain Layer guard');
+  });
 });
 
-describe('guardAgainstFabricatedDismissals — DG-111 Step 2 / §4 #1', () => {
+describe('guardAgainstFabricatedDismissals — DG-111 Step 2 / §4 #1 + DG-111.2 A precision hotfix', () => {
   /** Helper: construye un TriageVerdict bien-formado para el guard. */
   function makeVerdict(overrides: Partial<TriageVerdict> = {}): TriageVerdict {
     return {
@@ -209,70 +234,80 @@ describe('guardAgainstFabricatedDismissals — DG-111 Step 2 / §4 #1', () => {
     } as TriageVerdict;
   }
 
-  it('override FP a inconclusive cuando el rationale dice "fabricated"', () => {
+  it('override FP a inconclusive cuando el rationale dice "fabricated" (SCA)', () => {
     const v = guardAgainstFabricatedDismissals(
       makeVerdict({ rationale: 'CVE-2026-33896 appears fabricated.' }),
+      'SCA',
     );
     expect(v.classification).toBe('inconclusive');
     expect(v.confidence).toBe(0.5);
   });
 
-  it('override FP a inconclusive cuando el rationale dice "fictional"', () => {
+  it('override FP a inconclusive cuando el rationale dice "fictional" (SCA)', () => {
     const v = guardAgainstFabricatedDismissals(
       makeVerdict({ rationale: 'The version 11.1.0 of uuid is fictional.' }),
+      'SCA',
     );
     expect(v.classification).toBe('inconclusive');
   });
 
-  it('override FP a inconclusive cuando el rationale dice "spurious"', () => {
+  it('override FP a inconclusive cuando el rationale dice "spurious" (SCA)', () => {
     const v = guardAgainstFabricatedDismissals(
       makeVerdict({ rationale: 'Further indicating this CVE is spurious.' }),
+      'SCA',
     );
     expect(v.classification).toBe('inconclusive');
   });
 
-  it('override FP a inconclusive cuando el rationale dice "non-existent"', () => {
+  it('override FP a inconclusive cuando el rationale dice "non-existent" (SCA)', () => {
     const v = guardAgainstFabricatedDismissals(
       makeVerdict({ rationale: 'This CVE is non-existent in NVD.' }),
+      'SCA',
     );
     expect(v.classification).toBe('inconclusive');
   });
 
-  it('override FP a inconclusive cuando el rationale dice "nonexistent" (sin guion)', () => {
+  it('override FP a inconclusive cuando el rationale dice "nonexistent" sin guion (SCA)', () => {
     const v = guardAgainstFabricatedDismissals(
       makeVerdict({ rationale: 'CVE id is nonexistent.' }),
+      'SCA',
     );
     expect(v.classification).toBe('inconclusive');
   });
 
-  it('override FP a inconclusive cuando el rationale dice "not a real release"', () => {
+  it('override FP a inconclusive cuando el rationale dice "not a real release" (SCA)', () => {
     const v = guardAgainstFabricatedDismissals(
       makeVerdict({ rationale: 'uuid 11.1.0 is not a real release history entry.' }),
+      'SCA',
     );
     expect(v.classification).toBe('inconclusive');
   });
 
-  it('override FP a inconclusive cuando el rationale dice "future-dated"', () => {
+  it('override FP a inconclusive cuando el rationale dice "future-dated" (SCA)', () => {
     const v = guardAgainstFabricatedDismissals(
       makeVerdict({ rationale: 'This is a future-dated CVE that cannot exist yet.' }),
+      'SCA',
     );
     expect(v.classification).toBe('inconclusive');
   });
 
-  it('override FP a inconclusive cuando el rationale dice "future CVE" / "future release"', () => {
+  it('override FP a inconclusive cuando el rationale dice "future CVE" / "future release" (SCA)', () => {
     expect(
       guardAgainstFabricatedDismissals(
         makeVerdict({ rationale: 'Reference to a future CVE we cannot validate.' }),
+        'SCA',
       ).classification,
     ).toBe('inconclusive');
     expect(
       guardAgainstFabricatedDismissals(
         makeVerdict({ rationale: 'Looks like a future release of the package.' }),
+        'SCA',
       ).classification,
     ).toBe('inconclusive');
     expect(
       guardAgainstFabricatedDismissals(
         makeVerdict({ rationale: 'Future advisory beyond training cutoff.' }),
+        'SCA',
       ).classification,
     ).toBe('inconclusive');
   });
@@ -282,7 +317,7 @@ describe('guardAgainstFabricatedDismissals — DG-111 Step 2 / §4 #1', () => {
       classification: 'true_positive',
       rationale: 'Even though some users call this fabricated, the pattern is exploitable.',
     });
-    const v = guardAgainstFabricatedDismissals(verdict);
+    const v = guardAgainstFabricatedDismissals(verdict, 'SCA');
     expect(v.classification).toBe('true_positive');
     expect(v.rationale).toBe(verdict.rationale);
   });
@@ -292,7 +327,7 @@ describe('guardAgainstFabricatedDismissals — DG-111 Step 2 / §4 #1', () => {
       classification: 'inconclusive',
       rationale: 'Hard to tell if the CVE is fictional or real without more context.',
     });
-    const v = guardAgainstFabricatedDismissals(verdict);
+    const v = guardAgainstFabricatedDismissals(verdict, 'SCA');
     expect(v.classification).toBe('inconclusive');
     expect(v.rationale).toBe(verdict.rationale); // preservado intacto
   });
@@ -302,7 +337,7 @@ describe('guardAgainstFabricatedDismissals — DG-111 Step 2 / §4 #1', () => {
       classification: 'false_positive',
       rationale: 'Test fixture file with intentional vulnerable code; not production.',
     });
-    const v = guardAgainstFabricatedDismissals(verdict);
+    const v = guardAgainstFabricatedDismissals(verdict, 'SCA');
     expect(v.classification).toBe('false_positive');
     expect(v.rationale).toBe(verdict.rationale);
     expect(v.confidence).toBe(verdict.confidence);
@@ -312,7 +347,7 @@ describe('guardAgainstFabricatedDismissals — DG-111 Step 2 / §4 #1', () => {
     const longRationale =
       'CVE-2026-33896 is fabricated. '.repeat(20) +
       'plus extra noise that should be truncated past 200 chars.';
-    const v = guardAgainstFabricatedDismissals(makeVerdict({ rationale: longRationale }));
+    const v = guardAgainstFabricatedDismissals(makeVerdict({ rationale: longRationale }), 'SCA');
     expect(v.classification).toBe('inconclusive');
     expect(v.rationale).toContain('Original rationale:');
     expect(v.rationale).toContain('...'); // truncation marker
@@ -322,7 +357,7 @@ describe('guardAgainstFabricatedDismissals — DG-111 Step 2 / §4 #1', () => {
 
   it('preserva el rationale completo (sin truncacion) cuando es < 200 chars', () => {
     const shortRationale = 'CVE-2026-33896 appears fabricated.';
-    const v = guardAgainstFabricatedDismissals(makeVerdict({ rationale: shortRationale }));
+    const v = guardAgainstFabricatedDismissals(makeVerdict({ rationale: shortRationale }), 'SCA');
     expect(v.rationale).toContain(shortRationale);
     expect(v.rationale).not.toContain('...'); // no truncation
   });
@@ -330,5 +365,55 @@ describe('guardAgainstFabricatedDismissals — DG-111 Step 2 / §4 #1', () => {
   it('FABRICATED_DISMISSAL_PATTERNS exporta los regex (anti-drift)', () => {
     expect(FABRICATED_DISMISSAL_PATTERNS.length).toBeGreaterThanOrEqual(7);
     for (const p of FABRICATED_DISMISSAL_PATTERNS) expect(p).toBeInstanceOf(RegExp);
+  });
+
+  // ────────────────────────────────────────────────────────────────────
+  // DG-111.2 A precision hotfix: category gate — el guard SOLO aplica a SCA.
+  // ────────────────────────────────────────────────────────────────────
+
+  it('NO override de FP en finding Secrets aunque el rationale tenga keywords de dismissal (DG-111.2 A)', () => {
+    // Caso documentado en Entry #129: generic-api-key en
+    // src/tests/sai-checks.test.ts paso de FP 0.9 a INC 0.5 porque el
+    // guard misfirea con 'not a real production secret' del fixture.
+    const verdict = makeVerdict({
+      classification: 'false_positive',
+      rationale:
+        'test file fixture; the credential is redacted and serves as a placeholder, not a real production secret.',
+    });
+    const v = guardAgainstFabricatedDismissals(verdict, 'Secrets');
+    expect(v.classification).toBe('false_positive');
+    expect(v.rationale).toBe(verdict.rationale); // preservado intacto
+    expect(v.confidence).toBe(verdict.confidence);
+  });
+
+  it('NO override de FP en finding SAST aunque el rationale mencione "fabricated" en otro contexto (DG-111.2 A)', () => {
+    const verdict = makeVerdict({
+      classification: 'false_positive',
+      rationale:
+        'eval() in a test fixture with hardcoded input; the threat is fabricated for testing.',
+    });
+    const v = guardAgainstFabricatedDismissals(verdict, 'SAST');
+    expect(v.classification).toBe('false_positive');
+    expect(v.rationale).toBe(verdict.rationale);
+  });
+
+  it('NO override de FP en finding IaC / VibeCoded / BusinessLogic (DG-111.2 A — solo SCA)', () => {
+    const dismissalRationale = 'This vulnerability appears fabricated based on the config.';
+    for (const cat of ['IaC', 'VibeCoded', 'BusinessLogic']) {
+      const v = guardAgainstFabricatedDismissals(
+        makeVerdict({ rationale: dismissalRationale }),
+        cat,
+      );
+      expect(v.classification).toBe('false_positive'); // preservado
+      expect(v.rationale).toBe(dismissalRationale);
+    }
+  });
+
+  it('NO override de FP cuando category es string vacio (default antes de buildPrompt — DG-111.2 A)', () => {
+    const v = guardAgainstFabricatedDismissals(
+      makeVerdict({ rationale: 'CVE-2026-33896 appears fabricated.' }),
+      '',
+    );
+    expect(v.classification).toBe('false_positive');
   });
 });

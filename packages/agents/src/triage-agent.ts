@@ -3,6 +3,7 @@ import {
   TriageClassificationSchema,
   TriageVerdictSchema,
   type Finding,
+  type FindingCategory,
   type TriageClassification,
   type TriageVerdict,
 } from '@synaptic-sentinel/core';
@@ -121,8 +122,24 @@ export const FABRICATED_DISMISSAL_PATTERNS: readonly RegExp[] = [
  * dismissea scanner-confirmed metadata como fabricated/non-existent/future,
  * fuerza override a `inconclusive` para manual review (DG-111 Step 2). Es
  * funcion pura testeable independientemente.
+ *
+ * DG-111.2 A (Step 2 precision hotfix): el guard solo se aplica a findings
+ * de `SCA` (Software Composition Analysis). El temporal-cutoff bug que
+ * motivo el guard *solo* aplica a SCA — donde el modelo dismissea CVE IDs,
+ * versions y advisory dates como fabricated. Findings de `Secrets`, `SAST`,
+ * `IaC`, `VibeCoded` y `BusinessLogic` NO tienen ese class de metadata, y
+ * sus rationales legitimos de FP pueden usar palabras del set por razones
+ * inocuas (ej. "not a real production secret" en un test fixture de
+ * `Secrets`). Caso documentado en Entry #129: generic-api-key en
+ * `src/tests/sai-checks.test.ts:119` pasaba de FP 0.9 a INC 0.5 por
+ * misfire del guard sobre wording legitimo del fixture.
  */
-export function guardAgainstFabricatedDismissals(verdict: TriageVerdict): TriageVerdict {
+export function guardAgainstFabricatedDismissals(
+  verdict: TriageVerdict,
+  findingCategory: string,
+): TriageVerdict {
+  // DG-111.2 A: scope gate — el guard solo aplica a SCA.
+  if (findingCategory !== 'SCA') return verdict;
   if (verdict.classification !== 'false_positive') return verdict;
   const matched = FABRICATED_DISMISSAL_PATTERNS.some((p) => p.test(verdict.rationale));
   if (!matched) return verdict;
@@ -152,12 +169,22 @@ export class TriageAgent implements BrainAgent<Finding, TriageVerdict> {
   readonly displayName = 'Triage Agent';
   readonly maxTokens = 512;
   readonly #currentDate: string;
+  /**
+   * Categoria del ultimo finding pasado a `buildPrompt`. Sirve para que
+   * `parseResponse` pueda gatear el guard `guardAgainstFabricatedDismissals`
+   * por category (DG-111.2 A: solo aplica a SCA). El BrainAgent contract
+   * llama a `buildPrompt(finding)` y luego a `parseResponse(raw)` en
+   * sequence (ver `runAgent`), asi que este campo refleja el finding del
+   * call actual. `''` antes de cualquier `buildPrompt` — el guard skip-ea.
+   */
+  #lastFindingCategory: FindingCategory | '' = '';
 
   constructor(options: TriageAgentOptions = {}) {
     this.#currentDate = options.currentDate ?? currentDateIso();
   }
 
   buildPrompt(finding: Finding): AgentPrompt {
+    this.#lastFindingCategory = finding.category;
     const snippet = finding.location.snippet ?? '(not available)';
     const user = [
       `Current date (real-world authoritative): ${this.#currentDate}`,
@@ -183,6 +210,6 @@ export class TriageAgent implements BrainAgent<Finding, TriageVerdict> {
       throw new Error(`Could not parse the triage verdict: ${message}`);
     }
     const verdict = TriageVerdictSchema.parse(parsed);
-    return guardAgainstFabricatedDismissals(verdict);
+    return guardAgainstFabricatedDismissals(verdict, this.#lastFindingCategory);
   }
 }
