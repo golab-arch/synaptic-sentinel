@@ -62,6 +62,42 @@ const ExtensionFindingSchema = z.object({
  * ignoran. El tomo es la frontera de contrato entre la CLI y la extension
  * (DG-021 A: la extension no importa los paquetes del motor).
  */
+/**
+ * Remediation target de un FindingGroup (DG-113 A Step 4 — §4 #4).
+ * Forma identica al `RemediationTarget` del core; replicada aqui por la
+ * frontera CLI↔extension (la extension NO importa core).
+ */
+const ExtensionRemediationTargetSchema = z.object({
+  recommendedFixes: z.record(z.string(), z.string()),
+  display: z.string(),
+  heterogeneous: z.boolean(),
+  noFixAvailable: z.boolean(),
+});
+
+/**
+ * FindingGroup en la forma que consume la extension (DG-113 A Step 4).
+ * Solo valida lo minimo que el webview necesita: familyKey + findings
+ * (subset minimal: fingerprint, severity, title, ruleId — para join +
+ * render) + remediation.
+ */
+const ExtensionFindingGroupSchema = z.object({
+  familyKey: z.string().min(1),
+  findings: z.array(
+    z.object({
+      fingerprint: z.string().min(1),
+      severity: SeveritySchema,
+      title: z.string().min(1),
+      ruleId: z.string().min(1),
+      message: z.string().min(1),
+      location: FindingLocationSchema,
+    }),
+  ),
+  remediation: ExtensionRemediationTargetSchema,
+});
+
+/** FindingGroup en la forma que consume la extension. */
+export type ExtensionFindingGroup = z.infer<typeof ExtensionFindingGroupSchema>;
+
 export const ExtensionTomoSchema = z.object({
   summary: z.object({
     scanId: z.string().min(1),
@@ -69,6 +105,8 @@ export const ExtensionTomoSchema = z.object({
     totalFindings: z.number().int().nonnegative(),
   }),
   findings: z.array(ExtensionFindingSchema),
+  /** Grupos SCA por package family — DG-113 A Step 4. Opcional. */
+  groups: z.array(ExtensionFindingGroupSchema).optional(),
 });
 
 /** Tomo en la forma que consume la extension. */

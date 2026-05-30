@@ -86,6 +86,33 @@ export const DataflowTraceSchema = z.object({
 export type DataflowTrace = z.infer<typeof DataflowTraceSchema>;
 
 /**
+ * Metadata SCA (Software Composition Analysis) de un hallazgo de Trivy
+ * (DG-113 A Step 4 — §4 #4 del SENTINEL-EVALUATION-REPORT). Se popula solo
+ * para findings de `category: 'SCA'`; sub-objeto opcional para preservar
+ * backward compatibility con Findings legacy en colony.db.
+ *
+ * Sirve para el grouping de findings por package family (cross-lockfile +
+ * intra-package) y el computo del remediation target (MAX semver de los
+ * fix versions del grupo). Los 3 campos vienen del Trivy `Vulnerability`:
+ * `PkgName`, `InstalledVersion`, `FixedVersion` (parseado a `string[]`).
+ */
+export const ScaMetadataSchema = z.object({
+  /** Nombre del paquete (e.g. `protobufjs`, `@protobufjs/utf8`). */
+  packageName: z.string().min(1),
+  /** Version instalada (e.g. `7.5.4`). */
+  installedVersion: z.string().min(1),
+  /**
+   * Fix versions parseadas desde Trivy `FixedVersion` (que puede ser
+   * comma-separated, e.g. `"7.5.6, 8.0.2"`). Lista vacia si no hay fix
+   * conocido.
+   */
+  fixVersions: z.array(z.string().min(1)).default([]),
+});
+
+/** Metadata SCA. */
+export type ScaMetadata = z.infer<typeof ScaMetadataSchema>;
+
+/**
  * Hallazgo de seguridad producido por un Scout (capa determinista, sin LLM).
  *
  * Los campos de enriquecimiento del Brain Layer (explicacion contextualizada,
@@ -133,6 +160,13 @@ export const FindingSchema = z.object({
    * field siguen validando contra el schema (queda undefined).
    */
   dataflowTrace: DataflowTraceSchema.optional(),
+  /**
+   * Metadata SCA — solo poblada para findings de `category: 'SCA'`
+   * (Trivy). Aditiva + backward-compatible (DG-113 A Step 4 — §4 #4 del
+   * reporte). Sirve para grouping por package family + computo de
+   * remediation target.
+   */
+  sca: ScaMetadataSchema.optional(),
 });
 
 /** Hallazgo de seguridad. */

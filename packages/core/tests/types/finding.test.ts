@@ -5,6 +5,7 @@ import {
   DataflowTraceSchema,
   FindingSchema,
   FindingLocationSchema,
+  ScaMetadataSchema,
 } from '../../src/types/finding.js';
 
 /** Construye un hallazgo valido para usar de base en los tests. */
@@ -151,6 +152,72 @@ describe('FindingSchema — dataflowTrace integration (DG-112 A)', () => {
         source: { path: '', startLine: 1, content: 'x' },
         sink: { path: 'a.js', startLine: 2, content: 'y' },
       },
+    };
+    expect(FindingSchema.safeParse(bad).success).toBe(false);
+  });
+});
+
+describe('ScaMetadataSchema — DG-113 A Step 4 / §4 #4', () => {
+  it('parsea metadata SCA valida', () => {
+    const sca = {
+      packageName: 'protobufjs',
+      installedVersion: '7.5.4',
+      fixVersions: ['7.5.6', '8.0.2'],
+    };
+    expect(ScaMetadataSchema.parse(sca)).toEqual(sca);
+  });
+
+  it('aplica default fixVersions: [] cuando esta ausente', () => {
+    const sca = { packageName: 'pkg', installedVersion: '1.0.0' };
+    expect(ScaMetadataSchema.parse(sca).fixVersions).toEqual([]);
+  });
+
+  it('rechaza packageName vacio', () => {
+    expect(
+      ScaMetadataSchema.safeParse({ packageName: '', installedVersion: '1.0.0' }).success,
+    ).toBe(false);
+  });
+
+  it('rechaza installedVersion vacio', () => {
+    expect(ScaMetadataSchema.safeParse({ packageName: 'p', installedVersion: '' }).success).toBe(
+      false,
+    );
+  });
+
+  it('rechaza fixVersions con strings vacios', () => {
+    expect(
+      ScaMetadataSchema.safeParse({
+        packageName: 'p',
+        installedVersion: '1.0.0',
+        fixVersions: ['1.0.1', ''],
+      }).success,
+    ).toBe(false);
+  });
+});
+
+describe('FindingSchema — sca integration (DG-113 A Step 4)', () => {
+  it('acepta Finding sin sca (backward compat)', () => {
+    expect(FindingSchema.parse(validFinding()).sca).toBeUndefined();
+  });
+
+  it('acepta Finding con sca valido', () => {
+    const finding = {
+      ...validFinding(),
+      sca: {
+        packageName: 'protobufjs',
+        installedVersion: '7.5.4',
+        fixVersions: ['7.5.6'],
+      },
+    };
+    const parsed = FindingSchema.parse(finding);
+    expect(parsed.sca?.packageName).toBe('protobufjs');
+    expect(parsed.sca?.fixVersions).toEqual(['7.5.6']);
+  });
+
+  it('rechaza Finding con sca mal-formado (packageName vacio)', () => {
+    const bad = {
+      ...validFinding(),
+      sca: { packageName: '', installedVersion: '1.0.0' },
     };
     expect(FindingSchema.safeParse(bad).success).toBe(false);
   });

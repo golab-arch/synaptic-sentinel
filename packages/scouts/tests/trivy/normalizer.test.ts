@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { TrivyOutputSchema, type TrivyOutput } from '../../src/trivy/trivy-output.js';
-import { normalizeTrivyOutput } from '../../src/trivy/normalizer.js';
+import { normalizeTrivyOutput, parseTrivyFixedVersion } from '../../src/trivy/normalizer.js';
 
 /** Carga la salida JSON de Trivy capturada como fixture (curada de una corrida real). */
 async function loadFixture(): Promise<TrivyOutput> {
@@ -55,5 +55,40 @@ describe('normalizeTrivyOutput', () => {
       rootPath: '/proyecto',
     });
     expect(findings).toEqual([]);
+  });
+
+  it('popula sca.{packageName, installedVersion, fixVersions} (DG-113 A Step 4)', async () => {
+    const output = await loadFixture();
+    const findings = normalizeTrivyOutput(output, {
+      scanId: 'scan-1',
+      scoutId: 'trivy',
+      rootPath: '/proyecto',
+    });
+    const lodash = findings.find((f) => f.ruleId === 'CVE-2021-23337');
+    expect(lodash?.sca).toBeDefined();
+    expect(lodash?.sca?.packageName).toBe('lodash');
+    expect(lodash?.sca?.installedVersion).toMatch(/^\d/);
+    expect(Array.isArray(lodash?.sca?.fixVersions)).toBe(true);
+    expect(lodash?.sca?.fixVersions.length).toBeGreaterThan(0);
+  });
+});
+
+describe('parseTrivyFixedVersion — DG-113 A Step 4', () => {
+  it('devuelve [] para undefined o vacio', () => {
+    expect(parseTrivyFixedVersion(undefined)).toEqual([]);
+    expect(parseTrivyFixedVersion('')).toEqual([]);
+  });
+
+  it('parsea version unica', () => {
+    expect(parseTrivyFixedVersion('7.5.6')).toEqual(['7.5.6']);
+  });
+
+  it('parsea comma-separated con trim (caso real protobufjs)', () => {
+    expect(parseTrivyFixedVersion('7.5.6, 8.0.2')).toEqual(['7.5.6', '8.0.2']);
+    expect(parseTrivyFixedVersion(' 7.5.8 ,  8.2.0 ')).toEqual(['7.5.8', '8.2.0']);
+  });
+
+  it('filtra strings vacios entre commas', () => {
+    expect(parseTrivyFixedVersion('7.5.6,,8.0.2')).toEqual(['7.5.6', '8.0.2']);
   });
 });

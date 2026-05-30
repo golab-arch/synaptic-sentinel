@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { join } from 'node:path';
 import * as vscode from 'vscode';
 import { renderTomoWebviewHtml } from './webview-content.js';
-import type { CostSummary, ExtensionFinding } from './tomo.js';
+import type { CostSummary, ExtensionFinding, ExtensionFindingGroup } from './tomo.js';
 
 /**
  * Proveedor del webview "tomo vivo" (v0.4 §4.3): un panel lateral con los
@@ -18,6 +18,7 @@ export class SentinelTomoViewProvider implements vscode.WebviewViewProvider {
 
   #view: vscode.WebviewView | undefined;
   #findings: readonly ExtensionFinding[] = [];
+  #groups: readonly ExtensionFindingGroup[] = [];
   #costSummary: CostSummary | null = null;
   #workspacePath: string | undefined;
 
@@ -42,10 +43,15 @@ export class SentinelTomoViewProvider implements vscode.WebviewViewProvider {
     workspacePath: string,
     findings: readonly ExtensionFinding[],
     costSummary?: CostSummary | null,
+    groups?: readonly ExtensionFindingGroup[],
   ): void {
     this.#workspacePath = workspacePath;
     this.#findings = findings;
     if (costSummary !== undefined) this.#costSummary = costSummary;
+    // DG-113 A Step 4: grupos SCA por package family. Se sobreescriben en
+    // cada update; si el caller no pasa `groups`, se preserva el ultimo
+    // set (e.g. hidratacion + cost-history update no tocan los grupos).
+    if (groups !== undefined) this.#groups = groups;
     this.#render();
   }
 
@@ -60,6 +66,7 @@ export class SentinelTomoViewProvider implements vscode.WebviewViewProvider {
         cspSource: view.webview.cspSource,
       },
       this.#costSummary,
+      this.#groups,
     );
   }
 

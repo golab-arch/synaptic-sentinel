@@ -179,3 +179,93 @@ describe('renderTomoJson', () => {
     expect(parsed.summary.scanId).toBe('scan-9');
   });
 });
+
+describe('buildTomo — DG-113 A Step 4: SCA groups en el tomo', () => {
+  /** Construye un Finding SCA bien-formado para tests del grouping. */
+  function scaFinding(
+    pkgName: string,
+    cve: string,
+    fixVersions: string[],
+    lockfile = 'package-lock.json',
+  ): Record<string, unknown> {
+    return {
+      id: randomUUID(),
+      scanId: 'scan-1',
+      scoutId: 'trivy',
+      severity: 'high',
+      category: 'SCA',
+      ruleId: cve,
+      title: `${pkgName}: ${cve}`,
+      message: `${pkgName} is vulnerable.`,
+      location: { path: lockfile, startLine: 1 },
+      complianceRefs: [cve],
+      fingerprint: `${lockfile}:${pkgName}:${cve}`,
+      lifecycleState: 'new',
+      createdAt: '2026-05-30T00:00:00.000Z',
+      sca: {
+        packageName: pkgName,
+        installedVersion: '7.5.4',
+        fixVersions,
+      },
+    };
+  }
+
+  it('emite groups[] con protobufjs family colapsado (caso §4 #4)', () => {
+    const findings = [
+      scaFinding('protobufjs', 'CVE-2026-44288', ['7.5.6', '8.0.2']),
+      scaFinding('protobufjs', 'CVE-2026-45740', ['7.5.8', '8.2.0']),
+      scaFinding('protobufjs', 'CVE-2026-41242', ['7.5.6']),
+    ];
+    const tomo = buildTomo(makeOutcome('scan-1'), findings, {
+      rootPath: '/proyecto',
+      sentinelVersion: '0.0.0',
+    });
+    expect(tomo.groups).toBeDefined();
+    expect(tomo.groups).toHaveLength(1);
+    expect(tomo.groups?.[0]?.familyKey).toBe('protobufjs');
+    expect(tomo.groups?.[0]?.findings).toHaveLength(3);
+    expect(tomo.groups?.[0]?.remediation.recommendedFixes).toEqual({
+      '7': '7.5.8',
+      '8': '8.2.0',
+    });
+    expect(tomo.groups?.[0]?.remediation.display).toBe('7.5.8 / 8.2.0');
+    expect(tomo.groups?.[0]?.remediation.heterogeneous).toBe(true);
+  });
+
+  it('emite groups[] cross-lockfile (mismo pkg en root + web)', () => {
+    const findings = [
+      scaFinding('fastify', 'CVE-2026-33806', ['5.8.5'], 'package-lock.json'),
+      scaFinding('fastify', 'CVE-2026-33806', ['5.8.5'], 'web/package-lock.json'),
+    ];
+    const tomo = buildTomo(makeOutcome('scan-1'), findings, {
+      rootPath: '/proyecto',
+      sentinelVersion: '0.0.0',
+    });
+    expect(tomo.groups).toHaveLength(1);
+    expect(tomo.groups?.[0]?.findings).toHaveLength(2);
+  });
+
+  it('NO emite groups[] cuando no hay findings SCA (tomo SAST puro)', () => {
+    const tomo = buildTomo(makeOutcome('scan-1'), [makeFinding('high', 'SAST')], {
+      rootPath: '/p',
+      sentinelVersion: '0.0.0',
+    });
+    expect(tomo.groups).toBeUndefined();
+  });
+
+  it('la integrity hash incluye groups (canonical hash cambia con groups)', () => {
+    const without = buildTomo(makeOutcome('scan-1'), [makeFinding('high', 'SAST')], {
+      rootPath: '/p',
+      sentinelVersion: '0.0.0',
+    });
+    const withGroups = buildTomo(
+      makeOutcome('scan-1'),
+      [scaFinding('protobufjs', 'CVE-X', ['7.5.6'])],
+      { rootPath: '/p', sentinelVersion: '0.0.0' },
+    );
+    expect(without.integrity.hash).not.toBe(withGroups.integrity.hash);
+    // ambos verifican OK contra su propio body.
+    expect(verifyTomoIntegrity(without)).toBe(true);
+    expect(verifyTomoIntegrity(withGroups)).toBe(true);
+  });
+});

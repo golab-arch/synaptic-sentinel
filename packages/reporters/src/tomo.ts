@@ -2,10 +2,12 @@ import { createHash, randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import {
   ContextExplanationSchema,
+  FindingGroupSchema,
   FindingSchema,
   RemediationSuggestionSchema,
   ScoutStatusSchema,
   TriageVerdictSchema,
+  groupFindingsByCorrelation,
   type ContextExplanationRecord,
   type Finding,
   type RemediationSuggestionRecord,
@@ -75,6 +77,14 @@ export const TomoBodySchema = z.object({
   summary: TomoSummarySchema,
   findings: z.array(TomoFindingSchema),
   methodology: TomoMethodologySchema,
+  /**
+   * Grupos de findings SCA correlacionados por package family (DG-113 A
+   * Step 4 — §4 #4 del SENTINEL-EVALUATION-REPORT). Cada grupo trae sus
+   * findings hijos + remediation target unificado (MAX semver por major
+   * track). Aditivo + backward-compatible: tomos legacy sin este field
+   * siguen validando contra el schema.
+   */
+  groups: z.array(FindingGroupSchema).optional(),
 });
 
 /** Firma de integridad del tomo — SHA-256, en todos los tiers (v0.4 §4.2). */
@@ -205,6 +215,11 @@ export function buildTomo(
     };
   });
 
+  // DG-113 A Step 4: grupos SCA por package family (cross-lockfile +
+  // intra-package). Solo emite el field si hay al menos 1 grupo (>= 1
+  // finding SCA con sca metadata) — tomos sin SCA quedan sin `groups`.
+  const groups = groupFindingsByCorrelation(findings);
+
   const body = TomoBodySchema.parse({
     metadata: {
       tomoId: randomUUID(),
@@ -234,6 +249,7 @@ export function buildTomo(
         ...(scout.error !== undefined ? { error: scout.error } : {}),
       })),
     },
+    ...(groups.length > 0 ? { groups } : {}),
   });
 
   return TomoSchema.parse({

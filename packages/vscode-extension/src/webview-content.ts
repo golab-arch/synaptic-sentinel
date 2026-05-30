@@ -161,6 +161,44 @@ const STYLE = `
     color: var(--vscode-foreground); font-weight: 600; }
   .cost-card .cost-empty { color: var(--vscode-descriptionForeground);
     font-style: italic; }
+  /* DG-113 A Step 4 — §4 #4: SCA grouped remediations. */
+  .section-groups { color: var(--vscode-foreground); }
+  .finding-group { border: 1px solid var(--vscode-panel-border);
+    border-left: 3px solid #8b5cf6; border-radius: 4px;
+    padding: 0; margin: 0.25rem 0; font-size: 0.9em;
+    background: var(--vscode-textBlockQuote-background, transparent); }
+  .finding-group details { padding: 0.4rem 0.6rem; }
+  .finding-group summary { cursor: pointer; display: flex; flex-wrap: wrap;
+    align-items: center; gap: 0.4rem; outline: none; }
+  .finding-group summary::-webkit-details-marker { display: none; }
+  .finding-group summary::marker { display: none; content: ''; }
+  .finding-group .group-family { font-weight: 700;
+    font-family: var(--vscode-editor-font-family), monospace; }
+  .finding-group .group-count { font-size: 0.85em;
+    color: var(--vscode-descriptionForeground); }
+  .finding-group .group-action { flex: 1 1 100%; font-size: 0.9em;
+    margin-top: 0.2rem; }
+  .finding-group .group-action code { font-family: var(--vscode-editor-font-family), monospace;
+    background: var(--vscode-textCodeBlock-background, transparent); padding: 0 0.2rem; }
+  .finding-group .group-note { font-size: 0.85em; margin-top: 0.35rem;
+    padding: 0.3rem 0.4rem; background: rgba(232, 130, 26, 0.15);
+    border-left: 2px solid #e8821a; }
+  .finding-group .group-children { list-style: none; padding: 0;
+    margin: 0.4rem 0 0; font-size: 0.85em; }
+  .finding-group .group-children li { display: flex; align-items: center;
+    gap: 0.4rem; padding: 0.15rem 0; }
+  .finding-group .group-child-sev { width: 6px; height: 6px;
+    border-radius: 50%; flex-shrink: 0; }
+  .finding-group .group-child-sev.sev-critical { background: #d11; }
+  .finding-group .group-child-sev.sev-high { background: #e8821a; }
+  .finding-group .group-child-sev.sev-medium { background: #d6b400; }
+  .finding-group .group-child-sev.sev-low { background: #3a8bd6; }
+  .finding-group .group-child-sev.sev-info { background: #888; }
+  .finding-group .group-child-title { flex: 1; }
+  .finding-group .group-child-loc {
+    color: var(--vscode-descriptionForeground);
+    font-family: var(--vscode-editor-font-family), monospace;
+    font-size: 0.9em; }
 `;
 
 /** Formatea la confidence (0..1) como porcentaje entero ("95%"). */
@@ -404,10 +442,82 @@ export function formatLastSessionAt(iso: string): string {
  * seguridad no debe poder inyectar HTML a partir de los hallazgos. El unico
  * `<script>` se autoriza con un nonce CSP.
  */
+/**
+ * Renderiza una card de FindingGroup (DG-113 A Step 4 — §4 #4) para el
+ * sidebar. Forma minima: family name (e.g. `protobufjs`) + count de
+ * findings hijos + remediation target (display) + nota de heterogeneidad
+ * cuando aplica + lista colapsada por default (`<details>`).
+ *
+ * Decision (G7 del plan): card expandible con collapse por default.
+ * Implementacion: `<details>` nativo HTML — sin JS adicional, accessible
+ * por keyboard, respeta scrolling.
+ */
+export function renderFindingGroupCard(group: {
+  readonly familyKey: string;
+  readonly findings: readonly {
+    readonly fingerprint: string;
+    readonly title: string;
+    readonly severity: string;
+    readonly location: { readonly path: string; readonly startLine: number };
+  }[];
+  readonly remediation: {
+    readonly recommendedFixes: Readonly<Record<string, string>>;
+    readonly display: string;
+    readonly heterogeneous: boolean;
+    readonly noFixAvailable: boolean;
+  };
+}): string {
+  const count = group.findings.length;
+  const action = group.remediation.noFixAvailable
+    ? 'No fix available'
+    : `Upgrade <code>${escapeHtml(group.familyKey)}</code> to ${escapeHtml(group.remediation.display)}`;
+  const heteroNote = group.remediation.heterogeneous
+    ? `<div class="group-note">Fix set is heterogeneous across major tracks — bumping to a single version may leave other CVEs open. Apply the per-track maxes shown above.</div>`
+    : '';
+  const childItems = group.findings
+    .map(
+      (f) =>
+        `<li>` +
+        `<span class="group-child-sev sev-${escapeHtml(f.severity)}"></span>` +
+        `<span class="group-child-title">${escapeHtml(f.title)}</span>` +
+        `<span class="group-child-loc">${escapeHtml(f.location.path)}:${String(f.location.startLine)}</span>` +
+        `</li>`,
+    )
+    .join('');
+  return (
+    `<div class="finding-group">` +
+    `<details>` +
+    `<summary>` +
+    `<span class="group-family">${escapeHtml(group.familyKey)}</span>` +
+    `<span class="group-count">${String(count)} finding${count === 1 ? '' : 's'}</span>` +
+    `<span class="group-action">${action}</span>` +
+    `</summary>` +
+    heteroNote +
+    `<ul class="group-children">${childItems}</ul>` +
+    `</details>` +
+    `</div>`
+  );
+}
+
 export function renderTomoWebviewHtml(
   findings: readonly ExtensionFinding[],
   options: WebviewHtmlOptions,
   costSummary?: CostSummary | null,
+  groups?: readonly {
+    readonly familyKey: string;
+    readonly findings: readonly {
+      readonly fingerprint: string;
+      readonly title: string;
+      readonly severity: string;
+      readonly location: { readonly path: string; readonly startLine: number };
+    }[];
+    readonly remediation: {
+      readonly recommendedFixes: Readonly<Record<string, string>>;
+      readonly display: string;
+      readonly heterogeneous: boolean;
+      readonly noFixAvailable: boolean;
+    };
+  }[],
 ): string {
   const csp =
     `default-src 'none'; ` +
@@ -439,7 +549,20 @@ export function renderTomoWebviewHtml(
     // null si el CLI fallo o el JSON no validaba contra el schema).
     const costHtml =
       costSummary !== undefined && costSummary !== null ? renderCostCard(costSummary) : '';
-    body = renderSummary(buckets) + costHtml + sections.join('');
+    // DG-113 A Step 4: seccion de grupos SCA (cross-lockfile +
+    // intra-package por exact package name). Solo se emite si hay al menos
+    // 1 grupo. Posicion: despues de cost card, antes de las sections —
+    // permite ver primero la accion remediativa agregada y despues los
+    // findings individuales triaged.
+    const groupsHtml =
+      groups !== undefined && groups.length > 0
+        ? `<h3 class="section section-groups">` +
+          `<span class="heading-icon">◆</span>SCA grouped remediations` +
+          `<span class="count">· ${String(groups.length)}</span>` +
+          `</h3>` +
+          groups.map(renderFindingGroupCard).join('')
+        : '';
+    body = renderSummary(buckets) + costHtml + groupsHtml + sections.join('');
   }
 
   // El script: al hacer click en una tarjeta, pide a la extension abrir el

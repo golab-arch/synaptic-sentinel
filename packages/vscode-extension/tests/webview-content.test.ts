@@ -4,6 +4,7 @@ import {
   formatLastSessionAt,
   groupByTriageState,
   renderCostCard,
+  renderFindingGroupCard,
   renderTomoWebviewHtml,
   triageStateOf,
 } from '../src/webview-content.js';
@@ -618,5 +619,135 @@ describe('parseCostSummary — DG-099 A', () => {
       totals: { calls: 1, inputTokens: 1, outputTokens: 1, estimatedCostUsd: 0.001 },
     };
     expect(parseCostSummary(raw)).toBeNull();
+  });
+});
+
+describe('renderFindingGroupCard — DG-113 A Step 4 / §4 #4', () => {
+  /** Construye un FindingGroup-like para tests del renderer. */
+  function makeGroup(args: {
+    familyKey?: string;
+    childCount?: number;
+    display?: string;
+    heterogeneous?: boolean;
+    noFixAvailable?: boolean;
+  }) {
+    const familyKey = args.familyKey ?? 'protobufjs';
+    const childCount = args.childCount ?? 3;
+    return {
+      familyKey,
+      findings: Array.from({ length: childCount }, (_, i) => ({
+        fingerprint: `fp-${String(i)}`,
+        title: `${familyKey}: CVE-2026-44288-${String(i)}`,
+        severity: 'high',
+        location: { path: 'package-lock.json', startLine: 1 },
+      })),
+      remediation: {
+        recommendedFixes: args.noFixAvailable ? {} : { '7': '7.5.8', '8': '8.2.0' },
+        display: args.display ?? '7.5.8 / 8.2.0',
+        heterogeneous: args.heterogeneous ?? true,
+        noFixAvailable: args.noFixAvailable ?? false,
+      },
+    };
+  }
+
+  it('renderea card con familyKey, count, action y children', () => {
+    const html = renderFindingGroupCard(makeGroup({ familyKey: 'protobufjs', childCount: 3 }));
+    expect(html).toContain('protobufjs');
+    expect(html).toContain('3 findings');
+    expect(html).toContain('Upgrade');
+    expect(html).toContain('7.5.8 / 8.2.0');
+  });
+
+  it('usa "1 finding" singular con childCount=1', () => {
+    const html = renderFindingGroupCard(makeGroup({ childCount: 1 }));
+    expect(html).toContain('1 finding<');
+    expect(html).not.toContain('1 findings');
+  });
+
+  it('muestra nota de heterogeneidad cuando aplica', () => {
+    const html = renderFindingGroupCard(makeGroup({ heterogeneous: true }));
+    expect(html).toContain('Fix set is heterogeneous');
+  });
+
+  it('NO muestra nota cuando heterogeneous=false', () => {
+    const html = renderFindingGroupCard(makeGroup({ heterogeneous: false, display: '7.5.8' }));
+    expect(html).not.toContain('Fix set is heterogeneous');
+  });
+
+  it('muestra "No fix available" cuando noFixAvailable=true', () => {
+    const html = renderFindingGroupCard(makeGroup({ noFixAvailable: true }));
+    expect(html).toContain('No fix available');
+    expect(html).not.toContain('Upgrade');
+  });
+
+  it('escapa el familyKey (anti-XSS via package name pathologico)', () => {
+    const html = renderFindingGroupCard(makeGroup({ familyKey: '<img src=x>' }));
+    expect(html).not.toContain('<img src=x>');
+    expect(html).toContain('&lt;img src=x&gt;');
+  });
+
+  it('usa <details> nativo (collapse por default sin JS)', () => {
+    const html = renderFindingGroupCard(makeGroup({}));
+    expect(html).toMatch(/<details>[\s\S]*<summary>/);
+  });
+});
+
+describe('renderTomoWebviewHtml — groups section (DG-113 A Step 4)', () => {
+  function makeFindingFor(severity: string = 'high'): ExtensionFinding {
+    return {
+      severity: severity as 'critical' | 'high' | 'medium' | 'low' | 'info',
+      category: 'SCA',
+      ruleId: 'CVE-X',
+      title: 'pkg: CVE-X',
+      message: 'pkg is vulnerable.',
+      location: { path: 'package-lock.json', startLine: 1 },
+      fingerprint: 'fp-test',
+      lifecycleState: 'new',
+    };
+  }
+  function makeGroupForRender() {
+    return {
+      familyKey: 'protobufjs',
+      findings: [
+        {
+          fingerprint: 'fp-1',
+          title: 'protobufjs: CVE-2026-44288',
+          severity: 'high',
+          location: { path: 'package-lock.json', startLine: 1 },
+        },
+      ],
+      remediation: {
+        recommendedFixes: { '7': '7.5.8' },
+        display: '7.5.8',
+        heterogeneous: false,
+        noFixAvailable: false,
+      },
+    };
+  }
+
+  it('incluye seccion "SCA grouped remediations" cuando hay groups', () => {
+    const html = renderTomoWebviewHtml([makeFindingFor()], { nonce: 'N1', cspSource: 'cs' }, null, [
+      makeGroupForRender(),
+    ]);
+    // Header HTML del bucket (NO el comentario CSS del <style>).
+    expect(html).toContain('<h3 class="section section-groups">');
+    expect(html).toContain('protobufjs');
+  });
+
+  it('NO incluye seccion cuando groups esta vacio', () => {
+    const html = renderTomoWebviewHtml(
+      [makeFindingFor()],
+      { nonce: 'N1', cspSource: 'cs' },
+      null,
+      [],
+    );
+    expect(html).not.toContain('<h3 class="section section-groups">');
+    expect(html).not.toContain('class="finding-group"');
+  });
+
+  it('NO incluye seccion cuando groups es undefined', () => {
+    const html = renderTomoWebviewHtml([makeFindingFor()], { nonce: 'N1', cspSource: 'cs' }, null);
+    expect(html).not.toContain('<h3 class="section section-groups">');
+    expect(html).not.toContain('class="finding-group"');
   });
 });
