@@ -112,6 +112,64 @@ describe('computeRemediationTarget — DG-113 A Step 4', () => {
     const t = computeRemediationTarget([['10.2.0', '8.1.0', '7.5.8']]);
     expect(t.display).toBe('7.5.8 / 8.1.0 / 10.2.0');
   });
+
+  it('DG-113.1 A: filtra downgrade track (caso fast-xml-parser instalado 5.5.6, fix {4.5.5, 5.7.0})', () => {
+    // Caso empirico de Baseline-4: fast-xml-parser 5.5.6 con fixes en 4.5.5
+    // OR 5.7.0. Naive output recomendaba ambas tracks (incluyendo downgrade
+    // a major 4). Post-fix solo debe quedar la track 5.
+    const t = computeRemediationTarget([['4.5.5', '5.7.0']], ['5.5.6']);
+    expect(t.recommendedFixes).toEqual({ '5': '5.7.0' });
+    expect(t.display).toBe('5.7.0');
+    expect(t.heterogeneous).toBe(false);
+    expect(t.noFixAvailable).toBe(false);
+  });
+
+  it('DG-113.1 A: preserva tracks de same-major y upgrades', () => {
+    // installed 7.5.4 + fix set distribuido en 7.x y 8.x. Ningún track es
+    // downgrade (7 = same major, 8 = upgrade). Ambos preservados.
+    const t = computeRemediationTarget(
+      [
+        ['7.5.6', '7.5.8'],
+        ['8.0.2', '8.2.0'],
+      ],
+      ['7.5.4'],
+    );
+    expect(t.recommendedFixes).toEqual({ '7': '7.5.8', '8': '8.2.0' });
+    expect(t.heterogeneous).toBe(true);
+  });
+
+  it('DG-113.1 A: multi-install group usa MIN installed major (safer)', () => {
+    // Group con installs [4.1.0, 5.5.0] + fixes en [3.x, 4.x, 5.x, 6.x].
+    // MIN installed major = 4. Track 3 se filtra (downgrade para ambos).
+    // Tracks 4, 5, 6 se preservan (sirven a al menos un miembro).
+    const t = computeRemediationTarget(
+      [['3.9.9'], ['4.2.0'], ['5.6.0'], ['6.0.0']],
+      ['4.1.0', '5.5.0'],
+    );
+    expect(Object.keys(t.recommendedFixes).sort()).toEqual(['4', '5', '6']);
+    expect(t.recommendedFixes['3']).toBeUndefined();
+  });
+
+  it('DG-113.1 A: si TODAS las fix tracks son downgrades → noFixAvailable con mensaje informativo', () => {
+    // installed 10.0.0 + fixes solo en 5.x → todo es downgrade.
+    const t = computeRemediationTarget([['5.6.0', '5.7.0']], ['10.0.0']);
+    expect(t.noFixAvailable).toBe(true);
+    expect(t.display).toBe('no upgrade path available (all known fixes are downgrades)');
+  });
+
+  it('DG-113.1 A: backward compat — sin installedVersions el filter NO aplica', () => {
+    // Sin segundo arg, el comportamiento pre-DG-113.1 A se preserva.
+    const t = computeRemediationTarget([['4.5.5', '5.7.0']]);
+    expect(t.recommendedFixes).toEqual({ '4': '4.5.5', '5': '5.7.0' });
+    expect(t.heterogeneous).toBe(true);
+  });
+
+  it('DG-113.1 A: installedVersions con strings vacios o inparseables son ignorados', () => {
+    // Si pasamos installs malformadas, el filter no aplica (no hay
+    // installedMajors válidas → no se computa MIN).
+    const t = computeRemediationTarget([['4.5.5', '5.7.0']], ['', 'latest', 'main']);
+    expect(t.recommendedFixes).toEqual({ '4': '4.5.5', '5': '5.7.0' });
+  });
 });
 
 describe('groupFindingsByCorrelation — DG-113 A Step 4 / §4 #4', () => {
@@ -281,6 +339,26 @@ describe('groupFindingsByCorrelation — DG-113 A Step 4 / §4 #4', () => {
     ];
     const groups = groupFindingsByCorrelation(findings);
     expect(groups.map((g) => g.familyKey)).toEqual(['bbb', 'aaa', 'zzz']);
+  });
+
+  it('DG-113.1 A: groupFindingsByCorrelation pasa installedVersions al remediation target (e2e wiring)', () => {
+    // E2E del caso fast-xml-parser: el grupo con installed 5.5.6 + fixes
+    // {4.5.5, 5.7.0} debe emitir target solo en track 5 (no recomienda
+    // downgrade a 4.5.5).
+    const findings = [
+      makeScaFinding({
+        packageName: 'fast-xml-parser',
+        installedVersion: '5.5.6',
+        fixVersions: ['4.5.5', '5.7.0'],
+        ruleId: 'CVE-Y',
+      }),
+    ];
+    const groups = groupFindingsByCorrelation(findings);
+    expect(groups).toHaveLength(1);
+    expect(groups[0]?.familyKey).toBe('fast-xml-parser');
+    expect(groups[0]?.remediation.recommendedFixes).toEqual({ '5': '5.7.0' });
+    expect(groups[0]?.remediation.display).toBe('5.7.0');
+    expect(groups[0]?.remediation.heterogeneous).toBe(false);
   });
 
   it('grupo con noFixAvailable: todos los findings sin fixVersions', () => {

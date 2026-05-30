@@ -88,9 +88,19 @@ export function packageFamilyKey(packageName: string): string {
  * - 1 major track → `heterogeneous: false`, display = `"X.Y.Z"`.
  * - Multiple major tracks → `heterogeneous: true`, display =
  *   `"X.Y.Z / W.V.U"` (sorted por major asc).
+ *
+ * DG-113.1 A — Filter downgrade tracks (§4 #4 lever #6/#11 'discard
+ * downgrades'): si se proporciona `installedVersions`, los major tracks
+ * por debajo del MIN(installed majors) del grupo se filtran como
+ * downgrades. Trigger empirico: fast-xml-parser instalado 5.5.6 con fix
+ * set {4.5.5, 5.7.0} → output naive `{4:'4.5.5', 5:'5.7.0'}` recomendaba
+ * downgrade a 4.5.5 (rompe codigo del usuario). Filter scope-controlled:
+ * solo aplica si installedVersions no vacio Y al menos una version
+ * parseable; backward compat (sin segundo arg el filter no aplica).
  */
 export function computeRemediationTarget(
   fixVersionArrays: readonly (readonly string[])[],
+  installedVersions: readonly string[] = [],
 ): RemediationTarget {
   const allFixVersions = fixVersionArrays.flat();
   if (allFixVersions.length === 0) {
@@ -117,6 +127,36 @@ export function computeRemediationTarget(
     return {
       recommendedFixes: {},
       display: 'fix versions could not be parsed',
+      heterogeneous: false,
+      noFixAvailable: true,
+    };
+  }
+
+  // DG-113.1 A: filter downgrade tracks. Compute MIN installed major; any
+  // track BELOW that is a downgrade for at least one member of the group.
+  // MIN (no MAX) es la decision safer: no eliminamos tracks que sirven al
+  // miembro de menor major instalado. E.g. grupo con installs [4.x, 5.x]:
+  // track 4 se preserva (sirve al user en 4.x); track 3 se filtra
+  // (downgrade para ambos).
+  if (installedVersions.length > 0) {
+    const installedMajors = installedVersions
+      .map((v) => semver.coerce(v))
+      .filter((c): c is semver.SemVer => c !== null)
+      .map((c) => c.major);
+    if (installedMajors.length > 0) {
+      const minInstalledMajor = Math.min(...installedMajors);
+      for (const track of [...maxByTrack.keys()]) {
+        if (Number(track) < minInstalledMajor) {
+          maxByTrack.delete(track);
+        }
+      }
+    }
+  }
+
+  if (maxByTrack.size === 0) {
+    return {
+      recommendedFixes: {},
+      display: 'no upgrade path available (all known fixes are downgrades)',
       heterogeneous: false,
       noFixAvailable: true,
     };
@@ -165,7 +205,11 @@ export function groupFindingsByCorrelation(findings: readonly Finding[]): Findin
   const groups: FindingGroup[] = [];
   for (const [familyKey, groupFindings] of groupsByKey.entries()) {
     const fixVersionArrays = groupFindings.map((f) => f.sca?.fixVersions ?? []);
-    const remediation = computeRemediationTarget(fixVersionArrays);
+    // DG-113.1 A: pasar installedVersions para filter downgrade tracks.
+    const installedVersions = groupFindings
+      .map((f) => f.sca?.installedVersion ?? '')
+      .filter((v) => v !== '');
+    const remediation = computeRemediationTarget(fixVersionArrays, installedVersions);
     groups.push({ familyKey, findings: groupFindings, remediation });
   }
 
