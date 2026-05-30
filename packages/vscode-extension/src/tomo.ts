@@ -63,6 +63,23 @@ const ExtensionFindingSchema = z.object({
  * (DG-021 A: la extension no importa los paquetes del motor).
  */
 /**
+ * Override directive replicado para la extension (DG-115 A Step 5 — §4 #15
+ * 'prismjs misleading remediation'). Forma identica al
+ * `OverrideDirective` del core; la frontera CLI↔extension impide importar.
+ */
+const ExtensionOverrideDirectiveSchema = z.object({
+  manager: z.enum(['npm', 'yarn', 'pnpm']),
+  packageName: z.string().min(1),
+  versionRange: z.string().min(1),
+  snippet: z.string().min(1),
+  hasSiblingFixedCopy: z.boolean(),
+  pinnedBy: z.array(z.string().min(1)).default([]),
+});
+
+/** Override directive en la forma que consume la extension (DG-115 A). */
+export type ExtensionOverrideDirective = z.infer<typeof ExtensionOverrideDirectiveSchema>;
+
+/**
  * Remediation target de un FindingGroup (DG-113 A Step 4 — §4 #4).
  * Forma identica al `RemediationTarget` del core; replicada aqui por la
  * frontera CLI↔extension (la extension NO importa core).
@@ -72,6 +89,8 @@ const ExtensionRemediationTargetSchema = z.object({
   display: z.string(),
   heterogeneous: z.boolean(),
   noFixAvailable: z.boolean(),
+  /** Override directive — DG-115 A Step 5. Opcional. */
+  overrideDirective: ExtensionOverrideDirectiveSchema.optional(),
 });
 
 /**

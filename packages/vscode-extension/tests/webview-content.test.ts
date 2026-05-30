@@ -5,6 +5,7 @@ import {
   groupByTriageState,
   renderCostCard,
   renderFindingGroupCard,
+  renderOverrideDirective,
   renderTomoWebviewHtml,
   triageStateOf,
 } from '../src/webview-content.js';
@@ -749,5 +750,128 @@ describe('renderTomoWebviewHtml — groups section (DG-113 A Step 4)', () => {
     const html = renderTomoWebviewHtml([makeFindingFor()], { nonce: 'N1', cspSource: 'cs' }, null);
     expect(html).not.toContain('<h3 class="section section-groups">');
     expect(html).not.toContain('class="finding-group"');
+  });
+});
+
+describe('renderOverrideDirective — DG-115 A Step 5 / §4 #15 (prismjs)', () => {
+  function makeDirective(overrides: Partial<Parameters<typeof renderOverrideDirective>[0]> = {}) {
+    return {
+      manager: 'npm' as const,
+      packageName: 'prismjs',
+      versionRange: '^1.30.0',
+      snippet: '"overrides": {\n  "prismjs": "^1.30.0"\n}',
+      hasSiblingFixedCopy: true,
+      pinnedBy: ['refractor@3.6.0'],
+      ...overrides,
+    };
+  }
+
+  it('variant STRONG cuando hasSiblingFixedCopy=true (caveat fuerte)', () => {
+    const html = renderOverrideDirective(makeDirective({ hasSiblingFixedCopy: true }), '1.30.0');
+    expect(html).toContain('override-directive strong');
+    expect(html).toContain('Top-level bump alone will NOT fix this');
+    // Mixed case (no full-caps en el header)
+    expect(html).not.toContain('TOP-LEVEL BUMP ALONE WILL NOT FIX THIS');
+  });
+
+  it('variant SOFT cuando hasSiblingFixedCopy=false', () => {
+    const html = renderOverrideDirective(makeDirective({ hasSiblingFixedCopy: false }), '1.30.0');
+    expect(html).toContain('override-directive soft');
+    expect(html).toContain('may not fix this');
+  });
+
+  it('OMITE la linea "Plain bump:" cuando hasSiblingFixedCopy=true', () => {
+    const html = renderOverrideDirective(makeDirective({ hasSiblingFixedCopy: true }), '1.30.0');
+    expect(html).not.toContain('Plain bump:');
+  });
+
+  it('INCLUYE la linea "Plain bump:" cuando hasSiblingFixedCopy=false', () => {
+    const html = renderOverrideDirective(makeDirective({ hasSiblingFixedCopy: false }), '1.30.0');
+    expect(html).toContain('Plain bump:');
+    expect(html).toContain('prismjs@1.30.0');
+  });
+
+  it('incluye Copy button con data-snippet y data-action', () => {
+    const html = renderOverrideDirective(makeDirective(), '1.30.0');
+    expect(html).toContain('data-action="copy-override"');
+    expect(html).toContain('data-snippet=');
+    expect(html).toContain('Copy</button>');
+  });
+
+  it('cita el pinner en el caveat de riesgo + ofrece exact como conservadora', () => {
+    const html = renderOverrideDirective(makeDirective(), '1.30.0');
+    expect(html).toContain('refractor@3.6.0');
+    expect(html).toContain('Conservative alternative');
+    expect(html).toContain('prismjs@1.30.0');
+  });
+
+  it('renderea el snippet escapado como bloque pre', () => {
+    const html = renderOverrideDirective(makeDirective(), '1.30.0');
+    expect(html).toContain('class="override-snippet"');
+    // El snippet contiene comillas — deben estar escapadas en el atributo data-snippet
+    // pero el contenido del <pre> tambien.
+    expect(html).toContain('&quot;prismjs&quot;');
+  });
+
+  it('escapa pinnedBy (anti-XSS via parent name pathologico)', () => {
+    const html = renderOverrideDirective(
+      makeDirective({ pinnedBy: ['<img src=x onerror=alert(1)>'] }),
+      '1.30.0',
+    );
+    expect(html).not.toContain('<img src=x onerror=alert(1)>');
+    expect(html).toContain('&lt;img src=x onerror=alert(1)&gt;');
+  });
+
+  it('renderFindingGroupCard inserta el directive cuando esta presente', () => {
+    const group = {
+      familyKey: 'prismjs',
+      findings: [
+        {
+          fingerprint: 'fp-prismjs',
+          title: 'prismjs: CVE-2024-53382',
+          severity: 'medium',
+          location: { path: 'pnpm-lock.yaml', startLine: 1 },
+        },
+      ],
+      remediation: {
+        recommendedFixes: { '1': '1.30.0' },
+        display: '1.30.0',
+        heterogeneous: false,
+        noFixAvailable: false,
+        overrideDirective: {
+          manager: 'npm' as const,
+          packageName: 'prismjs',
+          versionRange: '^1.30.0',
+          snippet: '"overrides": {\n  "prismjs": "^1.30.0"\n}',
+          hasSiblingFixedCopy: true,
+          pinnedBy: ['refractor@3.6.0'],
+        },
+      },
+    };
+    const html = renderFindingGroupCard(group);
+    expect(html).toContain('override-directive strong');
+    expect(html).toContain('refractor@3.6.0');
+  });
+
+  it('renderFindingGroupCard NO inserta directive cuando esta ausente', () => {
+    const group = {
+      familyKey: 'protobufjs',
+      findings: [
+        {
+          fingerprint: 'fp-1',
+          title: 'protobufjs: CVE-X',
+          severity: 'high',
+          location: { path: 'package-lock.json', startLine: 1 },
+        },
+      ],
+      remediation: {
+        recommendedFixes: { '7': '7.5.8' },
+        display: '7.5.8',
+        heterogeneous: false,
+        noFixAvailable: false,
+      },
+    };
+    const html = renderFindingGroupCard(group);
+    expect(html).not.toContain('override-directive');
   });
 });

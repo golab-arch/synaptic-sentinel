@@ -374,3 +374,177 @@ describe('groupFindingsByCorrelation — DG-113 A Step 4 / §4 #4', () => {
     expect(groups[0]?.remediation.noFixAvailable).toBe(true);
   });
 });
+
+/**
+ * DG-115 A Step 5 — §4 #15 'prismjs misleading remediation'. Helper que
+ * construye un Finding SCA con `dependencyContext` populado (no se hace
+ * via Trivy normalizer en los tests del core — el contrato es el schema).
+ */
+function makeScaFindingWithCtx(args: {
+  packageName: string;
+  installedVersion: string;
+  fixVersions: string[];
+  packageManager?: 'npm' | 'yarn' | 'pnpm';
+  directness: 'direct' | 'indirect' | 'root' | 'unknown';
+  pinnedBy?: readonly string[];
+  hasSiblingFixedCopy?: boolean;
+  ruleId?: string;
+}): Finding {
+  const base = makeScaFinding({
+    packageName: args.packageName,
+    installedVersion: args.installedVersion,
+    fixVersions: args.fixVersions,
+    ruleId: args.ruleId,
+  });
+  const ctx = {
+    directness: args.directness,
+    pinnedBy: [...(args.pinnedBy ?? [])],
+    hasSiblingFixedCopy: args.hasSiblingFixedCopy ?? false,
+  };
+  const enrichedSca: ScaMetadata = {
+    ...base.sca!,
+    ...(args.packageManager !== undefined ? { packageManager: args.packageManager } : {}),
+    dependencyContext: ctx,
+  };
+  return { ...base, sca: enrichedSca };
+}
+
+describe('overrideDirective — DG-115 A Step 5 / §4 #15 (prismjs nested-pinned)', () => {
+  it('emite override directive STRONG para el caso prismjs (indirect + hasSiblingFixedCopy)', () => {
+    const finding = makeScaFindingWithCtx({
+      packageName: 'prismjs',
+      installedVersion: '1.27.0',
+      fixVersions: ['1.30.0'],
+      packageManager: 'npm',
+      directness: 'indirect',
+      pinnedBy: ['refractor@3.6.0'],
+      hasSiblingFixedCopy: true,
+      ruleId: 'CVE-2024-53382',
+    });
+    const groups = groupFindingsByCorrelation([finding]);
+    expect(groups).toHaveLength(1);
+    const directive = groups[0]?.remediation.overrideDirective;
+    expect(directive).toBeDefined();
+    expect(directive?.manager).toBe('npm');
+    expect(directive?.packageName).toBe('prismjs');
+    expect(directive?.versionRange).toBe('^1.30.0');
+    expect(directive?.hasSiblingFixedCopy).toBe(true);
+    expect(directive?.pinnedBy).toEqual(['refractor@3.6.0']);
+    expect(directive?.snippet).toBe('"overrides": {\n  "prismjs": "^1.30.0"\n}');
+  });
+
+  it('emite override directive SOFT cuando indirect pero NO sibling fixed copy', () => {
+    const finding = makeScaFindingWithCtx({
+      packageName: 'somepkg',
+      installedVersion: '1.0.0',
+      fixVersions: ['1.2.0'],
+      packageManager: 'npm',
+      directness: 'indirect',
+      pinnedBy: ['parent-pkg@2.0.0'],
+      hasSiblingFixedCopy: false,
+    });
+    const groups = groupFindingsByCorrelation([finding]);
+    const directive = groups[0]?.remediation.overrideDirective;
+    expect(directive).toBeDefined();
+    expect(directive?.hasSiblingFixedCopy).toBe(false);
+  });
+
+  it('NO emite override directive cuando el finding es direct (no nested-pinned)', () => {
+    const finding = makeScaFindingWithCtx({
+      packageName: 'topo-pkg',
+      installedVersion: '1.0.0',
+      fixVersions: ['1.2.0'],
+      packageManager: 'npm',
+      directness: 'direct',
+    });
+    const groups = groupFindingsByCorrelation([finding]);
+    expect(groups[0]?.remediation.overrideDirective).toBeUndefined();
+  });
+
+  it('NO emite override directive si no hay packageManager conocido', () => {
+    const finding = makeScaFindingWithCtx({
+      packageName: 'nopm-pkg',
+      installedVersion: '1.0.0',
+      fixVersions: ['1.2.0'],
+      // sin packageManager
+      directness: 'indirect',
+      pinnedBy: ['parent@1.0.0'],
+    });
+    const groups = groupFindingsByCorrelation([finding]);
+    expect(groups[0]?.remediation.overrideDirective).toBeUndefined();
+  });
+
+  it('NO emite override directive si noFixAvailable', () => {
+    const finding = makeScaFindingWithCtx({
+      packageName: 'nofix',
+      installedVersion: '1.0.0',
+      fixVersions: [],
+      packageManager: 'npm',
+      directness: 'indirect',
+      pinnedBy: ['parent@1.0.0'],
+    });
+    const groups = groupFindingsByCorrelation([finding]);
+    expect(groups[0]?.remediation.overrideDirective).toBeUndefined();
+  });
+
+  it('formato yarn: usa "resolutions"', () => {
+    const finding = makeScaFindingWithCtx({
+      packageName: 'prismjs',
+      installedVersion: '1.27.0',
+      fixVersions: ['1.30.0'],
+      packageManager: 'yarn',
+      directness: 'indirect',
+      pinnedBy: ['refractor@3.6.0'],
+      hasSiblingFixedCopy: true,
+    });
+    const groups = groupFindingsByCorrelation([finding]);
+    expect(groups[0]?.remediation.overrideDirective?.snippet).toBe(
+      '"resolutions": {\n  "prismjs": "^1.30.0"\n}',
+    );
+  });
+
+  it('formato pnpm: usa "pnpm.overrides" anidado', () => {
+    const finding = makeScaFindingWithCtx({
+      packageName: 'prismjs',
+      installedVersion: '1.27.0',
+      fixVersions: ['1.30.0'],
+      packageManager: 'pnpm',
+      directness: 'indirect',
+      pinnedBy: ['refractor@3.6.0'],
+      hasSiblingFixedCopy: true,
+    });
+    const groups = groupFindingsByCorrelation([finding]);
+    expect(groups[0]?.remediation.overrideDirective?.snippet).toBe(
+      '"pnpm": {\n  "overrides": {\n    "prismjs": "^1.30.0"\n  }\n}',
+    );
+  });
+
+  it('agrega pinnedBy deduped + hasSiblingFixedCopy OR across multiple indirect findings', () => {
+    const f1 = makeScaFindingWithCtx({
+      packageName: 'prismjs',
+      installedVersion: '1.27.0',
+      fixVersions: ['1.30.0'],
+      packageManager: 'npm',
+      directness: 'indirect',
+      pinnedBy: ['refractor@3.6.0', 'shared-pin@1.0.0'],
+      hasSiblingFixedCopy: false,
+      ruleId: 'CVE-A',
+    });
+    const f2 = makeScaFindingWithCtx({
+      packageName: 'prismjs',
+      installedVersion: '1.27.0',
+      fixVersions: ['1.30.0'],
+      packageManager: 'npm',
+      directness: 'indirect',
+      pinnedBy: ['other-pin@2.0.0', 'shared-pin@1.0.0'],
+      hasSiblingFixedCopy: true,
+      ruleId: 'CVE-B',
+    });
+    const groups = groupFindingsByCorrelation([f1, f2]);
+    const directive = groups[0]?.remediation.overrideDirective;
+    expect(directive?.hasSiblingFixedCopy).toBe(true);
+    expect(directive?.pinnedBy.sort()).toEqual(
+      ['other-pin@2.0.0', 'refractor@3.6.0', 'shared-pin@1.0.0'].sort(),
+    );
+  });
+});

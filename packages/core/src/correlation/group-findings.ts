@@ -12,6 +12,48 @@ import { FindingSchema, type Finding } from '../types/finding.js';
  * `7.5.8`, otros CVEs `7.5.6` — el MAX es `7.5.8` para la track v7. Un
  * naive bump a `7.5.6` deja CVE-2026-45740 abierto.
  */
+/**
+ * Override directive recomendada para SCA findings transitive nested-pinned
+ * (DG-115 A Step 5 — §4 #15 'prismjs misleading remediation').
+ *
+ * Cuando un finding SCA tiene `dependencyContext.directness === 'indirect'`,
+ * un bump top-level puede NO resolver la vulnerabilidad porque la copia
+ * vulnerable esta pineada por un parent transitive (caso prismjs: 1.27.0
+ * nested bajo `refractor@3.6.0 ~1.27.0` aunque `prismjs` 1.30.0 ya este
+ * top-level). El override directive fuerza la version fija via
+ * `package.json` overrides (npm) / `resolutions` (yarn) / `pnpm.overrides`.
+ */
+export const OverrideDirectiveSchema = z.object({
+  /** Package manager del lockfile target. */
+  manager: z.enum(['npm', 'yarn', 'pnpm']),
+  /** Nombre del package a overridear. */
+  packageName: z.string().min(1),
+  /**
+   * Constraint semver (e.g. `^1.30.0`). Se computa como `^<recommendedFix>`
+   * de la track del installedVersion del primer finding indirect del grupo.
+   */
+  versionRange: z.string().min(1),
+  /**
+   * JSON snippet listo para copiar/pegar en `package.json`. Forma amplia
+   * (no scoped al pinner) — DG-115 A v1 explicit decision.
+   */
+  snippet: z.string().min(1),
+  /**
+   * `true` si existe otra copia del mismo `packageName` con version >= fix
+   * en el lockfile. Determina caveat **FUERTE** ("bump top-level WILL NOT
+   * fix") vs **SUAVE** ("plain update may suffice").
+   */
+  hasSiblingFixedCopy: z.boolean(),
+  /**
+   * IDs `name@version` de los parents que pinean copias vulnerables.
+   * Citados en el risk caveat (e.g. `["refractor@3.6.0"]`). Dedupeado.
+   */
+  pinnedBy: z.array(z.string().min(1)).default([]),
+});
+
+/** Override directive de un FindingGroup. */
+export type OverrideDirective = z.infer<typeof OverrideDirectiveSchema>;
+
 export const RemediationTargetSchema = z.object({
   /**
    * Mapeo majorTrack → max semver de esa track.
@@ -30,6 +72,13 @@ export const RemediationTargetSchema = z.object({
   heterogeneous: z.boolean(),
   /** `true` si NO hay fix version conocida en ninguno de los findings del grupo. */
   noFixAvailable: z.boolean(),
+  /**
+   * Override directive (DG-115 A Step 5). Se emite cuando el grupo tiene
+   * al menos un finding con `directness: 'indirect'` y hay al menos una
+   * fix version conocida. Opcional — si no hay info de directness o
+   * package manager, queda `undefined` y el sidebar no renderea el bloque.
+   */
+  overrideDirective: OverrideDirectiveSchema.optional(),
 });
 
 /** Remediation target de un FindingGroup. */
@@ -178,6 +227,87 @@ export function computeRemediationTarget(
 }
 
 /**
+ * Construye el snippet JSON listo para copiar/pegar en `package.json`
+ * segun el package manager (DG-115 A Step 5). v1: forma amplia
+ * (`overrides`/`resolutions` top-level), no scoped al parent pinner.
+ *
+ * - npm: `"overrides": { "<pkg>": "<range>" }`
+ * - yarn: `"resolutions": { "<pkg>": "<range>" }`
+ * - pnpm: `"pnpm": { "overrides": { "<pkg>": "<range>" } }`
+ */
+export function buildOverrideSnippet(
+  manager: 'npm' | 'yarn' | 'pnpm',
+  packageName: string,
+  versionRange: string,
+): string {
+  if (manager === 'npm') {
+    return `"overrides": {\n  "${packageName}": "${versionRange}"\n}`;
+  }
+  if (manager === 'yarn') {
+    return `"resolutions": {\n  "${packageName}": "${versionRange}"\n}`;
+  }
+  return `"pnpm": {\n  "overrides": {\n    "${packageName}": "${versionRange}"\n  }\n}`;
+}
+
+/**
+ * Computa el override directive de un FindingGroup (DG-115 A Step 5).
+ *
+ * Trigger: al menos un finding del grupo tiene
+ * `sca.dependencyContext.directness === 'indirect'`. Decision deliberada
+ * (G7 del plan, ajuste del usuario): emitir SIEMPRE que haya indirect
+ * (over-approximation segura — el caveat se gradua con `hasSiblingFixedCopy`).
+ *
+ * Inputs derivados del grupo:
+ * - `manager`: primer `sca.packageManager` del grupo que matchee `npm`/
+ *   `yarn`/`pnpm`. Si ninguno, devuelve `undefined`.
+ * - `packageName`: del primer finding indirect.
+ * - `versionRange`: `^<recommendedFix>` donde `recommendedFix` es el max
+ *   semver de la track del installedVersion del primer finding indirect.
+ * - `hasSiblingFixedCopy`: OR sobre todos los findings indirect.
+ * - `pinnedBy`: union deduped de todos los `pinnedBy` indirect.
+ */
+function computeOverrideDirective(
+  findings: readonly Finding[],
+  remediation: RemediationTarget,
+): OverrideDirective | undefined {
+  const indirectFindings = findings.filter(
+    (f) => f.sca?.dependencyContext?.directness === 'indirect',
+  );
+  if (indirectFindings.length === 0) return undefined;
+  if (remediation.noFixAvailable) return undefined;
+
+  const managerRaw = findings.map((f) => f.sca?.packageManager).find((m) => m !== undefined);
+  if (managerRaw !== 'npm' && managerRaw !== 'yarn' && managerRaw !== 'pnpm') return undefined;
+
+  const firstIndirect = indirectFindings[0];
+  if (firstIndirect === undefined || firstIndirect.sca === undefined) return undefined;
+  const packageName = firstIndirect.sca.packageName;
+  const installedCoerced = semver.coerce(firstIndirect.sca.installedVersion);
+  const installedMajor = installedCoerced !== null ? String(installedCoerced.major) : undefined;
+  const fixForTrack =
+    installedMajor !== undefined ? remediation.recommendedFixes[installedMajor] : undefined;
+  const fix = fixForTrack ?? Object.values(remediation.recommendedFixes)[0];
+  if (fix === undefined) return undefined;
+  const versionRange = `^${fix}`;
+
+  const hasSiblingFixedCopy = indirectFindings.some(
+    (f) => f.sca?.dependencyContext?.hasSiblingFixedCopy === true,
+  );
+  const pinnedBy = [
+    ...new Set(indirectFindings.flatMap((f) => f.sca?.dependencyContext?.pinnedBy ?? [])),
+  ];
+
+  return {
+    manager: managerRaw,
+    packageName,
+    versionRange,
+    snippet: buildOverrideSnippet(managerRaw, packageName, versionRange),
+    hasSiblingFixedCopy,
+    pinnedBy,
+  };
+}
+
+/**
  * Agrupa findings SCA por package family (DG-113 A Step 4 — §4 #4).
  *
  * Reglas:
@@ -209,7 +339,11 @@ export function groupFindingsByCorrelation(findings: readonly Finding[]): Findin
     const installedVersions = groupFindings
       .map((f) => f.sca?.installedVersion ?? '')
       .filter((v) => v !== '');
-    const remediation = computeRemediationTarget(fixVersionArrays, installedVersions);
+    const remediationBase = computeRemediationTarget(fixVersionArrays, installedVersions);
+    // DG-115 A Step 5: enriquece con override directive cuando hay indirect.
+    const overrideDirective = computeOverrideDirective(groupFindings, remediationBase);
+    const remediation: RemediationTarget =
+      overrideDirective !== undefined ? { ...remediationBase, overrideDirective } : remediationBase;
     groups.push({ familyKey, findings: groupFindings, remediation });
   }
 

@@ -199,6 +199,43 @@ const STYLE = `
     color: var(--vscode-descriptionForeground);
     font-family: var(--vscode-editor-font-family), monospace;
     font-size: 0.9em; }
+  /* DG-115 A Step 5 — override directive (transitive nested-pinned). */
+  .override-directive { margin-top: 0.5rem; padding: 0.5rem 0.6rem;
+    border-radius: 4px; font-size: 0.95em; }
+  .override-directive.strong {
+    border: 1px solid var(--vscode-inputValidation-errorBorder);
+    border-left: 4px solid var(--vscode-editorError-foreground);
+    background: var(--vscode-inputValidation-errorBackground, transparent); }
+  .override-directive.soft {
+    border: 1px solid var(--vscode-inputValidation-warningBorder);
+    border-left: 4px solid var(--vscode-editorWarning-foreground);
+    background: var(--vscode-inputValidation-warningBackground, transparent); }
+  .override-header { font-weight: 700; margin-bottom: 0.35rem; }
+  .override-directive.strong .override-header {
+    color: var(--vscode-editorError-foreground); }
+  .override-directive.soft .override-header {
+    color: var(--vscode-editorWarning-foreground); }
+  .override-snippet-row { display: flex; align-items: stretch;
+    gap: 0.35rem; margin: 0.35rem 0; }
+  .override-snippet { flex: 1; margin: 0; padding: 0.4rem 0.5rem;
+    background: var(--vscode-textCodeBlock-background, transparent);
+    border-radius: 3px; white-space: pre;
+    font-family: var(--vscode-editor-font-family), monospace;
+    font-size: 0.9em; tabindex: 0; }
+  .override-copy-btn { padding: 0 0.6rem;
+    background: var(--vscode-button-secondaryBackground, transparent);
+    color: var(--vscode-button-secondaryForeground, inherit);
+    border: 1px solid var(--vscode-button-border, transparent);
+    border-radius: 3px; cursor: pointer; font-size: 0.85em; }
+  .override-copy-btn:hover {
+    background: var(--vscode-button-secondaryHoverBackground, transparent); }
+  .override-plain-bump { font-size: 0.85em; margin-top: 0.25rem;
+    color: var(--vscode-descriptionForeground); }
+  .override-caveat { font-size: 0.85em; margin-top: 0.35rem; }
+  .override-pinner-risk { font-size: 0.85em; margin-top: 0.35rem;
+    color: var(--vscode-descriptionForeground); }
+  .override-pinner-risk code { font-family: var(--vscode-editor-font-family), monospace;
+    background: var(--vscode-textCodeBlock-background, transparent); padding: 0 0.2rem; }
 `;
 
 /** Formatea la confidence (0..1) como porcentaje entero ("95%"). */
@@ -452,6 +489,78 @@ export function formatLastSessionAt(iso: string): string {
  * Implementacion: `<details>` nativo HTML — sin JS adicional, accessible
  * por keyboard, respeta scrolling.
  */
+/**
+ * Renderiza el bloque del override directive (DG-115 A Step 5 — §4 #15
+ * 'prismjs misleading remediation'). Diseño dominante sobre el rationale
+ * del LLM para evitar el caso clasico: usuario lee solo el rationale,
+ * ignora el directive y aplica un bump top-level inutil.
+ *
+ * Variantes:
+ * - `strong` (rojo, `--vscode-editorError-foreground`): `hasSiblingFixedCopy:true`
+ *   — una copia fixeada ya existe top-level; un bump top-level NO resuelve.
+ * - `soft` (amarillo, `--vscode-editorWarning-foreground`): un plain bump
+ *   PUEDE resolver; si la nested persiste, aplicar el override.
+ *
+ * UX (per Q1-Q4 user-approved):
+ * - CSS vars semanticas (no hex) → accesibilidad + theme-coherence (high
+ *   contrast/light themes incluidos).
+ * - Header: "Top-level bump alone will NOT fix this" (mixed case, no full-caps).
+ * - "Plain bump:" linea subordinada — OMITIDA cuando `hasSiblingFixedCopy:true`
+ *   (en ese caso el bump top-level es no-op, no hay nada que ofrecer).
+ * - Copy button: try `navigator.clipboard.writeText` con fallback a
+ *   `getSelection().selectAllChildren` (handler en el script tomo-wide).
+ * - Risk caveat: cita pinner(s) + version conservadora exacta como alt.
+ */
+export function renderOverrideDirective(
+  directive: {
+    readonly manager: 'npm' | 'yarn' | 'pnpm';
+    readonly packageName: string;
+    readonly versionRange: string;
+    readonly snippet: string;
+    readonly hasSiblingFixedCopy: boolean;
+    readonly pinnedBy: readonly string[];
+  },
+  fixExact: string | undefined,
+): string {
+  const variant = directive.hasSiblingFixedCopy ? 'strong' : 'soft';
+  const headerText = directive.hasSiblingFixedCopy
+    ? 'Top-level bump alone will NOT fix this'
+    : 'Top-level bump alone may not fix this';
+  const caveat = directive.hasSiblingFixedCopy
+    ? `A fixed copy of <code>${escapeHtml(directive.packageName)}</code> already exists top-level, ` +
+      `but a transitive dependency is pinning a vulnerable nested copy. ` +
+      `You MUST apply the override below.`
+    : `A plain update of <code>${escapeHtml(directive.packageName)}</code> may suffice. ` +
+      `If the nested copy persists after the bump, apply the override below.`;
+  const plainBump =
+    !directive.hasSiblingFixedCopy && fixExact !== undefined
+      ? `<div class="override-plain-bump">Plain bump: <code>${escapeHtml(directive.packageName)}@${escapeHtml(fixExact)}</code> (try first).</div>`
+      : '';
+  const pinnerStr = directive.pinnedBy.length > 0 ? directive.pinnedBy.join(', ') : 'a parent';
+  const pinnerRisk =
+    fixExact !== undefined
+      ? `<div class="override-pinner-risk">This overrides the version pinned by ` +
+        `<code>${escapeHtml(pinnerStr)}</code>; verify <code>${escapeHtml(pinnerStr)}</code> ` +
+        `still works after applying — test. Conservative alternative: use exact ` +
+        `<code>${escapeHtml(directive.packageName)}@${escapeHtml(fixExact)}</code>.</div>`
+      : `<div class="override-pinner-risk">This overrides the version pinned by ` +
+        `<code>${escapeHtml(pinnerStr)}</code>; verify <code>${escapeHtml(pinnerStr)}</code> ` +
+        `still works after applying — test.</div>`;
+  return (
+    `<div class="override-directive ${variant}" data-directive="override">` +
+    `<div class="override-header">${escapeHtml(headerText)} (${escapeHtml(directive.manager)})</div>` +
+    `<div class="override-caveat">${caveat}</div>` +
+    plainBump +
+    `<div class="override-snippet-row">` +
+    `<pre class="override-snippet" tabindex="0">${escapeHtml(directive.snippet)}</pre>` +
+    `<button type="button" class="override-copy-btn" data-action="copy-override" ` +
+    `data-snippet="${escapeHtml(directive.snippet)}">Copy</button>` +
+    `</div>` +
+    pinnerRisk +
+    `</div>`
+  );
+}
+
 export function renderFindingGroupCard(group: {
   readonly familyKey: string;
   readonly findings: readonly {
@@ -465,6 +574,16 @@ export function renderFindingGroupCard(group: {
     readonly display: string;
     readonly heterogeneous: boolean;
     readonly noFixAvailable: boolean;
+    readonly overrideDirective?:
+      | {
+          readonly manager: 'npm' | 'yarn' | 'pnpm';
+          readonly packageName: string;
+          readonly versionRange: string;
+          readonly snippet: string;
+          readonly hasSiblingFixedCopy: boolean;
+          readonly pinnedBy: readonly string[];
+        }
+      | undefined;
   };
 }): string {
   const count = group.findings.length;
@@ -474,6 +593,20 @@ export function renderFindingGroupCard(group: {
   const heteroNote = group.remediation.heterogeneous
     ? `<div class="group-note">Fix set is heterogeneous across major tracks — bumping to a single version may leave other CVEs open. Apply the per-track maxes shown above.</div>`
     : '';
+  // DG-115 A: override directive (transitive nested-pinned). Renderea
+  // DENTRO del <details> pero ANTES de la lista de children — visualmente
+  // dominante sobre el rationale del LLM (que aparece en cada child card).
+  let overrideHtml = '';
+  if (group.remediation.overrideDirective !== undefined) {
+    // fixExact: del recommendedFix de la track del majorRange. Si solo hay
+    // 1 track, usa esa; si hay varias, intenta matchear con la track del
+    // versionRange (^X.Y.Z → major X).
+    const fixExact = pickExactFix(
+      group.remediation.recommendedFixes,
+      group.remediation.overrideDirective.versionRange,
+    );
+    overrideHtml = renderOverrideDirective(group.remediation.overrideDirective, fixExact);
+  }
   const childItems = group.findings
     .map(
       (f) =>
@@ -492,11 +625,30 @@ export function renderFindingGroupCard(group: {
     `<span class="group-count">${String(count)} finding${count === 1 ? '' : 's'}</span>` +
     `<span class="group-action">${action}</span>` +
     `</summary>` +
+    overrideHtml +
     heteroNote +
     `<ul class="group-children">${childItems}</ul>` +
     `</details>` +
     `</div>`
   );
+}
+
+/**
+ * Extrae la version exacta del fix para una `versionRange` (`^X.Y.Z`).
+ * Match por major track; si no hay match exacto, devuelve el primer fix
+ * disponible.
+ */
+function pickExactFix(
+  recommendedFixes: Readonly<Record<string, string>>,
+  versionRange: string,
+): string | undefined {
+  const match = /\^?(\d+)\./.exec(versionRange);
+  const major = match?.[1];
+  if (major !== undefined) {
+    const fix = recommendedFixes[major];
+    if (fix !== undefined) return fix;
+  }
+  return Object.values(recommendedFixes)[0];
 }
 
 export function renderTomoWebviewHtml(
@@ -516,6 +668,16 @@ export function renderTomoWebviewHtml(
       readonly display: string;
       readonly heterogeneous: boolean;
       readonly noFixAvailable: boolean;
+      readonly overrideDirective?:
+        | {
+            readonly manager: 'npm' | 'yarn' | 'pnpm';
+            readonly packageName: string;
+            readonly versionRange: string;
+            readonly snippet: string;
+            readonly hasSiblingFixedCopy: boolean;
+            readonly pinnedBy: readonly string[];
+          }
+        | undefined;
     };
   }[],
 ): string {
@@ -585,6 +747,27 @@ export function renderTomoWebviewHtml(
     `if (rtBtn) { rtBtn.addEventListener('click', (e) => {` +
     `e.stopPropagation();` +
     `api.postMessage({ type: 're-triage-all' });` +
+    `});}` +
+    // DG-115 A Step 5: Copy override snippet. Try Clipboard API; fallback
+    // a getSelection().selectAllChildren del <pre> sibling. Eat click para
+    // no togglear el <details> parent.
+    `for (const cBtn of document.querySelectorAll('[data-action="copy-override"]')) {` +
+    `cBtn.addEventListener('click', (e) => {` +
+    `e.stopPropagation(); e.preventDefault();` +
+    `const snippet = cBtn.dataset.snippet || '';` +
+    `const done = () => { const orig = cBtn.textContent; cBtn.textContent = 'Copied'; ` +
+    `setTimeout(() => { cBtn.textContent = orig; }, 1500); };` +
+    `if (navigator.clipboard && navigator.clipboard.writeText) {` +
+    `navigator.clipboard.writeText(snippet).then(done).catch(() => {` +
+    `const pre = cBtn.parentElement && cBtn.parentElement.querySelector('.override-snippet');` +
+    `if (pre) { const sel = window.getSelection(); if (sel) { sel.removeAllRanges(); ` +
+    `const r = document.createRange(); r.selectNodeContents(pre); sel.addRange(r); } done(); }` +
+    `});` +
+    `} else {` +
+    `const pre = cBtn.parentElement && cBtn.parentElement.querySelector('.override-snippet');` +
+    `if (pre) { const sel = window.getSelection(); if (sel) { sel.removeAllRanges(); ` +
+    `const r = document.createRange(); r.selectNodeContents(pre); sel.addRange(r); } done(); }` +
+    `}` +
     `});}`;
 
   return `<!doctype html>

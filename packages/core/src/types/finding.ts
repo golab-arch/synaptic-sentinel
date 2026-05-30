@@ -96,6 +96,44 @@ export type DataflowTrace = z.infer<typeof DataflowTraceSchema>;
  * fix versions del grupo). Los 3 campos vienen del Trivy `Vulnerability`:
  * `PkgName`, `InstalledVersion`, `FixedVersion` (parseado a `string[]`).
  */
+/**
+ * Contexto de dependency-graph de un finding SCA (DG-115 A Step 5 — §4 #15
+ * 'prismjs misleading remediation'). Sirve para detectar el caso clasico
+ * en que un bump top-level NO resuelve la vulnerabilidad porque existe
+ * una copia anidada pineada por un parent transitive (e.g. `prismjs`
+ * 1.27.0 vulnerable bajo `refractor@3.6.0` pinned `~1.27.0`, mientras
+ * `prismjs` 1.30.0 ya existe top-level).
+ *
+ * Populado desde `Trivy Result.Packages[]` matcheando vuln↔Package via
+ * `PkgIdentifier.UID`. Opcional — Trivy versions older o targets no-npm
+ * pueden no exponerlo; en ese caso degrada gracefully (no se emite
+ * override directive).
+ */
+export const DependencyContextSchema = z.object({
+  /**
+   * Es transitive (`indirect`) o top-level (`direct`)? `root` para el
+   * package raiz del proyecto. `unknown` cuando Trivy no lo expone.
+   */
+  directness: z.enum(['direct', 'indirect', 'root', 'unknown']).default('unknown'),
+  /**
+   * IDs `name@version` de los packages que pinean esta copia especifica
+   * (i.e. la incluyen en su `DependsOn`). Permite construir el caveat
+   * que cita al pinner ("pinned by refractor@3.6.0"). Vacio si no hay
+   * pinners detectados (e.g. para `direct` deps top-level).
+   */
+  pinnedBy: z.array(z.string().min(1)).default([]),
+  /**
+   * `true` si OTRA copia del mismo `packageName` con version >= fix
+   * existe en el grafo. Indica el caso clasico "bump top-level no fixea
+   * porque la vulnerable esta nested pineada por otra cosa" — el caveat
+   * UX se vuelve FUERTE.
+   */
+  hasSiblingFixedCopy: z.boolean().default(false),
+});
+
+/** Contexto de dependency-graph de un finding SCA. */
+export type DependencyContext = z.infer<typeof DependencyContextSchema>;
+
 export const ScaMetadataSchema = z.object({
   /** Nombre del paquete (e.g. `protobufjs`, `@protobufjs/utf8`). */
   packageName: z.string().min(1),
@@ -107,6 +145,16 @@ export const ScaMetadataSchema = z.object({
    * conocido.
    */
   fixVersions: z.array(z.string().min(1)).default([]),
+  /**
+   * Package manager autoritativo del target — `npm`, `yarn`, `pnpm`,
+   * etc. (DG-115 A). Viene del field `Type` del `Result` de Trivy.
+   * Determina el formato del override directive (npm `overrides`, yarn
+   * `resolutions`, pnpm `pnpm.overrides`). Opcional — si Trivy no lo
+   * emite, el directive no se construye.
+   */
+  packageManager: z.string().optional(),
+  /** Contexto de dependency-graph (DG-115 A). */
+  dependencyContext: DependencyContextSchema.optional(),
 });
 
 /** Metadata SCA. */
