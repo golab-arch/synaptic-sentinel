@@ -3,7 +3,7 @@
   "projectId": "sentinel-1779304140796",
   "projectName": "SENTINEL",
   "initializedAt": "2026-05-20T19:09:00.816Z",
-  "lastActivity": "2026-05-30T19:00:00.000Z",
+  "lastActivity": "2026-05-30T21:45:00.000Z",
   "currentCycle": 107,
   "currentPhase": 12,
   "synapticStrength": 100,
@@ -19,9 +19,17 @@
   "agentState": {
     "complianceScore": 100,
     "violationsCount": 0,
-    "successfulCycles": 106,
+    "successfulCycles": 107,
     "marketplacePublishedExtensionId": "RealGoLab.synaptic-sentinel",
     "marketplacePublishedVersion": "0.3.3",
     "githubReleaseLatest": "v0.3.14"
+  },
+  "activeDG": {
+    "id": "DG-115-A",
+    "title": "prismjs misleading remediation fix — Trivy dep graph + dependencyContext + overrideDirective + sidebar block",
+    "status": "AWAITING_USER_BASELINE_5",
+    "artifact": "packages/vscode-extension/synaptic-sentinel-0.3.14-step5.vsix",
+    "artifact_sha256": "258711e6c7ddc8dc7a84853baa901beaf8d15ea95e44a3d2553d0c79928a576c",
+    "bitacora_entries": [142, 143]
   }
 }
