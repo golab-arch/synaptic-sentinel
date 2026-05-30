@@ -1,6 +1,12 @@
 import { randomUUID } from 'node:crypto';
-import { FindingSchema, type Finding, type Severity } from '@synaptic-sentinel/core';
-import type { OpenGrepMetadata, OpenGrepOutput } from './opengrep-output.js';
+import {
+  FindingSchema,
+  type DataflowStep,
+  type DataflowTrace,
+  type Finding,
+  type Severity,
+} from '@synaptic-sentinel/core';
+import type { DataflowTraceRaw, OpenGrepMetadata, OpenGrepOutput } from './opengrep-output.js';
 
 /** Mapea la severidad de OpenGrep (INFO/WARNING/ERROR...) a la de Sentinel. */
 const SEVERITY_MAP: Readonly<Record<string, Severity>> = {
@@ -73,6 +79,50 @@ export function canonicalRuleId(checkId: string): string {
   return segments[segments.length - 1] ?? checkId;
 }
 
+/**
+ * Construye un `DataflowStep` canonico desde un location + content crudos
+ * (DG-112 A Step 3). Relativiza el path con `relativizePath` para
+ * coherencia con `FindingLocation.path` y normaliza `\` → `/`.
+ */
+function buildDataflowStep(
+  loc: { path: string; start: { line: number } },
+  content: string,
+  rootPath: string,
+): DataflowStep {
+  return {
+    path: relativizePath(loc.path, rootPath),
+    startLine: loc.start.line,
+    content,
+  };
+}
+
+/**
+ * Convierte el `dataflow_trace` crudo de OpenGrep a la forma canonica
+ * `DataflowTrace` del Finding (DG-112 A Step 3 — §4 #3 del reporte).
+ *
+ * Desempaqueta el wrapper `["CliLoc", [location, content]]` de source y
+ * sink (el tag interno se descarta). Devuelve `undefined` si source o
+ * sink faltan — un trace incompleto NO se canoniza (defensive: el
+ * TriageAgent espera siempre source + sink + intermediateSteps); el
+ * Finding queda sin `dataflowTrace` y el TriageAgent omite la seccion
+ * del prompt.
+ */
+export function normalizeDataflowTrace(
+  raw: DataflowTraceRaw,
+  rootPath: string,
+): DataflowTrace | undefined {
+  if (!raw.taint_source || !raw.taint_sink) return undefined;
+  const [, [srcLoc, srcContent]] = raw.taint_source;
+  const [, [sinkLoc, sinkContent]] = raw.taint_sink;
+  return {
+    source: buildDataflowStep(srcLoc, srcContent, rootPath),
+    intermediateSteps: (raw.intermediate_vars ?? []).map((iv) =>
+      buildDataflowStep(iv.location, iv.content, rootPath),
+    ),
+    sink: buildDataflowStep(sinkLoc, sinkContent, rootPath),
+  };
+}
+
 /** Contexto necesario para normalizar la salida de OpenGrep a `Finding[]`. */
 export interface NormalizeContext {
   /** Scan al que pertenecen los hallazgos. */
@@ -97,6 +147,11 @@ export function normalizeOpenGrepOutput(output: OpenGrepOutput, ctx: NormalizeCo
     // FI-005: el ruleId canonico (ultimo segmento del check_id) es estable
     // independientemente de la ruta del archivo de reglas.
     const ruleId = canonicalRuleId(result.check_id);
+    // DG-112 A Step 3: canoniza el dataflow trace si la regla es mode:taint.
+    const dataflowTrace =
+      result.extra.dataflow_trace !== undefined
+        ? normalizeDataflowTrace(result.extra.dataflow_trace, ctx.rootPath)
+        : undefined;
     const finding = {
       id: newId(),
       scanId: ctx.scanId,
@@ -118,6 +173,7 @@ export function normalizeOpenGrepOutput(output: OpenGrepOutput, ctx: NormalizeCo
       fingerprint: result.extra.fingerprint,
       lifecycleState: 'new',
       createdAt: now(),
+      ...(dataflowTrace !== undefined ? { dataflowTrace } : {}),
     };
     // Valida y aplica defaults: el normalizer no puede emitir un Finding invalido.
     return FindingSchema.parse(finding);

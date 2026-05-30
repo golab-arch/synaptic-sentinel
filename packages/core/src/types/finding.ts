@@ -46,6 +46,46 @@ export const FindingLocationSchema = z.object({
 export type FindingLocation = z.infer<typeof FindingLocationSchema>;
 
 /**
+ * Paso (step) en el dataflow trace de un hallazgo taint (DG-112 A Step 3).
+ *
+ * Forma canonica unificada para source, sink y variables intermedias del
+ * trace que OpenGrep emite para reglas `mode: taint`. Los paths estan
+ * relativizados al rootPath del scan + normalizados con separador `/`
+ * (igual que `FindingLocation.path`). El campo `content` es el snippet
+ * de codigo en ese punto del flujo.
+ */
+export const DataflowStepSchema = z.object({
+  /** Ruta relativa a la raiz del proyecto, separador `/`. */
+  path: z.string().min(1),
+  /** Linea (1-based) del step. */
+  startLine: z.number().int().positive(),
+  /** Snippet del codigo en ese punto del flujo. */
+  content: z.string().min(1),
+});
+
+/** Paso en un dataflow trace. */
+export type DataflowStep = z.infer<typeof DataflowStepSchema>;
+
+/**
+ * Dataflow trace canonico de un hallazgo taint (DG-112 A Step 3 — §4 #3
+ * del SENTINEL-EVALUATION-REPORT). Source → (intermediate steps) → sink.
+ *
+ * Se popula solo para findings que vienen de reglas `mode: taint` (SAST
+ * taint). Pattern-based, secrets, SCA, IaC, VibeCoded, BusinessLogic: el
+ * field queda `undefined`. El Brain Layer (TriageAgent) usa el trace en
+ * el user prompt para razonar sobre la verdadera reachability source→sink
+ * en lugar de mirar solo el snippet del match.
+ */
+export const DataflowTraceSchema = z.object({
+  source: DataflowStepSchema,
+  intermediateSteps: z.array(DataflowStepSchema).default([]),
+  sink: DataflowStepSchema,
+});
+
+/** Dataflow trace de un hallazgo taint. */
+export type DataflowTrace = z.infer<typeof DataflowTraceSchema>;
+
+/**
  * Hallazgo de seguridad producido por un Scout (capa determinista, sin LLM).
  *
  * Los campos de enriquecimiento del Brain Layer (explicacion contextualizada,
@@ -85,6 +125,14 @@ export const FindingSchema = z.object({
   lifecycleState: LifecycleStateSchema.default('new'),
   /** Marca temporal de creacion (ISO-8601). */
   createdAt: z.string().datetime(),
+  /**
+   * Dataflow trace de un hallazgo taint (DG-112 A Step 3 — §4 #3 del
+   * reporte). Solo poblado para findings de reglas `mode: taint`; queda
+   * `undefined` para pattern-based, secrets, SCA, IaC, etc. Aditivo +
+   * backward-compatible: Findings ya persistidos en colony.db sin este
+   * field siguen validando contra el schema (queda undefined).
+   */
+  dataflowTrace: DataflowTraceSchema.optional(),
 });
 
 /** Hallazgo de seguridad. */

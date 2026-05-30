@@ -3,11 +3,15 @@ import { runAgent } from '../src/brain-agent.js';
 import type { LlmClient } from '../src/llm-client.js';
 import {
   FABRICATED_DISMISSAL_PATTERNS,
+  MAX_CONTENT_CHARS_PER_STEP,
+  MAX_INTERMEDIATE_STEPS_IN_PROMPT,
   TRIAGE_CLASSIFICATIONS,
   TriageAgent,
+  formatDataflowTrace,
   guardAgainstFabricatedDismissals,
 } from '../src/triage-agent.js';
 import type { TriageVerdict } from '../src/triage-agent.js';
+import type { DataflowTrace } from '@synaptic-sentinel/core';
 
 /** Fecha fija para los tests del buildPrompt (DG-111 Step 2 — determinism). */
 const FIXED_DATE = '2026-05-29';
@@ -415,5 +419,90 @@ describe('guardAgainstFabricatedDismissals — DG-111 Step 2 / §4 #1 + DG-111.2
       '',
     );
     expect(v.classification).toBe('false_positive');
+  });
+});
+
+describe('formatDataflowTrace + buildPrompt dataflow section — DG-112 A Step 3', () => {
+  /** Helper: construye un DataflowTrace para tests. */
+  function makeTrace(overrides: Partial<DataflowTrace> = {}): DataflowTrace {
+    return {
+      source: { path: 'src/api.js', startLine: 17, content: 'req.body.id' },
+      intermediateSteps: [{ path: 'src/api.js', startLine: 20, content: 'id' }],
+      sink: { path: 'src/api.js', startLine: 25, content: 'db.query(id)' },
+      ...overrides,
+    };
+  }
+
+  it('formato base: incluye Source, Step N, Sink con path:line + content', () => {
+    const out = formatDataflowTrace(makeTrace());
+    expect(out).toContain('- Source: src/api.js:17 `req.body.id`');
+    expect(out).toContain('- Step 1: src/api.js:20 `id`');
+    expect(out).toContain('- Sink: src/api.js:25 `db.query(id)`');
+  });
+
+  it('intermediateSteps vacio: solo emite Source + Sink', () => {
+    const out = formatDataflowTrace(makeTrace({ intermediateSteps: [] }));
+    expect(out).toContain('Source:');
+    expect(out).toContain('Sink:');
+    expect(out).not.toContain('Step 1:');
+    expect(out).not.toContain('elided');
+  });
+
+  it('cap defensivo: colapsa el medio cuando intermediateSteps.length > MAX (DG-112 A)', () => {
+    const big = Array.from({ length: 60 }, (_, i) => ({
+      path: 'a.js',
+      startLine: i + 1,
+      content: `step${String(i)}`,
+    }));
+    const out = formatDataflowTrace(makeTrace({ intermediateSteps: big }));
+    // Cuenta de "- Step" en la salida: <= MAX intermediate + Source + Sink.
+    const stepLines = out.split('\n').filter((l) => l.startsWith('- Step'));
+    expect(stepLines.length).toBeLessThanOrEqual(MAX_INTERMEDIATE_STEPS_IN_PROMPT);
+    // Marker de ellipsis con conteo de elided.
+    expect(out).toMatch(/- … \(\d+ steps? elided for prompt size\)/);
+    expect(out).toContain('Source:'); // no se eliden Source
+    expect(out).toContain('Sink:'); // no se eliden Sink
+    // Primer y ultimo step preservados (no es el primer/ultimo del array original).
+    expect(out).toContain('step0'); // primer step del array (preservado en first half)
+    expect(out).toContain('step59'); // ultimo step (preservado en second half)
+  });
+
+  it('cap defensivo: trunca content > MAX_CONTENT_CHARS_PER_STEP con `…`', () => {
+    const longContent = 'X'.repeat(MAX_CONTENT_CHARS_PER_STEP + 50);
+    const out = formatDataflowTrace(
+      makeTrace({
+        source: { path: 'a.js', startLine: 1, content: longContent },
+      }),
+    );
+    expect(out).toContain('…');
+    // El content truncado tiene MAX-1 X + un `…` = MAX chars total.
+    expect(out).toContain(`\`${'X'.repeat(MAX_CONTENT_CHARS_PER_STEP - 1)}…\``);
+    expect(out).not.toContain('X'.repeat(MAX_CONTENT_CHARS_PER_STEP)); // no preservado completo
+  });
+
+  it('cap defensivo: NO trunca content cuando es exactamente MAX_CONTENT_CHARS_PER_STEP', () => {
+    const exact = 'Y'.repeat(MAX_CONTENT_CHARS_PER_STEP);
+    const out = formatDataflowTrace(
+      makeTrace({ source: { path: 'a.js', startLine: 1, content: exact } }),
+    );
+    expect(out).toContain(`\`${exact}\``);
+    expect(out).not.toContain('…');
+  });
+
+  it('user prompt incluye seccion "Dataflow trace:" cuando finding.dataflowTrace presente (DG-112 A)', () => {
+    const finding = makeFinding({
+      category: 'SAST',
+      dataflowTrace: makeTrace(),
+    });
+    const prompt = new TriageAgent({ currentDate: FIXED_DATE }).buildPrompt(finding as never);
+    expect(prompt.user).toContain('Dataflow trace (source → intermediate → sink):');
+    expect(prompt.user).toContain('- Source: src/api.js:17 `req.body.id`');
+    expect(prompt.user).toContain('- Sink: src/api.js:25 `db.query(id)`');
+  });
+
+  it('user prompt NO incluye seccion "Dataflow trace:" cuando finding.dataflowTrace ausente (DG-112 A)', () => {
+    const prompt = new TriageAgent({ currentDate: FIXED_DATE }).buildPrompt(makeFinding() as never);
+    expect(prompt.user).not.toContain('Dataflow trace');
+    expect(prompt.user).not.toContain('Source:');
   });
 });

@@ -4,11 +4,13 @@ import { fileURLToPath } from 'node:url';
 import { OpenGrepOutputSchema, type OpenGrepOutput } from '../../src/opengrep/opengrep-output.js';
 import {
   normalizeOpenGrepOutput,
+  normalizeDataflowTrace,
   mapSeverity,
   extractComplianceRefs,
   relativizePath,
   canonicalRuleId,
 } from '../../src/opengrep/normalizer.js';
+import type { DataflowTraceRaw } from '../../src/opengrep/opengrep-output.js';
 
 /** Carga la salida JSON real de OpenGrep capturada como fixture. */
 async function loadFixture(): Promise<OpenGrepOutput> {
@@ -101,5 +103,105 @@ describe('canonicalRuleId', () => {
 
   it('es idempotente sobre un id ya canonico', () => {
     expect(canonicalRuleId('sentinel-js-eval-usage')).toBe('sentinel-js-eval-usage');
+  });
+});
+
+describe('normalizeDataflowTrace — DG-112 A Step 3 / §4 #3', () => {
+  /** Helper: construye un location de OpenGrep para tests. */
+  function loc(
+    path: string,
+    line: number,
+    col = 1,
+  ): { path: string; start: { line: number; col: number }; end: { line: number; col: number } } {
+    return {
+      path,
+      start: { line, col },
+      end: { line, col: col + 5 },
+    };
+  }
+
+  it('canoniza un trace tipico (1 intermediate var) con paths relativizados + separator /', () => {
+    const raw: DataflowTraceRaw = {
+      taint_source: ['CliLoc', [loc('C:\\repo\\src\\api.js', 17, 15), 'req.query']],
+      intermediate_vars: [{ location: loc('C:\\repo\\src\\api.js', 17, 9), content: 'dir' }],
+      taint_sink: ['CliLoc', [loc('C:\\repo\\src\\api.js', 18, 3), "exec('ls ' + dir, ...)"]],
+    };
+    const trace = normalizeDataflowTrace(raw, 'C:\\repo');
+    expect(trace).toBeDefined();
+    expect(trace?.source).toEqual({ path: 'src/api.js', startLine: 17, content: 'req.query' });
+    expect(trace?.intermediateSteps).toEqual([
+      { path: 'src/api.js', startLine: 17, content: 'dir' },
+    ]);
+    expect(trace?.sink).toEqual({
+      path: 'src/api.js',
+      startLine: 18,
+      content: "exec('ls ' + dir, ...)",
+    });
+    // Confirma normalizacion de separator backslash → slash en TODOS los paths.
+    expect(trace?.source.path).not.toContain('\\');
+    expect(trace?.intermediateSteps[0]?.path).not.toContain('\\');
+    expect(trace?.sink.path).not.toContain('\\');
+  });
+
+  it('canoniza un trace SIN intermediate_vars (intermediateSteps queda [])', () => {
+    const raw: DataflowTraceRaw = {
+      taint_source: ['CliLoc', [loc('a.js', 1), 'tainted']],
+      taint_sink: ['CliLoc', [loc('a.js', 2), 'sink(tainted)']],
+    };
+    const trace = normalizeDataflowTrace(raw, '/root');
+    expect(trace).toBeDefined();
+    expect(trace?.intermediateSteps).toEqual([]);
+  });
+
+  it('canoniza un trace con intermediate_vars: [] vacio explicito', () => {
+    const raw: DataflowTraceRaw = {
+      taint_source: ['CliLoc', [loc('a.js', 1), 'src']],
+      intermediate_vars: [],
+      taint_sink: ['CliLoc', [loc('a.js', 2), 'sink(src)']],
+    };
+    expect(normalizeDataflowTrace(raw, '/root')?.intermediateSteps).toEqual([]);
+  });
+
+  it('devuelve undefined si falta el taint_source (trace incompleto NO se canoniza)', () => {
+    const raw: DataflowTraceRaw = {
+      taint_sink: ['CliLoc', [loc('a.js', 2), 'sink']],
+    };
+    expect(normalizeDataflowTrace(raw, '/root')).toBeUndefined();
+  });
+
+  it('devuelve undefined si falta el taint_sink (trace incompleto NO se canoniza)', () => {
+    const raw: DataflowTraceRaw = {
+      taint_source: ['CliLoc', [loc('a.js', 1), 'src']],
+    };
+    expect(normalizeDataflowTrace(raw, '/root')).toBeUndefined();
+  });
+
+  it('preserva multi-step intermediate_vars en orden', () => {
+    const raw: DataflowTraceRaw = {
+      taint_source: ['CliLoc', [loc('a.js', 1), 'src']],
+      intermediate_vars: [
+        { location: loc('a.js', 2), content: 'step1' },
+        { location: loc('a.js', 3), content: 'step2' },
+        { location: loc('a.js', 4), content: 'step3' },
+      ],
+      taint_sink: ['CliLoc', [loc('a.js', 5), 'sink']],
+    };
+    const trace = normalizeDataflowTrace(raw, '/root');
+    expect(trace?.intermediateSteps).toHaveLength(3);
+    expect(trace?.intermediateSteps.map((s) => s.content)).toEqual(['step1', 'step2', 'step3']);
+  });
+
+  it('los Finding generados por normalizeOpenGrepOutput NO traen dataflowTrace cuando el result no lo tiene', async () => {
+    // El fixture sample.json (sin dataflow_trace; regla pattern-based) NO debe
+    // generar el field en el Finding (DG-112 A: solo poblado para mode:taint).
+    const output = await loadFixture();
+    const findings = normalizeOpenGrepOutput(output, {
+      scanId: 'scan-1',
+      scoutId: 'opengrep',
+      rootPath: 'd:\\tmp\\opengrep-probe',
+      now: () => '2026-05-20T12:00:00.000Z',
+      newId: () => '00000000-0000-4000-8000-000000000001',
+    });
+    expect(findings[0]?.dataflowTrace).toBeUndefined();
   });
 });

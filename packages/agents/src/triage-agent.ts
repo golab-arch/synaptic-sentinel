@@ -2,6 +2,7 @@ import {
   TRIAGE_CLASSIFICATIONS,
   TriageClassificationSchema,
   TriageVerdictSchema,
+  type DataflowTrace,
   type Finding,
   type FindingCategory,
   type TriageClassification,
@@ -97,6 +98,63 @@ function currentDateIso(): string {
 }
 
 /**
+ * Cap defensivo sobre el numero de intermediate steps que se incluyen en
+ * el prompt (DG-112 A Step 3). Traces patologicos (>25 steps, repos con
+ * deep call chains) colapsan el medio para evitar prompt bloat.
+ *
+ * El cap aplica SOLO al prompt; el `Finding.dataflowTrace` persistido en
+ * `colony.db` mantiene fidelity completa.
+ */
+export const MAX_INTERMEDIATE_STEPS_IN_PROMPT = 25;
+
+/**
+ * Cap defensivo sobre la longitud del `content` de cada step en el prompt
+ * (DG-112 A Step 3). Contents patologicos (sinks con expresiones largas,
+ * statements multi-linea minificados) se truncan a esta longitud.
+ */
+export const MAX_CONTENT_CHARS_PER_STEP = 200;
+
+/** Trunca `content` con un sufijo `…` si excede `MAX_CONTENT_CHARS_PER_STEP`. */
+function truncateContent(content: string): string {
+  if (content.length <= MAX_CONTENT_CHARS_PER_STEP) return content;
+  return `${content.slice(0, MAX_CONTENT_CHARS_PER_STEP - 1)}…`;
+}
+
+/**
+ * Formatea un `DataflowTrace` para incluir en el user prompt del Triage
+ * Agent (DG-112 A Step 3). Aplica caps defensivos: si los intermediate
+ * steps exceden `MAX_INTERMEDIATE_STEPS_IN_PROMPT`, colapsa el medio
+ * (primera mitad + ellipsis + segunda mitad). Cada `content` se trunca a
+ * `MAX_CONTENT_CHARS_PER_STEP`. Funcion pura testeable.
+ */
+export function formatDataflowTrace(trace: DataflowTrace): string {
+  let steps = trace.intermediateSteps;
+  let elided = 0;
+  if (steps.length > MAX_INTERMEDIATE_STEPS_IN_PROMPT) {
+    elided = steps.length - MAX_INTERMEDIATE_STEPS_IN_PROMPT;
+    const half = Math.floor(MAX_INTERMEDIATE_STEPS_IN_PROMPT / 2);
+    steps = [...steps.slice(0, half), ...steps.slice(-half)];
+  }
+  const halfMark = Math.floor(MAX_INTERMEDIATE_STEPS_IN_PROMPT / 2);
+  const lines: string[] = [];
+  lines.push(
+    `- Source: ${trace.source.path}:${String(trace.source.startLine)} \`${truncateContent(trace.source.content)}\``,
+  );
+  steps.forEach((step, i) => {
+    if (elided > 0 && i === halfMark) {
+      lines.push(`- … (${String(elided)} step${elided === 1 ? '' : 's'} elided for prompt size)`);
+    }
+    lines.push(
+      `- Step ${String(i + 1)}: ${step.path}:${String(step.startLine)} \`${truncateContent(step.content)}\``,
+    );
+  });
+  lines.push(
+    `- Sink: ${trace.sink.path}:${String(trace.sink.startLine)} \`${truncateContent(trace.sink.content)}\``,
+  );
+  return lines.join('\n');
+}
+
+/**
  * Patterns que detectan rationale del Triage Agent que dismissea metadata
  * scanner-confirmed como "fabricated" / "no existe" / "future". El guard
  * (`guardAgainstFabricatedDismissals`) los aplica al rationale y, si hay
@@ -186,6 +244,17 @@ export class TriageAgent implements BrainAgent<Finding, TriageVerdict> {
   buildPrompt(finding: Finding): AgentPrompt {
     this.#lastFindingCategory = finding.category;
     const snippet = finding.location.snippet ?? '(not available)';
+    // DG-112 A Step 3: incluye el dataflow trace cuando esta disponible
+    // (reglas mode:taint del OpenGrep scout) para que el modelo razone
+    // sobre reachability source→sink real en lugar de solo el snippet.
+    const dataflowSection =
+      finding.dataflowTrace !== undefined
+        ? [
+            '',
+            'Dataflow trace (source → intermediate → sink):',
+            formatDataflowTrace(finding.dataflowTrace),
+          ]
+        : [];
     const user = [
       `Current date (real-world authoritative): ${this.#currentDate}`,
       '',
@@ -197,6 +266,7 @@ export class TriageAgent implements BrainAgent<Finding, TriageVerdict> {
       `- Message: ${finding.message}`,
       `- Location: ${finding.location.path}:${String(finding.location.startLine)}`,
       `- Code:\n${snippet}`,
+      ...dataflowSection,
     ].join('\n');
     return { system: SYSTEM_PROMPT, user };
   }
