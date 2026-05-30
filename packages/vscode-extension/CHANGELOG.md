@@ -4,6 +4,38 @@ All notable changes to the SYNAPTIC Sentinel extension will be documented in thi
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.15] - 2026-05-30
+
+**prismjs misleading remediation fix** (Cycle 107, DG-115 A + DG-115.1 A G7). Resolves the **🚨 prismjs** Known Issue called out in the v0.3.14 release notes and verified empirically against the SYNAPTIC_SAAS web lockfile. For SCA findings where the vulnerable package is a transitive copy pinned by a parent, the sidebar now emits an `overrideDirective` (npm `overrides` / yarn `resolutions` / pnpm `pnpm.overrides`) instead of — or in addition to — the misleading "upgrade to X" recommendation that a top-level bump alone does NOT honor.
+
+### Added
+
+- **DG-115 A — `overrideDirective` for transitive nested-pinned SCA findings** (from report §4 #15). Trivy v0.70.0 already exposes `Result.Packages[]` with full dep graph + `PkgIdentifier.UID` for 1:1 vulnerability↔package matching; the normalizer now consumes it. For each finding the new `sca.dependencyContext { directness: 'direct' | 'indirect' | 'root' | 'unknown', pinnedBy: string[], hasSiblingFixedCopy: boolean }` is computed. When a `FindingGroup` contains at least one `indirect` finding and the package manager is known (`npm`/`yarn`/`pnpm`), the remediation now carries an `overrideDirective` with: `manager`, `packageName`, `versionRange` (`^X.Y.Z` of the recommended fix major track), a copy-pasteable `snippet`, `hasSiblingFixedCopy`, and a deduped `pinnedBy` list. The sidebar renders the directive as a dominant block above the children, with a Copy button (clipboard API + `getSelection().selectAllChildren` fallback), and cites the pinner by name in the risk caveat plus a conservative-alternative exact-version recommendation.
+
+- **DG-115.1 A G7 — STRONG / SOFT visual hierarchy in the sidebar (webview-only refinement)**. Reserves the prominent red treatment for the only case that demands it (`hasSiblingFixedCopy: true` — a fixed copy already exists top-level, e.g. prismjs 1.30.0 top-level + 1.27.0 nested under refractor → **a top-level bump alone will NOT fix this**). The SOFT case (`hasSiblingFixedCopy: false`, ~8 findings per scan: protobufjs / node-forge / fast-uri / uuid / etc.) is now collapsed by default inside a `<details>` block with a one-liner summary "**Transitive (via `<pinnedBy[0]>`) — plain bump usually works; override if it persists (`<manager>`)**". Expanding the block reveals the same full body (caveat + plain bump line + snippet + Copy + risk caveat) as before. CSS uses VS Code semantic variables (`--vscode-editorError-foreground` / `--vscode-editorWarning-foreground` and the matching `inputValidation-*Border`) for theme coherence in dark / light / high-contrast. Data of the tomo is unchanged — `overrideDirective` is still computed and persisted for both SOFT and STRONG cases; only the render is refined.
+
+### Changed
+
+- `TrivyResultSchema` extended with optional `Type?` (`npm`/`yarn`/`pnpm`) and `Packages?: TrivyPackage[]` (the full dep graph with `Relationship`, `DependsOn`, `Identifier.UID`). Additive — older Trivy versions that don't emit these fields degrade gracefully (no `dependencyContext`, no `overrideDirective`).
+- `ScaMetadataSchema` extended with optional `packageManager?: string` and `dependencyContext?: DependencyContext`. Additive + backward-compatible — older Findings persisted in `colony.db` are accepted unchanged.
+- `RemediationTargetSchema` extended with optional `overrideDirective?: OverrideDirective`. Re-scan to populate.
+- New dependency: `semver` in `@synaptic-sentinel/scouts` (used to compare package versions for `hasSiblingFixedCopy` detection).
+
+### Known Issues
+
+> The 🚨 prismjs warning from v0.3.14 release notes is **retired**. Override directives are now emitted for any transitive nested-pinned SCA finding, with a strong / soft caveat graduation. For the prismjs case specifically, the sidebar surfaces the override block prominently — a manual `npm ls prismjs` is no longer required to discover the misleading bump path.
+
+- **Parent/child SCA correlation** (e.g. `@protobufjs/utf8` finding listed as a separate group from its parent `protobufjs`) remains deferred. The exact-match family key in Step 4 is a deliberate trade-off to avoid over-merging unrelated scoped packages. A proper dep-graph-aware family resolver is tracked as `DG-future-SCA-dep-graph`.
+- **Reachability framework-level** (e.g. config-gated CVEs like fastify `trustProxy`) remains deferred. The new `sca.dependencyContext` and `sca.packageManager` fields are the data foundation for it — implementation is the next major SCA feature beyond DG-115.
+- **Inconclusive-but-well-reasoned SAST taint verdicts** as documented in v0.3.14 — unchanged. `inconclusive`-well-reasoned remains success by design for the class of finding where the sink expression's implementation lives in another file.
+
+### Notes
+
+- DG-115 A and DG-115.1 A G7 were both verified empirically against the SYNAPTIC_SAAS web lockfile (`pnpm-lock.yaml` with `react-syntax-highlighter@15.6.6 → refractor@3.6.0 → prismjs@1.27.0` chain + `prismjs@1.30.0` top-level). The capture vsixes (`step5.vsix` for DG-115 A, `step5b.vsix` for the G7 refinement) are bundled into this v0.3.15 release.
+- Trivy `DependsOn` lists **resolved** versions, not the **constraint ranges** the pinner declared (`^` vs `~` vs exact). SENTINEL therefore cannot decide automatically whether a plain top-level bump satisfies the pinner's constraint; the SOFT / STRONG split uses `hasSiblingFixedCopy` (binary) as a safe over-approximation. The deferred parent/child + reachability features will need a manifest-aware input source for full constraint reasoning.
+- `pnpm verify` VERDE: 60 test files / 707 tests + manifest gate + activation gate (9 commands + 15 subscriptions).
+- `vsce publish` to the VS Code Marketplace is **not** part of this release. The Marketplace listing is on v0.3.3; the **12 GitHub-only releases** (v0.3.4 → v0.3.15) accumulate user-side publishing operations. To install in VS Code, download `synaptic-sentinel-0.3.15.vsix` and use `code --install-extension synaptic-sentinel-0.3.15.vsix` or _Install from VSIX..._ in the Extensions view.
+
 ## [0.3.14] - 2026-05-30
 
 **Brain Layer + SCA major release** — packages 5 cycles of work (Cycles 99-105, DG-110 → DG-113.1 A) responding to the SENTINEL-EVALUATION-REPORT empirical evaluation against a real codebase.
