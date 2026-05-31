@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { PriorityScoreSchema } from '../coordinator/priority-score.js';
 import { SeveritySchema } from './severity.js';
 
 /** Categorias de hallazgo cubiertas por SYNAPTIC Sentinel (v0.4 §2.5, §4.2). */
@@ -215,6 +216,17 @@ export const FindingSchema = z.object({
    * remediation target.
    */
   sca: ScaMetadataSchema.optional(),
+  /**
+   * Priority/risk score (DG-118 A Cycle 109) — SEPARADO del `confidence`
+   * del triage verdict. Computado deterministicamente desde (severity,
+   * triage classification) por `computePriorityScore`. Solo poblado en el
+   * tomo emitido por el reporter (tras join con TriageVerdict); en
+   * findings persistidos crudos en colony.db queda `undefined`. UI lo
+   * renderiza como badge prominente al lado del severity, demoteando el
+   * confidence% a placement secundario para evitar la confusion
+   * empirica "TP% se lee como prioridad" reportada en el user-handoff.
+   */
+  priorityScore: PriorityScoreSchema.optional(),
 });
 
 /** Hallazgo de seguridad. */

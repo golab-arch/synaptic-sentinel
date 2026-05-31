@@ -3,6 +3,16 @@ import { z } from 'zod';
 /** Severidad de un hallazgo (subconjunto del contrato del tomo). */
 const SeveritySchema = z.enum(['critical', 'high', 'medium', 'low', 'info']);
 
+/**
+ * Priority/risk score (DG-118 A) — SEPARADO del `confidence` del triage.
+ * Forma identica al `PriorityScore` del core; replicado aqui por la
+ * frontera CLI↔extension (la extension NO importa core).
+ */
+const PriorityScoreSchema = z.enum(['urgent', 'high', 'medium', 'low', 'noise']);
+
+/** Priority/risk score en la forma que consume la extension. */
+export type ExtensionPriorityScore = z.infer<typeof PriorityScoreSchema>;
+
 /** Ubicacion de un hallazgo dentro del codigo del cliente. */
 const FindingLocationSchema = z.object({
   path: z.string().min(1),
@@ -52,6 +62,15 @@ const ExtensionFindingSchema = z.object({
   context: ExtensionContextSchema.optional(),
   /** Sugerencia de remediacion, presente solo si el hallazgo fue remediado. */
   remediation: ExtensionRemediationSchema.optional(),
+  /**
+   * Priority/risk score (DG-118 A — Cycle 109). Computado por
+   * `computePriorityScore` en el reporter desde (severity,
+   * triage.classification). SEPARADO del `triage.confidence` (que es
+   * "confianza del LLM en su veredicto", no prioridad). Opcional para
+   * backward compat con tomos pre-DG-118 A (la UI hace fallback graceful
+   * a severity-only render si no esta presente).
+   */
+  priorityScore: PriorityScoreSchema.optional(),
 });
 
 /**

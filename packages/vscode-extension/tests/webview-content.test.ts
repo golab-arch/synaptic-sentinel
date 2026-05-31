@@ -235,7 +235,7 @@ describe('renderTomoWebviewHtml', () => {
     expect(html).toMatch(/<div class="finding sev-\w+ state-untriaged"[^>]*>[\s\S]*?CardUntriaged/);
   });
 
-  it('state badge muestra confidence como porcentaje en cards triadas (DG-097 A)', () => {
+  it('state badge muestra solo TP/INC/FP/NEW (DG-118 A retiro el confidence% del badge)', () => {
     const html = renderTomoWebviewHtml(
       [
         makeFinding({
@@ -247,14 +247,95 @@ describe('renderTomoWebviewHtml', () => {
       ],
       opts,
     );
-    expect(html).toContain('TP 95%');
-    expect(html).toContain('INC 50%');
+    // DG-118 A (Cycle 109): state badge YA NO incluye confidence% — usuarios
+    // novatos lo leian como prioridad. La confianza se muestra en la linea
+    // del brain section con label explicit "LLM confidence: N%".
+    expect(html).toContain('>TP<');
+    expect(html).toContain('>INC<');
+    expect(html).not.toContain('TP 95%');
+    expect(html).not.toContain('INC 50%');
+  });
+
+  it('confidence% se muestra en brain section con label "LLM confidence" (DG-118 A)', () => {
+    const html = renderTomoWebviewHtml(
+      [
+        makeFinding({
+          triage: { classification: 'true_positive', confidence: 0.95, rationale: 'r' },
+        }),
+        makeFinding({
+          triage: { classification: 'inconclusive', confidence: 0.5, rationale: 'r' },
+        }),
+      ],
+      opts,
+    );
+    expect(html).toContain('llm-confidence');
+    expect(html).toContain('LLM confidence: 95%');
+    expect(html).toContain('LLM confidence: 50%');
   });
 
   it('state badge para untriaged es "NEW" sin porcentaje (DG-097 A)', () => {
     const html = renderTomoWebviewHtml([makeFinding()], opts);
     expect(html).toContain('>NEW<');
     expect(html).not.toContain('NEW 0%');
+  });
+
+  it('priority badge se emite cuando finding.priorityScore esta presente (DG-118 A)', () => {
+    const html = renderTomoWebviewHtml(
+      [
+        makeFinding({
+          severity: 'high',
+          triage: { classification: 'true_positive', confidence: 0.95, rationale: 'r' },
+          priorityScore: 'high',
+        }),
+        makeFinding({
+          severity: 'critical',
+          triage: { classification: 'inconclusive', confidence: 0.5, rationale: 'r' },
+          priorityScore: 'high', // critical INC → high demote
+        }),
+        makeFinding({
+          severity: 'high',
+          triage: { classification: 'false_positive', confidence: 0.95, rationale: 'r' },
+          priorityScore: 'noise',
+        }),
+      ],
+      opts,
+    );
+    expect(html).toContain('priority-badge priority-high');
+    expect(html).toContain('priority-badge priority-noise');
+    expect(html).toContain('>high<');
+    expect(html).toContain('>noise<');
+  });
+
+  it('priority badge se OMITE en findings sin priorityScore (backward compat con tomos pre-DG-118 A)', () => {
+    const html = renderTomoWebviewHtml(
+      [
+        makeFinding({
+          severity: 'high',
+          // sin priorityScore — tomo legacy
+        }),
+      ],
+      opts,
+    );
+    // El CSS class `.priority-badge` siempre esta en el STYLE block del head,
+    // pero el span correspondiente NO debe aparecer en el body si no hay
+    // priorityScore. Assertion: no aparece como atributo class de span.
+    expect(html).not.toContain('<span class="priority-badge');
+    // Pero el severity badge sigue renderizando normalmente
+    expect(html).toContain('badge-high');
+  });
+
+  it('priority badge title (tooltip) incluye severity + triage state explicit (DG-118 A discoverability)', () => {
+    const html = renderTomoWebviewHtml(
+      [
+        makeFinding({
+          severity: 'critical',
+          triage: { classification: 'true_positive', confidence: 0.9, rationale: 'r' },
+          priorityScore: 'urgent',
+        }),
+      ],
+      opts,
+    );
+    expect(html).toContain('Priority: urgent (severity critical + tp triage state)');
   });
 
   it('summary header muestra total + breakdown por bucket presente (DG-097 A)', () => {

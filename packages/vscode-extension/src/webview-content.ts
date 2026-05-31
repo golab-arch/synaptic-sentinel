@@ -134,6 +134,27 @@ const STYLE = `
   .state-inc .state-badge { background: #c87f0a; }
   .state-untriaged .state-badge { background: #4a4a4a; }
   .state-fp .state-badge { background: #2c6fbb; }
+  /* DG-118 A (Cycle 109): priority badge — SEPARADO del severity y del
+     confidence del triage. Colores intencionalmente DIFERENTES de los
+     severity badges para que el usuario lea ambos como conceptos
+     distintos (no como duplicacion). */
+  .priority-badge { font-size: 0.62em; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.4px;
+    border-radius: 3px; padding: 0.05rem 0.35rem; color: #fff;
+    border: 1px solid transparent; }
+  .priority-urgent { background: #a61b29; border-color: #ff5566;
+    color: #fff; }
+  .priority-high { background: #d4541c; color: #fff; }
+  .priority-medium { background: #b78d00; color: #fff; }
+  .priority-low { background: #5586bd; color: #fff; }
+  .priority-noise { background: transparent;
+    color: var(--vscode-descriptionForeground);
+    border-color: var(--vscode-descriptionForeground);
+    font-style: italic; }
+  /* Confidence% del LLM, demoteado a la linea de brain — clarifica que
+     es "LLM confidence en su veredicto", NO prioridad. */
+  .llm-confidence { font-size: 0.85em; opacity: 0.75;
+    margin-left: 0.4rem; font-style: italic; }
   .title { font-weight: 600; }
   .loc { font-family: var(--vscode-editor-font-family), monospace; font-size: 0.8em;
     color: var(--vscode-descriptionForeground); margin-top: 0.15rem; }
@@ -269,13 +290,15 @@ function formatConfidence(confidence: number): string {
 }
 
 /**
- * Texto del state badge del card. Incluye la confidence cuando el finding
- * esta triado (no se muestra para `untriaged` porque no hay confidence).
+ * Texto del state badge del card. **DG-118 A (Cycle 109)**: ya NO incluye
+ * el confidence% — fue empiricamente leido como "prioridad" por usuarios
+ * novatos (user-handoff post-DG-115.1). La confianza del LLM se muestra
+ * ahora en una linea secundaria del brain section con label explicit
+ * "LLM confidence: N%"; la prioridad real va en el priority-badge
+ * separado (DG-118 A `priorityScore`).
  */
-function stateBadgeText(state: TriageState, finding: ExtensionFinding): string {
-  const label = STATE_BADGE_LABEL[state];
-  if (state === 'untriaged' || finding.triage === undefined) return label;
-  return `${label} ${formatConfidence(finding.triage.confidence)}`;
+function stateBadgeText(state: TriageState): string {
+  return STATE_BADGE_LABEL[state];
 }
 
 /** Renderiza la tarjeta clickeable de un hallazgo. */
@@ -283,6 +306,17 @@ function renderCard(finding: ExtensionFinding): string {
   const severity = finding.severity;
   const state = triageStateOf(finding);
   const loc = `${finding.location.path}:${String(finding.location.startLine)}`;
+  // DG-118 A (Cycle 109): priority badge — emitido cuando el tomo trae
+  // priorityScore (siempre poblado por el reporter post-DG-118 A). Fallback
+  // graceful: tomos pre-DG-118 A NO traen priorityScore → la card renderea
+  // como antes (solo severity badge, sin priority).
+  const priority = finding.priorityScore;
+  const priorityBadge =
+    priority !== undefined
+      ? `<span class="priority-badge priority-${escapeHtml(priority)}" ` +
+        `title="Priority: ${escapeHtml(priority)} (severity ${escapeHtml(severity)} + ${escapeHtml(state)} triage state)">` +
+        `${escapeHtml(priority)}</span>`
+      : '';
   const parts = [
     `<div class="finding sev-${escapeHtml(severity)} state-${state}" ` +
       `data-path="${escapeHtml(finding.location.path)}" ` +
@@ -291,16 +325,21 @@ function renderCard(finding: ExtensionFinding): string {
       `tabindex="0" role="button">`,
     `<div class="head"><span class="badge badge-${escapeHtml(severity)}">` +
       `${escapeHtml(severity)}</span>` +
+      priorityBadge +
       `<span class="title">${escapeHtml(finding.title)}</span>` +
-      `<span class="state-badge">${escapeHtml(stateBadgeText(state, finding))}</span></div>`,
+      `<span class="state-badge">${escapeHtml(stateBadgeText(state))}</span></div>`,
     `<div class="loc">${escapeHtml(loc)} · ${escapeHtml(finding.category)}</div>`,
     `<div class="msg">${escapeHtml(finding.message)}</div>`,
   ];
   if (finding.triage !== undefined) {
+    // DG-118 A: el LLM confidence% se muestra como linea secundaria con
+    // label explicit "LLM confidence: N%" — clarifica que es CONFIANZA
+    // del LLM en su veredicto, NO prioridad.
+    const confidenceHtml = `<span class="llm-confidence">LLM confidence: ${escapeHtml(formatConfidence(finding.triage.confidence))}</span>`;
     parts.push(
       `<div class="brain"><strong>Triage:</strong> ` +
         `${escapeHtml(triageLabel(finding.triage.classification))} — ` +
-        `${escapeHtml(finding.triage.rationale)}</div>`,
+        `${escapeHtml(finding.triage.rationale)}${confidenceHtml}</div>`,
     );
   }
   if (finding.context !== undefined) {

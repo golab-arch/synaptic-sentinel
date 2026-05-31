@@ -7,6 +7,7 @@ import {
   RemediationSuggestionSchema,
   ScoutStatusSchema,
   TriageVerdictSchema,
+  computePriorityScore,
   groupFindingsByCorrelation,
   type ContextExplanationRecord,
   type Finding,
@@ -180,8 +181,14 @@ export function buildTomo(
     if (verdict !== undefined) {
       byTriage[verdict.classification] = (byTriage[verdict.classification] ?? 0) + 1;
     }
+    // DG-118 A (Cycle 109): computa priorityScore deterministico desde
+    // (severity, verdict.classification). Pure function — no side effects.
+    // Si no hay verdict, classification = undefined → untriaged
+    // pessimistic (severity directly mapped).
+    const priorityScore = computePriorityScore(finding.severity, verdict?.classification);
     return {
       ...finding,
+      priorityScore,
       ...(verdict !== undefined
         ? {
             triage: {
