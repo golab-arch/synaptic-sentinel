@@ -3,7 +3,7 @@
   "projectId": "sentinel-1779304140796",
   "projectName": "SENTINEL",
   "initializedAt": "2026-05-20T19:09:00.816Z",
-  "lastActivity": "2026-05-31T00:00:00.000Z",
+  "lastActivity": "2026-05-31T00:45:00.000Z",
   "currentCycle": 108,
   "currentPhase": 12,
   "synapticStrength": 100,
@@ -19,22 +19,22 @@
   "agentState": {
     "complianceScore": 100,
     "violationsCount": 0,
-    "successfulCycles": 109,
+    "successfulCycles": 110,
     "marketplacePublishedExtensionId": "RealGoLab.synaptic-sentinel",
     "marketplacePublishedVersion": "0.3.3",
     "githubReleaseLatest": "v0.3.15"
   },
   "activeDG": {
-    "id": "DG-117-A",
-    "title": "Scout exclude-list post-hoc filter en Coordinator pre-stage-2 — fixtures/dist/build/node_modules/coverage/vendor/out/__pycache__/__fixtures__",
-    "status": "AWAITING_USER_BASELINE_6",
-    "artifact": "packages/vscode-extension/synaptic-sentinel-0.3.15-step6.vsix",
-    "artifact_sha256": "12fdd0543d0d36fa733f94e0736fc7ad9ec8da2a16f5d292a4232c4a3c06219e",
-    "option_selected": "A (Conservative, LOW RISK)",
+    "id": "DG-117.0.1",
+    "title": "Hotfix decimal sobre DG-117 A — extiende exclude-list con benchmark + .scanners segments + *.test.* / *.spec.* filename patterns (Baseline-6 empirica)",
+    "status": "AWAITING_USER_BASELINE_6_1",
+    "artifact": "packages/vscode-extension/synaptic-sentinel-0.3.15-step6b.vsix",
+    "artifact_sha256": "5cc6ef3b71320b4aaa9289b9d7173febdeda78905cfd3391037c9aeafab2fe5d",
+    "option_selected": "B (Balanced, MEDIUM RISK)",
     "marketplace_publish": "N_A_CAPTURE_VSIX",
     "bitacora_entries": [
-      147,
-      148
+      149,
+      150
     ]
   }
 }
