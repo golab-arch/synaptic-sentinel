@@ -4,6 +4,46 @@ All notable changes to the SYNAPTIC Sentinel extension will be documented in thi
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.16] - 2026-05-31
+
+**Noise reduction + TP/risk split UX win** (Cycle 108-109, DG-117 A + DG-117.0.1 + DG-118 A). Cuts ~80% of the structural noise from scout output (test fixtures, build artifacts, scanner installer assets) and splits the LLM **confidence%** away from a new **`priorityScore`** that combines severity with the triage classification — fixing the empirical user-confusion "the TP% reads as priority alongside severity" reported in the SENTINEL evaluation handoff.
+
+### Added
+
+- **DG-117 A — Scout exclude-list post-hoc filter in Coordinator pre-stage-2 (Cycle 108)**. New `DEFAULT_EXCLUDED_PATH_SEGMENTS` + `isPathExcluded(path, excluded?, filenameSubstrings?)` util in `@synaptic-sentinel/core`. The Coordinator now drops findings whose `location.path` contains exactly one of the noise segments **before** stage 2 (dedup + fp_known) — the descarded ones count as `suppressedCount`. Initial segment set (9): `fixtures`, `__fixtures__`, `node_modules`, `dist`, `build`, `out`, `coverage`, `vendor`, `__pycache__`. Decision deliberada: **NO `test`/`tests` segment** (over-reach would silence legitimate security tests of auth/validation). Applies to ALL 5 scouts via Coordinator (not per-scout flags) — simpler, no per-binary flag-syntax conversion.
+
+- **DG-117.0.1 hotfix decimal — Empirical extension (Cycle 108)**. Baseline-6 in the SENTINEL workspace revealed 3 noise patterns the initial set missed: `tests/benchmark/ground-truth.json` (benchmark test data), `.scanners/<scanner>/...` (CLI-installer artifacts of scanner OSS binaries), and `*.test.*` / `*.spec.*` filename suffixes (test code with intentional vulnerable patterns). The exclude logic extended with: 2 new segments (`benchmark`, `.scanners`) + new constant `DEFAULT_EXCLUDED_FILENAME_SUBSTRINGS = ['.test.', '.spec.']` matched against the last path segment via substring containment. `isPathExcluded` signature extended to 3 args (backward-compatible — 2-arg callers still work). Result on SENTINEL: 34 findings → 19 → **4** (-30 suppressed = -88% noise; only 2 real-code FPs + 2 meta-noise survive).
+
+- **DG-118 A — TP/risk split (Cycle 109, backlog #5 from the user-handoff)**. New field `Finding.priorityScore?: 'urgent' | 'high' | 'medium' | 'low' | 'noise'` computed deterministically by `computePriorityScore(severity, triageClassification?)`. The algorithm (Sub-option B, user-approved):
+  - `TP × severity` → severity directly mapped (`critical → urgent`, `high → high`, ..., `info → low` floor)
+  - `INC × severity` → severity DEMOTED one step (uncertainty)
+  - `Untriaged × severity` → severity directly (pessimistic: could-be-TP)
+  - `FP × any` → `noise` (LLM dismissed, deemphasis visual)
+
+  The sidebar now renders TWO badges side-by-side at the head of each card (severity + priority, deliberately different colors) plus a state badge on the right showing only `TP`/`INC`/`FP`/`NEW` — **the confidence% is moved to a secondary line in the brain section** with the explicit label `LLM confidence: N%`. This separates "how sure the LLM is of its verdict" (confidence%) from "how urgent is action" (priorityScore) — the empirical confusion that motivated the split.
+
+  Cross-workspace validation in `SYNAPTIC_SAAS` (Baseline-7): **37 findings**, all 5 priority tiers present (urgent=2, high=16, medium=15, low=2, noise=2), `priorityScore` populated 37/37, sanity matrix PASS across `noise ⇔ FP`, `urgent ⇔ critical+TP`, `(low, inconclusive) → low (floor)`, `(medium, inconclusive) → low (demote)`, `(high, inconclusive) → medium (demote)`.
+
+### Changed
+
+- `FindingSchema` extended with optional `priorityScore?`. Additive + backward-compatible: findings persisted in `colony.db` from earlier scans accept the absence; the UI falls back gracefully to severity-only rendering when missing.
+- `ScanOutcome.suppressedCount` now aggregates path-excluded findings (DG-117 A) + dedup + `fp_known` suppression (stage 2). User sees the total; the per-bucket breakdown is internal.
+- Sidebar `state-badge` no longer includes the confidence% — that lived alongside the state label (`TP 95%` → just `TP`). The confidence% moved to the brain section line with the explicit `LLM confidence: N%` label.
+
+### Known Issues / Honest tradeoffs
+
+- **`priorityScore` is per-finding; SCA grouped remediations (DG-113 A) show 1 action per package family**. Observed during Baseline-7: `high=16` priority counts in SYNAPTIC_SAAS is dominated by ~14 protobufjs CVEs that collapse to **one** `Upgrade protobufjs to 7.5.8 / 8.2.0` remediation action via the existing DG-113 A grouping. The two views disagree on "how much work." Surfacing priority at the group level is a future improvement candidate (tracked as `DG-future-group-priority`).
+- **Severity ↔ priority divergence is by design**, not a bug — that is the point of the split. E.g. `(medium, inconclusive) → low` priority. The UI distinguishes them via different colors + position; if the visual distinction proves insufficient, the priority badge can be re-styled (e.g. explicit "PRIO:" prefix) in a follow-up.
+- **The exclude-list is hardcoded** (no `.sentinelignore` yet). If you have a project with a directory legitimately named `fixtures` / `benchmark` / `vendor` (used for production code, not test data), findings there are silenced. User-configurable exclude is deferred to a future sub-DG if demand emerges.
+- **The exclude post-hoc filter doesn't save scout CPU** — Trivy/OpenGrep/etc. still scan the noise paths; the Coordinator just discards the findings afterwards. Acceptable for current workspace sizes; if very large monorepos surface scan-time issues, a future hotfix can push exclude flags to the scout binaries (`trivy --skip-dirs`, OpenGrep `--exclude`, etc.).
+- **Inconclusive-but-well-reasoned SAST taint verdicts** (carried over from v0.3.15) — unchanged. `inconclusive`-well-reasoned remains success by design for findings whose sink implementation lives in another file.
+
+### Notes
+
+- Empirical validation: SENTINEL workspace (Baseline-6 / 6.1 / 7) confirmed exclude effectiveness; SYNAPTIC_SAAS workspace (Baseline-7 cross-workspace) confirmed `priorityScore` algorithm correctness with diverse data (TP/INC/FP across all 5 severity levels).
+- `pnpm verify` VERDE: 62 test files / **763 tests** + manifest gate + activation gate (9 commands + 15 subscriptions). Test growth from v0.3.15: **+56 tests** (707 → 763), of which **+15** are the exclude-list matrix (DG-117 A) + **+12** the hotfix extension (DG-117.0.1) + **+29** the priority-score 20-case matrix and webview render assertions (DG-118 A).
+- `vsce publish` to the VS Code Marketplace is **not** part of this release. The Marketplace listing is on v0.3.3; **14 GitHub-only releases** now accumulate (v0.3.4 → v0.3.16) — the largest skip range of the project. To install in VS Code, download `synaptic-sentinel-0.3.16.vsix` and use `code --install-extension synaptic-sentinel-0.3.16.vsix` or _Install from VSIX..._ in the Extensions view.
+
 ## [0.3.15] - 2026-05-30
 
 **prismjs misleading remediation fix** (Cycle 107, DG-115 A + DG-115.1 A G7). Resolves the **🚨 prismjs** Known Issue called out in the v0.3.14 release notes and verified empirically against the SYNAPTIC_SAAS web lockfile. For SCA findings where the vulnerable package is a transitive copy pinned by a parent, the sidebar now emits an `overrideDirective` (npm `overrides` / yarn `resolutions` / pnpm `pnpm.overrides`) instead of — or in addition to — the misleading "upgrade to X" recommendation that a top-level bump alone does NOT honor.
