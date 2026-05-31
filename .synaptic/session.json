@@ -3,8 +3,8 @@
   "projectId": "sentinel-1779304140796",
   "projectName": "SENTINEL",
   "initializedAt": "2026-05-20T19:09:00.816Z",
-  "lastActivity": "2026-05-31T01:45:00.000Z",
-  "currentCycle": 109,
+  "lastActivity": "2026-05-31T02:30:00.000Z",
+  "currentCycle": 110,
   "currentPhase": 12,
   "synapticStrength": 100,
   "enforcement": {
@@ -19,22 +19,23 @@
   "agentState": {
     "complianceScore": 100,
     "violationsCount": 0,
-    "successfulCycles": 111,
+    "successfulCycles": 112,
     "marketplacePublishedExtensionId": "RealGoLab.synaptic-sentinel",
     "marketplacePublishedVersion": "0.3.3",
-    "githubReleaseLatest": "v0.3.15"
+    "githubReleaseLatest": "v0.3.16"
   },
   "activeDG": {
-    "id": "DG-118-A",
-    "title": "TP/risk split — campo priorityScore separado del confidence del Triage (backlog #5 user-handoff). Algoritmo Sub-option B: TP severity directly, INC demoted one step, Untriaged severity directly pessimistic, FP noise always.",
-    "status": "AWAITING_USER_BASELINE_7",
-    "artifact": "packages/vscode-extension/synaptic-sentinel-0.3.15-step7.vsix",
-    "artifact_sha256": "863293ab5caf88d8d754cbc132008616baa47a031060ebe73e5d9941d822d9af",
-    "option_selected": "B (Balanced, MEDIUM RISK) + Sub-option B (triage-aware mapping)",
-    "marketplace_publish": "N_A_CAPTURE_VSIX",
+    "id": "DG-120-A",
+    "title": "Release v0.3.16 packaging DG-117 A + DG-117.0.1 + DG-118 A (noise reduction + TP/risk split UX)",
+    "status": "SHIPPED",
+    "artifact": "packages/vscode-extension/synaptic-sentinel-0.3.16.vsix",
+    "artifact_sha256": "c83380b4f0a0812e243949b2d69c0c711005a14dc081a290065bf19106fcfdb3",
+    "github_release_url": "https://github.com/golab-arch/synaptic-sentinel/releases/tag/v0.3.16",
+    "option_selected": "A (Conservative, LOW RISK)",
+    "marketplace_publish": "DEFERRED_TO_USER",
+    "baseline_7_passed_preamble": "Cross-workspace validation SYNAPTIC_SAAS: 37 findings, priorityScore poblado 37/37, 5 priority tiers presentes (urgent=2, high=16, medium=15, low=2, noise=2), sanity matriz PASS sin violaciones, DG-115 A override directive intact, severity-priority divergence validated visualmente",
     "bitacora_entries": [
-      151,
-      152
+      153
     ]
   }
 }
