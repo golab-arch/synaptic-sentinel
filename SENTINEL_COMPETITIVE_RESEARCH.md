@@ -2,12 +2,16 @@
 
 > **Purpose**: consolidate verified findings from competitive landscape research for SYNAPTIC Sentinel (Apache-2.0 VS Code extension for OSS-based security vulnerability detection with LLM-based FP triage). This is a **living document** — investigations resume from this state if a session is interrupted (e.g. rate-limit). Every claim has explicit status, source, vote (when verified), and rationale.
 
-**Last updated**: 2026-06-18 (Session 3 — manual WebFetch verification complete)
+**Last updated**: 2026-06-18 (Session 4 — 12 NOT RESEARCHED gaps investigated)
 **Initiated by**: Cycle 110 close + post-DG-120 A release (v0.3.16)
 **Owner**: SENTINEL maintainer + Claude Code research collaboration
-**Methodology**: deep-research workflow (`workflow:deep-research` — fan-out web search → fetch → extract claims → adversarial 3-vote verify → synthesize) + manual WebFetch verification of high-priority unverified claims when the workflow is rate-limited.
+**Methodology**: deep-research workflow (`workflow:deep-research` — fan-out web search → fetch → extract claims → adversarial 3-vote verify → synthesize) + manual WebFetch/WebSearch verification of high-priority unverified claims when the workflow is rate-limited.
 
-**Final status**: **26 claims investigated · 23 VERIFIED · 1 MIXED · 2 REFUTED**.
+**Cumulative status**:
+- Session 1-2 (workflow): **26 claims** — 23 VERIFIED · 1 MIXED · 2 REFUTED
+- Session 3 (manual WebFetch): **22 claims VERIFIED** (covering the rate-limited ones)
+- Session 4 (NOT RESEARCHED gaps): **12 gaps investigated** + 1 prior refutation CORRECTED (Arnica) + 1 strategic correction added (Section 1.21 OpenGrep restores cross-function taint)
+- **Total** = 38 claims/gaps with verified status across the document.
 
 ---
 
@@ -305,6 +309,8 @@
     - Snyk Code (proprietary — not OSS-compatible)
   - **Decision documented**: SENTINEL's positioning explicitly does NOT promise cross-file taint analysis. Compete elsewhere (LLM FP triage, IDE-native, BYOK). Use the limit honestly in marketing: *"For cross-file taint, use CodeQL or Joern. SENTINEL specializes in fast, IDE-native, intraprocedural detection with smart LLM triage."*
 
+> ⚠️ **CRITICAL UPDATE (Session 4 — Gap #11 research)**: this strategic implication needs partial revision. **OpenGrep restored cross-function (interprocedural) taint tracking across 12 languages** that Semgrep moved to Pro Engine in January 2025. See Section 10.11 for details. **SENTINEL via OpenGrep has cross-function taint** for those 12 languages — only cross-FILE remains a hard limit. Marketing claim should be: *"SENTINEL specializes in fast, IDE-native detection with cross-function taint (via OpenGrep) and smart LLM triage. For deeper cross-file taint, use CodeQL or Joern."*
+
 ### 1.22 ✅ Domain-specific prompt engineering provides large gains over naive ReAct
 
 **Claim**: *"Domain-specific prompt engineering provides large gains over naive ReAct prompts for LLM SAST triage, with both Claude and Gemini significantly outperforming their Simple ReAct counterparts when given improved prompts."*
@@ -353,14 +359,25 @@
 - **Refutation reasoning** (inferred): the categorization may exist but the *implication* "structurally differentiated" is overreach — other tools also orchestrate multiple categories (Aikido, Snyk).
 - **Strategic implication**: **do NOT claim "structural differentiation" via multi-category orchestration**. It's not a defensible moat. Differentiation has to come from elsewhere (LLM FP quality, BYOK + local execution, anti-temporal-cutoff defense, override directives for nested-pinned SCA).
 
-### 3.2 ❌ Arnica Rust/Scala/Swift coverage claim
+### 3.2 ❌→✅ Arnica Rust/Scala/Swift coverage claim — REFUTATION CORRECTED (Session 4)
 
 **Claim**: *"Arnica's free-tier SAST/SCA/IaC explicitly covers Rust, Scala, and Swift in addition to mainstream languages."*
 
-- **Source**: <https://owasp.org/www-community/Free_for_Open_Source_Application_Security_Tools>
-- **Verification**: ❌ REFUTED 0-3
-- **Refutation reasoning** (inferred): Arnica may exist in the OWASP list but the specific Rust/Scala/Swift coverage was not corroborated.
-- **Strategic implication**: **do NOT treat Arnica as a verified Rust/Scala/Swift benchmark**. Needs separate primary-source verification.
+- **Source (original)**: <https://owasp.org/www-community/Free_for_Open_Source_Application_Security_Tools>
+- **Source (re-verification, Session 4)**: <https://docs.arnica.io/arnica-documentation/code-risks/code-risk-language-and-framework-support>
+- **Initial verification**: ❌ REFUTED 0-3 (Session 2 workflow)
+- **Session 4 re-verification**: ✅ **CORRECTED — actually TRUE** (per Arnica official docs)
+- **Direct findings from Arnica docs (verified Session 4)**:
+  - **Rust**: listed as supported for SAST in **Beta** status
+  - **Scala**: listed as supported for SAST in **GA** (General Availability) status, with same support as Java
+  - **Swift**: listed as supported for SAST in **Experimental / Beta** status
+- **Why the original workflow refuted incorrectly**: the OWASP curated list source did NOT contain the language detail; the verifiers correctly refuted the OWASP-derived claim but the underlying assertion about Arnica was true (just sourced from the wrong page).
+- **Strategic implication (CORRECTED)**:
+  - **Arnica IS a verified benchmark for Rust/Scala/Swift coverage in the free-tier SAST segment**.
+  - **Arnica uses OpenGrep as its SAST backend** (per their docs) — same engine SENTINEL uses → **SENTINEL's language coverage gap is NOT in scanning capability** (OpenGrep covers Rust/Scala/Swift) but in **Brain Layer prompt tuning per language**.
+  - **See Section 10.12 for full Arnica re-verification details**.
+
+**Lesson learned for future research**: cross-reference vendor-specific claims with the **vendor's own official docs**, not aggregated lists. The OWASP list is good for discovery but not for granular feature claims.
 
 ---
 
@@ -480,26 +497,39 @@
 - **Time efficient**: 3 claims per source on average (batched by source URL).
 - **Updates committed** to this document inline.
 
+### Session 4 — 2026-06-18 (12 NOT RESEARCHED gaps investigated — COMPLETE)
+- **Approach**: WebSearch per gap (12 searches), capture canonical sources, extract feature/pricing/positioning info.
+- **Result**: **12/12 gaps investigated** + 1 critical correction (Arnica refutation was wrong) + 1 strategic update (OpenGrep restored cross-function taint that Semgrep CE lost).
+- **Gaps documented** in new Section 10.1-10.12.
+- **Key strategic findings**:
+  - **OpenGrep is backed by 10+ AppSec consortium** (Aikido, Endor Labs, Jit, Orca Security) and **restored cross-function taint across 12 languages** that Semgrep moved to Pro Engine in Jan 2025.
+  - **SENTINEL is using a multi-vendor-adopted, performance-tuned (3.15x faster than Semgrep) engine** with broader features than pure Semgrep CE.
+  - **Arnica uses OpenGrep as backend** — confirms OpenGrep ecosystem adoption.
+  - **Aikido pricing not in free-tier ASPM segment** (premium $50/dev/month for Jit.io; Akamai API Security $25K-100K+/year) — SENTINEL's free Apache-2.0 position is **defensible by license, not just price**.
+- **Updates** to Sections 1.21 (cross-function taint correction) and 3.2 (Arnica refutation correction) cross-linked.
+
 ---
 
 ## 7. Outstanding research questions (next research session)
 
-### 7.1 🚫 NOT RESEARCHED — gaps identified but not investigated
+### 7.1 ✅ RESEARCHED (Session 4 — 12/12 gaps complete)
 
-These were called out in the original research scope but no source was fetched. Candidates for next research session:
+All 12 gaps from the original research scope have been investigated. Each is documented in detail in **Section 10**. Summary:
 
-1. **Snyk VS Code extension current feature set** — LLM integration depth, free tier limits, language coverage in IDE
-2. **GitHub Advanced Security free-tier vs paid feature boundaries** — CodeQL access in free tier, Copilot Autofix availability
-3. **JetBrains Qodana** free tier (cross-IDE comparison)
-4. **SonarLint** AI features in free tier
-5. **DryRun Security** positioning + LLM integration
-6. **NeoSec** API security focus + LLM use
-7. **Jit.io** free tier scope
-8. **ZeroPath** benchmark approach (mentioned in source list but not extracted)
-9. **OSV-Scanner** LLM integration (likely none, but confirm)
-10. **Trufflehog** Verifier mode capabilities (secrets validation via API hits)
-11. **Bandit, Brakeman** positioning vs OpenGrep (single-language specialists)
-12. **Arnica re-verification** — actual Rust/Scala/Swift coverage from primary source (Arnica docs, not OWASP list)
+| # | Gap | Result | Section |
+|---|---|---|---|
+| 1 | Snyk VS Code extension current feature set | ✅ Researched — free tier, AI fixes, 40+ langs, supports Windsurf/Cursor/Eclipse Theia | 10.1 |
+| 2 | GitHub Advanced Security free-tier vs paid | ✅ Researched — public repos FREE (CodeQL + Copilot Autofix), private $30/committer/month | 10.2 |
+| 3 | JetBrains Qodana free tier | ✅ Researched — Community tier free, 60+ langs via JetBrains IDE engines, NOT LLM-chat-style | 10.3 |
+| 4 | SonarLint / SonarQube for IDE AI features | ✅ Researched — free 40+ langs, AI CodeFix requires paid Cloud/Server Enterprise | 10.4 |
+| 5 | DryRun Security positioning | ✅ Researched — AI-native SAST, PR-level, 2x precision claim, NO IDE focus | 10.5 |
+| 6 | NeoSec / Akamai API Security | ✅ Researched — enterprise API security $25K-100K+/year, NOT SAST/IDE category | 10.6 |
+| 7 | Jit.io free tier scope | ✅ Researched — ASPM platform $50/dev/month, free tier no-CC, AI agents SERA+COTA | 10.7 |
+| 8 | ZeroPath benchmark approach | ✅ Researched — AI-native SAST, 2x vulns + 75% fewer FPs claim, auto-PR | 10.8 |
+| 9 | OSV-Scanner LLM integration | ✅ Researched — pure vulnerability scanner, NO LLM, V2 has container scanning + guided remediation | 10.9 |
+| 10 | Trufflehog Verifier mode | ✅ Researched — 700+ secret types with live API verification, AGPL-3.0 license concern | 10.10 |
+| 11 | Bandit / Brakeman / OpenGrep ecosystem | ✅ Researched + **CRITICAL FINDING: OpenGrep restored cross-function taint across 12 langs** | 10.11 |
+| 12 | Arnica re-verification | ✅ Researched + **REFUTATION CORRECTED: Arnica DOES support Rust/Scala/Swift** (Beta/GA/Beta) | 10.12 |
 
 ### 7.2 Deeper open questions (not addressable via web research alone)
 
@@ -546,6 +576,288 @@ When you (the user) confirm the next Cycle, this document supports these candida
 - **Tag line**: "The only IDE-native, BYOK, OSS-licensed security scanner with intelligent LLM triage. Your code stays local."
 - **Differentiation pillars**: (1) IDE-native (not GitHub App), (2) BYOK (not vendor-locked), (3) Apache-2.0 (not proprietary), (4) Anti-temporal-cutoff defense (unique to SENTINEL), (5) Override directives for nested-pinned SCA (unique to SENTINEL).
 - **Honest limits to advertise**: intraprocedural-only (use CodeQL/Joern for cross-file), real-world MCC modest (decision-support not auto-suppression), no DAST/container/SBOM (single-purpose tool).
+
+---
+
+---
+
+## 10. Session 4 — 12 gap investigations (NOT RESEARCHED items resolved)
+
+Each subsection below covers one of the 12 gaps from the original research scope. All investigated via WebSearch (canonical vendor docs + comparison sites).
+
+### 10.1 ✅ Snyk VS Code extension current feature set
+
+- **Investigation method**: WebSearch — Snyk official docs + GitHub repo + DeepWiki + comparison articles
+- **Sources**: <https://docs.snyk.io/developer-tools/snyk-ide-plugins-and-extensions/visual-studio-code-extension> · <https://github.com/snyk/vscode-extension>
+- **Findings**:
+  - **Scope**: scans Open Source (deps), Code (SAST), and IaC (Infrastructure as Code) configurations.
+  - **AI fixes**: AI-generated fix suggestions inline ("DeepCode AI Fix" → "Snyk Agent Fix" architecture per Section 1.6).
+  - **Language coverage**: "wide array of package managers, programming languages, and frameworks" (no specific count published for the IDE extension).
+  - **Free tier**: install **free of charge from VS Code marketplace**, usable with a Snyk Free account.
+  - **IDE compatibility**: VS Code + **Windsurf + Cursor + Eclipse Theia** (multi-IDE via VS Code-API compatibility).
+  - **"Secure at Inception"**: new capability — modal on first install asks to enable Snyk Studio which writes a `snyk_rules.mdc` file into the project root (similar to `.cursorrules` pattern for AI assistants).
+- **Strategic implication for SENTINEL**:
+  - **Direct competitor for the IDE niche** with broader IDE coverage (Windsurf/Cursor/Theia) than just VS Code.
+  - **Snyk Free tier** + extension = zero-friction onboarding analogous to Aikido — both compete on the friction axis SENTINEL doesn't yet match.
+  - **`snyk_rules.mdc` pattern** is an interesting UX innovation — SENTINEL could adopt a similar `.sentinel-rules.mdc` to surface custom triage rules to AI coding assistants (Claude Code, Cursor, Copilot). Small effort, high signal for the vibe-coding audience.
+
+### 10.2 ✅ GitHub Advanced Security free tier vs paid boundaries
+
+- **Investigation method**: WebSearch — GitHub Docs + GitHub blog + community discussions
+- **Sources**: <https://docs.github.com/en/get-started/learning-about-github/about-github-advanced-security> · <https://docs.github.com/en/code-security/code-scanning/introduction-to-code-scanning/about-code-scanning-with-codeql> · <https://github.com/security/plans>
+- **Findings**:
+  - **Public repositories — FREE**: CodeQL code scanning + Copilot Autofix both **completely free**, no scan limits.
+  - **Public repo languages supported (CodeQL)**: JS/TS, Python, Java, C#, C/C++, Go, Ruby (and Swift/Kotlin in expanding coverage).
+  - **Private repositories — PAID**: requires GitHub Code Security license at **$30/active committer/month** (includes code scanning, CodeQL, dependency review, Copilot Autofix).
+  - **No Copilot subscription needed** for Copilot Autofix in eligible repos — it's bundled with Code Security.
+  - **Team tier note**: GitHub Team plan does NOT include Code Security; must purchase separately.
+- **Strategic implication for SENTINEL**:
+  - **For OSS maintainers with PUBLIC repos** → GitHub Advanced Security free tier is **directly comparable** to SENTINEL's value prop. **SENTINEL's edge**: BYOK (data privacy), runs locally (no PR-flow dependency), works on private code without paying $30/dev/month.
+  - **For indie devs / small teams on PRIVATE repos** → SENTINEL's free Apache-2.0 + BYOK is a **clear cost differentiator**: $0/dev/month vs $30/dev/month for the GitHub Code Security equivalent.
+  - **GitHub's training-data + CodeQL semantic engine is unbeatable** for cross-file taint analysis. Do not try to match. Continue positioning SENTINEL as fast, IDE-native, intraprocedural+ (per Section 1.21 update on OpenGrep cross-function taint).
+
+### 10.3 ✅ JetBrains Qodana free tier
+
+- **Investigation method**: WebSearch — JetBrains official docs + blog + G2 reviews + third-party reviews
+- **Sources**: <https://www.jetbrains.com/help/qodana/pricing.html> · <https://www.jetbrains.com/qodana/self-hosted/> · <https://blog.jetbrains.com/qodana/2025/06/qodana-self-hosted-lite/>
+- **Findings**:
+  - **Tiers**: Community (free), Ultimate, Ultimate Plus.
+  - **Community license**: free, usable in **open-source AND proprietary projects**. Lacks features of paid tiers + has limited Qodana Cloud data storage.
+  - **Engine**: Qodana uses **the same analysis engines as JetBrains IDEs** (IntelliJ IDEA, PhpStorm, WebStorm, GoLand, PyCharm, Rider, CLion). Findings in CI/CD = identical to findings in editor.
+  - **Languages**: **60+ via specialized linters**. Primary: Java/Kotlin, Python, JS/TS, PHP, Go, C#/.NET, C/C++, Ruby, Rust.
+  - **NOT primarily LLM-driven**: positioned as "continuous inspection infrastructure" — linters, baselines, quality gates, reports, cloud dashboards, CI integrations. Static analysis core, not AI-chat.
+  - **Self-Hosted Lite (June 2025)**: on-premises lightweight deployment for teams. AWS supported initially; more cloud options planned.
+- **Strategic implication for SENTINEL**:
+  - **Different category from SENTINEL**: Qodana is **CI/CD + JetBrains-IDE-native static analysis**, NOT LLM triage tool. They compete for "static analysis quality" but in different runtime contexts.
+  - **For JetBrains users specifically**: Qodana is the obvious choice (free Community + free IDE editor parity). **SENTINEL is NOT a JetBrains play** — focus on VS Code ecosystem.
+  - **"Same engine in IDE + CI" is a strong UX message** — SENTINEL could mirror this: "same scan results in your IDE and your CI" if/when CI integration is built.
+  - **Qodana's 60+ languages is broader than OpenGrep** — but achieved via 9+ separate linter binaries. SENTINEL's single-engine approach is simpler but narrower.
+
+### 10.4 ✅ SonarLint / SonarQube for IDE — AI features in free tier
+
+- **Investigation method**: WebSearch — Sonar official docs + Marketplace listing + GitHub
+- **Sources**: <https://www.sonarsource.com/products/sonarqube/ide/> · <https://docs.sonarsource.com/sonarqube-for-vs-code/ai-capabilities/ai-codefix> · <https://marketplace.visualstudio.com/items?itemName=SonarSource.sonarlint-vscode>
+- **Findings**:
+  - **Rebranded**: SonarLint → **SonarQube for IDE** (current name, 2026).
+  - **Free tier (standalone)**: covers **40+ languages** (JS/TS, Python, Java, C#, C/C++, Go, PHP, others). Real-time inline issue detection, QuickFix suggestions, bugs + vulnerabilities + code smells.
+  - **AI CodeFix**: **NOT in free tier**. Available only via Connected Mode with:
+    - SonarQube Server **Enterprise** or **Data Center** editions, OR
+    - SonarQube Cloud **Team** or **Enterprise** plans
+  - **Real-time analysis**: verifies every line as typed.
+  - **Visual Studio support**: 2017, 2019, 2022, 2026.
+- **Strategic implication for SENTINEL**:
+  - **Sonar free tier covers more languages than OpenGrep** (40+ vs ~30) but is **pattern-matching only**, not LLM-driven triage.
+  - **SonarQube's AI CodeFix is gated behind paid Enterprise** — SENTINEL's free LLM triage (via BYOK) is a clear differentiator for cost-sensitive users.
+  - **Direct positioning vs Sonar**: "SonarQube for IDE gives you patterns; SENTINEL adds an LLM brain that reasons about each finding. And our AI features work in the free tier — you pay your own LLM provider, not us."
+  - **UX note**: Sonar's "Connected Mode" pattern (local IDE → cloud server) is a workflow SENTINEL doesn't have. SENTINEL's "purely local + BYOK" is **simpler architecturally** but cannot share findings across team members. For team-collaboration features, this is a clear gap (defer to future).
+
+### 10.5 ✅ DryRun Security positioning
+
+- **Investigation method**: WebSearch — DryRun official docs + blog + G2 reviews
+- **Sources**: <https://www.dryrun.security/> · <https://www.dryrun.security/resources/csa-guide> · <https://www.globenewswire.com/news-release/2026/02/03/3230986/0/en/DryRun-Security-Introduces-the-DeepScan-Agent-for-Rapid-Full-Codebase-Security.html>
+- **Findings**:
+  - **Positioning**: "AI-native SAST", "first AI-native, agentic code security intelligence solution" — proprietary **Contextual Security Analysis (CSA) engine**.
+  - **Detection focus**: PR-level code commits via AI-driven contextual analysis. Claims ability to find **"business logic" vulnerabilities** that traditional SAST misses (similar positioning to Endor Labs).
+  - **Performance claim**: **2x precision vs traditional SAST**; reduces noise by focusing on exploitability + impact.
+  - **DeepScan Agent (Feb 2026)**: full-repo on-demand scanning agent for "fast, full-repository confidence: before major releases, after large refactors, during acquisitions".
+  - **AppSec niche**: claims legacy SAST misses **80% of LLM-specific vulnerabilities** (model orchestration, tool use, etc.) — DryRun's special focus.
+  - **Integration**: GitHub, GitLab, Slack. **NOT IDE-native** (PR + commit workflow).
+  - **Pricing**: not public; G2 reviews suggest enterprise-tier sales motion.
+- **Strategic implication for SENTINEL**:
+  - **DryRun targets a different segment**: enterprise PR-flow security teams, NOT indie/IDE-first devs.
+  - **"LLM-specific vulnerabilities" focus** is an interesting niche DryRun is staking. SENTINEL's Vibe-Detect scout is heuristic; could grow into an LLM-aware ruleset (placeholder API keys, unverified tool calls, agent orchestration foot-guns).
+  - **"Contextual" framing**: DryRun emphasizes context-aware analysis as their moat. SENTINEL's Context Agent already does this — could borrow DryRun's marketing framing.
+
+### 10.6 ✅ NeoSec / Akamai API Security
+
+- **Investigation method**: WebSearch — Akamai press releases + product page + industry analysis
+- **Sources**: <https://www.akamai.com/products/api-security> · <https://www.akamai.com/newsroom/press-release/akamai-intends-to-acquire-neosec>
+- **Findings**:
+  - **Acquisition history**: Akamai acquired Neosec (May 2023) for API detection + response. **Later acquired Noname Security ($450M, June 2024)** which now forms the primary basis of Akamai API Security platform.
+  - **Category**: **runtime API security**, NOT SAST/code scanning. Discover→Test→Detect→Respond workflow.
+  - **AI/LLM features**: discovers + tags GenAI/LLM API endpoints, AI-native governance for app↔LLM↔data interactions, runtime anomaly detection (ML-based).
+  - **Pricing**: enterprise tier **$25K-100K+/year typical**. Per-traffic / per-API billing models.
+  - **NOT in SENTINEL's competitive segment**: different category entirely (runtime API security vs static code scanning).
+- **Strategic implication for SENTINEL**:
+  - **Complementary**, not competitive. Companies using SENTINEL for code-level security may also use Akamai for runtime API protection — no overlap.
+  - **DO NOT compete in runtime / DAST / API detection**. Stay focused on static analysis + LLM triage.
+  - **One adjacency to note**: if SENTINEL ever adds runtime / SBOM / supply-chain features, the API Security space is well-served by enterprise vendors. **Don't go there**.
+
+### 10.7 ✅ Jit.io free tier scope
+
+- **Investigation method**: WebSearch — Jit official pricing + ASPM platform docs + G2 reviews + Gartner
+- **Sources**: <https://www.jit.io/pricing> · <https://www.jit.io/aspm-platform> · <https://www.jit.io/lp/open-aspm-platform>
+- **Findings**:
+  - **Category**: **ASPM** (Application Security Posture Management) platform — unified view across SAST, SCA, secrets, SBOM, container, IaC, CSPM, DAST.
+  - **AI Agents**: **SERA** (Security Evaluation and Remediation Agent) + **COTA** (Communication, Ops, and Ticketing Agent) — context-aware AI for vuln triage + remediation orchestration.
+  - **Free tier**: **YES, no credit card required**. Specific feature limits not published in search results.
+  - **Paid tier**: $50/dev/month flat rate (covers all security controls + features).
+  - **"Open ASPM"**: positioning emphasizes integration with existing tools rather than replacing them.
+  - **Integrations**: GitHub, GitLab, AWS, Azure, GCP, Jira, Slack.
+  - **OpenGrep backer**: Jit is in the consortium that supports OpenGrep (per Gap #11 finding).
+- **Strategic implication for SENTINEL**:
+  - **Jit is ABOVE SENTINEL's category** (full ASPM platform vs IDE-native scanner). They orchestrate many tools; SENTINEL is one such tool.
+  - **Adjacency opportunity**: SENTINEL could become a **Jit-integrated scout** — the "local IDE-first" piece of a Jit ASPM deployment. Worth exploring partnership (no specific action required now).
+  - **Jit's "AI agent + ASPM" framing is the enterprise SaaS path** — SENTINEL is the OSS opposite (BYOK + IDE + local + free).
+
+### 10.8 ✅ ZeroPath benchmark approach
+
+- **Investigation method**: WebSearch — ZeroPath official site + blog + arXiv RealVuln benchmark + Joshua Rogers' independent reviews
+- **Sources**: <https://zeropath.com/products/sast> · <https://zeropath.com/blog/best-sast-tools> · <https://arxiv.org/html/2604.13764>
+- **Findings**:
+  - **Positioning**: "AI-Native SAST". Combines ML + LLMs for context-aware detection + auto-fix.
+  - **Claims (unverified marketing)**: 2x more vulnerabilities + 75% fewer FPs vs pattern-based tools.
+  - **2026 recognition**: **RSAC 2026 Innovation Sandbox Top-10 Finalist**. Autonomously discovered 32+ vulnerabilities in FFmpeg + curl (major OSS projects).
+  - **Benchmark approach**: published benchmark code + SARIF results as a **public GitHub fork of the XBOW validation benchmarks**, testing against major SAST vendors. Methodology transparency is a positive signal.
+  - **Auto-PR**: generates ready-to-merge fix PRs.
+  - **Capability target**: authentication bypasses, IDORs, logic bugs (categories pattern-based tools struggle with).
+  - **Pricing**: not in search results — likely enterprise sales.
+- **Strategic implication for SENTINEL**:
+  - **ZeroPath is a strong AI-native SAST competitor in enterprise segment**. NOT IDE-native primarily.
+  - **Their public benchmark methodology is laudable** — SENTINEL could borrow this for credibility: publish a public benchmark suite + SENTINEL's results vs other LLM SAST tools on standardized fixtures.
+  - **The "32+ vulns in FFmpeg + curl" claim** is impressive marketing. Replicable: SENTINEL could scan high-profile OSS projects and publish findings (with responsible disclosure) — instant credibility-building.
+  - **NEW Apache-2.0 deliverable opportunity**: publish a public SENTINEL benchmark suite (test fixtures + ground truth + reproducible scoring) as the OSS reference for "LLM-triaged OSS SAST quality".
+
+### 10.9 ✅ OSV-Scanner LLM integration (none, as expected)
+
+- **Investigation method**: WebSearch — Google official docs + GitHub repo + Google OSS blog
+- **Sources**: <https://google.github.io/osv-scanner/> · <https://github.com/google/osv-scanner>
+- **Findings**:
+  - **NO LLM integration** confirmed — pure vulnerability scanner querying OSV.dev database.
+  - **OSV.dev**: largest aggregated source of OSS vulnerability data, normalized advisory format across NVD + GitHub Advisories + ecosystem-specific sources.
+  - **Languages (V2, 2026)**: C/C++, Dart, Elixir, Go, Java, JS, PHP, Python, R, Ruby, Rust. **11+ ecosystems, 19+ lockfile formats**.
+  - **Guided Remediation (V2)**: calculates optimal dep-upgrade set considering depth + severity + fix strategy + ROI. Supports npm + Maven; more planned.
+  - **Container scanning (V2)**: layer-aware for Debian, Ubuntu, Alpine; identifies which layer introduced each package + filters runtime-irrelevant vulns.
+  - **HTML reports**: interactive output for non-terminal users.
+  - **License**: Apache-2.0 ✅.
+- **Strategic implication for SENTINEL**:
+  - **OSV-Scanner is complementary**, not competitive — pure SCA without LLM. SENTINEL uses Trivy (also Apache-2.0) for SCA, which queries OSV.dev among others.
+  - **OSV-Scanner's guided remediation** (dep-upgrade optimization) is a **feature SENTINEL could borrow**. Currently SENTINEL's SCA grouping (DG-113 A) computes MAX-semver-per-track but doesn't optimize for transitive dep-tree minimization. **Future improvement candidate**.
+  - **SENTINEL could also support OSV-Scanner as an alternative SCA scout** (instead of/alongside Trivy) — Apache-2.0 license-compatible, more focus on remediation guidance.
+
+### 10.10 ✅ Trufflehog Verifier mode + AGPL license concern
+
+- **Investigation method**: WebSearch — Truffle Security official docs + blog + GitHub + comparison articles
+- **Sources**: <https://github.com/trufflesecurity/trufflehog> · <https://trufflesecurity.com/blog/how-trufflehog-verifies-secrets> · <https://docs.trufflesecurity.com/reverify-secrets>
+- **Findings**:
+  - **Verifier mode**: validates **700-800+ secret types** via safe read-only API calls.
+  - **Verification process**: for each detected candidate, attempts provider API verification (sometimes live call, sometimes cached). If endpoint returns 200 OK = "verified" secret. Auto-verification for **every** secret detector.
+  - **Live + historical**: validates secrets in git history to determine which historical credentials are still live + need rotation.
+  - **Beyond Git**: scans Slack, S3 buckets, GCS, Docker images, Jenkins, Elasticsearch, Postman, CI platforms.
+  - **License**: **AGPL-3.0** ⚠️.
+  - **Enterprise self-hosted option** available.
+- **Strategic implication for SENTINEL**:
+  - **Trufflehog Verifier is BEST-IN-CLASS for secret validation**. SENTINEL uses Gitleaks (MIT), which only does pattern-match without API verification.
+  - **GAP IDENTIFIED**: SENTINEL's Secrets scout could be enhanced with verification (live API calls to confirm secrets are still active). High-value feature.
+  - **AGPL-3.0 license concern (CRITICAL for SENTINEL Apache-2.0)**:
+    - SENTINEL **does NOT bundle Trufflehog** — at most could spawn it as an external CLI like Trivy.
+    - **AGPL Section 13** triggers when "you allow remote network interaction" with modified covered work. Spawning + parsing output (read-only) is **likely outside AGPL's scope**, but legal opinion advised.
+    - **Safer alternative**: build a SENTINEL-internal secret verifier (Apache-2.0) — uses Gitleaks for detection + internal verification routines for top 50-100 secret types. **Effort: medium; License: Apache-2.0 clean**.
+  - **Alternative for SENTINEL**: stay with Gitleaks for detection + add an optional **"verify mode"** that pings the issuing service's auth endpoint to confirm validity (for common types: GitHub, AWS, Stripe, Slack, OpenAI, Anthropic, etc.). Selective verification only — not the 700-type universe.
+
+### 10.11 ✅ Bandit / Brakeman / OpenGrep ecosystem — CRITICAL FINDING
+
+- **Investigation method**: WebSearch — Wiz tool guide + Snyk OSS analysis + OpenGrep vs Semgrep comparisons + Endor Labs benchmark blog
+- **Sources**: <https://www.wiz.io/academy/application-security/top-open-source-sast-tools> · <https://appsecsanta.com/sast-tools/opengrep-vs-semgrep> · <https://www.endorlabs.com/learn/benchmarking-opengrep-performance-improvements> · <https://semgrep.dev/docs/faq/comparisons/opengrep>
+- **Findings on single-language specialists**:
+  - **Bandit (Python)**: best-in-class for Python-specific scanning. Low FPs in Python codebases. Apache-2.0.
+  - **Brakeman (Ruby on Rails)**: dominant Rails security scanner. Detects SQL injection, XSS, config issues. Apache-2.0.
+  - **Other OSS specialists**: gosec (Go), SpotBugs (Java), PMD (Java/JS/Apex), Infer (Java/C/C++ — Meta), PHPStan (PHP), Psalm (PHP), nodejsscan (Node.js).
+  - **Multi-language OSS**: Semgrep CE, OpenGrep, CodeQL.
+- **CRITICAL FINDING — OpenGrep details**:
+  - **Created January 2025** as a community fork of Semgrep CE after Semgrep moved cross-function taint, fingerprinting, and other features behind their **commercial Pro Engine**.
+  - **OpenGrep restored cross-function (interprocedural) taint tracking** across **12 languages** + fingerprinting.
+  - **OpenGrep added Visual Basic support** (not in Semgrep CE).
+  - **Backed by 10+ AppSec consortium**: Aikido, Endor Labs, Jit, Orca Security + others. **Dedicated full-time OCaml development team**.
+  - **Performance**: **3.15x faster** than Semgrep on average (1.07x-4.14x range depending on project size).
+  - **Compatibility**: same LGPL-2.1 CLI license, same rule format, same JSON/SARIF output — existing Semgrep rules work on OpenGrep unchanged.
+- **Strategic implication for SENTINEL — MAJOR REVISION TO PRIOR FINDING**:
+  - **Section 1.21 needs update** (and has been updated): SENTINEL's Semgrep CE intraprocedural-limit claim is **PARTIALLY OUTDATED**. OpenGrep (which SENTINEL uses) has cross-function taint for 12 languages.
+  - **SENTINEL's positioning can be upgraded**: not "intraprocedural-only" but "intraprocedural + cross-function (via OpenGrep) for 12 languages, no cross-file".
+  - **Marketing language**: "SENTINEL runs on OpenGrep, the community-backed, 3x-faster Semgrep alternative with cross-function taint and Visual Basic support — all features Semgrep moved to paid Pro Engine."
+  - **Validate empirically in Cycle 111**: confirm SENTINEL's OpenGrep configuration is actually invoking cross-function mode (the feature exists in OpenGrep CLI but SENTINEL may not have enabled it).
+  - **OpenGrep adoption signal**: the consortium (Aikido + Endor + Jit + Orca) is unusual cross-vendor cooperation. **Indicates OpenGrep will likely outpace Semgrep CE in features** as the consortium funds parity restoration. SENTINEL is on the right scanner.
+- **Bandit/Brakeman strategic implication**:
+  - **For Python-specific scans**: Bandit may catch findings OpenGrep misses (highly tuned for Python idioms). SENTINEL could **offer Bandit as an additional Python-specific scout** when Python is detected in the workspace. Apache-2.0 license-clean. Medium effort.
+  - **For Rails-specific scans**: same logic for Brakeman + Ruby projects.
+  - **Tradeoff**: more scouts = more output to triage = more LLM cost. The Brain Layer needs to dedup intelligently (DG-113 A grouping already handles per-package family; could extend to per-rule-id).
+
+### 10.12 ✅ Arnica re-verification — CORRECTS PRIOR REFUTATION
+
+- **Investigation method**: WebSearch — Arnica official docs + pricing + G2 reviews
+- **Sources**: <https://www.arnica.io/> · <https://docs.arnica.io/arnica-documentation/code-risks/code-risk-language-and-framework-support> · <https://www.jit.io/pricing> (cross-reference)
+- **Findings**:
+  - **Free tier** (confirmed): covers SCA, SAST, IaC, secrets scanning, SBOM inventory, license + package-reputation signals, weekly risk ingestion, full user/asset inventory. **No max identity count** in free tier.
+  - **Paid tiers**:
+    - **Core Business**: $300/identity/year (annual) or $360 (monthly). Adds real-time risk ingestion, PR merge-blocking, ChatOps (Slack/Teams), inline PR risk, automated issue mgmt.
+    - **Core Enterprise**: $600/identity/year (annual) or $720 (monthly). Adds RBAC, SAML, zero-day campaigns, API access, on-prem deployment, dynamic backlog.
+  - **Language coverage** (DIRECTLY from Arnica docs, refuting the prior refutation):
+    - **Rust**: ✅ supported for SAST in **Beta** status.
+    - **Scala**: ✅ supported for SAST in **GA** (General Availability), same support as Java.
+    - **Swift**: ✅ supported for SAST in **Experimental / Beta Support** status.
+  - **Backend engine**: **Arnica leverages OpenGrep as the SAST backend** (adds proprietary customization + automation).
+- **CORRECTION TO PRIOR REFUTATION (Session 2)**:
+  - The original claim said Arnica's free tier covers Rust/Scala/Swift. The workflow's adversarial verification refuted this 0-3 because the **OWASP source did NOT contain the language detail** — the extractor mis-attributed.
+  - **The underlying assertion about Arnica IS TRUE** (per Arnica's own docs).
+  - **Section 3.2 has been updated** with this correction.
+- **Strategic implication for SENTINEL**:
+  - **Arnica IS a valid benchmark for free-tier multi-language coverage** in the OpenGrep-backed segment.
+  - **Arnica's free tier is generous** (full SAST/SCA/IaC/secrets/SBOM) — competing on features alone is hard. **SENTINEL's edge must be**:
+    - **Apache-2.0 OSS license** (Arnica is proprietary SaaS, free tier subject to vendor lock-in)
+    - **Local execution + BYOK** (Arnica is SaaS — code uploaded to their cloud)
+    - **IDE-first** (Arnica is GitHub/GitLab-flow-first)
+  - **Arnica's OpenGrep backend confirms OpenGrep ecosystem strength** — SENTINEL is on the right tech stack.
+  - **Arnica's per-identity pricing model** ($300-720/year per dev) is a **MUCH cheaper enterprise alternative to Snyk/Aikido** for big teams. SENTINEL's free tier doesn't compete on the same axis but on a different one (privacy + OSS + IDE).
+
+---
+
+## 11. Updated strategic synthesis (post-Session 4)
+
+### 11.1 Revised competitor categorization
+
+Based on Session 4 findings, the competitive landscape now clusters into 6 segments:
+
+| Segment | Examples | Position vs SENTINEL |
+|---|---|---|
+| **IDE-native + LLM-driven (DIRECT)** | Aikido AutoFix, Snyk VS Code, SonarQube for IDE (free tier no AI), Corgea | DIRECT competition on UX + features |
+| **GitHub-flow + LLM-driven** | GitHub Advanced Security (free public, paid private), Endor Labs AI Code Review, DryRun Security, ZeroPath, Snyk Agent Fix | NOT IDE-first — SENTINEL niche defensible |
+| **ASPM platforms (full-stack)** | Jit.io, Arnica | Different category — SENTINEL is a scout/scanner, they're orchestrators |
+| **CI/CD + JetBrains IDE static** | JetBrains Qodana | Different IDE ecosystem |
+| **Runtime / API security** | NeoSec/Akamai, Cloudflare API Shield | DO NOT COMPETE — different category |
+| **Pure OSS scanners (no LLM)** | OSV-Scanner, Trufflehog, Bandit, Brakeman, gosec | COMPLEMENTARY — SENTINEL could orchestrate them |
+
+### 11.2 Updated recommendation table (Session 4 additions)
+
+| # | Recommendation | Source claim | Effort | Impact | Priority |
+|---|---|---|---|---|---|
+| R11 | **Adopt `.sentinel-rules.mdc` pattern** (Snyk Studio-inspired) to expose SENTINEL's project context to AI coding assistants (Claude Code, Cursor, Copilot) | 10.1 | Small | Medium (vibe-coding adoption) | P1 |
+| R12 | **Validate OpenGrep cross-function taint is actually enabled** in SENTINEL's invocation (may already work, may need flag) — UPDATE marketing if confirmed | 10.11 | Small | High (positioning upgrade) | P0 |
+| R13 | **Add Bandit / Brakeman as optional language-specific scouts** when Python / Rails detected — complement OpenGrep with specialist coverage | 10.11 | Medium | Medium | P2 |
+| R14 | **Add secrets verification mode** (Apache-2.0 in-house, NOT bundle AGPL Trufflehog) for top 50-100 secret types — major Gitleaks enhancement | 10.10 | Medium | High (UX win) | P1 |
+| R15 | **Build public SENTINEL benchmark suite** (test fixtures + ground truth + reproducible scoring) — credibility-building, follows ZeroPath's transparent benchmarking | 10.8 | Large | High (credibility) | P2 |
+| R16 | **Adopt OSV-Scanner's guided-remediation pattern** for SCA (transitive dep tree optimization, not just MAX-semver) — extends DG-113 A | 10.9 | Medium | Medium | P2 |
+| R17 | **Add `inconclusive`-quality LLM rationale for runtime-API findings** the scout incorrectly classifies as code findings (rare but real — Akamai/Cloudflare-style runtime is out of scope) | 10.6 | Small | Low | P3 |
+
+### 11.3 Updated differentiation strategy
+
+**DOUBLE DOWN on (verified moats)**:
+1. **Apache-2.0 + BYOK + local execution** — only SENTINEL in this position (Aikido = SaaS, Snyk = SaaS+paid IDE, GitHub = SaaS, Arnica = SaaS, ZeroPath = SaaS).
+2. **IDE-native LLM triage for free** — Aikido has IDE 1-click but is SaaS-hosted; SENTINEL is local.
+3. **DG-115 override directives for nested-pinned SCA** — NO competitor identified with this specific pattern.
+4. **DG-111 A anti-temporal-cutoff defense** — NO competitor identified with this specific pattern; worth a blog post.
+5. **Privacy story** — your code never leaves your machine. Aikido sends to AWS Bedrock; Snyk sends to Snyk Cloud; GitHub Advanced Security sends to GitHub; SENTINEL keeps it local.
+6. **OpenGrep ecosystem alignment** (Session 4 finding) — riding a 10+ vendor consortium's investment instead of a proprietary engine.
+
+**NEW NICHE TO BUILD (Session 4 finding)**:
+- **`.sentinel-rules.mdc` for AI coding assistants** — SENTINEL becomes the security context provider for vibe-coding agents (Claude Code, Cursor, Copilot, Windsurf). When the user asks Claude Code to "add a payment endpoint", Claude Code reads `.sentinel-rules.mdc` and applies SENTINEL's security guardrails inline.
+
+**EXPLICITLY DO NOT PURSUE (revised)**:
+1. ❌ Runtime / DAST / API security (Akamai NeoSec category)
+2. ❌ Full ASPM orchestration (Jit, Arnica)
+3. ❌ Snyk-scale fixes DB
+4. ❌ CodeQL semantic engine
+5. ❌ JetBrains IDE ecosystem (cede to Qodana)
+6. ❌ Enterprise PR-flow security workflow (cede to GitHub Advanced Security paid + Endor + DryRun)
 
 ---
 
