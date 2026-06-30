@@ -861,4 +861,126 @@ Based on Session 4 findings, the competitive landscape now clusters into 6 segme
 
 ---
 
+---
+
+## 12. Architectural North Star — SENTINEL as Interaction-Aware Security Analysis
+
+> **READ THIS FIRST.** This section codifies the **organizing principle** that re-frames every section above. All prior recommendations (R1-R17), all competitive comparisons, all roadmap decisions should be re-evaluated through the lens of this principle before commitment.
+
+### 12.1 The principle (user-articulated, 2026-06-18)
+
+**A vulnerability is not a pattern in isolation — it is a node in a graph of system interactions.**
+
+Three concrete corollaries:
+
+1. **A finding is a question, not an answer.** When a scout flags `eval(x)` or `import unsafe_module` or `process.env.SECRET`, that is the START of analysis, not the conclusion. The answer lives in the **flow**: where does the data come from? Where does it go? What mitigates or amplifies it? What module is it in? When does it run?
+
+2. **Traceability is the qualifier.** The user's example: a finding may look like a "wake-up call" because of a particular import, but when you look at the actual development of the code, it had no reason to be a wake-up call — because the import *made sense in the flow several steps later*. **Without flow tracing, the finding is dismissed wrongly or amplified wrongly.**
+
+3. **Development is a system of interactions.** Files import each other. Functions call each other. Data passes through transformations. Modules have trust boundaries. Some code runs at startup with hardcoded config; some processes user-controlled HTTP request bodies. Same `eval()`, dramatically different priorities. SENTINEL must understand this system — not just see snippets in isolation.
+
+### 12.2 Current state vs. the principle — honest gap analysis
+
+| Piece SENTINEL has today | What it does | What's missing vs the principle |
+|---|---|---|
+| DG-112 A SAST taint dataflow trace | Captures source→intermediate→sink for OpenGrep `mode: taint` rules | Only taint rules; only intraprocedural; only that one finding's flow |
+| DG-115 A `dependencyContext` | Tracks dep graph for SCA (parent pins child, hasSiblingFixedCopy) | Only SCA; no cross-finding correlation |
+| Context Agent (Brain Layer) | LLM explains entryPoint/sink/exposure | LLM-derived, not AST-derived; can hallucinate; no project-wide grounding |
+| DG-117 + DG-117.0.1 exclude-list | Filters noise paths (fixtures/dist/.test/.spec) | Exclusion is NOT understanding — sigue siendo aislamiento |
+| DG-118 A `priorityScore` | Separa confidence% de urgency | Compute is (severity, triage state) — does NOT use flow context |
+| DG-115.1 A G7 `hasSiblingFixedCopy` | Flow-aware SCA decision (other copies in dep tree?) | Only for nested-pinned deps; pattern doesn't generalize |
+
+**Verdict**: SENTINEL has scattered pieces of context-awareness but **no unified interaction graph as the foundation layer**. Each Brain Layer agent reasons over a snippet plus tiny per-finding metadata. **The system as a whole is invisible to the Brain Layer.**
+
+This is exactly the failure pattern documented in [arXiv 2411.03079 (Section 1.20)](https://arxiv.org/pdf/2411.03079): the two empirically-validated failure modes of LLM-based FP mitigation are (1) snippets "too broad or cluttered with irrelevant control/data flows" and (2) "missing critical code contexts leading to incomplete representations that mislead LLMs". Without a system-level graph, the Brain Layer keeps falling into both failure modes.
+
+It is also the explicit moat of **DryRun Security** (Section 10.5 — "Contextual Security Analysis engine") and **Endor Labs** (Section 1.4 — architectural/design-flaw detection). They are betting their products on the principle the user just articulated. SENTINEL needs an Apache-2.0 OSS answer.
+
+### 12.3 R1-R17 re-categorized through the North Star lens
+
+#### HIGH alignment (these advance the principle directly)
+- **R6** — Architecture Agent (reads diffs/repo entire, evaluates design-level)
+- **R8** — Snippet trim/expand based on documented failure modes (attacks the two arXiv 2411.03079 failure modes head-on)
+- **R12** — Validate OpenGrep cross-function taint enabled (enabler — without cross-function tracking, no system-level flow)
+- **R3** — Per-CWE confidence floor for crypto/policy (acknowledges some CWEs require full system context, NOT snippet)
+- **R4** — Per-language prompts (each language has distinct interaction patterns)
+- **R16** — OSV-Scanner guided remediation (flow-aware dep tree optimization for SCA)
+
+#### MEDIUM alignment (useful, but doesn't change the lens)
+- R1 — Few-shot prompting (better classification but same paradigm)
+- R2 — Self-Consistency voting (robustness, not context)
+- R13 — Bandit/Brakeman as language specialists (better detection within isolated patterns)
+
+#### LOW alignment (polish within current paradigm)
+- R5, R7, R10, R11, R14, R15, R17 — UX, BYOK, dataset DB, secrets verification, public benchmark, runtime-API edge case
+
+**Roadmap implication**: HIGH-alignment items should be P0/P1 because they bend the architecture toward the principle. MEDIUM items are P2 polish. LOW items are P3 backlog.
+
+### 12.4 New recommendations R18-R22 emerging from the principle
+
+These are the **new** recommendations that did not appear in R1-R17 because they only emerge when you adopt the principle.
+
+| # | Recommendation | Why it embodies the principle | Effort | Impact | Priority |
+|---|---|---|---|---|---|
+| **R18** | **Interaction Graph Layer** — project-wide module + symbol graph built per scan, queried by Brain Layer agents during triage. Each finding becomes a node; edges are imports/calls/dataflows. | DIRECT — encarnación del principio | Large (multi-cycle, staged v1→v3) | CRITICAL | P0 |
+| **R19** | **Module trust boundary tagging** — parse `package.json` exports/main, route definitions (Express/Fastify/Hono), tsconfig paths, test/src structure. Tag each file: `public-entry` / `internal-handler` / `startup-config` / `test-fixture` / `private-worker`. | Same: explicit system structure | Medium | Alto | P1 |
+| **R20** | **Cross-finding correlation** — new Coordinator stage 3 (after stage 2 dedup): identify groups of findings sharing a flow path. Triage Agent evaluates groups, not individuals. | DIRECT — el LLM ve interacciones, no aislamientos | Medium | Alto | P1 |
+| **R21** | **Temporal context tagging** — detect code's execution context: init/main vs HTTP handler vs background job vs CLI command. Pass to Triage as context. | DIRECT — same eval(), distinct priorities by when it runs | Small | Medio | P2 |
+| **R22** | **Diff-aware mode** — compare findings vs prior scan; surface "5 new since main", "2 reintroduced". Differentiate visually and prioritize what's new. | INDIRECT — temporal axis of interaction | Small | Medio | P1 |
+
+### 12.5 Implementation path for R18 — staged v1 → v3
+
+R18 is the maximalist version of the principle. It cannot ship in one cycle. Stage it:
+
+#### v1 (proposed for DG-123 A) — minimum viable graph
+- **Scope**: TypeScript/JavaScript only (primary SENTINEL workspace).
+- **Graph type**: module-level. Nodes = files. Edges = static `import` / `export` / `require` statements.
+- **Construction**: parse imports/exports per file using regex or `tree-sitter-typescript` (MIT license; pure Rust binary, no Node.js deps).
+- **Storage**: in-memory per scan only. No persistence.
+- **Use**: augment Triage Agent prompt with: "*This file is imported by [N modules]; this file imports from [M modules]. Top importers: [list]. This file's role: [inferred entry-point / library / test / unknown].*"
+- **Validation**: re-scan SENTINEL + SYNAPTIC_SAAS workspaces; measure if Triage classification changes meaningfully on a sample (manual ground-truth marking required).
+
+#### v2 — symbol-level + cross-language
+- Add function-level call graph (caller/callee within and across files).
+- Multi-language via `tree-sitter` grammar packs (Python, Go, Java, Ruby, etc. all available MIT).
+- Persist graph to colony.db (new table) for incremental updates.
+- Brain Layer agents (Triage, Context, Remediation) all consume the graph.
+
+#### v3 — CPG integration
+- Integrate Joern (Apache-2.0) for full Code Property Graph.
+- Higher fidelity flows, type inference, framework-aware sinks.
+- Multi-cycle effort; significant runtime cost.
+
+### 12.6 Honest tradeoffs (anti-optimismo activo)
+
+R18 v1 is **not** guaranteed to improve triage quality empirically. Honest risks:
+
+1. **LLM may not use the new context productively.** Adding "this file is imported by 5 modules" to the prompt does not automatically improve reasoning. The LLM might ignore it, or worse, hallucinate based on it.
+2. **N=2 workspace sample is still small.** Even if SENTINEL + SYNAPTIC_SAAS show improvement, generalization to other repos is not guaranteed.
+3. **Cost increase.** Each Triage call now has a larger system prompt → more tokens → higher BYOK cost. Need to measure.
+4. **Performance increase.** Building the graph adds scan time. Negligible for small repos; non-trivial for large monorepos.
+5. **Graph staleness.** The graph is built per-scan. If the user edits files between scans without rescanning, the graph is stale relative to the editor's state.
+6. **Static import resolution is incomplete.** Dynamic `import()` calls, conditional requires, plugin systems all bypass static analysis. Graph will have blind spots.
+7. **No taint propagation in v1.** Just imports — does not tell the LLM whether data flows through the import. That's v2+.
+
+### 12.7 Roadmap impact — Cycle 111+ decision filter
+
+Going forward, the question for every DG candidate should be:
+
+> *"Does this DG deepen SENTINEL's understanding of the system as a network of interactions, or does it only improve an isolated piece?"*
+
+Both are valid work, but the first category is what bends the architecture toward the North Star. Polish is OK; polish is not the same as paradigm advancement.
+
+**Cycle 111 candidate ordering, post-principle adoption**:
+1. **DG-123 A — R18 v1 Interaction Graph (this Cycle)**
+2. DG-124 A — R19 module trust boundary tagging
+3. DG-125 A — R20 cross-finding correlation
+4. DG-126 A — R12 validate OpenGrep cross-function (was P0 R12, now bundled into R18 implementation)
+5. DG-127 A — R8 snippet trim/expand
+6. DG-128 A — R21 temporal context tagging
+7. DG-129 A — R22 diff-aware mode
+8. ... R1-R17 follow per their alignment scores
+
+---
+
 *End of document. Living document — updated by Claude Code research sessions. See Section 6 "Investigation log" for change history.*
