@@ -4,6 +4,7 @@ import {
   type Finding,
 } from '@synaptic-sentinel/core';
 import { extractJsonObject, type AgentPrompt, type BrainAgent } from './brain-agent.js';
+import { formatInteractionContext } from './triage-agent.js';
 
 // El tipo de la explicacion vive en core; se reexporta para mantener estable
 // el API de @synaptic-sentinel/agents.
@@ -35,6 +36,11 @@ export class ContextAgent implements BrainAgent<Finding, ContextExplanation> {
 
   buildPrompt(finding: Finding): AgentPrompt {
     const snippet = finding.location.snippet ?? '(not available)';
+    // DG-123 A (Cycle 111): incluye el interaction context al final del user
+    // prompt (mismo helper que Triage Agent). Fallback graceful si el
+    // Coordinator no pobló fileContext/symbolContext.
+    const interactionContext = formatInteractionContext(finding);
+    const interactionSection = interactionContext.length > 0 ? ['', interactionContext] : [];
     const user = [
       'Confirmed finding to explain:',
       `- Rule: ${finding.ruleId}`,
@@ -44,6 +50,7 @@ export class ContextAgent implements BrainAgent<Finding, ContextExplanation> {
       `- Message: ${finding.message}`,
       `- Location: ${finding.location.path}:${String(finding.location.startLine)}`,
       `- Code:\n${snippet}`,
+      ...interactionSection,
     ].join('\n');
     return { system: SYSTEM_PROMPT, user };
   }

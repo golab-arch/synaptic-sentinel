@@ -16,6 +16,7 @@ export * from './colony/colony-db.js';
 export * from './colony/db-path.js';
 export * from './coordinator/coordinator.js';
 export * from './coordinator/excluded-paths.js';
+export * from './coordinator/interaction-graph.js';
 export * from './coordinator/priority-score.js';
 export * from './config/agents-config.js';
 export * from './config/agent-output-schemas.js';

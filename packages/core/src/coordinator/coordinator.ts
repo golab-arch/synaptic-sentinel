@@ -5,6 +5,7 @@ import type { Pheromone } from '../types/pheromone.js';
 import type { Scan, ScanMode } from '../types/scan.js';
 import type { ScanRequest, ScoutAgent, ScoutResult, ScoutStatus } from '../types/scout-agent.js';
 import { isPathExcluded } from './excluded-paths.js';
+import { buildInteractionGraph, type InteractionGraphNode } from './interaction-graph.js';
 
 /**
  * Presupuesto de tiempo por defecto para un scout: 5 minutos. Es un
@@ -156,15 +157,43 @@ export class Coordinator {
     // `packages/scouts/tests/trivy/fixtures/...` + ruido de vibe-detect en
     // fixtures generaron 2 TPs falsos a nivel proyecto + 30 FPs visuales.
     const rawAllFindings = results.flatMap((result) => result.findings);
-    const rawFindings: Finding[] = [];
+    const rawFindingsPreGraph: Finding[] = [];
     let excludedByPathCount = 0;
     for (const finding of rawAllFindings) {
       if (isPathExcluded(finding.location.path)) {
         excludedByPathCount += 1;
         continue;
       }
-      rawFindings.push(finding);
+      rawFindingsPreGraph.push(finding);
     }
+
+    // DG-123 A (Cycle 111) — Stage 1.5b: construye el Interaction Graph
+    // project-wide + atacha `fileContext` y `symbolContext` a cada finding
+    // cuyo archivo sea de un lenguaje soportado (TS/TSX/JS/Python en v1).
+    // Findings en otros lenguajes o con errores de parse quedan sin estos
+    // fields (undefined) — fallback graceful.
+    //
+    // Rationale: R18 v1 del research doc Section 12 "Architectural North
+    // Star" — SENTINEL debe entender el desarrollo como sistema de
+    // interacciones, no como snippets aislados. Este es el enabler
+    // arquitectural.
+    let interactionGraph: Map<string, InteractionGraphNode>;
+    try {
+      interactionGraph = await buildInteractionGraph(options.rootPath);
+    } catch {
+      // Fallback graceful: si el WASM no carga o el parse explota, el scan
+      // continua sin graph. Los findings quedan con behavior pre-DG-123 A.
+      interactionGraph = new Map();
+    }
+    const rawFindings: Finding[] = rawFindingsPreGraph.map((finding) => {
+      const node = interactionGraph.get(finding.location.path);
+      if (node === undefined) return finding;
+      return {
+        ...finding,
+        fileContext: node.fileContext,
+        symbolContext: node.symbolContext,
+      };
+    });
 
     // Stage 2 — dedup por fingerprint, supresion de falsos positivos
     // conocidos y clasificacion del ciclo de vida.

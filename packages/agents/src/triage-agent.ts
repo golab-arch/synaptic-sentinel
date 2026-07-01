@@ -121,6 +121,67 @@ function truncateContent(content: string): string {
 }
 
 /**
+ * DG-123 A (Cycle 111): caps para el prompt del interaction graph.
+ * Ambos aplican al Triage y al Context Agent.
+ */
+const MAX_LISTED_IMPORTS_IN_PROMPT = 8;
+const MAX_LISTED_IMPORTERS_IN_PROMPT = 8;
+const MAX_LISTED_SYMBOLS_IN_PROMPT = 12;
+
+/**
+ * Formatea el `fileContext` + `symbolContext` (DG-123 A Cycle 111) para
+ * inclusion en el user prompt de Triage/Context Agents. Muestra rol
+ * inferido del archivo, top-N importers/imports/symbols para dar al LLM el
+ * lente de "sistema de interacciones" (R18 v1 del research doc §12).
+ *
+ * Funcion pura testeable. Trunca listas grandes con ellipsis para respetar
+ * budget del prompt.
+ */
+export function formatInteractionContext(finding: Finding): string {
+  const parts: string[] = [];
+  const fc = finding.fileContext;
+  const sc = finding.symbolContext;
+  if (fc === undefined && sc === undefined) return '';
+  parts.push('File interaction context (DG-123 A — system-as-graph):');
+  if (fc !== undefined) {
+    parts.push(`- File role: ${fc.inferredRole} (language: ${fc.language})`);
+    const importsCount = fc.imports.length;
+    const importedByCount = fc.importedBy.length;
+    parts.push(
+      `- Imports ${String(importsCount)} module(s); imported by ${String(importedByCount)} file(s).`,
+    );
+    if (importsCount > 0) {
+      const shown = fc.imports.slice(0, MAX_LISTED_IMPORTS_IN_PROMPT);
+      const elided = importsCount - shown.length;
+      const suffix = elided > 0 ? ` … (+${String(elided)} more)` : '';
+      parts.push(`- Top imports: ${shown.join(', ')}${suffix}`);
+    }
+    if (importedByCount > 0) {
+      const shown = fc.importedBy.slice(0, MAX_LISTED_IMPORTERS_IN_PROMPT);
+      const elided = importedByCount - shown.length;
+      const suffix = elided > 0 ? ` … (+${String(elided)} more)` : '';
+      parts.push(`- Imported by: ${shown.join(', ')}${suffix}`);
+    }
+  }
+  if (sc !== undefined) {
+    const definedCount = sc.definedSymbols.length;
+    const exportedCount = sc.exportedSymbols.length;
+    parts.push(
+      `- Defines ${String(definedCount)} top-level symbol(s); ${String(exportedCount)} exported.`,
+    );
+    if (definedCount > 0) {
+      const shown = sc.definedSymbols
+        .slice(0, MAX_LISTED_SYMBOLS_IN_PROMPT)
+        .map((s) => `${s.name}(${s.kind}${s.exported ? ',exported' : ''})`);
+      const elided = definedCount - shown.length;
+      const suffix = elided > 0 ? ` … (+${String(elided)} more)` : '';
+      parts.push(`- Symbols: ${shown.join(', ')}${suffix}`);
+    }
+  }
+  return parts.join('\n');
+}
+
+/**
  * Formatea un `DataflowTrace` para incluir en el user prompt del Triage
  * Agent (DG-112 A Step 3). Aplica caps defensivos: si los intermediate
  * steps exceden `MAX_INTERMEDIATE_STEPS_IN_PROMPT`, colapsa el medio
@@ -255,6 +316,12 @@ export class TriageAgent implements BrainAgent<Finding, TriageVerdict> {
             formatDataflowTrace(finding.dataflowTrace),
           ]
         : [];
+    // DG-123 A (Cycle 111): incluye el interaction context (fileContext +
+    // symbolContext) cuando el Coordinator lo pobló (Stage 1.5b). Da al LLM
+    // el lente de "sistema de interacciones" — rol del archivo, quién lo
+    // importa, qué símbolos define. Fallback graceful si no está poblado.
+    const interactionContext = formatInteractionContext(finding);
+    const interactionSection = interactionContext.length > 0 ? ['', interactionContext] : [];
     const user = [
       `Current date (real-world authoritative): ${this.#currentDate}`,
       '',
@@ -267,6 +334,7 @@ export class TriageAgent implements BrainAgent<Finding, TriageVerdict> {
       `- Location: ${finding.location.path}:${String(finding.location.startLine)}`,
       `- Code:\n${snippet}`,
       ...dataflowSection,
+      ...interactionSection,
     ].join('\n');
     return { system: SYSTEM_PROMPT, user };
   }

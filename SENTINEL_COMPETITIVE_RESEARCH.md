@@ -8,6 +8,7 @@
 **Methodology**: deep-research workflow (`workflow:deep-research` — fan-out web search → fetch → extract claims → adversarial 3-vote verify → synthesize) + manual WebFetch/WebSearch verification of high-priority unverified claims when the workflow is rate-limited.
 
 **Cumulative status**:
+
 - Session 1-2 (workflow): **26 claims** — 23 VERIFIED · 1 MIXED · 2 REFUTED
 - Session 3 (manual WebFetch): **22 claims VERIFIED** (covering the rate-limited ones)
 - Session 4 (NOT RESEARCHED gaps): **12 gaps investigated** + 1 prior refutation CORRECTED (Arnica) + 1 strategic correction added (Section 1.21 OpenGrep restores cross-function taint)
@@ -17,15 +18,15 @@
 
 ## 0. Status legend
 
-| Marker | Meaning |
-|---|---|
-| ✅ **VERIFIED** | 3-0 or 2-1 confirmed via adversarial verification, OR manually verified via direct source fetch |
-| ⚠️ **MIXED** | 1-1 split vote — evidence ambiguous |
-| ❌ **REFUTED** | 0-3 or 0-2 refuted via adversarial verification, OR manually contradicted via source |
-| 🔍 **INVESTIGATING** | currently being researched in this session |
-| ⏸ **PENDING** | extracted claim with cited source, awaiting verification |
-| 📝 **SYNTHESIS** | derived from multiple sources or domain reasoning, not a single citable claim |
-| 🚫 **NOT RESEARCHED** | identified gap, not yet investigated |
+| Marker                | Meaning                                                                                         |
+| --------------------- | ----------------------------------------------------------------------------------------------- |
+| ✅ **VERIFIED**       | 3-0 or 2-1 confirmed via adversarial verification, OR manually verified via direct source fetch |
+| ⚠️ **MIXED**          | 1-1 split vote — evidence ambiguous                                                             |
+| ❌ **REFUTED**        | 0-3 or 0-2 refuted via adversarial verification, OR manually contradicted via source            |
+| 🔍 **INVESTIGATING**  | currently being researched in this session                                                      |
+| ⏸ **PENDING**         | extracted claim with cited source, awaiting verification                                        |
+| 📝 **SYNTHESIS**      | derived from multiple sources or domain reasoning, not a single citable claim                   |
+| 🚫 **NOT RESEARCHED** | identified gap, not yet investigated                                                            |
 
 ---
 
@@ -33,13 +34,13 @@
 
 ### 1.1 ✅ Aikido AutoFix uses Claude Sonnet via AWS Bedrock with per-fix confidence
 
-**Claim**: *"Aikido's AI AutoFix uses Claude Sonnet via AWS Bedrock to generate fix pull requests with confidence scoring per fix."*
+**Claim**: _"Aikido's AI AutoFix uses Claude Sonnet via AWS Bedrock to generate fix pull requests with confidence scoring per fix."_
 
 - **Source**: <https://www.aikido.dev/features/ai-sast-iac-autofix>
 - **Verification**: ✅ CONFIRMED (manual WebFetch Session 3)
 - **Direct quotes**:
-  - *"Aikido uses best-in-class LLMs (Claude Sonnet) through Amazon AWS Bedrock."*
-  - *"Get confidence levels of each LLM-based fix"*
+  - _"Aikido uses best-in-class LLMs (Claude Sonnet) through Amazon AWS Bedrock."_
+  - _"Get confidence levels of each LLM-based fix"_
 - **Strategic implication for SENTINEL**:
   - Aikido and SENTINEL **share the same LLM backbone** (Claude Sonnet) — quality differences will come from prompts/context/orchestration, not from the model.
   - **Aikido has per-fix confidence scoring** — SENTINEL has per-finding confidence in the Triage Agent verdict but NOT per-Remediation-Agent suggestion. **Gap to close**: emit confidence per fix proposal.
@@ -47,7 +48,7 @@
 
 ### 1.2 ✅ Aikido AutoFix supports 16 languages
 
-**Claim**: *"Aikido AutoFix supports 16+ programming languages (JavaScript, TypeScript, PHP, .NET, Java, Scala, C++, Swift, Android, Kotlin, Dart, Go, Ruby, Python, Elixir, Rust)."*
+**Claim**: _"Aikido AutoFix supports 16+ programming languages (JavaScript, TypeScript, PHP, .NET, Java, Scala, C++, Swift, Android, Kotlin, Dart, Go, Ruby, Python, Elixir, Rust)."_
 
 - **Source**: <https://www.aikido.dev/features/ai-sast-iac-autofix>
 - **Verification**: ✅ CONFIRMED (all 16 languages with individual logo icons)
@@ -58,13 +59,13 @@
 
 ### 1.3 ✅ Aikido free tier (no credit card) + VSCode inline 1-click
 
-**Claim**: *"Aikido offers a free tier with no credit card required and provides a VSCode integration giving inline 1-click suggestions as code is written."*
+**Claim**: _"Aikido offers a free tier with no credit card required and provides a VSCode integration giving inline 1-click suggestions as code is written."_
 
 - **Source**: <https://www.aikido.dev/features/ai-sast-iac-autofix>
 - **Verification**: ✅ CONFIRMED
 - **Direct quotes**:
-  - *"Start for Free · No CC required"*
-  - *"AutoFix directly in your IDE. Aikido IDE AutoFixes code in real time. Fix issues with 1-click suggestions as your code is written"*
+  - _"Start for Free · No CC required"_
+  - _"AutoFix directly in your IDE. Aikido IDE AutoFixes code in real time. Fix issues with 1-click suggestions as your code is written"_
 - **Strategic implication**: **this is the direct UX moat threat to SENTINEL**.
   - Aikido provides **zero-friction onboarding** (no CC, free tier, install plugin → immediate suggestions) — competitive parity required.
   - SENTINEL's **BYOK requires the user to obtain an API key** before any LLM-backed feature works. This is friction Aikido doesn't have.
@@ -73,14 +74,14 @@
 
 ### 1.4 ✅ Endor Labs targets architectural/design-flaw detection, NOT rule-based SAST
 
-**Claim**: *"Endor Labs' AI Security Code Review targets architectural/design-flaw detection across PRs rather than traditional rule-based SAST vulnerability scanning, positioning it as complementary to (not a replacement for) SAST and SCA."*
+**Claim**: _"Endor Labs' AI Security Code Review targets architectural/design-flaw detection across PRs rather than traditional rule-based SAST vulnerability scanning, positioning it as complementary to (not a replacement for) SAST and SCA."_
 
 - **Source**: <https://www.endorlabs.com/learn/introducing-ai-security-code-review>
 - **Verification**: ✅ CONFIRMED
 - **Direct quotes**:
-  - *"it uses multiple AI agents to review pull requests for design flaws and architectural changes that affect your security posture"*
-  - *"Most application security tools are built around rules and signatures... Both are important — but they operate at the level of isolated files or functions"*
-  - *"This layered reasoning moves beyond pattern-matching or keyword rules. It evaluates changes in the context of your application"*
+  - _"it uses multiple AI agents to review pull requests for design flaws and architectural changes that affect your security posture"_
+  - _"Most application security tools are built around rules and signatures... Both are important — but they operate at the level of isolated files or functions"_
+  - _"This layered reasoning moves beyond pattern-matching or keyword rules. It evaluates changes in the context of your application"_
 - **Strategic implication**:
   - Endor is **NOT a direct SAST competitor** — it's complementary, targeting a different (higher) level of code review (architecture/design).
   - **SENTINEL has a clear niche here**: "IDE-native architectural review for indie devs" — Endor is GitHub App + enterprise-priced. SENTINEL could expand the Brain Layer with an "Architecture Agent" that reads diffs and flags design-level concerns (e.g. new endpoint without auth middleware, untested CORS expansion, etc.).
@@ -88,24 +89,24 @@
 
 ### 1.5 ✅ Endor Labs delivered via GitHub App, NO IDE-native integration
 
-**Claim**: *"The feature is delivered via a GitHub App with PR-level Security Review sections and integrates with SCM tools and ticketing systems like Jira — there is no IDE-native integration mentioned, leaving an IDE-first niche open for SENTINEL."*
+**Claim**: _"The feature is delivered via a GitHub App with PR-level Security Review sections and integrates with SCM tools and ticketing systems like Jira — there is no IDE-native integration mentioned, leaving an IDE-first niche open for SENTINEL."_
 
 - **Source**: <https://www.endorlabs.com/learn/introducing-ai-security-code-review>
 - **Verification**: ✅ CONFIRMED
 - **Direct quotes**:
-  - *"It's easy to deploy and roll out AI Security Code Review using the Endor Labs GitHub App"*
-  - *"Insights from AI Security Code Review will appear in a dedicated **Security Review** section within each project"*
-  - *"works with your existing source code management (SCM) tools and project management systems... creating tickets for the appropriate stakeholders"*
+  - _"It's easy to deploy and roll out AI Security Code Review using the Endor Labs GitHub App"_
+  - _"Insights from AI Security Code Review will appear in a dedicated **Security Review** section within each project"_
+  - _"works with your existing source code management (SCM) tools and project management systems... creating tickets for the appropriate stakeholders"_
 - **WebFetch finding**: NO mention of IDE-native integration for this specific feature on the page.
 - **Strategic implication**: **confirms IDE-native niche is open** in the AI-driven architectural review segment. SENTINEL can defensibly claim "the only IDE-native LLM-driven architectural review for indie devs + small teams". **High differentiation value if built**.
 
 ### 1.6 ✅ Snyk Agent Fix uses agentic architecture + 35,000+ expert fixes DB
 
-**Claim**: *"Snyk's automatic fix (formerly DeepCode AI Fix, renamed Snyk Agent Fix) uses an agentic architecture combining Snyk-proprietary security intelligence with LLMs and dynamic few-shot prompting drawn from a database of 35,000+ expert-written fixes."*
+**Claim**: _"Snyk's automatic fix (formerly DeepCode AI Fix, renamed Snyk Agent Fix) uses an agentic architecture combining Snyk-proprietary security intelligence with LLMs and dynamic few-shot prompting drawn from a database of 35,000+ expert-written fixes."_
 
 - **Source**: <https://snyk.io/blog/snyk-agent-fix-agentic-architecture/> (confirmed via WebSearch — the URL originally cited returned 404)
 - **Verification**: ✅ CONFIRMED via WebSearch (multiple Snyk + 3rd-party sources)
-- **Direct quote from search consolidation**: *"The new agentic architecture moved away from static fine-tuning to dynamic few-shot prompting, a system that can provide models with the most relevant security guidance in real time. Snyk maintains a database of over 35,000 real-world vulnerabilities from open source projects and fixes written by Snyk security experts, and during prediction, the prompt is injected with the most relevant, real-world examples of how that specific CWE was previously resolved."*
+- **Direct quote from search consolidation**: _"The new agentic architecture moved away from static fine-tuning to dynamic few-shot prompting, a system that can provide models with the most relevant security guidance in real time. Snyk maintains a database of over 35,000 real-world vulnerabilities from open source projects and fixes written by Snyk security experts, and during prediction, the prompt is injected with the most relevant, real-world examples of how that specific CWE was previously resolved."_
 - **Strategic implication**:
   - **Snyk's 35,000+ expert fixes DB is an unbeatable proprietary moat** for SENTINEL. Do NOT try to compete on dataset scale.
   - **The dynamic few-shot pattern is replicable in principle** (no patent on the approach), but the value is the curated dataset.
@@ -114,57 +115,57 @@
 
 ### 1.7 ✅ SAST-Genius achieved 91% FP reduction over Semgrep alone
 
-**Claim**: *"An LLM-driven hybrid SAST framework (SAST-Genius) layered on top of Semgrep achieved approximately 91% false-positive reduction (from 225 alerts to 20) compared to Semgrep alone."*
+**Claim**: _"An LLM-driven hybrid SAST framework (SAST-Genius) layered on top of Semgrep achieved approximately 91% false-positive reduction (from 225 alerts to 20) compared to Semgrep alone."_
 
 - **Source**: <https://arxiv.org/abs/2509.15433> (canonical) / <https://arxiv.org/pdf/2509.15433>
 - **Verification**: ✅ CONFIRMED via WebSearch (PDF compression made direct WebFetch unreadable, but multiple secondary sources cite the figure)
-- **Direct quote**: *"SAST-Genius reduced false positives by about 91% (225 to 20) compared to Semgrep alone."*
+- **Direct quote**: _"SAST-Genius reduced false positives by about 91% (225 to 20) compared to Semgrep alone."_
 - **Strategic implication**: **architecturally validates SENTINEL's core thesis**. The scout-OSS + LLM-brain pattern produces measurable, substantial FP reduction in peer-reviewed-track research. **SENTINEL is on the right path**.
 - **Calibration**: 91% is in line with the 94-98% from claim #1.9 (LLM4PFA paper). Higher-fidelity LLM4PFA approach (eCPG-based) is the upper bound; SENTINEL's snippet-based approach is closer to SAST-Genius's range. **Realistic target: 85-95% FP reduction**.
 
 ### 1.8 ✅ Validated architectural pattern: LLM contextual triage + SAST systematic scanning
 
-**Claim**: *"The validated architectural pattern is a hybrid: LLMs handle code analysis/pattern recognition and contextual triage, while the SAST tool (Semgrep here) handles systematic scanning — the same scout-plus-brain split SENTINEL implements with OpenGrep + Triage Agent."*
+**Claim**: _"The validated architectural pattern is a hybrid: LLMs handle code analysis/pattern recognition and contextual triage, while the SAST tool (Semgrep here) handles systematic scanning — the same scout-plus-brain split SENTINEL implements with OpenGrep + Triage Agent."_
 
 - **Source**: <https://arxiv.org/abs/2509.15433>
 - **Verification**: ✅ CONFIRMED (search snippet)
-- **Direct quote**: *"Traditional SAST tools, while effective for proactive security, are limited by high false-positive rates and a lack of contextual understanding. Conversely, LLMs excel at code analysis and pattern recognition but can be prone to inconsistencies and hallucinations. By integrating these two technologies, a more intelligent and efficient system is created."*
+- **Direct quote**: _"Traditional SAST tools, while effective for proactive security, are limited by high false-positive rates and a lack of contextual understanding. Conversely, LLMs excel at code analysis and pattern recognition but can be prone to inconsistencies and hallucinations. By integrating these two technologies, a more intelligent and efficient system is created."_
 - **Strategic implication**: explicit research validation of SENTINEL's architectural choice. **Use in marketing/positioning**.
 
 ### 1.9 ✅ Hybrid LLM + static analysis: 94-98% FP elimination, 0.93-0.94 accuracy across LLMs
 
-**Claim**: *"Hybrid LLM + static analysis approaches can eliminate 94-98% of false positives while maintaining high recall, with best-performing method (LLM4PFA) achieving 0.93-0.94 accuracy across multiple LLM backbones."*
+**Claim**: _"Hybrid LLM + static analysis approaches can eliminate 94-98% of false positives while maintaining high recall, with best-performing method (LLM4PFA) achieving 0.93-0.94 accuracy across multiple LLM backbones."_
 
 - **Source**: <https://arxiv.org/html/2601.18844v1>
 - **Verification**: ✅ CONFIRMED (manual WebFetch)
 - **Direct quotes**:
-  - *"hybrid techniques of LLM and static analysis eliminate 94-98% of false positives with high recall"*
-  - *"LLM4PFA...achieves the best effectiveness, successfully eliminating 94-98% of false positives"*
-  - *"LLM4SA and LLM4PFA...achieving the highest accuracy of 0.93-0.94"*
+  - _"hybrid techniques of LLM and static analysis eliminate 94-98% of false positives with high recall"_
+  - _"LLM4PFA...achieves the best effectiveness, successfully eliminating 94-98% of false positives"_
+  - _"LLM4SA and LLM4PFA...achieving the highest accuracy of 0.93-0.94"_
   - Table 2 shows accuracy across models: GPT-4o, Claude-Opus-4, Qwen-3-Coder, DeepSeek-R1
 - **Strategic implication**: **upper-bound benchmark target for SENTINEL**. 94-98% FP elimination is achievable with current LLMs (closed + open source). SENTINEL should target this range.
 
 ### 1.10 ✅ LLM4FPM eCPG: F1 > 99% on Juliet, 86% on D2A
 
-**Claim**: *"An extended Code Property Graph (eCPG) plus file-reference-graph slicing (the LLM4FPM approach) achieves F1 > 99% on the Juliet test suite and improves label accuracy on D2A to 86%."*
+**Claim**: _"An extended Code Property Graph (eCPG) plus file-reference-graph slicing (the LLM4FPM approach) achieves F1 > 99% on the Juliet test suite and improves label accuracy on D2A to 86%."_
 
 - **Source**: <https://arxiv.org/pdf/2411.03079>
 - **Verification**: ✅ CONFIRMED (manual WebFetch)
-- **Direct quote**: *"our approach achieves an F1-score of 99.3% on the Juliet test suite and improves the label accuracy on D2A to 86%"*
+- **Direct quote**: _"our approach achieves an F1-score of 99.3% on the Juliet test suite and improves the label accuracy on D2A to 86%"_
 - **Strategic implication**:
   - **eCPG-based approach is the highest-quality architecture identified** — but it's a **Large engineering effort** for SENTINEL (CPG construction, file-reference graph, slicing). Currently NOT justified by the empirical evidence vs the simpler snippet approach.
   - **Decision deferred**: revisit if SENTINEL's empirical FP rate plateaus below 85%.
 
 ### 1.11 ✅ Few-shot learning beats Chain-of-Thought for FP triage
 
-**Claim**: *"Few-shot learning with representative TP/FP examples consistently outperforms Chain-of-Thought prompting for FP triage; CoT was the weakest of three strategies, sometimes underperforming basic prompts."*
+**Claim**: _"Few-shot learning with representative TP/FP examples consistently outperforms Chain-of-Thought prompting for FP triage; CoT was the weakest of three strategies, sometimes underperforming basic prompts."_
 
 - **Source**: <https://arxiv.org/html/2601.18844v1>
 - **Verification**: ✅ CONFIRMED (manual WebFetch)
 - **Direct quotes**:
-  - *"Among prompting strategies, Chain-of-Thought (CoT) delivers the weakest performance"*
-  - *"few-shot enhanced prompting consistently yields the best results among the three prompt strategies"*
-  - *"advanced LLMs have already internalized reasoning capabilities...explicitly enforcing CoT prompts can paradoxically degrade performance"*
+  - _"Among prompting strategies, Chain-of-Thought (CoT) delivers the weakest performance"_
+  - _"few-shot enhanced prompting consistently yields the best results among the three prompt strategies"_
+  - _"advanced LLMs have already internalized reasoning capabilities...explicitly enforcing CoT prompts can paradoxically degrade performance"_
 - **Strategic implication for SENTINEL**:
   - **SENTINEL's current Triage Agent uses CoT-style prompting** (rationale before classification) — DG-111.1 A explicitly puts rationale before classification.
   - **HIGHEST-IMPACT recommendation**: switch to few-shot prompting with curated TP/FP examples. Effort: medium (build dataset of 20-50 examples + rotate 3-5 in prompt). Impact: HIGH (per the paper, this consistently wins).
@@ -172,14 +173,14 @@
 
 ### 1.12 ✅ Ensembling LLMs raises FP detection 62.5% → 78.9% (OWASP) AND 33.85% → 38.46% (real-world)
 
-**Claim**: *"Ensembling multiple LLMs for false positive triage outperforms any single model, raising FP detection from ~62.5% to ~78.9% on OWASP Benchmark and from 33.85% to 38.46% on a real-world dataset."*
+**Claim**: _"Ensembling multiple LLMs for false positive triage outperforms any single model, raising FP detection from ~62.5% to ~78.9% on OWASP Benchmark and from 33.85% to 38.46% on a real-world dataset."_
 
 - **Source**: <https://arxiv.org/html/2506.16899v1>
 - **Verification**: ✅ CONFIRMED (manual WebFetch)
 - **Direct quotes**:
-  - *"Combining the respective TN sets of our three best-performing LLMs results in the detection of 102 out of 128 FPs in the dataset, which corresponds to approximately 78.9%"* (OWASP)
-  - *"This ensemble detects 25 FPs, representing an overall detection rate of 38.46% across all FPs"* (real-world)
-  - *"GPT-4o-detecting 80 out of 128 FPs-results in a TN proportion of 62.5%"* (single model baseline)
+  - _"Combining the respective TN sets of our three best-performing LLMs results in the detection of 102 out of 128 FPs in the dataset, which corresponds to approximately 78.9%"_ (OWASP)
+  - _"This ensemble detects 25 FPs, representing an overall detection rate of 38.46% across all FPs"_ (real-world)
+  - _"GPT-4o-detecting 80 out of 128 FPs-results in a TN proportion of 62.5%"_ (single model baseline)
 - **Strategic implication**:
   - **Ensembling gains are real but modest on real-world data** (4.6 percentage points: 33.85% → 38.46%). On synthetic OWASP it's larger (16.4 pts).
   - For SENTINEL: ensembling means 2× the LLM cost. Real-world gain of ~4-5 points may not justify doubling cost.
@@ -187,23 +188,23 @@
 
 ### 1.13 ✅ CWE-RAG does NOT measurably improve FP triage accuracy
 
-**Claim**: *"Adding CWE-related contextual information via RAG did NOT measurably improve LLM false-positive triage accuracy, contradicting common assumptions that RAG over CWE corpora boosts security LLM performance."*
+**Claim**: _"Adding CWE-related contextual information via RAG did NOT measurably improve LLM false-positive triage accuracy, contradicting common assumptions that RAG over CWE corpora boosts security LLM performance."_
 
 - **Source**: <https://arxiv.org/html/2506.16899v1>
 - **Verification**: ✅ CONFIRMED (manual WebFetch)
-- **Direct quote**: *"Contrary to our initial assumptions, our analysis indicates that the most beneficial contextual information is those supplied directly by the SAST tool, and integrating additional (e.g., CWE-related) information did not produce measurable improvements."*
+- **Direct quote**: _"Contrary to our initial assumptions, our analysis indicates that the most beneficial contextual information is those supplied directly by the SAST tool, and integrating additional (e.g., CWE-related) information did not produce measurable improvements."_
 - **Strategic implication**: **AVOID-PATTERN**. SENTINEL should **NOT invest engineering effort in building CWE-RAG**. This saves significant work. The valuable context is the scout output itself — not external knowledge bases.
 
 ### 1.14 ✅ 3-shot CoT + Self-Consistency detects 62.5% FPs with 100% TP retained
 
-**Claim**: *"LLM-based false positive triage using 3-shot Chain-of-Thought + Self-Consistency can detect approximately 62.5% of SAST false positives on the OWASP Benchmark while maintaining a 100% true positive rate (no genuine vulnerabilities missed), with best single models being GPT-4o and Qwen2.5-32B."*
+**Claim**: _"LLM-based false positive triage using 3-shot Chain-of-Thought + Self-Consistency can detect approximately 62.5% of SAST false positives on the OWASP Benchmark while maintaining a 100% true positive rate (no genuine vulnerabilities missed), with best single models being GPT-4o and Qwen2.5-32B."_
 
 - **Source**: <https://arxiv.org/html/2506.16899v1>
 - **Verification**: ✅ CONFIRMED (manual WebFetch)
 - **Direct quotes**:
-  - *"GPT-4o, yielding a TN count of 80 (62.5% detected FPs) with zero FNs."*
-  - *"The TPR remains at 100%, and both Precision and weighted F₂-score exhibit robust performance"*
-  - *"our best-performing LLMs (GPT-4o and Qwen2.5-32B-Instruct) conservatively identified 62.5% of all removable findings"*
+  - _"GPT-4o, yielding a TN count of 80 (62.5% detected FPs) with zero FNs."_
+  - _"The TPR remains at 100%, and both Precision and weighted F₂-score exhibit robust performance"_
+  - _"our best-performing LLMs (GPT-4o and Qwen2.5-32B-Instruct) conservatively identified 62.5% of all removable findings"_
 - **Strategic implication**:
   - **100% TP rate maintained** = no real bugs missed. This is the right safety property for security tooling.
   - 62.5% FP detection means **3 in 8 FPs auto-suppressed safely**. The other 5 are flagged as needing user review.
@@ -212,15 +213,15 @@
 
 ### 1.15 ✅ Backbone LLM matters more than agent framework; DeepSeek vanilla beats DeepSeek+agent
 
-**Claim**: *"Backbone LLM choice matters more than agent framework choice for FP filtering quality — agentic reasoning amplifies strong models but cannot rescue weaker ones; for DeepSeek Chat, vanilla prompting (11.2% FPR) outperformed agent frameworks."*
+**Claim**: _"Backbone LLM choice matters more than agent framework choice for FP filtering quality — agentic reasoning amplifies strong models but cannot rescue weaker ones; for DeepSeek Chat, vanilla prompting (11.2% FPR) outperformed agent frameworks."_
 
 - **Source**: <https://arxiv.org/html/2601.22952v1>
 - **Verification**: ✅ CONFIRMED (manual WebFetch)
 - **Direct quotes**:
-  - *"Lesson 2: The value of agentic reasoning depends more on the backbone model than on the agent framework."*
-  - *"for DeepSeek Chat, vanilla prompting already achieves a low remaining FPR (11.2%), and adding agentic scaffolding provides no consistent benefit"*
-  - *"Agentic reasoning amplifies the strengths of capable backbone models but does not compensate for weaker ones; backbone selection is a more critical decision than agent framework choice."*
-  - From Table 4: DeepSeek Chat: *"Aider 13.2%... SWE-agent 13.1%... Vanilla LLM 11.2%"*
+  - _"Lesson 2: The value of agentic reasoning depends more on the backbone model than on the agent framework."_
+  - _"for DeepSeek Chat, vanilla prompting already achieves a low remaining FPR (11.2%), and adding agentic scaffolding provides no consistent benefit"_
+  - _"Agentic reasoning amplifies the strengths of capable backbone models but does not compensate for weaker ones; backbone selection is a more critical decision than agent framework choice."_
+  - From Table 4: DeepSeek Chat: _"Aider 13.2%... SWE-agent 13.1%... Vanilla LLM 11.2%"_
 - **Strategic implication**:
   - **Validates SENTINEL's current architecture**: simple single-prompt agents (not agentic frameworks like SWE-agent). SENTINEL is not "behind" by avoiding complexity.
   - **Choose backbone carefully** — investing in better prompt design for current models beats wrapping them in agent frameworks.
@@ -228,23 +229,23 @@
 
 ### 1.16 ✅ Open-source LLMs comparable to closed-source for FP triage
 
-**Claim**: *"Closed-source (GPT-4o, Claude-Opus-4) and open-source (Qwen-3-Coder, DeepSeek-R1) LLMs all demonstrate comparable effectiveness for FP triage, supporting BYOK strategy with open-source providers like Ollama/DeepSeek."*
+**Claim**: _"Closed-source (GPT-4o, Claude-Opus-4) and open-source (Qwen-3-Coder, DeepSeek-R1) LLMs all demonstrate comparable effectiveness for FP triage, supporting BYOK strategy with open-source providers like Ollama/DeepSeek."_
 
 - **Source**: <https://arxiv.org/html/2601.18844v1>
 - **Verification**: ✅ CONFIRMED (manual WebFetch)
 - **Direct quotes**:
-  - *"the four state-of-the-art LLMs exhibit comparable levels of effectiveness"*
-  - *"LLM4PFA exhibits strong generalization across all models, achieving accuracy above 0.93 in every case"*
-  - *"all backbone LLMs achieving accuracy rates above 0.86"* (for LLM4SA/LLM4PFA methods)
+  - _"the four state-of-the-art LLMs exhibit comparable levels of effectiveness"_
+  - _"LLM4PFA exhibits strong generalization across all models, achieving accuracy above 0.93 in every case"_
+  - _"all backbone LLMs achieving accuracy rates above 0.86"_ (for LLM4SA/LLM4PFA methods)
 - **Strategic implication**: **directly validates SENTINEL's BYOK + multi-provider strategy**. Ollama and DeepSeek are effective alternatives to closed-source — users can run SENTINEL fully local (Ollama) without quality compromise. **Privacy story is strong**.
 
 ### 1.17 ✅ Per-warning cost ~$0.384, ~4.7s latency with lightweight open-source LLM
 
-**Claim**: *"A lightweight open-source LLM combined with precise code-context slicing can triage SAST warnings at ~$0.384 per warning and ~4.7s per warning."*
+**Claim**: _"A lightweight open-source LLM combined with precise code-context slicing can triage SAST warnings at ~$0.384 per warning and ~4.7s per warning."_
 
 - **Source**: <https://arxiv.org/pdf/2411.03079>
 - **Verification**: ✅ CONFIRMED (manual WebFetch)
-- **Direct quote**: *"triage SAST warnings at approximately $0.384 per warning and approximately 4.7 seconds per warning using a lightweight open-source LLM"*
+- **Direct quote**: _"triage SAST warnings at approximately $0.384 per warning and approximately 4.7 seconds per warning using a lightweight open-source LLM"_
 - **Strategic implication**:
   - **Cost economics calibration**: 38¢ per warning is the academic benchmark. SENTINEL's empirical observation (Cycle 109) was ~$0.0034 for 4 calls = ~$0.0008 per call, but most findings were colony-memory-cached. Fresh-scan triage cost projection: **~$0.05-$0.40 per finding depending on model**.
   - SENTINEL's BYOK with Haiku/DeepSeek targets the lower end of this range.
@@ -252,11 +253,11 @@
 
 ### 1.18 ✅ Real-world MCC 0.148 for best LLM SAST triage (2737-sample benchmark)
 
-**Claim**: *"On a real-world SAST triage benchmark with 2737 samples (299 TP, 2438 FP, 8.15:1 imbalance), the best LLM agent (Gemini 2.5 Pro with Improved ReAct) achieved only MCC 0.148, with Precision 0.169 and Recall 0.582."*
+**Claim**: _"On a real-world SAST triage benchmark with 2737 samples (299 TP, 2438 FP, 8.15:1 imbalance), the best LLM agent (Gemini 2.5 Pro with Improved ReAct) achieved only MCC 0.148, with Precision 0.169 and Recall 0.582."_
 
 - **Source**: <https://arxiv.org/html/2601.02941v1>
 - **Verification**: ✅ CONFIRMED (manual WebFetch)
-- **Direct quote**: *"Gemini 2.5 Pro | Improved ReAct | 0.641 | 0.169 | 0.582 | 0.262 | 0.197 | 0.148"* (Table values: accuracy, precision, recall, F1, F2, MCC)
+- **Direct quote**: _"Gemini 2.5 Pro | Improved ReAct | 0.641 | 0.169 | 0.582 | 0.262 | 0.197 | 0.148"_ (Table values: accuracy, precision, recall, F1, F2, MCC)
 - **Strategic implication — honest reality check**:
   - **Synthetic benchmarks (OWASP, Juliet) overstate LLM SAST triage quality**.
   - On REAL-WORLD imbalanced data (8.15:1 FP:TP), best published LLM agent gets MCC 0.148 — **modestly better than random**.
@@ -265,25 +266,25 @@
 
 ### 1.19 ✅ LLM FP filtering degrades on policy/cryptography CWEs
 
-**Claim**: *"LLM-based FP filtering is highly effective for data-flow-driven vulnerabilities but degrades sharply for policy- and cryptography-related CWEs."*
+**Claim**: _"LLM-based FP filtering is highly effective for data-flow-driven vulnerabilities but degrades sharply for policy- and cryptography-related CWEs."_
 
 - **Source**: <https://arxiv.org/html/2601.22952v1>
 - **Verification**: ✅ CONFIRMED (manual WebFetch)
 - **Direct quotes**:
-  - *"LLM-based agents are highly effective FP filters for data-flow-driven vulnerabilities, but their effectiveness drops sharply for policy- and cryptography-related weaknesses"*
-  - *"miss rates are negligible for injection-style vulnerabilities but exceed 50% for cryptography- and policy-related categories such as CWE-327, CWE-328, CWE-501, and CWE-614"*
-  - *"LLM-based agents are unsuitable for unconditional, automatic suppression of SAST warnings; they should instead be deployed as decision-support tools"*
+  - _"LLM-based agents are highly effective FP filters for data-flow-driven vulnerabilities, but their effectiveness drops sharply for policy- and cryptography-related weaknesses"_
+  - _"miss rates are negligible for injection-style vulnerabilities but exceed 50% for cryptography- and policy-related categories such as CWE-327, CWE-328, CWE-501, and CWE-614"_
+  - _"LLM-based agents are unsuitable for unconditional, automatic suppression of SAST warnings; they should instead be deployed as decision-support tools"_
 - **Strategic implication for SENTINEL**:
   - **Implement per-CWE confidence floor**: never auto-suppress findings in CWE-327 (broken crypto), CWE-328 (weak hash), CWE-501 (trust boundary violation), CWE-614 (cookie security). Surface as `inconclusive` with explicit "LLM cannot reliably triage crypto/policy issues — needs human review" rationale.
   - **CONCRETE recommendation**: hardcode list of "human-review-required" CWE categories in Triage Agent; override LLM verdict to `inconclusive` regardless of confidence. Effort: small. Impact: high (avoids dangerous false-FP suppression).
 
 ### 1.20 ✅ Two documented failure modes for LLM FPM: cluttered snippets + missing context
 
-**Claim**: *"LLM-based false positive mitigation (FPM) for SAST has two well-documented failure modes: (1) warning-related code snippets being too broad/cluttered with irrelevant control/data flows reducing precision, and (2) missing critical code contexts leading to incomplete representations that mislead LLMs."*
+**Claim**: _"LLM-based false positive mitigation (FPM) for SAST has two well-documented failure modes: (1) warning-related code snippets being too broad/cluttered with irrelevant control/data flows reducing precision, and (2) missing critical code contexts leading to incomplete representations that mislead LLMs."_
 
 - **Source**: <https://arxiv.org/pdf/2411.03079>
 - **Verification**: ✅ CONFIRMED (manual WebFetch)
-- **Direct quote**: *"code snippets being too broad or cluttered with irrelevant control and data flow information"* and *"missing critical code contexts leading to incomplete program representations"*
+- **Direct quote**: _"code snippets being too broad or cluttered with irrelevant control and data flow information"_ and _"missing critical code contexts leading to incomplete program representations"_
 - **Strategic implication for SENTINEL**:
   - SENTINEL passes the scout's snippet directly to the Triage Agent — **vulnerable to both failure modes**.
   - **Failure mode 1 (cluttered)**: scout sometimes emits multi-line context that includes unrelated branches. SENTINEL could trim more aggressively.
@@ -292,14 +293,14 @@
 
 ### 1.21 ✅ Semgrep CE is architecturally intraprocedural-only
 
-**Claim**: *"Semgrep Community Edition is architecturally limited to intraprocedural analysis — it can only analyze interactions within a single function, and cannot do cross-function or cross-file taint propagation."*
+**Claim**: _"Semgrep Community Edition is architecturally limited to intraprocedural analysis — it can only analyze interactions within a single function, and cannot do cross-function or cross-file taint propagation."_
 
 - **Source**: <https://docs.semgrep.dev/semgrep-code/semgrep-pro-engine-intro>
 - **Verification**: ✅ CONFIRMED (manual WebFetch)
 - **Direct quotes**:
-  - *"By design, Semgrep open source software, Semgrep Community Edition (CE) can only analyze interactions within a single function, also known as **intraprocedural analysis**."*
-  - *"Semgrep Code runs **cross-function (interprocedural)** analysis by default, and gives security teams the option to trade off speed for better results and deeper analysis with **cross-file analysis**."*
-  - *"Cross-file analysis runs on full scans. These scans may take longer to complete and can use more memory than Semgrep CE scans."*
+  - _"By design, Semgrep open source software, Semgrep Community Edition (CE) can only analyze interactions within a single function, also known as **intraprocedural analysis**."_
+  - _"Semgrep Code runs **cross-function (interprocedural)** analysis by default, and gives security teams the option to trade off speed for better results and deeper analysis with **cross-file analysis**."_
+  - _"Cross-file analysis runs on full scans. These scans may take longer to complete and can use more memory than Semgrep CE scans."_
 - **Strategic implication for SENTINEL — ARCHITECTURAL LIMIT**:
   - **SENTINEL INHERITS THIS LIMIT** via OpenGrep (Semgrep CE fork).
   - SENTINEL **cannot do cross-file taint propagation** without changing scanners.
@@ -307,31 +308,31 @@
     - CodeQL (engine is MIT but the rule database is GitHub-controlled / paid tier for some uses — license concerns)
     - Joern (Apache-2.0; CPG-based; would require integration effort)
     - Snyk Code (proprietary — not OSS-compatible)
-  - **Decision documented**: SENTINEL's positioning explicitly does NOT promise cross-file taint analysis. Compete elsewhere (LLM FP triage, IDE-native, BYOK). Use the limit honestly in marketing: *"For cross-file taint, use CodeQL or Joern. SENTINEL specializes in fast, IDE-native, intraprocedural detection with smart LLM triage."*
+  - **Decision documented**: SENTINEL's positioning explicitly does NOT promise cross-file taint analysis. Compete elsewhere (LLM FP triage, IDE-native, BYOK). Use the limit honestly in marketing: _"For cross-file taint, use CodeQL or Joern. SENTINEL specializes in fast, IDE-native, intraprocedural detection with smart LLM triage."_
 
-> ⚠️ **CRITICAL UPDATE (Session 4 — Gap #11 research)**: this strategic implication needs partial revision. **OpenGrep restored cross-function (interprocedural) taint tracking across 12 languages** that Semgrep moved to Pro Engine in January 2025. See Section 10.11 for details. **SENTINEL via OpenGrep has cross-function taint** for those 12 languages — only cross-FILE remains a hard limit. Marketing claim should be: *"SENTINEL specializes in fast, IDE-native detection with cross-function taint (via OpenGrep) and smart LLM triage. For deeper cross-file taint, use CodeQL or Joern."*
+> ⚠️ **CRITICAL UPDATE (Session 4 — Gap #11 research)**: this strategic implication needs partial revision. **OpenGrep restored cross-function (interprocedural) taint tracking across 12 languages** that Semgrep moved to Pro Engine in January 2025. See Section 10.11 for details. **SENTINEL via OpenGrep has cross-function taint** for those 12 languages — only cross-FILE remains a hard limit. Marketing claim should be: _"SENTINEL specializes in fast, IDE-native detection with cross-function taint (via OpenGrep) and smart LLM triage. For deeper cross-file taint, use CodeQL or Joern."_
 
 ### 1.22 ✅ Domain-specific prompt engineering provides large gains over naive ReAct
 
-**Claim**: *"Domain-specific prompt engineering provides large gains over naive ReAct prompts for LLM SAST triage, with both Claude and Gemini significantly outperforming their Simple ReAct counterparts when given improved prompts."*
+**Claim**: _"Domain-specific prompt engineering provides large gains over naive ReAct prompts for LLM SAST triage, with both Claude and Gemini significantly outperforming their Simple ReAct counterparts when given improved prompts."_
 
 - **Source**: <https://arxiv.org/html/2601.02941v1>
 - **Verification**: ✅ CONFIRMED (manual WebFetch)
 - **Direct quotes**:
-  - *"We see that both Claude and Gemini with improved prompts are much better than their Simple ReAct counterparts."*
-  - *"Gemini improves in precision, while Claude improves in terms of recall."*
-  - *"Improved Prompt Agent: A prompt designed with domain expertise for the ReAct agent"* vs *"Simple ReAct Agent: We use a ReAct loop...with no optimizations."*
+  - _"We see that both Claude and Gemini with improved prompts are much better than their Simple ReAct counterparts."_
+  - _"Gemini improves in precision, while Claude improves in terms of recall."_
+  - _"Improved Prompt Agent: A prompt designed with domain expertise for the ReAct agent"_ vs _"Simple ReAct Agent: We use a ReAct loop...with no optimizations."_
 - **Strategic implication**:
   - **Validates SENTINEL's investment in prompt engineering** (DG-111 A 3-layer defense, DG-118 A TP/risk split). These are the right direction.
   - **Continued investment recommendation**: per-category prompt templates (SAST taint vs SAST pattern vs SCA vs Secrets vs IaC vs VibeCoded) — each has different reasoning structure.
 
 ### 1.23 ✅ Corgea covers Python/Go/JS/TS/Ruby/C#/C/C++/Java/PHP/Kotlin (free tier)
 
-**Claim**: *"Corgea is positioned as a free-tier SAST tool covering Python, Go, JS, TS, Ruby, C#, C, C++, Java, PHP, and Kotlin."*
+**Claim**: _"Corgea is positioned as a free-tier SAST tool covering Python, Go, JS, TS, Ruby, C#, C, C++, Java, PHP, and Kotlin."_
 
 - **Source**: <https://owasp.org/www-community/Free_for_Open_Source_Application_Security_Tools>
 - **Verification**: ✅ CONFIRMED (3-0 vote in original workflow)
-- **Direct quote**: *"Corgea | SAST | Python, Go, JS, TS, Ruby, C#, C, C++, Java, PHP, Kotlin | Free tier | corgea.com"*
+- **Direct quote**: _"Corgea | SAST | Python, Go, JS, TS, Ruby, C#, C, C++, Java, PHP, Kotlin | Free tier | corgea.com"_
 - **Strategic implication**: Corgea is a direct LLM-assisted SAST competitor with free tier. Kotlin coverage matches SENTINEL's OpenGrep coverage. **Not a fundamental gap**.
 
 ---
@@ -340,7 +341,7 @@
 
 ### 2.1 ⚠️ Claude Sonnet 4 + SWE-agent: 6.3% FPR on OWASP Benchmark v1.2
 
-**Claim**: *"Claude Sonnet 4 paired with the SWE-agent framework achieved a 6.3% false positive rate on the OWASP Benchmark v1.2, representing a 92.1% reduction in FPR compared to baseline SAST union (which flagged 98.3% of non-vulnerable cases)."*
+**Claim**: _"Claude Sonnet 4 paired with the SWE-agent framework achieved a 6.3% false positive rate on the OWASP Benchmark v1.2, representing a 92.1% reduction in FPR compared to baseline SAST union (which flagged 98.3% of non-vulnerable cases)."_
 
 - **Source**: <https://arxiv.org/html/2601.22952v1>
 - **Verification**: ⚠️ MIXED (1-1 vote in workflow; manual review of source on Session 3 confirms the figures exist in the paper but interpretation in real-world is contested per claim 1.18)
@@ -352,16 +353,16 @@
 
 ### 3.1 ❌ OWASP curated list "structural differentiation" interpretation
 
-**Claim**: *"OWASP's curated list shows that the free-OSS app-security tool space is highly fragmented across at least 9 distinct categories... implying SENTINEL's all-in-one orchestration is structurally differentiated from single-category tools."*
+**Claim**: _"OWASP's curated list shows that the free-OSS app-security tool space is highly fragmented across at least 9 distinct categories... implying SENTINEL's all-in-one orchestration is structurally differentiated from single-category tools."_
 
 - **Source**: <https://owasp.org/www-community/Free_for_Open_Source_Application_Security_Tools>
 - **Verification**: ❌ REFUTED 0-3 (all 3 adversarial verifiers refuted)
-- **Refutation reasoning** (inferred): the categorization may exist but the *implication* "structurally differentiated" is overreach — other tools also orchestrate multiple categories (Aikido, Snyk).
+- **Refutation reasoning** (inferred): the categorization may exist but the _implication_ "structurally differentiated" is overreach — other tools also orchestrate multiple categories (Aikido, Snyk).
 - **Strategic implication**: **do NOT claim "structural differentiation" via multi-category orchestration**. It's not a defensible moat. Differentiation has to come from elsewhere (LLM FP quality, BYOK + local execution, anti-temporal-cutoff defense, override directives for nested-pinned SCA).
 
 ### 3.2 ❌→✅ Arnica Rust/Scala/Swift coverage claim — REFUTATION CORRECTED (Session 4)
 
-**Claim**: *"Arnica's free-tier SAST/SCA/IaC explicitly covers Rust, Scala, and Swift in addition to mainstream languages."*
+**Claim**: _"Arnica's free-tier SAST/SCA/IaC explicitly covers Rust, Scala, and Swift in addition to mainstream languages."_
 
 - **Source (original)**: <https://owasp.org/www-community/Free_for_Open_Source_Application_Security_Tools>
 - **Source (re-verification, Session 4)**: <https://docs.arnica.io/arnica-documentation/code-risks/code-risk-language-and-framework-support>
@@ -385,25 +386,25 @@
 
 ### 4.1 Primary academic (peer-reviewed-track arXiv papers) — 6 sources
 
-| URL | Type | Claims verified | Quality |
-|---|---|---|---|
-| <https://arxiv.org/html/2601.22952v1> | LLM FP filtering benchmarks (Lessons 1-3) | 1.15, 1.19 ✅ + 2.1 ⚠️ | primary |
-| <https://arxiv.org/html/2601.02941v1> | LLM SAST triage 2737-sample real-world benchmark | 1.18, 1.22 ✅ | primary |
-| <https://arxiv.org/abs/2509.15433> (and PDF) | SAST-Genius hybrid framework | 1.7, 1.8 ✅ | primary |
-| <https://arxiv.org/html/2601.18844v1> | Hybrid LLM4PFA/LLM4SA — industrial empirical study | 1.9, 1.11, 1.16 ✅ | primary |
-| <https://arxiv.org/pdf/2411.03079> | LLM4FPM eCPG approach | 1.10, 1.17, 1.20 ✅ | primary |
-| <https://arxiv.org/html/2506.16899v1> | 3-shot CoT + Self-Consistency + Ensembling | 1.12, 1.13, 1.14 ✅ | primary |
+| URL                                          | Type                                               | Claims verified        | Quality |
+| -------------------------------------------- | -------------------------------------------------- | ---------------------- | ------- |
+| <https://arxiv.org/html/2601.22952v1>        | LLM FP filtering benchmarks (Lessons 1-3)          | 1.15, 1.19 ✅ + 2.1 ⚠️ | primary |
+| <https://arxiv.org/html/2601.02941v1>        | LLM SAST triage 2737-sample real-world benchmark   | 1.18, 1.22 ✅          | primary |
+| <https://arxiv.org/abs/2509.15433> (and PDF) | SAST-Genius hybrid framework                       | 1.7, 1.8 ✅            | primary |
+| <https://arxiv.org/html/2601.18844v1>        | Hybrid LLM4PFA/LLM4SA — industrial empirical study | 1.9, 1.11, 1.16 ✅     | primary |
+| <https://arxiv.org/pdf/2411.03079>           | LLM4FPM eCPG approach                              | 1.10, 1.17, 1.20 ✅    | primary |
+| <https://arxiv.org/html/2506.16899v1>        | 3-shot CoT + Self-Consistency + Ensembling         | 1.12, 1.13, 1.14 ✅    | primary |
 
 ### 4.2 Primary vendor/standards official — 6 sources
 
-| URL | Type | Claims verified | Quality |
-|---|---|---|---|
-| <https://owasp.org/www-community/Free_for_Open_Source_Application_Security_Tools> | OWASP curated list | 1.23 ✅ + 3.1, 3.2 ❌ | primary (community-vetted) |
-| <https://www.endorlabs.com/learn/introducing-ai-security-code-review> | Endor Labs feature docs | 1.4, 1.5 ✅ | primary (vendor self-description) |
-| <https://www.aikido.dev/features/ai-sast-iac-autofix> | Aikido AutoFix vendor docs | 1.1, 1.2, 1.3 ✅ | primary (vendor self-description) |
-| <https://docs.semgrep.dev/semgrep-code/semgrep-pro-engine-intro> | Semgrep official docs | 1.21 ✅ | primary (vendor docs) |
-| <https://snyk.io/blog/snyk-agent-fix-agentic-architecture/> | Snyk Agent Fix blog post | 1.6 ✅ (via search) | primary (vendor self-description) |
-| <https://snyk.io/blog/ai-trust-in-action-how-snyk-agent-redefines-secure-development/> | Snyk Agent Fix trust pillars | 1.6 ✅ supporting | primary (vendor self-description) |
+| URL                                                                                    | Type                         | Claims verified       | Quality                           |
+| -------------------------------------------------------------------------------------- | ---------------------------- | --------------------- | --------------------------------- |
+| <https://owasp.org/www-community/Free_for_Open_Source_Application_Security_Tools>      | OWASP curated list           | 1.23 ✅ + 3.1, 3.2 ❌ | primary (community-vetted)        |
+| <https://www.endorlabs.com/learn/introducing-ai-security-code-review>                  | Endor Labs feature docs      | 1.4, 1.5 ✅           | primary (vendor self-description) |
+| <https://www.aikido.dev/features/ai-sast-iac-autofix>                                  | Aikido AutoFix vendor docs   | 1.1, 1.2, 1.3 ✅      | primary (vendor self-description) |
+| <https://docs.semgrep.dev/semgrep-code/semgrep-pro-engine-intro>                       | Semgrep official docs        | 1.21 ✅               | primary (vendor docs)             |
+| <https://snyk.io/blog/snyk-agent-fix-agentic-architecture/>                            | Snyk Agent Fix blog post     | 1.6 ✅ (via search)   | primary (vendor self-description) |
+| <https://snyk.io/blog/ai-trust-in-action-how-snyk-agent-redefines-secure-development/> | Snyk Agent Fix trust pillars | 1.6 ✅ supporting     | primary (vendor self-description) |
 
 ### 4.3 Secondary industry / blogs / other (used for cross-check, not primary claims)
 
@@ -439,51 +440,53 @@
 
 ### 5.2 What SENTINEL should ADOPT (validated improvements)
 
-| # | Recommendation | Source claim | Effort | Impact | Priority |
-|---|---|---|---|---|---|
-| R1 | **Few-shot prompting** (replace/augment current CoT) with curated TP/FP examples per category | 1.11 | Medium | High | P0 |
-| R2 | **Self-Consistency voting** (3-5 samples + majority vote, temp > 0) — combine with few-shot | 1.14 | Small | Medium-High | P0 |
-| R3 | **Per-CWE confidence floor** — never auto-suppress in crypto/policy categories (CWE-327, 328, 501, 614, etc.); force `inconclusive` | 1.19 | Small | High (safety) | P0 |
-| R4 | **Per-language prompts** (system prompt variants for JS/TS, Python, Go, Rust, etc.) | 1.2, 1.22 | Medium | High | P1 |
-| R5 | **Confidence-per-fix** in Remediation Agent (not just Triage) — parity with Aikido | 1.1 | Small | Medium | P1 |
-| R6 | **Architecture Agent** — design-level review of diffs (auth/CORS/data-flow concerns) | 1.4, 1.5 | Large | High (differentiator) | P2 |
-| R7 | **Optional trial-mode** (shared rate-limited key for first scan) to reduce BYOK onboarding friction | 1.3 | Medium (legal+cost) | High (adoption) | P1 |
-| R8 | **Snippet trim/expand based on failure-mode 1/2 detection** | 1.20 | Medium | Medium | P2 |
-| R9 | **Optional ensemble mode** (2-provider voting for high-rigor mode) | 1.12 | Medium | Medium | P2 |
-| R10 | **Community fixes DB** (Apache-2.0 dataset of accepted/rejected fix outcomes) — long-term moat vs Snyk | 1.6 | Large | High (moat) | P3 |
+| #   | Recommendation                                                                                                                      | Source claim | Effort              | Impact                | Priority |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------- | ------------ | ------------------- | --------------------- | -------- |
+| R1  | **Few-shot prompting** (replace/augment current CoT) with curated TP/FP examples per category                                       | 1.11         | Medium              | High                  | P0       |
+| R2  | **Self-Consistency voting** (3-5 samples + majority vote, temp > 0) — combine with few-shot                                         | 1.14         | Small               | Medium-High           | P0       |
+| R3  | **Per-CWE confidence floor** — never auto-suppress in crypto/policy categories (CWE-327, 328, 501, 614, etc.); force `inconclusive` | 1.19         | Small               | High (safety)         | P0       |
+| R4  | **Per-language prompts** (system prompt variants for JS/TS, Python, Go, Rust, etc.)                                                 | 1.2, 1.22    | Medium              | High                  | P1       |
+| R5  | **Confidence-per-fix** in Remediation Agent (not just Triage) — parity with Aikido                                                  | 1.1          | Small               | Medium                | P1       |
+| R6  | **Architecture Agent** — design-level review of diffs (auth/CORS/data-flow concerns)                                                | 1.4, 1.5     | Large               | High (differentiator) | P2       |
+| R7  | **Optional trial-mode** (shared rate-limited key for first scan) to reduce BYOK onboarding friction                                 | 1.3          | Medium (legal+cost) | High (adoption)       | P1       |
+| R8  | **Snippet trim/expand based on failure-mode 1/2 detection**                                                                         | 1.20         | Medium              | Medium                | P2       |
+| R9  | **Optional ensemble mode** (2-provider voting for high-rigor mode)                                                                  | 1.12         | Medium              | Medium                | P2       |
+| R10 | **Community fixes DB** (Apache-2.0 dataset of accepted/rejected fix outcomes) — long-term moat vs Snyk                              | 1.6          | Large               | High (moat)           | P3       |
 
 ### 5.3 What SENTINEL should NOT pursue (validated avoidance)
 
-| # | Anti-recommendation | Source claim | Why avoid |
-|---|---|---|---|
-| A1 | **CWE-RAG corpus injection** | 1.13 | Empirically no measurable accuracy gain. Save engineering effort. |
-| A2 | **Agentic frameworks** (SWE-agent style) | 1.15 | Backbone choice > framework; complex agents don't rescue weak models, don't materially help strong ones. |
-| A3 | **Cross-file taint analysis** as built-in feature | 1.21 | Semgrep CE architectural limit. Would require swapping scanners (CodeQL = license concerns; Joern = large integration). Position honestly: "for cross-file taint, use CodeQL or Joern; SENTINEL is intraprocedural-fast + IDE-native." |
-| A4 | **Compete on dataset scale** | 1.6 | Snyk's 35,000+ expert fixes DB is unbeatable. Differentiate on confidence + openness instead. |
-| A5 | **Claim "99% FP reduction"** in marketing | 1.18 | Real-world MCC 0.148 — synthetic benchmark numbers do not transfer. Realistic claim: "30-70% FP reduction + explicit confidence + human review for edge cases." |
+| #   | Anti-recommendation                               | Source claim | Why avoid                                                                                                                                                                                                                              |
+| --- | ------------------------------------------------- | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A1  | **CWE-RAG corpus injection**                      | 1.13         | Empirically no measurable accuracy gain. Save engineering effort.                                                                                                                                                                      |
+| A2  | **Agentic frameworks** (SWE-agent style)          | 1.15         | Backbone choice > framework; complex agents don't rescue weak models, don't materially help strong ones.                                                                                                                               |
+| A3  | **Cross-file taint analysis** as built-in feature | 1.21         | Semgrep CE architectural limit. Would require swapping scanners (CodeQL = license concerns; Joern = large integration). Position honestly: "for cross-file taint, use CodeQL or Joern; SENTINEL is intraprocedural-fast + IDE-native." |
+| A4  | **Compete on dataset scale**                      | 1.6          | Snyk's 35,000+ expert fixes DB is unbeatable. Differentiate on confidence + openness instead.                                                                                                                                          |
+| A5  | **Claim "99% FP reduction"** in marketing         | 1.18         | Real-world MCC 0.148 — synthetic benchmark numbers do not transfer. Realistic claim: "30-70% FP reduction + explicit confidence + human review for edge cases."                                                                        |
 
 ### 5.4 Direct competitor landscape (summary, verified)
 
-| Competitor | Position vs SENTINEL | Verified status |
-|---|---|---|
-| **Aikido AI AutoFix** | DIRECT competitor — same Claude Sonnet, 16 languages, free tier no-CC, VSCode 1-click. Vendor-hosted vs SENTINEL self-host BYOK. | Claims 1.1, 1.2, 1.3 ✅ |
-| **Snyk Agent Fix** | DIFFERENT category — proprietary 35,000+ expert fixes DB. Compete on openness, not scale. | Claim 1.6 ✅ |
-| **Endor Labs AI Code Review** | DIFFERENT category — architectural review, GitHub App only (no IDE). NICHE OPEN for SENTINEL. | Claims 1.4, 1.5 ✅ |
-| **Corgea** | DIRECT competitor — free-tier LLM-assisted SAST, 11 languages incl. Kotlin. Cloud-hosted vs SENTINEL local. | Claim 1.23 ✅ |
-| **Semgrep (CE + Pro)** | UPSTREAM scanner. SENTINEL builds on OpenGrep (Semgrep CE fork). Inherits intraprocedural limit. | Claim 1.21 ✅ |
-| **Arnica** | UNVERIFIED — Rust/Scala/Swift coverage claim refuted. Need separate research pass. | Refuted 3.2 ❌ |
+| Competitor                    | Position vs SENTINEL                                                                                                             | Verified status         |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
+| **Aikido AI AutoFix**         | DIRECT competitor — same Claude Sonnet, 16 languages, free tier no-CC, VSCode 1-click. Vendor-hosted vs SENTINEL self-host BYOK. | Claims 1.1, 1.2, 1.3 ✅ |
+| **Snyk Agent Fix**            | DIFFERENT category — proprietary 35,000+ expert fixes DB. Compete on openness, not scale.                                        | Claim 1.6 ✅            |
+| **Endor Labs AI Code Review** | DIFFERENT category — architectural review, GitHub App only (no IDE). NICHE OPEN for SENTINEL.                                    | Claims 1.4, 1.5 ✅      |
+| **Corgea**                    | DIRECT competitor — free-tier LLM-assisted SAST, 11 languages incl. Kotlin. Cloud-hosted vs SENTINEL local.                      | Claim 1.23 ✅           |
+| **Semgrep (CE + Pro)**        | UPSTREAM scanner. SENTINEL builds on OpenGrep (Semgrep CE fork). Inherits intraprocedural limit.                                 | Claim 1.21 ✅           |
+| **Arnica**                    | UNVERIFIED — Rust/Scala/Swift coverage claim refuted. Need separate research pass.                                               | Refuted 3.2 ❌          |
 
 ---
 
 ## 6. Investigation log
 
 ### Session 1 — 2026-06-18 (initial deep-research workflow)
+
 - **Workflow**: deep-research, Run ID `wf_4d58a20a-7bb`
 - **Result**: 25/25 verifications rate-limited (Santiago session quota)
 - **Outcome**: 0 confirmed, 0 refuted (all abstain due to rate limit)
 - **Saved at**: `C:\Users\27983\AppData\Local\Temp\claude\d--GoLAB-PROYECTOS-SENTINEL\e6fe1728-1b4d-42e5-86b3-09aa384a9611\tasks\wiokonrbz.output`
 
 ### Session 2 — 2026-06-18 (deep-research workflow resumed)
+
 - **Workflow**: deep-research, same Run ID (resumed with cached fetches)
 - **Result**: 2 verified + 2 refuted + 21 still rate-limited
 - **Confirmed in this session**: Corgea ✅ (3-0), Claude Sonnet 4 FPR ⚠️ (1-1)
@@ -491,6 +494,7 @@
 - **Saved at**: `C:\Users\27983\AppData\Local\Temp\claude\d--GoLAB-PROYECTOS-SENTINEL\e6fe1728-1b4d-42e5-86b3-09aa384a9611\tasks\wpr283ykn.output`
 
 ### Session 3 — 2026-06-18 (manual WebFetch verification — COMPLETE)
+
 - **Approach**: WebFetch each cited source, extract verbatim quotes, verify per-claim.
 - **Result**: **22/22 PENDING claims verified** (all CONFIRMED, no surprises).
 - **Fetches performed**: 10 (Aikido docs, Endor docs, arXiv ×6, Snyk via WebSearch, Semgrep docs)
@@ -498,6 +502,7 @@
 - **Updates committed** to this document inline.
 
 ### Session 4 — 2026-06-18 (12 NOT RESEARCHED gaps investigated — COMPLETE)
+
 - **Approach**: WebSearch per gap (12 searches), capture canonical sources, extract feature/pricing/positioning info.
 - **Result**: **12/12 gaps investigated** + 1 critical correction (Arnica refutation was wrong) + 1 strategic update (OpenGrep restored cross-function taint that Semgrep CE lost).
 - **Gaps documented** in new Section 10.1-10.12.
@@ -516,20 +521,20 @@
 
 All 12 gaps from the original research scope have been investigated. Each is documented in detail in **Section 10**. Summary:
 
-| # | Gap | Result | Section |
-|---|---|---|---|
-| 1 | Snyk VS Code extension current feature set | ✅ Researched — free tier, AI fixes, 40+ langs, supports Windsurf/Cursor/Eclipse Theia | 10.1 |
-| 2 | GitHub Advanced Security free-tier vs paid | ✅ Researched — public repos FREE (CodeQL + Copilot Autofix), private $30/committer/month | 10.2 |
-| 3 | JetBrains Qodana free tier | ✅ Researched — Community tier free, 60+ langs via JetBrains IDE engines, NOT LLM-chat-style | 10.3 |
-| 4 | SonarLint / SonarQube for IDE AI features | ✅ Researched — free 40+ langs, AI CodeFix requires paid Cloud/Server Enterprise | 10.4 |
-| 5 | DryRun Security positioning | ✅ Researched — AI-native SAST, PR-level, 2x precision claim, NO IDE focus | 10.5 |
-| 6 | NeoSec / Akamai API Security | ✅ Researched — enterprise API security $25K-100K+/year, NOT SAST/IDE category | 10.6 |
-| 7 | Jit.io free tier scope | ✅ Researched — ASPM platform $50/dev/month, free tier no-CC, AI agents SERA+COTA | 10.7 |
-| 8 | ZeroPath benchmark approach | ✅ Researched — AI-native SAST, 2x vulns + 75% fewer FPs claim, auto-PR | 10.8 |
-| 9 | OSV-Scanner LLM integration | ✅ Researched — pure vulnerability scanner, NO LLM, V2 has container scanning + guided remediation | 10.9 |
-| 10 | Trufflehog Verifier mode | ✅ Researched — 700+ secret types with live API verification, AGPL-3.0 license concern | 10.10 |
-| 11 | Bandit / Brakeman / OpenGrep ecosystem | ✅ Researched + **CRITICAL FINDING: OpenGrep restored cross-function taint across 12 langs** | 10.11 |
-| 12 | Arnica re-verification | ✅ Researched + **REFUTATION CORRECTED: Arnica DOES support Rust/Scala/Swift** (Beta/GA/Beta) | 10.12 |
+| #   | Gap                                        | Result                                                                                             | Section |
+| --- | ------------------------------------------ | -------------------------------------------------------------------------------------------------- | ------- |
+| 1   | Snyk VS Code extension current feature set | ✅ Researched — free tier, AI fixes, 40+ langs, supports Windsurf/Cursor/Eclipse Theia             | 10.1    |
+| 2   | GitHub Advanced Security free-tier vs paid | ✅ Researched — public repos FREE (CodeQL + Copilot Autofix), private $30/committer/month          | 10.2    |
+| 3   | JetBrains Qodana free tier                 | ✅ Researched — Community tier free, 60+ langs via JetBrains IDE engines, NOT LLM-chat-style       | 10.3    |
+| 4   | SonarLint / SonarQube for IDE AI features  | ✅ Researched — free 40+ langs, AI CodeFix requires paid Cloud/Server Enterprise                   | 10.4    |
+| 5   | DryRun Security positioning                | ✅ Researched — AI-native SAST, PR-level, 2x precision claim, NO IDE focus                         | 10.5    |
+| 6   | NeoSec / Akamai API Security               | ✅ Researched — enterprise API security $25K-100K+/year, NOT SAST/IDE category                     | 10.6    |
+| 7   | Jit.io free tier scope                     | ✅ Researched — ASPM platform $50/dev/month, free tier no-CC, AI agents SERA+COTA                  | 10.7    |
+| 8   | ZeroPath benchmark approach                | ✅ Researched — AI-native SAST, 2x vulns + 75% fewer FPs claim, auto-PR                            | 10.8    |
+| 9   | OSV-Scanner LLM integration                | ✅ Researched — pure vulnerability scanner, NO LLM, V2 has container scanning + guided remediation | 10.9    |
+| 10  | Trufflehog Verifier mode                   | ✅ Researched — 700+ secret types with live API verification, AGPL-3.0 license concern             | 10.10   |
+| 11  | Bandit / Brakeman / OpenGrep ecosystem     | ✅ Researched + **CRITICAL FINDING: OpenGrep restored cross-function taint across 12 langs**       | 10.11   |
+| 12  | Arnica re-verification                     | ✅ Researched + **REFUTATION CORRECTED: Arnica DOES support Rust/Scala/Swift** (Beta/GA/Beta)      | 10.12   |
 
 ### 7.2 Deeper open questions (not addressable via web research alone)
 
@@ -566,6 +571,7 @@ If a session is interrupted (rate-limit, context window, manual pause), to resum
 When you (the user) confirm the next Cycle, this document supports these candidate DGs (in priority order):
 
 **Cycle 111 candidates** (any of these can be the next DG):
+
 - **DG-119 A** — Few-shot prompting + Self-Consistency in Triage Agent (R1 + R2). High impact, medium effort.
 - **DG-120.0.1** — Per-CWE confidence floor (R3). Small effort, safety-critical (prevents auto-suppression of crypto/policy issues).
 - **DG-121 A** — Per-language prompts in Triage/Context/Remediation (R4). Medium effort, high impact for multi-language users.
@@ -573,6 +579,7 @@ When you (the user) confirm the next Cycle, this document supports these candida
 - **DG-117.1 A** — Mark-FP button in card (already backlog from Cycle 108).
 
 **Strategic narrative** (for marketing / community building):
+
 - **Tag line**: "The only IDE-native, BYOK, OSS-licensed security scanner with intelligent LLM triage. Your code stays local."
 - **Differentiation pillars**: (1) IDE-native (not GitHub App), (2) BYOK (not vendor-locked), (3) Apache-2.0 (not proprietary), (4) Anti-temporal-cutoff defense (unique to SENTINEL), (5) Override directives for nested-pinned SCA (unique to SENTINEL).
 - **Honest limits to advertise**: intraprocedural-only (use CodeQL/Joern for cross-file), real-world MCC modest (decision-support not auto-suppression), no DAST/container/SBOM (single-purpose tool).
@@ -817,30 +824,31 @@ Each subsection below covers one of the 12 gaps from the original research scope
 
 Based on Session 4 findings, the competitive landscape now clusters into 6 segments:
 
-| Segment | Examples | Position vs SENTINEL |
-|---|---|---|
-| **IDE-native + LLM-driven (DIRECT)** | Aikido AutoFix, Snyk VS Code, SonarQube for IDE (free tier no AI), Corgea | DIRECT competition on UX + features |
-| **GitHub-flow + LLM-driven** | GitHub Advanced Security (free public, paid private), Endor Labs AI Code Review, DryRun Security, ZeroPath, Snyk Agent Fix | NOT IDE-first — SENTINEL niche defensible |
-| **ASPM platforms (full-stack)** | Jit.io, Arnica | Different category — SENTINEL is a scout/scanner, they're orchestrators |
-| **CI/CD + JetBrains IDE static** | JetBrains Qodana | Different IDE ecosystem |
-| **Runtime / API security** | NeoSec/Akamai, Cloudflare API Shield | DO NOT COMPETE — different category |
-| **Pure OSS scanners (no LLM)** | OSV-Scanner, Trufflehog, Bandit, Brakeman, gosec | COMPLEMENTARY — SENTINEL could orchestrate them |
+| Segment                              | Examples                                                                                                                   | Position vs SENTINEL                                                    |
+| ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| **IDE-native + LLM-driven (DIRECT)** | Aikido AutoFix, Snyk VS Code, SonarQube for IDE (free tier no AI), Corgea                                                  | DIRECT competition on UX + features                                     |
+| **GitHub-flow + LLM-driven**         | GitHub Advanced Security (free public, paid private), Endor Labs AI Code Review, DryRun Security, ZeroPath, Snyk Agent Fix | NOT IDE-first — SENTINEL niche defensible                               |
+| **ASPM platforms (full-stack)**      | Jit.io, Arnica                                                                                                             | Different category — SENTINEL is a scout/scanner, they're orchestrators |
+| **CI/CD + JetBrains IDE static**     | JetBrains Qodana                                                                                                           | Different IDE ecosystem                                                 |
+| **Runtime / API security**           | NeoSec/Akamai, Cloudflare API Shield                                                                                       | DO NOT COMPETE — different category                                     |
+| **Pure OSS scanners (no LLM)**       | OSV-Scanner, Trufflehog, Bandit, Brakeman, gosec                                                                           | COMPLEMENTARY — SENTINEL could orchestrate them                         |
 
 ### 11.2 Updated recommendation table (Session 4 additions)
 
-| # | Recommendation | Source claim | Effort | Impact | Priority |
-|---|---|---|---|---|---|
-| R11 | **Adopt `.sentinel-rules.mdc` pattern** (Snyk Studio-inspired) to expose SENTINEL's project context to AI coding assistants (Claude Code, Cursor, Copilot) | 10.1 | Small | Medium (vibe-coding adoption) | P1 |
-| R12 | **Validate OpenGrep cross-function taint is actually enabled** in SENTINEL's invocation (may already work, may need flag) — UPDATE marketing if confirmed | 10.11 | Small | High (positioning upgrade) | P0 |
-| R13 | **Add Bandit / Brakeman as optional language-specific scouts** when Python / Rails detected — complement OpenGrep with specialist coverage | 10.11 | Medium | Medium | P2 |
-| R14 | **Add secrets verification mode** (Apache-2.0 in-house, NOT bundle AGPL Trufflehog) for top 50-100 secret types — major Gitleaks enhancement | 10.10 | Medium | High (UX win) | P1 |
-| R15 | **Build public SENTINEL benchmark suite** (test fixtures + ground truth + reproducible scoring) — credibility-building, follows ZeroPath's transparent benchmarking | 10.8 | Large | High (credibility) | P2 |
-| R16 | **Adopt OSV-Scanner's guided-remediation pattern** for SCA (transitive dep tree optimization, not just MAX-semver) — extends DG-113 A | 10.9 | Medium | Medium | P2 |
-| R17 | **Add `inconclusive`-quality LLM rationale for runtime-API findings** the scout incorrectly classifies as code findings (rare but real — Akamai/Cloudflare-style runtime is out of scope) | 10.6 | Small | Low | P3 |
+| #   | Recommendation                                                                                                                                                                            | Source claim | Effort | Impact                        | Priority |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ | ------ | ----------------------------- | -------- |
+| R11 | **Adopt `.sentinel-rules.mdc` pattern** (Snyk Studio-inspired) to expose SENTINEL's project context to AI coding assistants (Claude Code, Cursor, Copilot)                                | 10.1         | Small  | Medium (vibe-coding adoption) | P1       |
+| R12 | **Validate OpenGrep cross-function taint is actually enabled** in SENTINEL's invocation (may already work, may need flag) — UPDATE marketing if confirmed                                 | 10.11        | Small  | High (positioning upgrade)    | P0       |
+| R13 | **Add Bandit / Brakeman as optional language-specific scouts** when Python / Rails detected — complement OpenGrep with specialist coverage                                                | 10.11        | Medium | Medium                        | P2       |
+| R14 | **Add secrets verification mode** (Apache-2.0 in-house, NOT bundle AGPL Trufflehog) for top 50-100 secret types — major Gitleaks enhancement                                              | 10.10        | Medium | High (UX win)                 | P1       |
+| R15 | **Build public SENTINEL benchmark suite** (test fixtures + ground truth + reproducible scoring) — credibility-building, follows ZeroPath's transparent benchmarking                       | 10.8         | Large  | High (credibility)            | P2       |
+| R16 | **Adopt OSV-Scanner's guided-remediation pattern** for SCA (transitive dep tree optimization, not just MAX-semver) — extends DG-113 A                                                     | 10.9         | Medium | Medium                        | P2       |
+| R17 | **Add `inconclusive`-quality LLM rationale for runtime-API findings** the scout incorrectly classifies as code findings (rare but real — Akamai/Cloudflare-style runtime is out of scope) | 10.6         | Small  | Low                           | P3       |
 
 ### 11.3 Updated differentiation strategy
 
 **DOUBLE DOWN on (verified moats)**:
+
 1. **Apache-2.0 + BYOK + local execution** — only SENTINEL in this position (Aikido = SaaS, Snyk = SaaS+paid IDE, GitHub = SaaS, Arnica = SaaS, ZeroPath = SaaS).
 2. **IDE-native LLM triage for free** — Aikido has IDE 1-click but is SaaS-hosted; SENTINEL is local.
 3. **DG-115 override directives for nested-pinned SCA** — NO competitor identified with this specific pattern.
@@ -849,9 +857,11 @@ Based on Session 4 findings, the competitive landscape now clusters into 6 segme
 6. **OpenGrep ecosystem alignment** (Session 4 finding) — riding a 10+ vendor consortium's investment instead of a proprietary engine.
 
 **NEW NICHE TO BUILD (Session 4 finding)**:
+
 - **`.sentinel-rules.mdc` for AI coding assistants** — SENTINEL becomes the security context provider for vibe-coding agents (Claude Code, Cursor, Copilot, Windsurf). When the user asks Claude Code to "add a payment endpoint", Claude Code reads `.sentinel-rules.mdc` and applies SENTINEL's security guardrails inline.
 
 **EXPLICITLY DO NOT PURSUE (revised)**:
+
 1. ❌ Runtime / DAST / API security (Akamai NeoSec category)
 2. ❌ Full ASPM orchestration (Jit, Arnica)
 3. ❌ Snyk-scale fixes DB
@@ -875,20 +885,20 @@ Three concrete corollaries:
 
 1. **A finding is a question, not an answer.** When a scout flags `eval(x)` or `import unsafe_module` or `process.env.SECRET`, that is the START of analysis, not the conclusion. The answer lives in the **flow**: where does the data come from? Where does it go? What mitigates or amplifies it? What module is it in? When does it run?
 
-2. **Traceability is the qualifier.** The user's example: a finding may look like a "wake-up call" because of a particular import, but when you look at the actual development of the code, it had no reason to be a wake-up call — because the import *made sense in the flow several steps later*. **Without flow tracing, the finding is dismissed wrongly or amplified wrongly.**
+2. **Traceability is the qualifier.** The user's example: a finding may look like a "wake-up call" because of a particular import, but when you look at the actual development of the code, it had no reason to be a wake-up call — because the import _made sense in the flow several steps later_. **Without flow tracing, the finding is dismissed wrongly or amplified wrongly.**
 
 3. **Development is a system of interactions.** Files import each other. Functions call each other. Data passes through transformations. Modules have trust boundaries. Some code runs at startup with hardcoded config; some processes user-controlled HTTP request bodies. Same `eval()`, dramatically different priorities. SENTINEL must understand this system — not just see snippets in isolation.
 
 ### 12.2 Current state vs. the principle — honest gap analysis
 
-| Piece SENTINEL has today | What it does | What's missing vs the principle |
-|---|---|---|
-| DG-112 A SAST taint dataflow trace | Captures source→intermediate→sink for OpenGrep `mode: taint` rules | Only taint rules; only intraprocedural; only that one finding's flow |
-| DG-115 A `dependencyContext` | Tracks dep graph for SCA (parent pins child, hasSiblingFixedCopy) | Only SCA; no cross-finding correlation |
-| Context Agent (Brain Layer) | LLM explains entryPoint/sink/exposure | LLM-derived, not AST-derived; can hallucinate; no project-wide grounding |
-| DG-117 + DG-117.0.1 exclude-list | Filters noise paths (fixtures/dist/.test/.spec) | Exclusion is NOT understanding — sigue siendo aislamiento |
-| DG-118 A `priorityScore` | Separa confidence% de urgency | Compute is (severity, triage state) — does NOT use flow context |
-| DG-115.1 A G7 `hasSiblingFixedCopy` | Flow-aware SCA decision (other copies in dep tree?) | Only for nested-pinned deps; pattern doesn't generalize |
+| Piece SENTINEL has today            | What it does                                                       | What's missing vs the principle                                          |
+| ----------------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------------ |
+| DG-112 A SAST taint dataflow trace  | Captures source→intermediate→sink for OpenGrep `mode: taint` rules | Only taint rules; only intraprocedural; only that one finding's flow     |
+| DG-115 A `dependencyContext`        | Tracks dep graph for SCA (parent pins child, hasSiblingFixedCopy)  | Only SCA; no cross-finding correlation                                   |
+| Context Agent (Brain Layer)         | LLM explains entryPoint/sink/exposure                              | LLM-derived, not AST-derived; can hallucinate; no project-wide grounding |
+| DG-117 + DG-117.0.1 exclude-list    | Filters noise paths (fixtures/dist/.test/.spec)                    | Exclusion is NOT understanding — sigue siendo aislamiento                |
+| DG-118 A `priorityScore`            | Separa confidence% de urgency                                      | Compute is (severity, triage state) — does NOT use flow context          |
+| DG-115.1 A G7 `hasSiblingFixedCopy` | Flow-aware SCA decision (other copies in dep tree?)                | Only for nested-pinned deps; pattern doesn't generalize                  |
 
 **Verdict**: SENTINEL has scattered pieces of context-awareness but **no unified interaction graph as the foundation layer**. Each Brain Layer agent reasons over a snippet plus tiny per-finding metadata. **The system as a whole is invisible to the Brain Layer.**
 
@@ -899,6 +909,7 @@ It is also the explicit moat of **DryRun Security** (Section 10.5 — "Contextua
 ### 12.3 R1-R17 re-categorized through the North Star lens
 
 #### HIGH alignment (these advance the principle directly)
+
 - **R6** — Architecture Agent (reads diffs/repo entire, evaluates design-level)
 - **R8** — Snippet trim/expand based on documented failure modes (attacks the two arXiv 2411.03079 failure modes head-on)
 - **R12** — Validate OpenGrep cross-function taint enabled (enabler — without cross-function tracking, no system-level flow)
@@ -907,11 +918,13 @@ It is also the explicit moat of **DryRun Security** (Section 10.5 — "Contextua
 - **R16** — OSV-Scanner guided remediation (flow-aware dep tree optimization for SCA)
 
 #### MEDIUM alignment (useful, but doesn't change the lens)
+
 - R1 — Few-shot prompting (better classification but same paradigm)
 - R2 — Self-Consistency voting (robustness, not context)
 - R13 — Bandit/Brakeman as language specialists (better detection within isolated patterns)
 
 #### LOW alignment (polish within current paradigm)
+
 - R5, R7, R10, R11, R14, R15, R17 — UX, BYOK, dataset DB, secrets verification, public benchmark, runtime-API edge case
 
 **Roadmap implication**: HIGH-alignment items should be P0/P1 because they bend the architecture toward the principle. MEDIUM items are P2 polish. LOW items are P3 backlog.
@@ -920,33 +933,36 @@ It is also the explicit moat of **DryRun Security** (Section 10.5 — "Contextua
 
 These are the **new** recommendations that did not appear in R1-R17 because they only emerge when you adopt the principle.
 
-| # | Recommendation | Why it embodies the principle | Effort | Impact | Priority |
-|---|---|---|---|---|---|
-| **R18** | **Interaction Graph Layer** — project-wide module + symbol graph built per scan, queried by Brain Layer agents during triage. Each finding becomes a node; edges are imports/calls/dataflows. | DIRECT — encarnación del principio | Large (multi-cycle, staged v1→v3) | CRITICAL | P0 |
-| **R19** | **Module trust boundary tagging** — parse `package.json` exports/main, route definitions (Express/Fastify/Hono), tsconfig paths, test/src structure. Tag each file: `public-entry` / `internal-handler` / `startup-config` / `test-fixture` / `private-worker`. | Same: explicit system structure | Medium | Alto | P1 |
-| **R20** | **Cross-finding correlation** — new Coordinator stage 3 (after stage 2 dedup): identify groups of findings sharing a flow path. Triage Agent evaluates groups, not individuals. | DIRECT — el LLM ve interacciones, no aislamientos | Medium | Alto | P1 |
-| **R21** | **Temporal context tagging** — detect code's execution context: init/main vs HTTP handler vs background job vs CLI command. Pass to Triage as context. | DIRECT — same eval(), distinct priorities by when it runs | Small | Medio | P2 |
-| **R22** | **Diff-aware mode** — compare findings vs prior scan; surface "5 new since main", "2 reintroduced". Differentiate visually and prioritize what's new. | INDIRECT — temporal axis of interaction | Small | Medio | P1 |
+| #       | Recommendation                                                                                                                                                                                                                                                  | Why it embodies the principle                             | Effort                            | Impact   | Priority |
+| ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- | --------------------------------- | -------- | -------- |
+| **R18** | **Interaction Graph Layer** — project-wide module + symbol graph built per scan, queried by Brain Layer agents during triage. Each finding becomes a node; edges are imports/calls/dataflows.                                                                   | DIRECT — encarnación del principio                        | Large (multi-cycle, staged v1→v3) | CRITICAL | P0       |
+| **R19** | **Module trust boundary tagging** — parse `package.json` exports/main, route definitions (Express/Fastify/Hono), tsconfig paths, test/src structure. Tag each file: `public-entry` / `internal-handler` / `startup-config` / `test-fixture` / `private-worker`. | Same: explicit system structure                           | Medium                            | Alto     | P1       |
+| **R20** | **Cross-finding correlation** — new Coordinator stage 3 (after stage 2 dedup): identify groups of findings sharing a flow path. Triage Agent evaluates groups, not individuals.                                                                                 | DIRECT — el LLM ve interacciones, no aislamientos         | Medium                            | Alto     | P1       |
+| **R21** | **Temporal context tagging** — detect code's execution context: init/main vs HTTP handler vs background job vs CLI command. Pass to Triage as context.                                                                                                          | DIRECT — same eval(), distinct priorities by when it runs | Small                             | Medio    | P2       |
+| **R22** | **Diff-aware mode** — compare findings vs prior scan; surface "5 new since main", "2 reintroduced". Differentiate visually and prioritize what's new.                                                                                                           | INDIRECT — temporal axis of interaction                   | Small                             | Medio    | P1       |
 
 ### 12.5 Implementation path for R18 — staged v1 → v3
 
 R18 is the maximalist version of the principle. It cannot ship in one cycle. Stage it:
 
 #### v1 (proposed for DG-123 A) — minimum viable graph
+
 - **Scope**: TypeScript/JavaScript only (primary SENTINEL workspace).
 - **Graph type**: module-level. Nodes = files. Edges = static `import` / `export` / `require` statements.
 - **Construction**: parse imports/exports per file using regex or `tree-sitter-typescript` (MIT license; pure Rust binary, no Node.js deps).
 - **Storage**: in-memory per scan only. No persistence.
-- **Use**: augment Triage Agent prompt with: "*This file is imported by [N modules]; this file imports from [M modules]. Top importers: [list]. This file's role: [inferred entry-point / library / test / unknown].*"
+- **Use**: augment Triage Agent prompt with: "_This file is imported by [N modules]; this file imports from [M modules]. Top importers: [list]. This file's role: [inferred entry-point / library / test / unknown]._"
 - **Validation**: re-scan SENTINEL + SYNAPTIC_SAAS workspaces; measure if Triage classification changes meaningfully on a sample (manual ground-truth marking required).
 
 #### v2 — symbol-level + cross-language
+
 - Add function-level call graph (caller/callee within and across files).
 - Multi-language via `tree-sitter` grammar packs (Python, Go, Java, Ruby, etc. all available MIT).
 - Persist graph to colony.db (new table) for incremental updates.
 - Brain Layer agents (Triage, Context, Remediation) all consume the graph.
 
 #### v3 — CPG integration
+
 - Integrate Joern (Apache-2.0) for full Code Property Graph.
 - Higher fidelity flows, type inference, framework-aware sinks.
 - Multi-cycle effort; significant runtime cost.
@@ -967,11 +983,12 @@ R18 v1 is **not** guaranteed to improve triage quality empirically. Honest risks
 
 Going forward, the question for every DG candidate should be:
 
-> *"Does this DG deepen SENTINEL's understanding of the system as a network of interactions, or does it only improve an isolated piece?"*
+> _"Does this DG deepen SENTINEL's understanding of the system as a network of interactions, or does it only improve an isolated piece?"_
 
 Both are valid work, but the first category is what bends the architecture toward the North Star. Polish is OK; polish is not the same as paradigm advancement.
 
 **Cycle 111 candidate ordering, post-principle adoption**:
+
 1. **DG-123 A — R18 v1 Interaction Graph (this Cycle)**
 2. DG-124 A — R19 module trust boundary tagging
 3. DG-125 A — R20 cross-finding correlation
@@ -983,4 +1000,4 @@ Both are valid work, but the first category is what bends the architecture towar
 
 ---
 
-*End of document. Living document — updated by Claude Code research sessions. See Section 6 "Investigation log" for change history.*
+_End of document. Living document — updated by Claude Code research sessions. See Section 6 "Investigation log" for change history._

@@ -45,6 +45,106 @@ for (const asset of flatAssets) {
   copyFileSync(asset, join(distDir, basename(asset)));
 }
 
+/*
+ * DG-123 A (Cycle 111) — Interaction Graph WASM assets.
+ *
+ * `packages/core/src/coordinator/interaction-graph.ts` carga los grammars de
+ * tree-sitter y el runtime de web-tree-sitter via `import.meta.url` con
+ * fallback a sibling paths — igual patrón que `colony-db.ts` con schema.sql.
+ *
+ * En modo bundleado (cli.mjs), copiamos los 5 `.wasm` como flat assets junto
+ * a `cli.mjs`. En modo dev/tests el fallback canónico via node_modules aplica.
+ *
+ * Selective bundling: solo 4 language grammars (TS/TSX/JS/Python) + el runtime
+ * — NO todo el paquete tree-sitter-wasms (51.8 MB con 36 grammars). Con
+ * los 4 elegidos: ~5.9 MB. Justificado en la Sub-decisión de packaging
+ * (v0.3.16 + DG-123 A + Sub-B2 user-approved).
+ */
+const wasmAssets = [
+  {
+    src: join(
+      packagesDir,
+      '..',
+      'node_modules',
+      '.pnpm',
+      'web-tree-sitter@0.20.8',
+      'node_modules',
+      'web-tree-sitter',
+      'tree-sitter.wasm',
+    ),
+    destName: 'tree-sitter.wasm',
+  },
+  {
+    src: join(
+      packagesDir,
+      '..',
+      'node_modules',
+      '.pnpm',
+      'tree-sitter-wasms@0.1.13',
+      'node_modules',
+      'tree-sitter-wasms',
+      'out',
+      'tree-sitter-typescript.wasm',
+    ),
+    destName: 'tree-sitter-typescript.wasm',
+  },
+  {
+    src: join(
+      packagesDir,
+      '..',
+      'node_modules',
+      '.pnpm',
+      'tree-sitter-wasms@0.1.13',
+      'node_modules',
+      'tree-sitter-wasms',
+      'out',
+      'tree-sitter-tsx.wasm',
+    ),
+    destName: 'tree-sitter-tsx.wasm',
+  },
+  {
+    src: join(
+      packagesDir,
+      '..',
+      'node_modules',
+      '.pnpm',
+      'tree-sitter-wasms@0.1.13',
+      'node_modules',
+      'tree-sitter-wasms',
+      'out',
+      'tree-sitter-javascript.wasm',
+    ),
+    destName: 'tree-sitter-javascript.wasm',
+  },
+  {
+    src: join(
+      packagesDir,
+      '..',
+      'node_modules',
+      '.pnpm',
+      'tree-sitter-wasms@0.1.13',
+      'node_modules',
+      'tree-sitter-wasms',
+      'out',
+      'tree-sitter-python.wasm',
+    ),
+    destName: 'tree-sitter-python.wasm',
+  },
+];
+
+for (const wasm of wasmAssets) {
+  if (existsSync(wasm.src)) {
+    copyFileSync(wasm.src, join(distDir, wasm.destName));
+  } else {
+    // Fatal: sin los grammars el interaction graph no funciona en el bundle.
+    // Falla loud para atrapar el error de packaging.
+    throw new Error(
+      `[copy-cli-assets] DG-123 A required WASM asset missing: ${wasm.src}\n` +
+        `Reinstall dependencies (pnpm install) and retry.`,
+    );
+  }
+}
+
 // External CJS deps: cada paquete + clausura transitiva, layout plano en
 // dist/node_modules/. La resolucion arranca desde este script y sigue los
 // `dependencies` de cada package.json via createRequire chains (necesario
@@ -53,7 +153,7 @@ const distNodeModules = join(distDir, 'node_modules');
 rmSync(distNodeModules, { recursive: true, force: true });
 mkdirSync(distNodeModules, { recursive: true });
 
-const externalDeps = ['node-sqlite3-wasm', '@anthropic-ai/sdk', 'openai'];
+const externalDeps = ['node-sqlite3-wasm', '@anthropic-ai/sdk', 'openai', 'web-tree-sitter'];
 const visited = new Set();
 
 /**

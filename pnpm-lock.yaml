@@ -83,6 +83,12 @@ importers:
       semver:
         specifier: ^7.8.1
         version: 7.8.1
+      tree-sitter-wasms:
+        specifier: 0.1.13
+        version: 0.1.13
+      web-tree-sitter:
+        specifier: 0.20.8
+        version: 0.20.8
       zod:
         specifier: ^3.24.0
         version: 3.25.76
@@ -147,6 +153,9 @@ importers:
       openai:
         specifier: ^6.18.0
         version: 6.39.0(zod@3.25.76)
+      web-tree-sitter:
+        specifier: 0.20.8
+        version: 0.20.8
       zod:
         specifier: ^3.24.0
         version: 3.25.76
@@ -2313,6 +2322,9 @@ packages:
   tr46@0.0.3:
     resolution: {integrity: sha512-N3WMsuqV66lT30CrXNbEjx4GEwlow3v6rr4mCcv6prnfwhS01rkgyFdjPNBYd9br7LpXV1+Emh01fHnq2Gdgrw==}
 
+  tree-sitter-wasms@0.1.13:
+    resolution: {integrity: sha512-wT+cR6DwaIz80/vho3AvSF0N4txuNx/5bcRKoXouOfClpxh/qqrF4URNLQXbbt8MaAxeksZcZd1j8gcGjc+QxQ==}
+
   ts-api-utils@2.5.0:
     resolution: {integrity: sha512-OJ/ibxhPlqrMM0UiNHJ/0CKQkoKF243/AEmplt3qpRgkW8VG7IfOS41h7V8TjITqdByHzrjcS/2si+y4lIh8NA==}
     engines: {node: '>=18.12'}
@@ -2472,6 +2484,9 @@ packages:
   web-streams-polyfill@4.0.0-beta.3:
     resolution: {integrity: sha512-QW95TCTaHmsYfHDybGMwO5IJIM93I/6vTRk+daHTWFPhwh+C8Cg7j7XyKrwrj8Ib6vYXe0ocYNrmzY4xAAN6ug==}
     engines: {node: '>= 14'}
+
+  web-tree-sitter@0.20.8:
+    resolution: {integrity: sha512-weOVgZ3aAARgdnb220GqYuh7+rZU0Ka9k9yfKtGAzEYMa6GgiCzW9JjQRJyCJakvibQW+dfjJdihjInKuuCAUQ==}
 
   webidl-conversions@3.0.1:
     resolution: {integrity: sha512-2JAn3z8AR6rjK8Sm8orRC0h/bcl/DqL7tRPdGZ4I1CjdF+EaMLmYxBHyXuKL849eucPFhvBoxMsflfOb8kxaeQ==}
@@ -4747,6 +4762,8 @@ snapshots:
 
   tr46@0.0.3: {}
 
+  tree-sitter-wasms@0.1.13: {}
+
   ts-api-utils@2.5.0(typescript@5.9.3):
     dependencies:
       typescript: 5.9.3
@@ -4892,6 +4909,8 @@ snapshots:
       - yaml
 
   web-streams-polyfill@4.0.0-beta.3: {}
+
+  web-tree-sitter@0.20.8: {}
 
   webidl-conversions@3.0.1: {}
 

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { FileContextSchema, SymbolContextSchema } from '../coordinator/interaction-graph.js';
 import { PriorityScoreSchema } from '../coordinator/priority-score.js';
 import { SeveritySchema } from './severity.js';
 
@@ -227,6 +228,29 @@ export const FindingSchema = z.object({
    * empirica "TP% se lee como prioridad" reportada en el user-handoff.
    */
   priorityScore: PriorityScoreSchema.optional(),
+  /**
+   * File context del Interaction Graph (DG-123 A Cycle 111 — R18 v1 del
+   * research doc Section 12 "Architectural North Star").
+   *
+   * Poblado por el Coordinator en Stage 1.5b (post-exclude-list, pre-stage-2)
+   * cuando el archivo del finding es de un lenguaje soportado (TS/TSX/JS/
+   * Python en v1). Solo aditivo + backward-compatible: findings persistidos
+   * pre-DG-123 A quedan sin este campo (undefined). Findings en archivos de
+   * lenguajes no soportados también quedan sin el campo.
+   *
+   * Sirve para que Triage/Context Agents evalúen el finding como nodo en un
+   * grafo de interacciones (rol del archivo, quién lo importa, qué importa)
+   * en lugar de un snippet aislado.
+   */
+  fileContext: FileContextSchema.optional(),
+  /**
+   * Symbol context del Interaction Graph (DG-123 A Cycle 111).
+   *
+   * Símbolos top-level (functions/classes/consts) declarados en el archivo del
+   * finding, y cuáles están exportados. Mismos criterios de población que
+   * `fileContext`.
+   */
+  symbolContext: SymbolContextSchema.optional(),
 });
 
 /** Hallazgo de seguridad. */
