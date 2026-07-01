@@ -3,8 +3,8 @@
   "projectId": "sentinel-1779304140796",
   "projectName": "SENTINEL",
   "initializedAt": "2026-05-20T19:09:00.816Z",
-  "lastActivity": "2026-05-31T02:30:00.000Z",
-  "currentCycle": 110,
+  "lastActivity": "2026-06-30T22:25:00.000Z",
+  "currentCycle": 58,
   "currentPhase": 12,
   "synapticStrength": 100,
   "enforcement": {
@@ -25,17 +25,19 @@
     "githubReleaseLatest": "v0.3.16"
   },
   "activeDG": {
-    "id": "DG-120-A",
-    "title": "Release v0.3.16 packaging DG-117 A + DG-117.0.1 + DG-118 A (noise reduction + TP/risk split UX)",
-    "status": "SHIPPED",
-    "artifact": "packages/vscode-extension/synaptic-sentinel-0.3.16.vsix",
-    "artifact_sha256": "c83380b4f0a0812e243949b2d69c0c711005a14dc081a290065bf19106fcfdb3",
-    "github_release_url": "https://github.com/golab-arch/synaptic-sentinel/releases/tag/v0.3.16",
-    "option_selected": "A (Conservative, LOW RISK)",
-    "marketplace_publish": "DEFERRED_TO_USER",
-    "baseline_7_passed_preamble": "Cross-workspace validation SYNAPTIC_SAAS: 37 findings, priorityScore poblado 37/37, 5 priority tiers presentes (urgent=2, high=16, medium=15, low=2, noise=2), sanity matriz PASS sin violaciones, DG-115 A override directive intact, severity-priority divergence validated visualmente",
-    "bitacora_entries": [
-      153
-    ]
+    "id": "DG-123-A",
+    "title": "R18 v1 Interaction Graph Layer — module-level import/reverse-index + symbol-level extraction (Sub-B2 web-tree-sitter WASM)",
+    "status": "AWAITING_USER_BASELINE_8",
+    "artifact": "packages/vscode-extension/synaptic-sentinel-0.3.16-step8.vsix",
+    "artifact_sha256": "7611b93968ea3f766b995a7fd1d90e0ebf349dd59ff687f62c7f0ba95d81d3a9",
+    "artifact_bytes": 4130794,
+    "artifact_files": 1849,
+    "path_selected": "Path B (Innovative, HIGH RISK, confidence 65%)",
+    "option_selected": "Option B tree-sitter + Sub-B2 web-tree-sitter WASM (4 grammars TS+TSX+JS+Python)",
+    "supported_languages_v1": ["typescript", "tsx", "javascript", "python"],
+    "vsix_bloat_delta_bytes": 782341,
+    "verify_status": "VERDE 776 tests (+13 vs baseline 763 post-DG-118 A)",
+    "baseline_8_acceptance": "install step8.vsix + re-scan SENTINEL workspace: (1) scan completa sin crash; (2) findings TS/TSX/JS/Python muestran fileContext + symbolContext en el Triage prompt; (3) rationale del Triage cita rol del archivo o importadores; (4) NO regresa reduccion FPs DG-117/118; (5) latencia scan <10s SENTINEL ~1200 files; (6) UX-subjetivo: usuario reporta si el Triage se percibe mas contextual",
+    "bitacora_entries": [154, 155]
   }
 }
