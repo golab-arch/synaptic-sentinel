@@ -3,7 +3,7 @@
   "projectId": "sentinel-1779304140796",
   "projectName": "SENTINEL",
   "initializedAt": "2026-05-20T19:09:00.816Z",
-  "lastActivity": "2026-07-01T08:22:00.000Z",
+  "lastActivity": "2026-07-01T08:35:00.000Z",
   "currentCycle": 58,
   "currentPhase": 12,
   "synapticStrength": 100,
@@ -26,17 +26,15 @@
   },
   "activeDG": {
     "id": "DG-123.0.1",
-    "title": "Hotfix telemetry Interaction Graph — ScanOptions callbacks (Sub-A1) para observabilidad de H1/H2/H3 en Baseline-8b",
-    "status": "AWAITING_USER_BASELINE_8B",
+    "title": "Hotfix telemetry Interaction Graph + Baseline-8c prep en SENTINEL (Sub-A1 clear_learning_records script ephemeral)",
+    "status": "EXECUTING_BASELINE_8C_PREP",
     "artifact": "packages/vscode-extension/synaptic-sentinel-0.3.16-step9.vsix",
     "artifact_sha256": "07f1be1eee1a7f28deaf6fe049601a867b7ddd48d9f40465f791d6ae5914be80",
-    "artifact_bytes": 4131489,
-    "artifact_files": 1849,
+    "ephemeral_prep_script": "C:\\Users\\27983\\AppData\\Local\\Temp\\claude\\d--GoLAB-PROYECTOS-SENTINEL\\e6fe1728-1b4d-42e5-86b3-09aa384a9611\\scratchpad\\clear-learning-records.mjs",
     "parent_dg": "DG-123-A",
-    "baseline_8_result": "MIXTO — sin crash + latencia OK + LLM invocado, pero enrichment INCONCLUSIVO (1 solo finding TS visible en agent.ts SQL injection INC, 43 en package-lock.json no soportado, rationales sin citas explicitas de interaction graph)",
-    "option_selected": "Sub-A1 (Conservative) — callback pattern coherente con onScoutSettled existente",
-    "baseline_8b_acceptance": "install step9.vsix + re-scan SYNAPTIC_SAAS + abrir Output channel 'SYNAPTIC Sentinel' + grep '[DG-123 A]' → (1) '[DG-123 A] graph built: N/M/K nodes/enrichable/total, Xms' UNA vez al inicio del scan; (2) '[DG-123 A] enriched <path> role=<role> imports=N importedBy=M symbols=K' UNA por finding enriquecido; (3) SI '[DG-123 A] graph FAILED' → root cause en WASM/Coordinator; clasifica en H1/H2/H3 → siguiente sub-DG",
-    "verify_status": "VERDE 776 tests idem baseline post-DG-123 A (no regresion; callbacks best-effort undefined-default aditivos)",
-    "bitacora_entries": [156, 157]
+    "baseline_8b_result": "H3-sparse confirmed en SYNAPTIC_SAAS: graph works (175 nodes, 528ms), 1/46 enrichable, sparse data para el unico finding enriquecido (agent.ts entry role=entry imports=0 importedBy=0 symbols=1) debido a Fastify autoload dynamic-loading + bare imports por diseno Sub-B2. NO es bug, es limitacion estructural de v1 file-level + static-only + workspace SCA-heavy",
+    "baseline_8c_target_workspace": "SENTINEL (imports estaticos ricos entre packages/core, agents, scouts, vscode-extension — 4 findings TS en detectors.ts, colony-db.ts, cli-runner.ts)",
+    "baseline_8c_acceptance": "Post-clear + re-scan + re-triage: (1) telemetria [DG-123 A] enriched muestra los 4 findings con imports > 0, importedBy > 0, symbols > 1; (2) LLM Sonnet-4.6 invocado fresh para los 4; (3) rationales del sidebar CITAN o NO CITAN 'imported by'/'exports'/'entry'/'library' → clasificar H1-rich (LLM ignora aun con data rica) vs H3-rich (LLM cita)",
+    "bitacora_entries": [156, 157, 158]
   }
 }

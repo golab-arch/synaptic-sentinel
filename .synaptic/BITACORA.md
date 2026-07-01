@@ -4825,5 +4825,37 @@ Each entry follows this structure:
 
 ---
 
+### Entry #158 - DG-123.0.1 Baseline-8c prep (Cycle 111): INSTRUMENTATION_PREPARED — clear_learning_records script ephemeral en scratchpad para forzar LLM invocation sobre los 4 TS findings SENTINEL con graph rico
+
+```json
+{
+  "timestamp": "2026-07-01T08:35:00.000Z",
+  "cycle": 111,
+  "phase": 12,
+  "action": "INSTRUMENTATION_PREPARED",
+  "details": {
+    "DG-123.0.1-baseline-8c-prep": {
+      "title": "Preparar Baseline-8c en SENTINEL workspace para medir empiricamente si el LLM Sonnet-4.6 CITA la seccion de interaction graph del prompt cuando la data ES RICA (no sparse como en SYNAPTIC_SAAS Baseline-8b). Sub-A1 (Conservative surgical) elegida — script Node one-off ephemeral en scratchpad que borra learning_records del colony.db, forzando que los 4 findings TS de SENTINEL (detectors.ts CORS + detectors.ts suppressed, colony-db.ts eval-usage, cli-runner.ts command-injection) pasen por el LLM en re-triage en lugar de reusar veredictos de pattern memory ya vistos.",
+      "scope": "Ciclo 111 sub-instrumentation, NO codigo de produccion. Un solo artefacto ephemeral: C:\\Users\\27983\\AppData\\Local\\Temp\\claude\\d--GoLAB-PROYECTOS-SENTINEL\\...\\scratchpad\\clear-learning-records.mjs (69 lineas). Usa better-sqlite3 (ya en packages/core deps), abre el DB legacy path .synaptic-sentinel/colony.db, cuenta filas antes, DELETE FROM learning_records, cuenta filas despues, exit 0 con log del delta. NO CI touched, NO tests nuevos, NO package.json changes, NO release. Solo un helper de investigacion empirica para responder la pregunta abierta de DG-123.0.1.",
+      "decision_gate_resuelto": "Sub-A1 elegida por usuario. Sub-A2 (nuclear delete colony.db entero) descartada por perder fp_known + verdicts historicos + scans historicos. Sub-A3 (nuevo CLI command sentinel forget-patterns) descartada por scope creep (feature no requerida hoy, encadena en el hotfix telemetry, viola [[feedback_step_cadence]] un cambio verificable a la vez).",
+      "verificacion_INFERRED_pre_prep": "Turno anterior verifico directamente en codigo (no memoria): (1) packages/cli/src/commands/triage.ts:303-310 confirma que reTriage flag SI existe y limpia triage_verdicts + context_explanations + remediation_suggestions PERO NO learning_records — verificado con Grep de 'clearTriageDataForFingerprints' y read de la funcion; (2) packages/core/src/colony/schema.sql:46 confirma tabla learning_records con schema (pattern_signature + classification + evidence_count); (3) NO existe metodo clearLearningRecords ni forgetPattern ni --forget-patterns CLI flag en todo el codebase (Grep vacio) — hay que ejecutar SQL directo; (4) SENTINEL usa colony.db legacy path .synaptic-sentinel/colony.db (confirmado por linea de warning del scan Baseline-8: 'using legacy .synaptic-sentinel/colony.db pre-DG-093'); (5) better-sqlite3 esta en packages/core/node_modules/, resolvible desde cwd cwd=packages/core cuando el script se ejecuta.",
+      "deliverable_script_ephemeral": "clear-learning-records.mjs en scratchpad — ephemeral (no en repo). Estructura: (a) toma path como process.argv[2]; (b) valida existsSync; (c) opens Database via better-sqlite3; (d) SELECT COUNT(*) FROM learning_records → before; (e) DELETE FROM learning_records → info.changes; (f) SELECT COUNT(*) → after; (g) log [Baseline-8c prep] con dbPath + before + deleted + after; (h) if after !== 0 → warn + exit 3; (i) log OK + siguiente step; (j) db.close() en finally. Defensivo — invalid path → exit 1/2, unexpected after count → exit 3. No side effects en filesystem beyond el DELETE.",
+      "backup_procedure_documented_para_usuario": "PowerShell Copy-Item .synaptic-sentinel\\colony.db .synaptic-sentinel\\colony.db.baseline8c.bak — usuario ejecuta antes del script. Revert: Move-Item -Force colony.db.baseline8c.bak colony.db (solo si sale mal el Baseline-8c). Backup queda en el workspace, ignorable por git (gitignore ya cubre .synaptic-sentinel/*).",
+      "que_medimos_en_baseline_8c": "Post-clear + re-scan + re-triage en SENTINEL, esperamos: (1) telemetria [DG-123 A] enriched muestra los 4 TS findings con imports > 0 y importedBy > 0 y symbols > 1 (data rica confirmada estructuralmente); (2) el Triage Agent Sonnet-4.6 se invoca fresh para los 4 findings (no colony memory cache); (3) los 4 rationales del LLM se lean para determinar: (H1-rich) LLM ignora la seccion aun con data rica → DG-123.0.2 prompt strengthening es siguiente sub-DG; (H3-rich) LLM SI cita la seccion → PASS empirico → DG-124 A release v0.3.17 packaging DG-123 A + DG-123.0.1.",
+      "anti_optimismo_ilusorio_activo": "(1) **learning_records puede tener 0 filas** si el usuario nunca corrio patterns anteriores en SENTINEL (raro dado que Baseline-6/7/8 mostraron '(colony memory)' explicit, pero posible si esos runs solo generaron pattern rows y se limpiaron antes). Si before=0, el script sale OK pero el problema NO es pattern memory — es otro. Investigate. (2) **Los 4 TS findings pueden aun asi salir FP** por otro cache (e.g. si Triage tiene lookup local pre-LLM que no sea learning_records). Revisar triage.ts:313-317 muestra dos filtros: knownFalsePositives (fp_known table) + alreadyTriaged (triage_verdicts). Si Baseline-8 anterior grabo verdicts para estos fingerprints, el re-triage flag los borrara — verify que el usuario use --re-triage al ejecutar el triage. Comando: `sentinel triage --re-triage`. (3) **El LLM PUEDE citar la seccion superficialmente sin usarla realmente para razonar** — riesgo de citation-theater ('This file is imported by 5 files but that does not affect this eval-usage risk'). Ese caso seria H3-rich confirmed pero valor real dudoso — sub-DG DG-123.0.2 refinaria el prompt aun asi para OBLIGAR reasoning + citation, no solo citation. (4) **Data rica en SENTINEL NO garantiza LLM enrichment** — el evaluation es mixed-signal. Si Baseline-8c muestra 4 rationales sin citas al graph con data rica, es H1-rich confirmed y el prompt es el bug. (5) **Backup no cubre catastrophic filesystem failure** — si el usuario tiene disk failure durante el script, se pierde todo. Aceptable, low probability.",
+      "checks_pre_prep": "No pnpm verify porque NO se toca codigo de produccion. Script standalone testeado unicamente por syntax parse (no ejecutado hasta que el usuario lo corra sobre su DB). BITACORA + session.json + commit docs(synaptic) + push = unico cambio persistido en el repo.",
+      "phase_status": "Sin Phases abiertas. SYNAPTIC Sentinel v0.3.16 GitHub Release sigue vigente. step9.vsix sigue siendo el ultimo capture artifact. DG-123.0.1 sigue AWAITING_USER_BASELINE_8B pero ahora transicionando a EXECUTING_BASELINE_8C_PREP (post-analisis Baseline-8b que dio H3-sparse por Fastify autoload pattern en SYNAPTIC_SAAS).",
+      "next_step": "STOP esperando usuario para ejecutar guia nivel 101: (a) backup colony.db, (b) ejecutar script Node, (c) re-scan SENTINEL desde ventana existente, (d) re-triage con --re-triage flag, (e) leer 3 datapoints (telemetria enriched, LLM rationales, veredictos finales) y reportar. Con esos datos, siguiente sub-DG (DG-123.0.2 prompt strengthening si H1-rich, o DG-124 A release si H3-rich).",
+      "commits_split": "docs(synaptic) commit con Entry #158 + session.json update activeDG → DG-123.0.1 EXECUTING_BASELINE_8C_PREP. NO feat commit porque no hay codigo de produccion tocado. Push final."
+    }
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 100,
+  "complianceScore": 100
+}
+```
+
+---
+
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-07-01T08:22:00.000Z*
+*Last Updated: 2026-07-01T08:35:00.000Z*
