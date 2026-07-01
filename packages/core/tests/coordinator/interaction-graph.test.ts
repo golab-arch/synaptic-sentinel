@@ -159,6 +159,71 @@ describe('buildInteractionGraph — TypeScript fixtures', () => {
     // Bare imports NO se agregan al imports resolved list
     expect(node?.fileContext.imports).toEqual([]);
   });
+
+  // DG-123.0.2 (Cycle 111): fix del bug detectado en Baseline-8c (SENTINEL
+  // workspace) donde imports de TypeScript ESM con extension `.js` explicito
+  // (idioma estandar del ecosistema Node ESM + TS) devolvian null porque el
+  // resolver trataba las extensiones como sufijos aditivos en vez de
+  // sustitutos. Los 3 tests siguientes fijan la tabla EXTENSION_SUBSTITUTES.
+
+  it('DG-123.0.2 — resuelve `./foo.js` cuando en disco existe `foo.ts` (idioma TS ESM)', async () => {
+    mkdirSync(join(workspace, 'src'), { recursive: true });
+    writeFileSync(
+      join(workspace, 'src', 'consumer.ts'),
+      "import { helper } from './helper.js';\nexport const c = helper;\n",
+    );
+    writeFileSync(join(workspace, 'src', 'helper.ts'), 'export const helper = 1;\n');
+
+    const graph = await buildInteractionGraph(workspace);
+    const consumerNode = graph.get('src/consumer.ts');
+    expect(consumerNode).toBeDefined();
+    // El fix: `./helper.js` en el import se resuelve a `src/helper.ts` en disco.
+    expect(consumerNode?.fileContext.imports).toContain('src/helper.ts');
+
+    // Reverse index: helper.ts es importado por consumer.ts.
+    const helperNode = graph.get('src/helper.ts');
+    expect(helperNode?.fileContext.importedBy).toContain('src/consumer.ts');
+    // Cascada: importedByCount = 1 → inferRole podria ser 'entry' (regla <2)
+    // o 'library'; NO 'leaf'. Lo importante es que el reverse index NO este
+    // vacio (regresion del bug pre-DG-123.0.2).
+    expect(helperNode?.fileContext.importedBy.length).toBeGreaterThan(0);
+  });
+
+  it('DG-123.0.2 — resuelve `./foo.mjs` cuando en disco existe `foo.mts`', async () => {
+    mkdirSync(join(workspace, 'src'), { recursive: true });
+    writeFileSync(
+      join(workspace, 'src', 'consumer.ts'),
+      "import { m } from './mod.mjs';\nexport const c = m;\n",
+    );
+    writeFileSync(join(workspace, 'src', 'mod.mts'), 'export const m = 1;\n');
+
+    const graph = await buildInteractionGraph(workspace);
+    // mod.mts NO esta en SUPPORTED_LANGUAGES (`.mts` no esta soportado en v1),
+    // asi que NO tendra su propio nodo en el graph. Pero SI debe aparecer en
+    // el imports del consumer si el resolver hizo su trabajo. En v1 solo
+    // parseamos .ts/.tsx/.js/.jsx/.mjs/.cjs/.py como nodos — sin embargo el
+    // resolver se ejecuta ANTES del filtro de nodos: verifica que el path
+    // resuelva, no que el destino sea un nodo.
+    const consumerNode = graph.get('src/consumer.ts');
+    expect(consumerNode).toBeDefined();
+    expect(consumerNode?.fileContext.imports).toContain('src/mod.mts');
+  });
+
+  it('DG-123.0.2 — negativo: `./foo.js` sin `foo.js` ni `foo.ts` en disco NO se resuelve', async () => {
+    mkdirSync(join(workspace, 'src'), { recursive: true });
+    writeFileSync(
+      join(workspace, 'src', 'consumer.ts'),
+      "import { x } from './nonexistent.js';\nexport const c = x;\n",
+    );
+    // NO se crea nonexistent.ts ni nonexistent.js.
+
+    const graph = await buildInteractionGraph(workspace);
+    const consumerNode = graph.get('src/consumer.ts');
+    expect(consumerNode).toBeDefined();
+    // Bare + no-fs-match → imports vacio (regresion negativa: el fix NO
+    // debe inventar paths inexistentes).
+    expect(consumerNode?.fileContext.imports).toEqual([]);
+  });
 });
 
 describe('buildInteractionGraph — Python fixtures', () => {

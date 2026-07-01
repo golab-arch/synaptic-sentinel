@@ -451,38 +451,97 @@ function extractPythonSymbols(rootNode: any): FileSymbol[] {
 }
 
 /**
+ * DG-123.0.2 (Cycle 111): tabla de sustitucion de extensiones para el idioma
+ * TypeScript ESM en Node — un import `from './foo.js'` en el source resuelve
+ * al archivo `foo.ts`/`.tsx`/`.jsx` en disco (el `.js` es lo que existe
+ * post-build en `dist/`, no en el arbol de src). Sin esta tabla, el resolver
+ * pre-DG-123.0.2 devolvia null para ~100% de los imports en proyectos
+ * TypeScript ESM (Baseline-8c en SENTINEL: 4/4 findings con imports=0
+ * importedBy=0 porque coordinator.ts importa `../colony/colony-db.js` y en
+ * disco solo existe `colony-db.ts`).
+ *
+ * Semantica: cuando el specifier trae extension explicita (comun en ESM),
+ * probamos primero el archivo tal cual, y si no existe, probamos los
+ * sustitutos por convencion TypeScript. Fallback final: tratar las
+ * extensiones como sufijos aditivos (el behavior pre-fix, para specifiers
+ * sin extension tipo `import './foo'`).
+ */
+const EXTENSION_SUBSTITUTES: Record<string, readonly string[]> = {
+  '.js': ['.ts', '.tsx', '.jsx'],
+  '.mjs': ['.mts'],
+  '.cjs': ['.cts'],
+  '.jsx': ['.tsx'],
+};
+
+/** Extensiones que probamos como sufijo aditivo cuando el specifier NO trae extension. */
+const ADDITIVE_EXTENSION_CANDIDATES = [
+  '.ts',
+  '.tsx',
+  '.js',
+  '.jsx',
+  '.mjs',
+  '.cjs',
+  '.py',
+] as const;
+
+/**
  * Resuelve un import specifier a un path relativo al rootPath.
  * Solo static imports relativos (`./`, `../`) se resuelven; imports de
  * paquetes bare (`react`, `lodash`) devuelven `null`.
+ *
+ * DG-123.0.2: soporte para specifiers TypeScript ESM con extension `.js`
+ * mapeada a source `.ts`. Ver EXTENSION_SUBSTITUTES arriba para la tabla.
  */
 function resolveImportPath(importer: string, specifier: string, rootPath: string): string | null {
   if (!specifier.startsWith('.')) return null;
   const importerDir = dirname(importer);
-  let resolved = resolve(importerDir, specifier);
-  // Add extension if missing.
-  if (!existsSync(resolved)) {
-    const candidates = ['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs', '.py'];
-    let found: string | null = null;
-    for (const ext of candidates) {
-      if (existsSync(resolved + ext)) {
-        found = resolved + ext;
-        break;
-      }
-    }
-    if (found === null) {
-      // Try index files inside directory.
-      for (const ext of candidates) {
-        const candidate = join(resolved, `index${ext}`);
+  const resolved = resolve(importerDir, specifier);
+
+  // Case 1: el path resuelto existe tal cual (raro en TS ESM porque el
+  // specifier suele traer .js explicito, y `.js` no existe en src/).
+  if (existsSync(resolved)) {
+    return relative(rootPath, resolved).split(/[\\/]/).join('/');
+  }
+
+  // Case 2 (DG-123.0.2): sustitucion de extension segun tabla
+  // EXTENSION_SUBSTITUTES. Aplica cuando el specifier trae extension
+  // conocida del ecosistema JS/TS pero el archivo en disco tiene la
+  // extension source correspondiente.
+  const dotIdx = specifier.lastIndexOf('.');
+  const slashIdx = specifier.lastIndexOf('/');
+  if (dotIdx > slashIdx) {
+    const specifierExt = specifier.slice(dotIdx);
+    const substitutes = EXTENSION_SUBSTITUTES[specifierExt];
+    if (substitutes !== undefined) {
+      const withoutExt = resolved.slice(0, resolved.length - specifierExt.length);
+      for (const subExt of substitutes) {
+        const candidate = withoutExt + subExt;
         if (existsSync(candidate)) {
-          found = candidate;
-          break;
+          return relative(rootPath, candidate).split(/[\\/]/).join('/');
         }
       }
     }
-    if (found === null) return null;
-    resolved = found;
   }
-  return relative(rootPath, resolved).split(/[\\/]/).join('/');
+
+  // Case 3: aditivo — el specifier no trae extension (`import './foo'`).
+  // Prueba cada extension como sufijo hasta encontrar match.
+  for (const ext of ADDITIVE_EXTENSION_CANDIDATES) {
+    if (existsSync(resolved + ext)) {
+      return relative(rootPath, resolved + ext)
+        .split(/[\\/]/)
+        .join('/');
+    }
+  }
+
+  // Case 4: index-inside-directory (`import './foo'` cuando foo/ es dir con index.*).
+  for (const ext of ADDITIVE_EXTENSION_CANDIDATES) {
+    const candidate = join(resolved, `index${ext}`);
+    if (existsSync(candidate)) {
+      return relative(rootPath, candidate).split(/[\\/]/).join('/');
+    }
+  }
+
+  return null;
 }
 
 /**
