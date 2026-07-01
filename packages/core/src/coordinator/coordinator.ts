@@ -38,6 +38,77 @@ export interface ScanOptions {
    * un fallo del callback no afecta el scan.
    */
   readonly onScoutSettled?: (outcome: ScoutOutcome) => void;
+  /**
+   * DG-123.0.1 (Cycle 111): callback opcional invocado tras la construccion
+   * del Interaction Graph (Stage 1.5b). Habilita observabilidad de la infra
+   * R18 v1: cuantos nodos parseados, cuantos findings elegibles para
+   * enriquecimiento, si el build fallo o degrado al fallback graceful.
+   * Best-effort — un fallo del callback no afecta el scan.
+   */
+  readonly onInteractionGraphBuilt?: (stats: InteractionGraphStats) => void;
+  /**
+   * DG-123.0.1: callback opcional invocado por cada finding cuyo archivo
+   * SI tiene un nodo en el Interaction Graph (i.e. lenguaje soportado +
+   * parseo exitoso). Emite el path + rol inferido + numero de imports/
+   * importedBy/symbols para inspeccion humana. Best-effort.
+   */
+  readonly onFindingEnriched?: (event: FindingEnrichedEvent) => void;
+}
+
+/**
+ * DG-123.0.1 (Cycle 111): resumen de la construccion del Interaction Graph
+ * para telemetry / observabilidad. Emitido a `onInteractionGraphBuilt` tras
+ * completarse Stage 1.5b. Distingue entre exito (`ok: true`) y fallback
+ * graceful (`ok: false, error: string`).
+ */
+export interface InteractionGraphStats {
+  /** `true` si buildInteractionGraph completo sin excepcion. */
+  readonly ok: boolean;
+  /**
+   * Numero de nodos en el graph resultante. 0 si `ok: false` o si el
+   * workspace no contenia archivos de lenguajes soportados.
+   */
+  readonly graphSize: number;
+  /**
+   * Numero de findings (post exclude-list) cuyo archivo tiene un nodo en
+   * el graph — i.e. seran enriquecidos con fileContext/symbolContext.
+   */
+  readonly enrichableFindings: number;
+  /**
+   * Numero total de findings post exclude-list. Permite computar el ratio
+   * `enrichableFindings / totalFindings` = "cuanta superficie del scan es
+   * cubierta por R18 v1".
+   */
+  readonly totalFindings: number;
+  /** Duracion del buildInteractionGraph en ms. */
+  readonly durationMs: number;
+  /**
+   * Mensaje del error si `ok: false`. Undefined si `ok: true`. Permite
+   * distinguir en telemetry el crash silencioso (WASM ABI, workspace
+   * inexistente) del fallback graceful legitimo (workspace sin archivos
+   * soportados).
+   */
+  readonly error?: string;
+}
+
+/**
+ * DG-123.0.1 (Cycle 111): evento per-finding para observabilidad del
+ * enrichment. Emitido a `onFindingEnriched` SOLO para findings cuyo path
+ * tiene nodo en el Interaction Graph. Findings sin enrichment NO emiten.
+ */
+export interface FindingEnrichedEvent {
+  /** Fingerprint del finding para correlacion cross-scan. */
+  readonly fingerprint: string;
+  /** Ruta relativa del archivo del finding. */
+  readonly path: string;
+  /** Rol inferido por el graph builder. */
+  readonly inferredRole: string;
+  /** Numero de modulos que este archivo importa (staticos, relative). */
+  readonly imports: number;
+  /** Numero de archivos que importan a este (reverse index). */
+  readonly importedBy: number;
+  /** Numero de simbolos top-level definidos en este archivo. */
+  readonly definedSymbols: number;
 }
 
 /** Resumen de la ejecucion de un scout dentro de un scan. */
@@ -178,16 +249,62 @@ export class Coordinator {
     // interacciones, no como snippets aislados. Este es el enabler
     // arquitectural.
     let interactionGraph: Map<string, InteractionGraphNode>;
+    let graphBuildOk = true;
+    let graphBuildError: string | undefined;
+    const graphBuildStart = Date.now();
     try {
       interactionGraph = await buildInteractionGraph(options.rootPath);
-    } catch {
+    } catch (err) {
       // Fallback graceful: si el WASM no carga o el parse explota, el scan
       // continua sin graph. Los findings quedan con behavior pre-DG-123 A.
       interactionGraph = new Map();
+      graphBuildOk = false;
+      graphBuildError = err instanceof Error ? err.message : String(err);
     }
+    const graphBuildDurationMs = Date.now() - graphBuildStart;
+
+    // DG-123.0.1 (Cycle 111): computa enrichable count ANTES del map para
+    // el evento onInteractionGraphBuilt (telemetry lo espera antes del
+    // per-finding).
+    let enrichableCount = 0;
+    for (const finding of rawFindingsPreGraph) {
+      if (interactionGraph.has(finding.location.path)) enrichableCount += 1;
+    }
+    if (options.onInteractionGraphBuilt !== undefined) {
+      // Best-effort: un callback que lanza no rompe el scan (mismo pattern
+      // que onScoutSettled).
+      try {
+        options.onInteractionGraphBuilt({
+          ok: graphBuildOk,
+          graphSize: interactionGraph.size,
+          enrichableFindings: enrichableCount,
+          totalFindings: rawFindingsPreGraph.length,
+          durationMs: graphBuildDurationMs,
+          ...(graphBuildError !== undefined ? { error: graphBuildError } : {}),
+        });
+      } catch {
+        /* se ignora */
+      }
+    }
+
     const rawFindings: Finding[] = rawFindingsPreGraph.map((finding) => {
       const node = interactionGraph.get(finding.location.path);
       if (node === undefined) return finding;
+      // DG-123.0.1: emit per-finding enrichment event antes del spread.
+      if (options.onFindingEnriched !== undefined) {
+        try {
+          options.onFindingEnriched({
+            fingerprint: finding.fingerprint,
+            path: finding.location.path,
+            inferredRole: node.fileContext.inferredRole,
+            imports: node.fileContext.imports.length,
+            importedBy: node.fileContext.importedBy.length,
+            definedSymbols: node.symbolContext.definedSymbols.length,
+          });
+        } catch {
+          /* se ignora */
+        }
+      }
       return {
         ...finding,
         fileContext: node.fileContext,

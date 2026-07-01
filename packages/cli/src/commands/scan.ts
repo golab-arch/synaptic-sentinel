@@ -304,6 +304,32 @@ export async function runScanCommand(options: ScanCommandOptions): Promise<numbe
       onScoutSettled: (scoutOutcome) => {
         spinner.log(renderScoutLine(scoutOutcome, color));
       },
+      // DG-123.0.1 (Cycle 111): telemetry del Interaction Graph al Output
+      // channel del extension (que capta stdout del CLI child process) para
+      // que Baseline-8b pueda distinguir empiricamente entre (H1) graph
+      // poblado + LLM ignora seccion vs (H2) graph NO poblado (bug
+      // silencioso) vs (H3) graph poblado pero irrelevante para el sample.
+      onInteractionGraphBuilt: (stats) => {
+        if (stats.ok) {
+          spinner.log(
+            `  [DG-123 A] graph built: ${String(stats.graphSize)} node(s), ` +
+              `${String(stats.enrichableFindings)}/${String(stats.totalFindings)} ` +
+              `finding(s) enrichable, ${String(stats.durationMs)}ms`,
+          );
+        } else {
+          spinner.log(
+            `  [DG-123 A] graph FAILED (fallback graceful — findings degraded ` +
+              `to pre-R18 v1): ${stats.error ?? 'unknown error'}`,
+          );
+        }
+      },
+      onFindingEnriched: (event) => {
+        spinner.log(
+          `  [DG-123 A] enriched ${event.path} role=${event.inferredRole} ` +
+            `imports=${String(event.imports)} importedBy=${String(event.importedBy)} ` +
+            `symbols=${String(event.definedSymbols)}`,
+        );
+      },
     });
     spinner.stop();
 
