@@ -3,7 +3,7 @@
   "projectId": "sentinel-1779304140796",
   "projectName": "SENTINEL",
   "initializedAt": "2026-05-20T19:09:00.816Z",
-  "lastActivity": "2026-07-01T12:45:00.000Z",
+  "lastActivity": "2026-07-01T15:55:00.000Z",
   "currentCycle": 58,
   "currentPhase": 12,
   "synapticStrength": 100,
@@ -27,71 +27,23 @@
   "adopted_roadmap": {
     "option": "A — Trust-first linear",
     "adopted_at": "2026-07-01T12:45:00.000Z",
-    "estimated_duration": "12-16 semanas (buffer 20% = 15-19 semanas realista)",
-    "phases": {
-      "FASE_I_foundations_of_trust": {
-        "cycles": "112-113",
-        "duration": "2-3 semanas",
-        "dgs": [
-          "DG-125 A provider intermittent-empty root cause + retry",
-          "DG-126 A R18 v1.1 refinements (bare imports info + role=leaf + symbols=1 + graph cache)"
-        ],
-        "user_side": "vsce publish v0.3.17 (opcional, cierra 15-release backlog Marketplace)"
-      },
-      "FASE_II_cross_module_intelligence_NORTH_STAR_LEAP": {
-        "cycles": "114-115",
-        "duration": "3-4 semanas",
-        "dgs": [
-          "DG-127 A R18 v2 symbol-level cross-file resolution",
-          "DG-128 A cross-file taint propagation sobre R18 v2",
-          "DG-129 A R19 module trust boundary tagging"
-        ]
-      },
-      "FASE_III_trust_cross_session": {
-        "cycles": "116-117",
-        "duration": "2-3 semanas",
-        "dgs": [
-          "DG-130 A backlog #4 per-fingerprint verdict persistence + reproducibilidad",
-          "DG-131 A R20 cross-finding correlation (Stage 3 groups)",
-          "DG-132 A R22 diff-aware mode"
-        ]
-      },
-      "FASE_IV_contexto_fino_polish": {
-        "cycles": "118-119",
-        "duration": "2-3 semanas",
-        "dgs": [
-          "DG-133 A R21 temporal context tagging",
-          "DG-134 A attack chain narrative (Brain synthesizer)",
-          "DG-135 A backlog #5 Triage limit surface",
-          "DG-136 A backlog #3 .sentinelignore user config"
-        ]
-      },
-      "FASE_V_distribucion": {
-        "cycles": "120+",
-        "duration": "2-4 semanas",
-        "dgs": [
-          "DG-137 A CI/CD GitHub Actions runner",
-          "DG-138 A docs + community rules contribution"
-        ]
-      }
-    },
-    "post_roadmap_deferred": {
-      "FASE_VI_visualization": "Interaction graph webview (finding-céntrico subgrafo o workspace browser) — SOLO POST-FASE V con infra sólida"
-    },
-    "anti_optimism_notes": [
-      "12-16 semanas es optimista; 15-19 semanas realista con buffer 20% por bugs Baseline empíricos",
-      "Fase I puede sentirse como 'no progreso hacia visión' — es inversión en fundación",
-      "Cada DG dentro de una fase se decide con su propio 3-option DG per SYNAPTIC STRICT",
-      "Usuario puede re-priorizar cualquier cycle si emerge feedback empírico contrario"
-    ]
+    "current_phase": "FASE_I_foundations_of_trust",
+    "current_phase_progress": "1/2 DGs (DG-125 A shipped, DG-126 A pending)"
   },
   "activeDG": {
     "id": "DG-125-A",
-    "title": "Provider intermittent-empty (deepseek returns 200 OK with content=null/empty) — root cause fix + retry pattern",
-    "status": "PENDING_TECHNICAL_DG",
+    "title": "Provider intermittent-empty root cause fix — retryOnEmptyContent + EmptyResponseError + graceful degradation a inconclusive verdict (Sub-A1 provider-agnostic)",
+    "status": "AWAITING_USER_BASELINE_9",
+    "artifact": "packages/vscode-extension/synaptic-sentinel-0.3.17-step-125-1.vsix",
+    "artifact_sha256": "98a88d8d9a06c328dfbd2df50b6686a53f80e84145433816592f27700910ac7c",
+    "artifact_bytes": 4136154,
+    "artifact_files": 1849,
     "parent_phase": "FASE_I_foundations_of_trust",
-    "verified_root_cause": "packages/agents/src/openai-compatible-client.ts:133-144 parseOpenAiCompatibleResponse throws cuando content es null/undefined/empty string. El SDK OpenAI reintenta 429/5xx pero NO reintenta 200 OK con content vacío — el error va directo al Triage caller y marca el finding como failed.",
-    "empirical_evidence": "3 Baselines consecutivos con fails: Baseline-8 (Security check suppressed 1/1), Baseline-8c (Security check suppressed 1/1 + CORS success), Baseline-8d (Security check suppressed 2/2 persistente + CORS flipped success→fail). deepseek-v4-flash intermittent behavior.",
-    "bitacora_entries": [165]
+    "option_selected": "Sub-A1 Conservative Minimal (application-level retry + graceful degradation)",
+    "provider_agnostic_scope": "Aplica a los 14+ providers OpenAI-compatible: openai, groq, deepseek, mistral, together, fireworks, perplexity, xAI, gemini-compat, AWS bedrock-mantle, Azure OpenAI v1, ollama, LM Studio, vLLM",
+    "baseline_9_acceptance": "install step-125-1.vsix + re-scan SENTINEL (learning_records aun limpio) + Re-triage all → (a) findings previamente API-empty son RESCATADOS (best case) O quedan persistidos como INC con rationale DG-125 A determinístico (guaranteed case); (b) latency total +2-9s por retries backoff; (c) NO más findings sin veredicto (guardan siempre en verdict, aunque sea inconclusive-DG-125 A); (d) provider-agnostic verificado (test 5 con groq-llama providerLabel)",
+    "verify_status": "VERDE 786 tests (779 baseline post-DG-124 A + 7 nuevos DG-125 A: retry rescue 1x/2x/exhausted + metadata carry + NON-empty pass-through + integration end-to-end)",
+    "bitacora_entries": [165, 166, 167],
+    "next_dg_in_fase_i": "DG-126 A R18 v1.1 refinements (bare imports informativos + role=leaf semantics + symbols=1 detectors.ts fix + graph cache) — post-Baseline-9 validation"
   }
 }
