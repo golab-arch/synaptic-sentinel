@@ -121,6 +121,56 @@ export interface OpenAiCompatibleClientOptions {
 }
 
 /**
+ * DG-125 A (Cycle 112 FASE I): error tipado para el caso "provider
+ * intermittently returns HTTP 200 OK with content=null/empty string".
+ * Provider-agnostic — reproducido empíricamente 3+ Baselines consecutivos
+ * (8, 8c, 8d) contra deepseek-v4-flash, pero el mismo pattern puede
+ * emerger contra CUALQUIER de los 14+ providers OpenAI-compatible que
+ * sirve este adapter (groq, openai, mistral, gemini-compat, together,
+ * fireworks, xAI, etc.) — content-filter policies, transient network
+ * glitches, reasoning-token exhaustion, y provider-side timeouts pueden
+ * disparar el mismo síntoma.
+ *
+ * El caller (triage.ts / CLI) catchea este error específicamente y lo
+ * transforma en verdict `inconclusive` con rationale determinístico, en
+ * vez de dejar el finding sin veredicto ("triage failed for X").
+ */
+export class EmptyResponseError extends Error {
+  readonly providerLabel: string;
+  readonly attemptsExhausted: number;
+  constructor(providerLabel: string, attemptsExhausted: number) {
+    super(
+      `Provider ${providerLabel} returned empty content in choices[0].message.content ` +
+        `after ${String(attemptsExhausted)} attempt(s). Not retryable — see DG-125 A.`,
+    );
+    this.name = 'EmptyResponseError';
+    this.providerLabel = providerLabel;
+    this.attemptsExhausted = attemptsExhausted;
+  }
+}
+
+/**
+ * DG-125 A: default para el número máximo de reintentos en application-
+ * level cuando el provider devuelve `content=null/''`. Con 2 retries
+ * (3 attempts total) cubrimos casos transient sin blow-up de cost —
+ * cada retry es una call nueva al provider (fresh completion).
+ */
+const DEFAULT_EMPTY_RETRY_ATTEMPTS = 2;
+
+/**
+ * DG-125 A: backoff exponencial entre retries. Base 500ms, factor 2 →
+ * 500ms, 1000ms. Evita hammering al provider si el problema es transient
+ * de infra + da tiempo para que el content-filter re-evaluate (si el
+ * empty era filter-triggered).
+ */
+const EMPTY_RETRY_BACKOFF_MS_BASE = 500;
+
+/** Sleep helper para el backoff (test-friendly via setTimeout promise). */
+function sleepMs(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
  * Extrae el texto del payload de respuesta de un endpoint OpenAI-compatible
  * (funcion pura).
  *
@@ -141,6 +191,62 @@ export function parseOpenAiCompatibleResponse(payload: unknown): string {
     throw new Error('Respuesta OpenAI-compatible sin texto en choices[0].message.content.');
   }
   return content;
+}
+
+/**
+ * DG-125 A helper: distingue si un error es el "empty content" case
+ * (retryable) vs otros errores del SDK (no retryable — quota, network,
+ * schema drift). Match por substring de message porque
+ * parseOpenAiCompatibleResponse lanza `Error` genérico con message
+ * determinístico.
+ */
+function isEmptyContentError(err: unknown): boolean {
+  if (err instanceof EmptyResponseError) return true;
+  if (!(err instanceof Error)) return false;
+  return err.message.includes('sin texto en choices[0].message.content');
+}
+
+/**
+ * DG-125 A (Cycle 112 FASE I): reintenta una operación asincrónica cuando
+ * dispara un empty-content error. Retorna el primer resultado exitoso.
+ * Provider-agnostic — el `providerLabel` solo se usa para el
+ * `EmptyResponseError` final.
+ *
+ * Semantics:
+ * - Attempt 1: si OK → return; si empty → wait backoff #1, retry
+ * - Attempt 2 (retry #1): si OK → return; si empty → wait backoff #2, retry
+ * - Attempt 3 (retry #2): si OK → return; si empty → throw EmptyResponseError
+ * - Errores NON-empty (quota, network, schema): propagan inmediatamente sin retry
+ */
+export async function retryOnEmptyContent<T>(
+  op: () => Promise<T>,
+  providerLabel: string,
+  options: {
+    maxRetries?: number;
+    backoffMsBase?: number;
+    sleepImpl?: (ms: number) => Promise<void>;
+  } = {},
+): Promise<T> {
+  const maxRetries = options.maxRetries ?? DEFAULT_EMPTY_RETRY_ATTEMPTS;
+  const backoffMsBase = options.backoffMsBase ?? EMPTY_RETRY_BACKOFF_MS_BASE;
+  const sleep = options.sleepImpl ?? sleepMs;
+  const totalAttempts = maxRetries + 1;
+  for (let attempt = 0; attempt < totalAttempts; attempt += 1) {
+    try {
+      return await op();
+    } catch (err) {
+      if (!isEmptyContentError(err)) throw err; // NON-empty errors propagan sin retry
+      const isLastAttempt = attempt === totalAttempts - 1;
+      if (isLastAttempt) {
+        throw new EmptyResponseError(providerLabel, totalAttempts);
+      }
+      // Backoff exponencial: attempt=0 → base * 1, attempt=1 → base * 2, ...
+      const backoffMs = backoffMsBase * Math.pow(2, attempt);
+      await sleep(backoffMs);
+    }
+  }
+  // Unreachable, satisfies TS type checker.
+  throw new EmptyResponseError(providerLabel, totalAttempts);
 }
 
 /**
@@ -219,29 +325,43 @@ export class OpenAiCompatibleLlmClient implements LlmClient {
     // adapter sigue obteniendo el `content` y `parseOpenAiCompatibleResponse`
     // lo extrae igual. Los system prompts de los 3 agentes ya mencionan
     // "json" — requisito de OpenAI para esta opción.
-    let completion;
-    try {
-      completion = await this.#client.chat.completions.create({
-        model: this.#model,
-        ...tokensParam,
-        ...temperatureParam,
-        response_format: { type: 'json_object' },
-        messages: [
-          { role: 'system', content: request.system },
-          { role: 'user', content: request.user },
-        ],
-      });
-    } catch (err) {
-      // DG-088 A: convertir 429 / rate-limit en QuotaExhaustedError tipado
-      // para que el benchmark runner pueda skip-ear el provider tras 2
-      // ocurrencias consecutivas en vez de tratarlo como error opaco.
-      const quotaErr = quotaErrorFromOpenAi(err, this.#providerLabel);
-      if (quotaErr !== null) throw quotaErr;
-      throw err;
-    }
-    return {
-      text: parseOpenAiCompatibleResponse(completion),
-      usage: parseOpenAiCompatibleUsage(completion),
-    };
+    // DG-125 A (Cycle 112 FASE I): envuelve create + parse en
+    // retryOnEmptyContent para manejar el caso "provider devuelve HTTP 200
+    // OK con content=null/''" transient. Reproducido empíricamente 3+
+    // Baselines contra deepseek-v4-flash, pero provider-agnostic (aplica a
+    // groq, mistral, gemini-compat, etc. — 14+ providers OpenAI-compat).
+    // Backoff exponencial 500ms → 1000ms entre retries; después de 3
+    // attempts total, throw EmptyResponseError que el caller (triage.ts)
+    // catchea explicit y transforma en verdict `inconclusive` en vez de
+    // dejar el finding sin veredicto.
+    return retryOnEmptyContent(async () => {
+      let completion;
+      try {
+        completion = await this.#client.chat.completions.create({
+          model: this.#model,
+          ...tokensParam,
+          ...temperatureParam,
+          response_format: { type: 'json_object' },
+          messages: [
+            { role: 'system', content: request.system },
+            { role: 'user', content: request.user },
+          ],
+        });
+      } catch (err) {
+        // DG-088 A: convertir 429 / rate-limit en QuotaExhaustedError tipado
+        // para que el benchmark runner pueda skip-ear el provider tras 2
+        // ocurrencias consecutivas en vez de tratarlo como error opaco.
+        const quotaErr = quotaErrorFromOpenAi(err, this.#providerLabel);
+        if (quotaErr !== null) throw quotaErr;
+        throw err;
+      }
+      return {
+        // parseOpenAiCompatibleResponse throws el "sin texto" error si content
+        // es null/'' — retryOnEmptyContent captura ese case específico y
+        // reintenta la create+parse desde cero (fresh completion).
+        text: parseOpenAiCompatibleResponse(completion),
+        usage: parseOpenAiCompatibleUsage(completion),
+      };
+    }, this.#providerLabel);
   }
 }

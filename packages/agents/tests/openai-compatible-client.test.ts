@@ -1,8 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import {
+  EmptyResponseError,
   OpenAiCompatibleLlmClient,
   parseOpenAiCompatibleResponse,
   parseOpenAiCompatibleUsage,
+  retryOnEmptyContent,
 } from '../src/openai-compatible-client.js';
 import { QuotaExhaustedError } from '../src/llm-client.js';
 
@@ -300,4 +302,166 @@ describe('OpenAiCompatibleLlmClient.completeWithUsage (DG-085 A)', () => {
     expect(result.text).toBe('respuesta');
     expect(result.usage).toEqual({ inputTokens: 1, outputTokens: 1 });
   });
+});
+
+// ============================================================================
+// DG-125 A (Cycle 112 FASE I): retryOnEmptyContent + EmptyResponseError
+// ============================================================================
+
+describe('DG-125 A — retryOnEmptyContent helper', () => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const noSleep = (_ms: number): Promise<void> => Promise.resolve();
+
+  it('devuelve el resultado inmediatamente si el primer attempt tiene éxito', async () => {
+    let attempts = 0;
+    const result = await retryOnEmptyContent(
+      () => {
+        attempts += 1;
+        return Promise.resolve('ok');
+      },
+      'provider-x',
+      { sleepImpl: noSleep },
+    );
+    expect(result).toBe('ok');
+    expect(attempts).toBe(1);
+  });
+
+  it('reintenta 1 vez si el primer attempt lanza empty, y devuelve el segundo', async () => {
+    let attempts = 0;
+    const result = await retryOnEmptyContent(
+      () => {
+        attempts += 1;
+        if (attempts === 1) {
+          throw new Error('Respuesta OpenAI-compatible sin texto en choices[0].message.content.');
+        }
+        return Promise.resolve('rescued');
+      },
+      'provider-x',
+      { sleepImpl: noSleep },
+    );
+    expect(result).toBe('rescued');
+    expect(attempts).toBe(2);
+  });
+
+  it('reintenta 2 veces si los primeros 2 attempts lanzan empty, y devuelve el tercero', async () => {
+    let attempts = 0;
+    const result = await retryOnEmptyContent(
+      () => {
+        attempts += 1;
+        if (attempts <= 2) {
+          throw new Error('Respuesta OpenAI-compatible sin texto en choices[0].message.content.');
+        }
+        return Promise.resolve('rescued at 3rd');
+      },
+      'provider-x',
+      { sleepImpl: noSleep },
+    );
+    expect(result).toBe('rescued at 3rd');
+    expect(attempts).toBe(3);
+  });
+
+  it('lanza EmptyResponseError después de 3 attempts fallidos (2 retries maxRetries default)', async () => {
+    let attempts = 0;
+    await expect(
+      retryOnEmptyContent(
+        () => {
+          attempts += 1;
+          throw new Error('Respuesta OpenAI-compatible sin texto en choices[0].message.content.');
+        },
+        'deepseek-v4-flash',
+        { sleepImpl: noSleep },
+      ),
+    ).rejects.toThrow(EmptyResponseError);
+    expect(attempts).toBe(3);
+  });
+
+  it('EmptyResponseError carries providerLabel + attemptsExhausted', async () => {
+    let caught: unknown = null;
+    try {
+      await retryOnEmptyContent(
+        () => {
+          throw new Error('Respuesta OpenAI-compatible sin texto en choices[0].message.content.');
+        },
+        'groq-llama',
+        { sleepImpl: noSleep, maxRetries: 1 },
+      );
+    } catch (err) {
+      caught = err;
+    }
+    expect(caught).toBeInstanceOf(EmptyResponseError);
+    const e = caught as EmptyResponseError;
+    expect(e.providerLabel).toBe('groq-llama');
+    expect(e.attemptsExhausted).toBe(2); // maxRetries=1 → 1 initial + 1 retry = 2 total
+  });
+
+  it('propaga errores NO-empty inmediatamente sin retry (network, quota, schema drift)', async () => {
+    let attempts = 0;
+    await expect(
+      retryOnEmptyContent(
+        () => {
+          attempts += 1;
+          throw new Error('ECONNRESET: network glitch');
+        },
+        'provider-x',
+        { sleepImpl: noSleep },
+      ),
+    ).rejects.toThrow('ECONNRESET');
+    // Solo 1 attempt — no retry para errores non-empty
+    expect(attempts).toBe(1);
+  });
+
+  it('completeWithUsage integra el retry: rescata el segundo attempt cuando el primero devuelve content=null', async () => {
+    // Fake fetch que devuelve content=null en el primer call, luego texto valido.
+    let callCount = 0;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const fakeFetch = (async (_url: string | URL, _init?: RequestInit): Promise<Response> => {
+      callCount += 1;
+      if (callCount === 1) {
+        return new Response(
+          JSON.stringify({
+            id: 'chatcmpl-empty',
+            object: 'chat.completion',
+            created: 0,
+            model: 'deepseek-v4-flash',
+            choices: [
+              { index: 0, message: { role: 'assistant', content: null }, finish_reason: 'stop' },
+            ],
+            usage: { prompt_tokens: 100, completion_tokens: 0, total_tokens: 100 },
+          }),
+          { status: 200, headers: { 'content-type': 'application/json' } },
+        );
+      }
+      return new Response(
+        JSON.stringify({
+          id: 'chatcmpl-ok',
+          object: 'chat.completion',
+          created: 0,
+          model: 'deepseek-v4-flash',
+          choices: [
+            {
+              index: 0,
+              message: { role: 'assistant', content: '{"veredicto":"ok"}' },
+              finish_reason: 'stop',
+            },
+          ],
+          usage: { prompt_tokens: 100, completion_tokens: 5, total_tokens: 105 },
+        }),
+        { status: 200, headers: { 'content-type': 'application/json' } },
+      );
+    }) as typeof fetch;
+
+    const client = new OpenAiCompatibleLlmClient({
+      apiKey: 'sk-x',
+      model: 'deepseek-v4-flash',
+      baseUrl: 'https://api.deepseek.com/v1',
+      fetchImpl: fakeFetch,
+      maxRetries: 0, // SDK-level retries off — el retry de DG-125 A es application-level
+    });
+
+    // El retry (con backoff exponencial 500ms default) hace este test lento;
+    // pero como el segundo attempt tiene exito, solo espera ~500ms. Aceptable.
+    const result = await client.completeWithUsage({ system: 's', user: 'u' });
+    expect(result.text).toBe('{"veredicto":"ok"}');
+    expect(callCount).toBe(2); // 1 empty + 1 rescued
+  }, 5000);
 });

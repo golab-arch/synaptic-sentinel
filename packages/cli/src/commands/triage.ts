@@ -24,6 +24,7 @@ import {
   ContextAgent,
   buildAnthropicFallbackConfig,
   createLlmClient,
+  EmptyResponseError,
   RemediationAgent,
   resolveApiKeyFromEnv,
   runAgent,
@@ -467,10 +468,45 @@ export async function runTriageCommand(options: TriageCommandOptions): Promise<n
           }
         }
       } catch (err) {
-        // Un fallo de triage no aborta la corrida (degraded > failed).
-        // Si el wrapper alcanzo a registrar la observation antes del throw,
-        // tambien la persistimos para visibilidad de cost en sesiones fallidas.
+        // DG-125 A (Cycle 112 FASE I): EmptyResponseError (provider devolvió
+        // HTTP 200 OK con content=null/'' después de 3 attempts) se
+        // transforma en verdict `inconclusive` determinístico en vez de
+        // dejar el finding sin veredicto. UX: el user ve el finding en el
+        // sidebar como INC con rationale explicable, y puede re-triage
+        // más tarde (posiblemente con otro provider) para intentar de
+        // nuevo. Provider-agnostic — aplica a cualquiera de los 14+
+        // providers OpenAI-compatible.
         drainObservation(triageWrapper, 'triage', finding.fingerprint);
+        if (err instanceof EmptyResponseError) {
+          const emptyVerdict: TriageVerdict = {
+            classification: 'inconclusive',
+            confidence: 0,
+            rationale:
+              `Provider "${err.providerLabel}" returned an empty response after ` +
+              `${String(err.attemptsExhausted)} attempts. Unable to triage this finding ` +
+              `with the current provider — try re-triaging (possibly with a different ` +
+              `model in agents.yaml) or investigate the provider's content-filter / ` +
+              `token-budget for this prompt.`,
+          };
+          verdicts.push({
+            id: randomUUID(),
+            scanId,
+            fingerprint: finding.fingerprint,
+            classification: emptyVerdict.classification,
+            confidence: emptyVerdict.confidence,
+            rationale: emptyVerdict.rationale,
+            agentId: triageAgent.id,
+            createdAt: new Date().toISOString(),
+          });
+          console.error(
+            `  ${renderTriageTag('inconclusive', color)}  ${finding.title} ` +
+              `— ${finding.location.path}:${String(finding.location.startLine)} ` +
+              `(EmptyResponseError from ${err.providerLabel}; DG-125 A graceful degradation)`,
+          );
+          continue;
+        }
+        // Otros errores (network, quota, schema drift): comportamiento
+        // legacy — degraded > failed (v0.4 §3.7).
         const message = err instanceof Error ? err.message : String(err);
         console.error(`  ! triage failed for "${finding.title}": ${message}`);
       }
