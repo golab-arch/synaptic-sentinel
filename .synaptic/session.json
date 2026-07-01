@@ -3,7 +3,7 @@
   "projectId": "sentinel-1779304140796",
   "projectName": "SENTINEL",
   "initializedAt": "2026-05-20T19:09:00.816Z",
-  "lastActivity": "2026-07-01T11:44:00.000Z",
+  "lastActivity": "2026-07-01T12:33:00.000Z",
   "currentCycle": 58,
   "currentPhase": 12,
   "synapticStrength": 100,
@@ -19,24 +19,31 @@
   "agentState": {
     "complianceScore": 100,
     "violationsCount": 0,
-    "successfulCycles": 112,
+    "successfulCycles": 113,
     "marketplacePublishedExtensionId": "RealGoLab.synaptic-sentinel",
     "marketplacePublishedVersion": "0.3.3",
-    "githubReleaseLatest": "v0.3.16"
+    "githubReleaseLatest": "v0.3.17"
   },
   "activeDG": {
-    "id": "DG-123.0.2",
-    "title": "Fix critico resolveImportPath: extension substitution para TypeScript ESM imports (.js→.ts/.tsx/.jsx, .mjs→.mts, .cjs→.cts, .jsx→.tsx)",
-    "status": "AWAITING_USER_BASELINE_8D",
-    "artifact": "packages/vscode-extension/synaptic-sentinel-0.3.16-step10.vsix",
-    "artifact_sha256": "ab1f0485cd60f6abbdb5bf8b32396b56b4e341b58129169baf96b98d2c2fd908",
-    "artifact_bytes": 4131668,
+    "id": "DG-124-A",
+    "title": "Release v0.3.17 packaging DG-123 A + DG-123.0.1 + DG-123.0.2 (R18 v1 Interaction Graph Layer + telemetry + critical TS ESM resolver fix)",
+    "status": "SHIPPED",
+    "artifact": "packages/vscode-extension/synaptic-sentinel-0.3.17.vsix",
+    "artifact_sha256": "c7e6536ec34e0fea164a151c1baeea88d93b6df7e2bdb91c543899c26deca528",
+    "artifact_bytes": 4135298,
     "artifact_files": 1849,
-    "parent_dg": "DG-123-A",
-    "root_cause_identified_baseline_8c": "resolveImportPath pre-fix trataba extensiones como sufijos aditivos: `foo.js` + `.ts` = `foo.js.ts` (inexistente) en vez de sustituir `foo.js` → `foo.ts`. Efecto: 100% de imports TypeScript ESM devolvian null en SENTINEL Baseline-8c → imports=0 importedBy=0 para todos los findings → cascada a role=entry via inferRole:504",
-    "option_selected": "Opción A (Conservative surgical) — EXTENSION_SUBSTITUTES table + 3 tests fixture-based",
-    "baseline_8d_acceptance": "install step10.vsix + re-scan SENTINEL + re-triage → telemetria enriched debe mostrar imports > 0 (colony-db.ts esperado 5-10, cli-runner.ts 3-5, detectors.ts 2-4) + importedBy > 0 (colony-db.ts esperado 5-10+) + role='library' para files con importedByCount >= 2. Rationales del LLM: si citan interacciones (imported by/exports/entry/library) → H3-rich → DG-124 A release v0.3.17. Si NO citan aun con data rica → H1-rich → DG-123.0.3 prompt strengthening",
-    "verify_status": "VERDE 779 tests (776 baseline + 3 nuevos DG-123.0.2)",
-    "bitacora_entries": [156, 157, 158, 159, 160, 161]
+    "github_release_url": "https://github.com/golab-arch/synaptic-sentinel/releases/tag/v0.3.17",
+    "option_selected": "A (Conservative — infrastructure release honesto)",
+    "marketplace_publish": "DEFERRED_TO_USER",
+    "baseline_8d_classification_preamble": "H1.5-implicit: R18 v1 infra works structurally (colony-db.ts + cli-runner.ts role=library imports=1 importedBy=3 symbols=14/9 vs pre-fix 0/0 role=entry), LLM rationales deeper technically (eval-usage 'conditionally access __filename', taint-command-injection 'spawn env option, no shell') pero NO citan graph section keywords explicitly. Findings intra-file SENTINEL son estructuralmente redundantes vs graph context. R18 v1 real value emerges en cross-module findings (R18 v2 backlog).",
+    "bitacora_entries": [156, 157, 158, 159, 160, 161, 162, 163, 164],
+    "next_cycle_backlog_options": [
+      "DG-123.0.3 prompt strengthening (si users piden explicit citations)",
+      "DG-125 A provider intermittent-empty follow-up (si persiste)",
+      "DG-126 A R18 v1.1 bare imports informativos + role=leaf refinement + symbols=1 fix",
+      "DG-127 A R18 v2 symbol-cross-file (multi-week higher expected value)",
+      "Backlog #4 per-fingerprint verdict persistence + reproducibilidad cross-provider",
+      "Backlog #5 Triage limit ~25 surface 'N untriaged'"
+    ]
   }
 }
