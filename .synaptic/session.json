@@ -3,7 +3,7 @@
   "projectId": "sentinel-1779304140796",
   "projectName": "SENTINEL",
   "initializedAt": "2026-05-20T19:09:00.816Z",
-  "lastActivity": "2026-07-02T11:36:00.000Z",
+  "lastActivity": "2026-07-02T12:00:00.000Z",
   "currentCycle": 58,
   "currentPhase": 12,
   "synapticStrength": 100,
@@ -28,27 +28,20 @@
     "option": "A — Trust-first linear",
     "adopted_at": "2026-07-01T12:45:00.000Z",
     "current_phase": "FASE_I_foundations_of_trust",
-    "current_phase_progress": "1.5/2 DGs (DG-125 A shipped + DG-125.0.1 shipped, DG-126 A R18 v1.1 pending post-Baseline-9b)"
+    "current_phase_progress": "1.5/2 DGs (DG-125 A + DG-125.0.1 shipped y validated Baseline-9b PASS, DG-126 A pending technical DG)"
   },
   "activeDG": {
-    "id": "DG-125.0.1",
-    "title": "Extensión graceful degradation a JSON parse errors — JsonParseError + Sub-A2 provider-agnostic + force clean rebuild (Cycle 112 FASE I)",
-    "status": "AWAITING_USER_BASELINE_9B_REINSTALL_CLEAN",
-    "artifact": "packages/vscode-extension/synaptic-sentinel-0.3.17-step-125-2.vsix",
-    "artifact_sha256": "bd94101893312910f3f751f0a0044e97c246a82d9cbd2d2232dd61d44720bf8f",
-    "artifact_bytes": 4136613,
-    "artifact_files": 1849,
-    "bundle_markers_grep_count": 21,
-    "parent_dg": "DG-125-A",
-    "option_selected": "Sub-A2 Balanced Extension + force clean rebuild (rm -rf dist + tsbuildinfo)",
-    "baseline_9_2_error_classes_covered": {
-      "class_A_sin_texto_3_findings": "DG-125 A retry + graceful degradation (backoff 500ms+1000ms)",
-      "class_B_no_JSON_2_findings": "DG-125.0.1 JsonParseError → inconclusive determinístico (no retry — content-filter policy es determinístico)"
+    "id": "DG-126-A",
+    "title": "R18 v1.1 refinements — bare imports info + role=leaf semantics + symbols=1 detectors.ts fix + graph cache (último DG de FASE I)",
+    "status": "PENDING_TECHNICAL_DG",
+    "parent_phase": "FASE_I_foundations_of_trust",
+    "predecessor_baseline_9b_status": "PASS empírico cross-model — 0 lines 'triage failed' + 6/6 findings persisted + DG-125 A EmptyResponseError fires + DG-125.0.1 JsonParseError fires",
+    "candidate_refinements_from_r18_v1_known_issues": {
+      "R1_bare_imports_info": "Actualmente imports=1 para colony-db.ts porque bare imports (zod, node-sqlite3-wasm, node:*) están excluidos. Agregar como informational metadata sin resolver a nodos del graph.",
+      "R2_role_leaf_semantics": "inferRole devuelve 'leaf' cuando importedByCount === 1 (después del check >= 2 → library). Conventionally 'leaf' implica 0 importers. Refinamiento: 'leaf' solo con importedByCount === 0, 'branch' o 'utility' con 1.",
+      "R3_symbols_count_detectors_ts": "detectors.ts muestra symbols=1 en telemetría. Probable bug en extractTypescriptSymbols para archivos con TypeScript patterns específicos (arrow-function-assigned consts, spread arrays, etc.). Investigar y fix.",
+      "R4_graph_cache": "Graph se reconstruye cada scan (~500ms-2s + 800ms-2s por WASM init). Cache invalidated by file-mtime hash del content de source files. Aceleraría re-scans en workspaces grandes."
     },
-    "baseline_9b_acceptance": "REINSTALL CLEAN (uninstall + verify carpeta borrada + install step-125-2 + reload window + grep verify 21 markers) + re-scan + re-triage con deepseek-v4-pro → (1) 0 lines '! triage failed for' — todos los findings tienen graceful degradation path; (2) findings previamente 'sin texto': rescate LLM O ⚠ INC 'EmptyResponseError from ...; DG-125 A graceful degradation'; (3) findings previamente 'no JSON': ⚠ INC 'JsonParseError; DG-125.0.1 graceful degradation' + rationale citing parseFailure + rawSample; (4) 6/6 findings tienen veredicto persistido en sidebar; (5) latency +5s vs step-125-1 esperado; (6) IF outcome differs from expected → hipótesis build-stale invalid → escalar Sub-A3 diagnostic env var",
-    "verify_status": "VERDE 789 tests (786 baseline post-DG-125 A + 3 nuevos DG-125.0.1: typed error throw, parseFailure+rawSample metadata carry, ellipsis truncation)",
-    "bitacora_entries": [165, 166, 167, 168, 169],
-    "hypothesis_build_stale_test": "step-125-2 built via `rm -rf packages/*/dist packages/*/.tsbuildinfo packages/*/tsconfig.tsbuildinfo && pnpm build` — descarta build-stale como cause raíz del comportamiento contradictorio en Baseline-9 (bundle contenía código pero terminal mostró mensaje raw). Reinstall CLEAN user-side descarta también VSCode cache staleness. Si Baseline-9b sigue mismo bug → escalate Sub-A3.",
-    "next_dg_in_fase_i": "DG-126 A R18 v1.1 refinements — post-Baseline-9b validation"
+    "bitacora_entries": [165, 166, 167, 168, 169, 170]
   }
 }
