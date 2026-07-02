@@ -3,7 +3,7 @@
   "projectId": "sentinel-1779304140796",
   "projectName": "SENTINEL",
   "initializedAt": "2026-05-20T19:09:00.816Z",
-  "lastActivity": "2026-07-02T13:32:00.000Z",
+  "lastActivity": "2026-07-02T15:42:00.000Z",
   "currentCycle": 58,
   "currentPhase": 12,
   "synapticStrength": 100,
@@ -29,26 +29,25 @@
     "adopted_at": "2026-07-01T12:45:00.000Z",
     "current_phase": "FASE_II_cross_module_intelligence_NORTH_STAR_LEAP",
     "fase_i_closed_at": "2026-07-02T13:32:00.000Z",
-    "fase_i_summary": "3 DGs shipped (DG-125 A + DG-125.0.1 + DG-126 A), 3 Baselines empíricos (9, 9b, 10), Baseline-10 PARTIAL PASS classification. R2 fix VERIFIED empíricamente, R1 infra shipped pero utility empírica INCONCLUSIVA por colony memory saturation + SCA-dominated scan composition. R3 misdiagnosed y honestly dropped. Duration real: 2 días vs estimate 2-3 semanas — velocity alta por incremental scope de trust foundations (no aplicar la mismo velocity a FASE II — paradigm change requires more baselines).",
     "fase_ii_open_at": "2026-07-02T13:32:00.000Z",
-    "fase_ii_dgs_candidatos": [
-      "DG-127 A R18 v2 symbol-level cross-file resolution (primer DG, EL SALTO DEL NORTH STAR)",
-      "DG-128 A cross-file taint propagation sobre R18 v2",
-      "DG-129 A R19 module trust boundary tagging (public-entry vs internal-handler vs test-fixture)"
-    ]
+    "current_phase_progress": "1/3 DGs (DG-127 A shipped, DG-128 A + DG-129 A pending)"
   },
   "activeDG": {
     "id": "DG-127-A",
-    "title": "R18 v2 symbol-level cross-file resolution — EL SALTO DEL NORTH STAR (primer DG de FASE II)",
-    "status": "PENDING_TECHNICAL_DG",
+    "title": "R18 v2 symbol-level cross-file resolution — Sub-A2 signature attachment (Cycle 113 FASE II, EL SALTO DEL NORTH STAR)",
+    "status": "AWAITING_USER_BASELINE_11_REINSTALL_CLEAN_CROSS_WORKSPACE",
+    "artifact": "packages/vscode-extension/synaptic-sentinel-0.3.17-step-127-1.vsix",
+    "artifact_sha256": "cedcfa6951a843954523a67e4dcb2c0f8715908675e17b154a8c27d228cc6b61",
+    "artifact_bytes": 4141881,
+    "artifact_files": 1849,
+    "bundle_markers_grep_count": 17,
     "parent_phase": "FASE_II_cross_module_intelligence_NORTH_STAR_LEAP",
-    "north_star_use_case": "SYNAPTIC_SAAS Baseline previa: sentinel-js-taint-sql-injection en agent.ts:62 con snippet `agentLoop.execute(orchestrationRequest)`. LLM produjo rationale 'without seeing the internals of agentLoop.execute(), cannot determine reachability' — v1 file-level graph no ayudó porque agentLoop.execute está definido en OTRO archivo. R18 v2 resolvería 'agentLoop from ../services/agent-loop.js' + attach 'execute() defined at agent-loop.ts:42 with signature: async execute(req: OrchestrationRequest): Promise<Result>'. LLM ahora puede razonar cross-file.",
-    "predecessor_baseline_10_status": "PARTIAL PASS — R2 verified, R1 shipped inconclusive; regression check clean. FASE I closed successfulCycles 114.",
-    "candidate_sub_dgs": {
-      "Sub_A1_Conservative": "Symbol import/export mapping — dice 'X is exported from B' pero no adjunta signature/body",
-      "Sub_A2_Balanced_RECOMMENDED": "Sub-A1 + signature attachment — captura first-line del export declaration (function signature o const initializer preview) + attach to prompt como 'X defined at B.ts:42 with signature `export function execute(req): Promise<Result>`'",
-      "Sub_A3_Innovative": "Sub-A2 + call graph reverse resolution + multi-hop backward reachability (agent.ts calls X, X calls Y, Y calls Z — track chain)"
-    },
-    "bitacora_entries": [173, 174]
+    "option_selected": "Sub-A2 Balanced signature attachment (Sub-A1 mapping + signature capture + cap defensivo 3)",
+    "north_star_use_case": "SYNAPTIC_SAAS Baseline previa: sentinel-js-taint-sql-injection en agent.ts:62 con snippet `agentLoop.execute(orchestrationRequest)`. LLM produjo rationale 'without seeing the internals of agentLoop.execute()'. Post-DG-127 A: el prompt del Triage muestra 'agentLoop defined at src/services/agent-loop.ts:42 with signature `export class agentLoop`'. Baseline-11 cross-workspace SYNAPTIC_SAAS es la prueba empírica del North Star.",
+    "baseline_11_acceptance": "REINSTALL CLEAN (uninstall + verify borrado + install step-127-1 + reload + grep verify 17 markers) + re-scan SENTINEL (regression check) + IDEALMENTE cross-workspace SYNAPTIC_SAAS con re-triage deepseek-v4-flash → (1) 0 findings 'triage failed' en SENTINEL; (2) telemetría enriched unchanged (backward-compat); (3) CRÍTICO cross-workspace SYNAPTIC_SAAS: rationale del LLM POST-DG-127 A menciona signature cross-file → PASS empírico North Star; (4) 0 incremento EmptyResponseError rate.",
+    "verify_status": "VERDE 803 tests (794 baseline post-DG-126 A + 9 nuevos DG-127 A: 4 extractIdentifiersFromSnippet + 2 buildInteractionGraph populate signatures/importedSymbols + 3 resolveCrossFileSignatures North Star)",
+    "bitacora_entries": [173, 174, 175, 176],
+    "post_baseline_11_pass_action": "Siguiente DG-128 A cross-file taint propagation sobre R18 v2 (aprovecha crossFileContext infra). O DG-127.0.1 prompt strengthening reactive si LLM no cita signatures aún con data rica.",
+    "fase_ii_progress": "1/3 DGs completos (DG-127 A shipped). DG-128 A + DG-129 A pending."
   }
 }
