@@ -61,6 +61,15 @@ export const FileSymbolSchema = z.object({
   exported: z.boolean(),
   /** Linea 1-based donde se declara. */
   startLine: z.number().int().positive(),
+  /**
+   * DG-127 A (Cycle 113 FASE II): signature = primera línea del declaration
+   * (function signature completa hasta `{` o const initializer preview
+   * truncado a ~150 chars). Habilita cross-file signature attachment en el
+   * prompt del Triage Agent — el LLM ve `execute(req: OrchestrationRequest):
+   * Promise<Result>` para el sink cross-file en vez de solo saber que existe.
+   * Opcional para backward-compat con schemas legacy pre-DG-127 A.
+   */
+  signature: z.string().optional(),
 });
 
 /** Símbolo top-level de un archivo. */
@@ -101,6 +110,30 @@ export const FileContextSchema = z.object({
    */
   bareImports: z.array(z.string()).default([]),
   /**
+   * DG-127 A (Cycle 113 FASE II): mapping de symbol name importado → archivo
+   * source (resuelto). Ejemplo: para `import { execute } from '../services/agent-loop.js'`
+   * → `{ name: 'execute', fromFile: 'src/services/agent-loop.ts' }`. Habilita
+   * el prompt formatter a cruzar identifiers del snippet con el archivo donde
+   * están definidos, y adjuntar la signature desde ese archivo. Cubre named
+   * imports (`{ X, Y }`), default imports (`import D from '...'` → name='D'),
+   * y namespace imports (`import * as N from '...'` → name='N').
+   * Aditivo opcional para backward-compat con schemas legacy pre-DG-127 A.
+   */
+  importedSymbols: z
+    .array(
+      z.object({
+        /** Nombre local del symbol en el archivo del importer. */
+        name: z.string().min(1),
+        /**
+         * Path relativo al rootPath del archivo donde el symbol está definido.
+         * Solo se emite cuando el import resuelve a un archivo del workspace
+         * (imports bare de npm/node builtins NO se incluyen aquí — van a bareImports).
+         */
+        fromFile: z.string().min(1),
+      }),
+    )
+    .default([]),
+  /**
    * Rol inferido heurísticamente (DG-126 A R2 — semantics fix):
    * - `entry`: filename matchea index/main/app/cli (typical entry point).
    * - `library`: >=1 importer (usado por al menos un consumidor del workspace).
@@ -131,6 +164,68 @@ export const SymbolContextSchema = z.object({
 
 /** Contexto de símbolos poblado por el Interaction Graph. */
 export type SymbolContext = z.infer<typeof SymbolContextSchema>;
+
+/**
+ * DG-127 A (Cycle 113 FASE II) — R18 v2 symbol-level cross-file resolution.
+ *
+ * Signatures resueltas per-finding para los identifiers referenciados en el
+ * snippet del finding que corresponden a imports cross-file. Precomputadas
+ * en Coordinator Stage 1.5b desde `finding.location.snippet` +
+ * `fileContext.importedSymbols` + `graph[fromFile].symbolContext.definedSymbols`.
+ *
+ * Ejemplo del North Star case (SYNAPTIC_SAAS):
+ * - Finding: `sentinel-js-taint-sql-injection` en `agent.ts:62`
+ * - Snippet: `agentLoop.execute(orchestrationRequest)`
+ * - fileContext.importedSymbols contains `{ name: 'agentLoop', fromFile:
+ *   'src/services/agent-loop.ts' }`
+ * - graph.get('src/services/agent-loop.ts').symbolContext.definedSymbols
+ *   contains `{ name: 'agentLoop', signature: 'export class AgentLoop {' }`
+ *   y separately `{ name: 'execute', signature: 'async execute(req:
+ *   OrchestrationRequest): Promise<Result> {' }` (si es method o si el file
+ *   exporta también la function directamente)
+ * - crossFileContext.signatures = [{
+ *     symbolName: 'agentLoop', sourceFile: 'src/services/agent-loop.ts',
+ *     sourceLine: 42, signature: 'export class AgentLoop {'
+ *   }]
+ *
+ * El prompt del Triage Agent muestra el LLM esta info como
+ * "`agentLoop` defined at `src/services/agent-loop.ts:42` with signature
+ * `export class AgentLoop {...}`". El LLM puede razonar cross-file sin
+ * pedir "internals" al usuario.
+ *
+ * Cap defensivo: `MAX_CROSS_FILE_SIGNATURES_PER_FINDING = 3` (aplicado en
+ * la extracción — evita prompt bloat en snippets con muchos identifiers).
+ */
+export const CrossFileContextSchema = z.object({
+  /**
+   * Signatures cross-file resueltas por identifier extraído del snippet.
+   * Ordenadas por aparición en el snippet + capadas a
+   * MAX_CROSS_FILE_SIGNATURES_PER_FINDING = 3.
+   */
+  signatures: z
+    .array(
+      z.object({
+        /** Nombre del symbol tal como aparece en el snippet del finding. */
+        symbolName: z.string().min(1),
+        /** Path relativo al rootPath del archivo donde está definido. */
+        sourceFile: z.string().min(1),
+        /** Línea 1-based del startPosition del symbol en el sourceFile. */
+        sourceLine: z.number().int().positive(),
+        /**
+         * Primera línea de la declaration (function signature completa hasta
+         * `{` o const initializer preview truncado a ~150 chars).
+         */
+        signature: z.string().min(1),
+      }),
+    )
+    .default([]),
+});
+
+/** Cross-file context DG-127 A poblado en Coordinator Stage 1.5b. */
+export type CrossFileContext = z.infer<typeof CrossFileContextSchema>;
+
+/** DG-127 A: cap defensivo — top-N signatures cross-file por finding. */
+export const MAX_CROSS_FILE_SIGNATURES_PER_FINDING = 3;
 
 /** Nodo del grafo — combinación de file + symbol context. */
 export interface InteractionGraphNode {
@@ -294,25 +389,50 @@ async function getParser(lang: SupportedLanguage): Promise<any> {
 }
 
 /**
- * Extrae imports desde el AST de un archivo TS/JS.
- * Cubre: `import X from 'Y'`, `import { X } from 'Y'`, `import 'Y'`,
- * `require('Y')` (top-level), `import('Y')` (dynamic).
+ * DG-127 A (Cycle 113 FASE II): import enriquecido con la lista de local names
+ * importados (named specifiers + default + namespace). Habilita la
+ * construcción de importedSymbols en fileContext para cross-file lookup.
  */
-function extractJsImports(rootNode: any): string[] {
-  const imports: string[] = [];
+interface JsImportSpec {
+  /** Source path o package name (e.g. './foo.js', 'react', 'node:fs'). */
+  source: string;
+  /**
+   * Nombres LOCALES importados. Cubre:
+   * - `import { X, Y as Z } from 'A'` → ['X', 'Z']
+   * - `import D from 'A'` → ['D']
+   * - `import * as N from 'A'` → ['N']
+   * - `import 'A'` (side-effect only) → []
+   * - `require('A')` → []
+   */
+  localNames: string[];
+}
+
+/**
+ * DG-127 A: versión rich de extractJsImports que retorna cada import con
+ * su lista de local names extraídos del import_clause.
+ *
+ * Para el North Star case: `import { execute } from '../services/agent-loop.js'`
+ * retorna `{ source: '../services/agent-loop.js', localNames: ['execute'] }`.
+ * Combinado con resolveImportPath + graph lookup, habilita cross-file
+ * signature attachment.
+ */
+function extractJsImportsRich(rootNode: any): JsImportSpec[] {
+  const specs: JsImportSpec[] = [];
   const traverse = (node: any): void => {
     const nodeType = node.type;
-    // Static import
+    // Static import — extraer source + local names
     if (nodeType === 'import_statement') {
       const source = node.childForFieldName('source');
       if (source !== null && source !== undefined) {
         const raw = source.text;
-        // Strip surrounding quotes
         const stripped = raw.replace(/^['"`]|['"`]$/g, '');
-        if (stripped.length > 0) imports.push(stripped);
+        if (stripped.length > 0) {
+          const localNames = extractJsImportClauseNames(node);
+          specs.push({ source: stripped, localNames });
+        }
       }
     }
-    // CommonJS require()
+    // CommonJS require() — sin local names (side-effect only en top-level)
     if (nodeType === 'call_expression') {
       const fn = node.childForFieldName('function');
       if (fn !== null && fn !== undefined && fn.text === 'require') {
@@ -321,7 +441,9 @@ function extractJsImports(rootNode: any): string[] {
           const arg = args.namedChild(0);
           if (arg !== null && (arg.type === 'string' || arg.type === 'template_string')) {
             const stripped = arg.text.replace(/^['"`]|['"`]$/g, '');
-            if (stripped.length > 0) imports.push(stripped);
+            if (stripped.length > 0) {
+              specs.push({ source: stripped, localNames: [] });
+            }
           }
         }
       }
@@ -332,7 +454,93 @@ function extractJsImports(rootNode: any): string[] {
     }
   };
   traverse(rootNode);
-  return imports;
+  return specs;
+}
+
+/**
+ * DG-127 A helper: extrae los local names del import_clause de un
+ * `import_statement`. Cubre named, default, namespace, y mezclas.
+ * Retorna array de strings — vacío si el import es side-effect (`import 'X'`).
+ *
+ * Implementación con recursión defensiva porque diferentes versiones de
+ * tree-sitter-typescript wrapean named_imports/namespace_import en
+ * `import_clause` o los ponen como direct children del import_statement.
+ */
+function extractJsImportClauseNames(importStatement: any): string[] {
+  const names: string[] = [];
+
+  // Recursive helper: busca import_specifier (named), namespace_import
+  // (namespace), o import_clause (wrapper con default identifier + posibles
+  // named/namespace inside). Extrae el identifier apropiado según nodeType.
+  const findSpecifiers = (node: any): void => {
+    const type = node.type;
+    if (type === 'import_specifier') {
+      // import_specifier: preferir field `alias` (si tiene `as`), sino `name`.
+      // Fallback: último identifier del subtree (para versiones sin fields).
+      const alias = node.childForFieldName('alias');
+      const nameNode = node.childForFieldName('name');
+      const target = alias ?? nameNode;
+      if (target !== null && target !== undefined && target.text.length > 0) {
+        names.push(target.text);
+      } else {
+        let last: string | undefined;
+        for (let i = 0; i < node.namedChildCount; i += 1) {
+          const inner = node.namedChild(i);
+          if (inner !== null && inner.type === 'identifier') {
+            last = inner.text;
+          }
+        }
+        if (last !== undefined) names.push(last);
+      }
+      return;
+    }
+    if (type === 'namespace_import') {
+      for (let i = 0; i < node.namedChildCount; i += 1) {
+        const inner = node.namedChild(i);
+        if (inner !== null && inner.type === 'identifier') {
+          names.push(inner.text);
+        }
+      }
+      return;
+    }
+    if (type === 'import_clause') {
+      // import_clause wrapper — direct children pueden ser:
+      // - identifier: default binding (`import D from 'X'` → 'D')
+      // - namespace_import: `* as N`
+      // - named_imports: `{ X, Y }`
+      for (let i = 0; i < node.namedChildCount; i += 1) {
+        const inner = node.namedChild(i);
+        if (inner === null) continue;
+        if (inner.type === 'identifier') {
+          names.push(inner.text);
+        } else {
+          findSpecifiers(inner);
+        }
+      }
+      return;
+    }
+    // Continue recursion en el resto (nested wrappers)
+    for (let i = 0; i < node.namedChildCount; i += 1) {
+      const inner = node.namedChild(i);
+      if (inner !== null) findSpecifiers(inner);
+    }
+  };
+
+  // Direct children del import_statement:
+  // - identifier: default import cuando NO hay import_clause wrapper
+  //   (`import D from 'X'` → D en versiones antiguas de la grammar)
+  // - namespace_import, named_imports, import_clause: recursión
+  for (let i = 0; i < importStatement.namedChildCount; i += 1) {
+    const child = importStatement.namedChild(i);
+    if (child === null) continue;
+    if (child.type === 'identifier') {
+      // Default import — direct child del import_statement (grammar antigua)
+      names.push(child.text);
+      continue;
+    }
+    findSpecifiers(child);
+  }
+  return names;
 }
 
 /**
@@ -370,9 +578,55 @@ function extractPythonImports(rootNode: any): string[] {
 }
 
 /**
+ * DG-127 A helper — extrae la signature "primera línea" del text del node.
+ * Para functions: extrae hasta el primer `{` o EOL (lo que llegue primero).
+ * Para classes: idem.
+ * Para consts: primera línea del initializer preview truncado a
+ * MAX_SIGNATURE_CHARS.
+ * Cross-file value: el LLM ve `execute(req: OrchestrationRequest):
+ * Promise<Result>` en vez de solo saber que existe.
+ */
+const MAX_SIGNATURE_CHARS = 150;
+
+function extractSignatureFromNode(
+  targetNode: any,
+  isExported: boolean,
+  kind: FileSymbol['kind'],
+): string {
+  const raw = typeof targetNode.text === 'string' ? targetNode.text : '';
+  if (raw.length === 0) return '';
+  // Estrategia: cortar en el primer `{` o en la primera línea con `=`
+  // seguido de expression complex. Prepend `export` si aplica para full
+  // signature UX.
+  const prefix = isExported ? 'export ' : '';
+  if (kind === 'function' || kind === 'class') {
+    // Cortar en el primer `{` (body opening) — el signature es todo antes.
+    const braceIdx = raw.indexOf('{');
+    const untilBrace = braceIdx >= 0 ? raw.slice(0, braceIdx).trimEnd() : raw;
+    // Colapsar whitespace multi-line
+    const collapsed = untilBrace.replace(/\s+/g, ' ').trim();
+    const withPrefix = prefix + collapsed;
+    return withPrefix.length > MAX_SIGNATURE_CHARS
+      ? `${withPrefix.slice(0, MAX_SIGNATURE_CHARS - 1)}…`
+      : withPrefix;
+  }
+  // const: primera línea del text, truncado
+  const firstLine = raw.split('\n', 1)[0] ?? '';
+  const collapsed = firstLine.replace(/\s+/g, ' ').trim();
+  const withPrefix = prefix + collapsed;
+  return withPrefix.length > MAX_SIGNATURE_CHARS
+    ? `${withPrefix.slice(0, MAX_SIGNATURE_CHARS - 1)}…`
+    : withPrefix;
+}
+
+/**
  * Extrae símbolos top-level (function/class/const) desde AST TS/JS.
  * `exported` = true si tiene modifier `export` o esta dentro de un
  * `export_statement`.
+ *
+ * DG-127 A (Cycle 113 FASE II): también extrae `signature` — primera línea
+ * de la declaration (function signature hasta `{` o const preview).
+ * Habilita cross-file signature attachment en el prompt del Triage Agent.
  */
 function extractJsSymbols(rootNode: any): FileSymbol[] {
   const symbols: FileSymbol[] = [];
@@ -411,11 +665,14 @@ function extractJsSymbols(rootNode: any): FileSymbol[] {
       }
     }
     if (kind !== null && name !== undefined && name.length > 0) {
+      // DG-127 A: capturar signature del target node (primera línea).
+      const signature = extractSignatureFromNode(target, exported, kind);
       symbols.push({
         name,
         kind,
         exported,
         startLine: target.startPosition.row + 1,
+        ...(signature.length > 0 ? { signature } : {}),
       });
     }
   }
@@ -645,13 +902,20 @@ export async function buildInteractionGraph(
     absPath: string;
     relPath: string;
     language: SupportedLanguage;
-    rawImports: string[];
+    /** DG-127 A: rich imports con local names capturados del import_clause. */
+    richImports: JsImportSpec[];
     /**
-     * DG-126 A R1 (Cycle 112 FASE I): bare imports (npm packages / node
-     * builtins) — populados en el pass resolve más abajo. Tuple readonly
-     * porque no mutan tras la separación relative/bare.
+     * DG-126 A R1: bare imports (npm packages / node builtins) — populados en
+     * el pass resolve más abajo.
      */
     bareImports: string[];
+    /**
+     * DG-127 A (Cycle 113 FASE II): symbols locales → archivo source resuelto
+     * poblado en el pass resolve. Habilita cross-file signature lookup.
+     */
+    importedSymbols: { name: string; fromFile: string }[];
+    /** Paths relativos resueltos (mismos que fileContext.imports). */
+    resolvedImports: string[];
     symbols: FileSymbol[];
   }
   const intermediate: Intermediate[] = [];
@@ -679,40 +943,59 @@ export async function buildInteractionGraph(
     }
     if (tree === null || tree === undefined) continue;
     const rootNode = tree.rootNode;
-    const rawImports =
-      language === 'python' ? extractPythonImports(rootNode) : extractJsImports(rootNode);
+    // DG-127 A: rich imports para JS/TS (local names capturados). Para Python
+    // v1.1 usamos wrapper compatible con sources-only (deferrable a v2.1).
+    const richImports: JsImportSpec[] =
+      language === 'python'
+        ? extractPythonImports(rootNode).map((source) => ({ source, localNames: [] }))
+        : extractJsImportsRich(rootNode);
     const symbols =
       language === 'python' ? extractPythonSymbols(rootNode) : extractJsSymbols(rootNode);
     const relPath = relative(rootPath, absPath).split(/[\\/]/).join('/');
-    intermediate.push({ absPath, relPath, language, rawImports, bareImports: [], symbols });
+    intermediate.push({
+      absPath,
+      relPath,
+      language,
+      richImports,
+      bareImports: [],
+      importedSymbols: [],
+      resolvedImports: [],
+      symbols,
+    });
   }
 
   // Resolve imports + build reverse-index.
   // DG-126 A R1: separa bare imports (npm packages / node builtins) de los
-  // relativos en el mismo pass. Bare imports NO se resuelven a nodos del
-  // graph (no son archivos del workspace) pero SÍ se capturan como
-  // metadata informacional en fileContext.bareImports para el prompt del
-  // Triage Agent. Pre-R1 se descartaban silenciosamente en resolveImportPath.
+  // relativos. Bare imports NO se resuelven a nodos del graph pero SÍ se
+  // capturan como metadata informacional.
+  // DG-127 A: adicionalmente, para cada spec resuelto, poblar
+  // importedSymbols[{name, fromFile}] con los local names del import_clause
+  // mapeados al fromFile resuelto. Habilita cross-file signature lookup.
   const importedByIndex = new Map<string, Set<string>>();
   for (const entry of intermediate) {
     const resolvedImports: string[] = [];
     const bareImports: string[] = [];
-    for (const spec of entry.rawImports) {
-      if (!spec.startsWith('.')) {
+    const importedSymbols: { name: string; fromFile: string }[] = [];
+    for (const spec of entry.richImports) {
+      if (!spec.source.startsWith('.')) {
         // Bare import — captura como informational metadata.
-        bareImports.push(spec);
+        bareImports.push(spec.source);
         continue;
       }
-      const resolved = resolveImportPath(entry.absPath, spec, rootPath);
+      const resolved = resolveImportPath(entry.absPath, spec.source, rootPath);
       if (resolved !== null) {
         resolvedImports.push(resolved);
         if (!importedByIndex.has(resolved)) importedByIndex.set(resolved, new Set());
         importedByIndex.get(resolved)!.add(entry.relPath);
+        // DG-127 A: poblar importedSymbols per local name del clause.
+        for (const localName of spec.localNames) {
+          importedSymbols.push({ name: localName, fromFile: resolved });
+        }
       }
     }
-    // Store back on entry for the final pass.
-    entry.rawImports = resolvedImports;
+    entry.resolvedImports = resolvedImports;
     entry.bareImports = bareImports;
+    entry.importedSymbols = importedSymbols;
   }
 
   // Final graph nodes.
@@ -727,10 +1010,14 @@ export async function buildInteractionGraph(
     const exportedSymbols = definedSymbols.filter((s) => s.exported).map((s) => s.name);
     const fileContext: FileContext = {
       language: entry.language,
-      imports: [...new Set(entry.rawImports)].sort(),
+      imports: [...new Set(entry.resolvedImports)].sort(),
       importedBy,
       // DG-126 A R1: bareImports dedupeados + sorted para determinism.
       bareImports: [...new Set(entry.bareImports)].sort(),
+      // DG-127 A: importedSymbols preservados en orden de aparición
+      // (importantes para cross-file lookup — el prompt formatter puede
+      // priorizar por orden en el snippet).
+      importedSymbols: entry.importedSymbols,
       inferredRole,
     };
     const symbolContext: SymbolContext = {
@@ -752,4 +1039,142 @@ export function getInteractionContextForPath(
   findingPath: string,
 ): InteractionGraphNode | undefined {
   return graph.get(findingPath);
+}
+
+/**
+ * DG-127 A helper (Cycle 113 FASE II): extrae identifier tokens de un snippet.
+ * Simple regex-based scanner (no AST) — captura secuencias de identifier chars
+ * separadas por non-identifier chars. Suficiente para el use case (cruzar
+ * identifiers del snippet vs importedSymbols mapping).
+ *
+ * Filtra keywords JS/TS + Python que nunca serían symbols importados. Preserve
+ * orden de aparición para priorizar en el prompt formatter.
+ */
+const JS_TS_PY_KEYWORDS = new Set([
+  'const',
+  'let',
+  'var',
+  'function',
+  'class',
+  'return',
+  'if',
+  'else',
+  'for',
+  'while',
+  'do',
+  'switch',
+  'case',
+  'break',
+  'continue',
+  'try',
+  'catch',
+  'finally',
+  'throw',
+  'new',
+  'this',
+  'super',
+  'await',
+  'async',
+  'yield',
+  'true',
+  'false',
+  'null',
+  'undefined',
+  'void',
+  'typeof',
+  'instanceof',
+  'in',
+  'of',
+  'import',
+  'export',
+  'from',
+  'as',
+  'default',
+  'type',
+  'interface',
+  'enum',
+  'namespace',
+  'public',
+  'private',
+  'protected',
+  'readonly',
+  'static',
+  'abstract',
+  'implements',
+  'extends',
+  'and',
+  'or',
+  'not',
+  'is',
+  'lambda',
+  'pass',
+  'raise',
+  'with',
+  'yield',
+  'None',
+  'True',
+  'False',
+]);
+
+export function extractIdentifiersFromSnippet(snippet: string): string[] {
+  const found = new Set<string>();
+  const ordered: string[] = [];
+  const identifierRegex = /[A-Za-z_$][A-Za-z0-9_$]*/g;
+  let match: RegExpExecArray | null;
+  while ((match = identifierRegex.exec(snippet)) !== null) {
+    const token = match[0];
+    if (JS_TS_PY_KEYWORDS.has(token)) continue;
+    if (!found.has(token)) {
+      found.add(token);
+      ordered.push(token);
+    }
+  }
+  return ordered;
+}
+
+/**
+ * DG-127 A (Cycle 113 FASE II): resuelve cross-file signatures per-finding.
+ * Toma el snippet del finding, extrae identifiers, matches contra
+ * fileContext.importedSymbols para saber de qué archivo viene cada uno,
+ * y busca la signature en el graph node del archivo target.
+ *
+ * Cap defensivo aplicado: `MAX_CROSS_FILE_SIGNATURES_PER_FINDING = 3`.
+ * Preserve orden de aparición en el snippet — LLM ve los symbols en el
+ * mismo orden que aparecen en el codigo.
+ *
+ * Retorna array vacío si el finding no tiene snippet, o si ninguno de los
+ * identifiers match con importedSymbols, o si el fromFile del import NO
+ * está en el graph (edge case: import a un archivo excluido).
+ */
+export function resolveCrossFileSignatures(
+  snippet: string | undefined,
+  importedSymbols: readonly { name: string; fromFile: string }[],
+  graph: Map<string, InteractionGraphNode>,
+): CrossFileContext['signatures'] {
+  if (snippet === undefined || snippet.length === 0) return [];
+  const identifiers = extractIdentifiersFromSnippet(snippet);
+  if (identifiers.length === 0) return [];
+  const importsByName = new Map<string, string>();
+  for (const spec of importedSymbols) {
+    if (!importsByName.has(spec.name)) importsByName.set(spec.name, spec.fromFile);
+  }
+  const result: CrossFileContext['signatures'] = [];
+  for (const identifier of identifiers) {
+    if (result.length >= MAX_CROSS_FILE_SIGNATURES_PER_FINDING) break;
+    const fromFile = importsByName.get(identifier);
+    if (fromFile === undefined) continue;
+    const targetNode = graph.get(fromFile);
+    if (targetNode === undefined) continue;
+    // Busca symbol con name idéntico en el target file's definedSymbols.
+    const targetSymbol = targetNode.symbolContext.definedSymbols.find((s) => s.name === identifier);
+    if (targetSymbol === undefined) continue;
+    if (targetSymbol.signature === undefined || targetSymbol.signature.length === 0) continue;
+    result.push({
+      symbolName: identifier,
+      sourceFile: fromFile,
+      sourceLine: targetSymbol.startLine,
+      signature: targetSymbol.signature,
+    });
+  }
+  return result;
 }

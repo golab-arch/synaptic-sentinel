@@ -207,6 +207,22 @@ export function formatInteractionContext(finding: Finding): string {
       parts.push(`- Symbols: ${shown.join(', ')}${suffix}`);
     }
   }
+  // DG-127 A (Cycle 113 FASE II): cross-file signatures — el LLM ve la
+  // signature de symbols importados que aparecen en el snippet del finding.
+  // Este es el enabler del North Star case (SYNAPTIC_SAAS agent.ts calling
+  // agentLoop.execute() where execute() is defined in agent-loop.ts).
+  // Pre-DG-127 A el LLM veía "cannot determine internals of agentLoop.execute";
+  // post-DG-127 A ve la signature completa y puede razonar cross-file.
+  const cfc = finding.crossFileContext;
+  const crossSigs = cfc?.signatures ?? [];
+  if (crossSigs.length > 0) {
+    parts.push('- Cross-file symbols referenced in snippet (DG-127 A — R18 v2):');
+    for (const sig of crossSigs) {
+      parts.push(
+        `  · ${sig.symbolName} defined at ${sig.sourceFile}:${String(sig.sourceLine)} — \`${sig.signature}\``,
+      );
+    }
+  }
   return parts.join('\n');
 }
 

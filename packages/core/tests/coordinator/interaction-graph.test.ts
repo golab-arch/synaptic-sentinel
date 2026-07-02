@@ -3,9 +3,12 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
+  MAX_CROSS_FILE_SIGNATURES_PER_FINDING,
   SUPPORTED_LANGUAGES,
   buildInteractionGraph,
   detectLanguage,
+  extractIdentifiersFromSnippet,
+  resolveCrossFileSignatures,
 } from '../../src/coordinator/interaction-graph.js';
 
 /**
@@ -385,5 +388,213 @@ describe('buildInteractionGraph — fallback graceful', () => {
     } finally {
       rmSync(workspace, { recursive: true, force: true });
     }
+  });
+});
+
+// ============================================================================
+// DG-127 A (Cycle 113 FASE II) — R18 v2 symbol-level cross-file resolution
+// ============================================================================
+
+describe('DG-127 A — extractIdentifiersFromSnippet', () => {
+  it('captura identifiers básicos preservando orden de aparición', () => {
+    const snippet = 'agentLoop.execute(orchestrationRequest)';
+    const ids = extractIdentifiersFromSnippet(snippet);
+    expect(ids).toEqual(['agentLoop', 'execute', 'orchestrationRequest']);
+  });
+
+  it('filtra JS/TS keywords (const, function, return, etc.)', () => {
+    const snippet = 'const result = await agentLoop.execute(req);\nreturn result;';
+    const ids = extractIdentifiersFromSnippet(snippet);
+    expect(ids).toContain('agentLoop');
+    expect(ids).toContain('execute');
+    expect(ids).toContain('req');
+    expect(ids).toContain('result');
+    expect(ids).not.toContain('const');
+    expect(ids).not.toContain('await');
+    expect(ids).not.toContain('return');
+  });
+
+  it('dedupe — cada identifier aparece solo una vez aunque se repita en el snippet', () => {
+    const snippet = 'x.foo(x, y, x)';
+    const ids = extractIdentifiersFromSnippet(snippet);
+    expect(ids).toEqual(['x', 'foo', 'y']);
+  });
+
+  it('devuelve array vacío para snippet vacío o solo símbolos', () => {
+    expect(extractIdentifiersFromSnippet('')).toEqual([]);
+    expect(extractIdentifiersFromSnippet('()[]{};')).toEqual([]);
+  });
+});
+
+describe('DG-127 A — buildInteractionGraph populates fileContext.importedSymbols + FileSymbol.signature', () => {
+  let workspace: string;
+
+  beforeEach(() => {
+    workspace = mkdtempSync(join(tmpdir(), 'sentinel-graph-dg127-'));
+  });
+
+  afterEach(() => {
+    rmSync(workspace, { recursive: true, force: true });
+  });
+
+  it('captura importedSymbols con local names → fromFile resuelto', async () => {
+    mkdirSync(join(workspace, 'src'), { recursive: true });
+    writeFileSync(
+      join(workspace, 'src', 'consumer.ts'),
+      "import { execute, helper } from './services/agent-loop.js';\nimport def from './default-thing.js';\nexport const run = () => execute(helper()) + def();\n",
+    );
+    mkdirSync(join(workspace, 'src', 'services'), { recursive: true });
+    writeFileSync(
+      join(workspace, 'src', 'services', 'agent-loop.ts'),
+      'export function execute(x) { return x; }\nexport function helper() { return 1; }\n',
+    );
+    writeFileSync(join(workspace, 'src', 'default-thing.ts'), 'export default function d() {}\n');
+
+    const graph = await buildInteractionGraph(workspace);
+    const consumer = graph.get('src/consumer.ts');
+    expect(consumer).toBeDefined();
+    const imported = consumer!.fileContext.importedSymbols;
+    // Named imports: execute + helper mapeados a agent-loop.ts
+    expect(imported).toContainEqual({
+      name: 'execute',
+      fromFile: 'src/services/agent-loop.ts',
+    });
+    expect(imported).toContainEqual({
+      name: 'helper',
+      fromFile: 'src/services/agent-loop.ts',
+    });
+    // Default import: def mapeado a default-thing.ts
+    expect(imported).toContainEqual({
+      name: 'def',
+      fromFile: 'src/default-thing.ts',
+    });
+  });
+
+  it('captura signature de function/class exports en definedSymbols', async () => {
+    writeFileSync(
+      join(workspace, 'lib.ts'),
+      [
+        'export function execute(req: OrchestrationRequest): Promise<Result> {',
+        '  return db.query(req);',
+        '}',
+        'export class AgentLoop {',
+        '  private state: State;',
+        '}',
+        'export const CAP = 100;',
+      ].join('\n') + '\n',
+    );
+    const graph = await buildInteractionGraph(workspace);
+    const node = graph.get('lib.ts');
+    expect(node).toBeDefined();
+    const symbols = node!.symbolContext.definedSymbols;
+
+    const executeFn = symbols.find((s) => s.name === 'execute');
+    expect(executeFn).toBeDefined();
+    expect(executeFn!.signature).toContain('export function execute(');
+    expect(executeFn!.signature).toContain('OrchestrationRequest');
+    // Signature termina antes del brace de apertura
+    expect(executeFn!.signature).not.toContain('{');
+
+    const classAgent = symbols.find((s) => s.name === 'AgentLoop');
+    expect(classAgent).toBeDefined();
+    expect(classAgent!.signature).toContain('export class AgentLoop');
+    expect(classAgent!.signature).not.toContain('{');
+
+    const constCap = symbols.find((s) => s.name === 'CAP');
+    expect(constCap).toBeDefined();
+    expect(constCap!.signature).toContain('CAP');
+  });
+});
+
+describe('DG-127 A — resolveCrossFileSignatures (North Star use case)', () => {
+  let workspace: string;
+
+  beforeEach(() => {
+    workspace = mkdtempSync(join(tmpdir(), 'sentinel-graph-dg127-nstar-'));
+  });
+
+  afterEach(() => {
+    rmSync(workspace, { recursive: true, force: true });
+  });
+
+  it('resuelve signature cross-file para el finding SQL injection (SYNAPTIC_SAAS-like)', async () => {
+    // Fixture del North Star case: agent.ts importa execute de agent-loop.ts
+    // y llama execute() en el snippet del finding. Post-DG-127 A el LLM ve la
+    // signature real desde agent-loop.ts.
+    mkdirSync(join(workspace, 'src', 'services'), { recursive: true });
+    writeFileSync(
+      join(workspace, 'src', 'agent.ts'),
+      "import { agentLoop } from './services/agent-loop.js';\nexport function route(req) { return agentLoop.execute(req); }\n",
+    );
+    writeFileSync(
+      join(workspace, 'src', 'services', 'agent-loop.ts'),
+      'export class agentLoop {\n  static execute(req) { return db.query(req); }\n}\n',
+    );
+
+    const graph = await buildInteractionGraph(workspace);
+    const agentNode = graph.get('src/agent.ts');
+    expect(agentNode).toBeDefined();
+
+    // El snippet del finding menciona agentLoop.execute — resolver debe
+    // devolver la signature de agentLoop (que es lo importado).
+    const snippet = 'agentLoop.execute(req)';
+    const sigs = resolveCrossFileSignatures(snippet, agentNode!.fileContext.importedSymbols, graph);
+    expect(sigs.length).toBeGreaterThan(0);
+    const agentLoopSig = sigs.find((s) => s.symbolName === 'agentLoop');
+    expect(agentLoopSig).toBeDefined();
+    expect(agentLoopSig!.sourceFile).toBe('src/services/agent-loop.ts');
+    expect(agentLoopSig!.signature).toContain('export class agentLoop');
+  });
+
+  it('cap defensivo — máximo MAX_CROSS_FILE_SIGNATURES_PER_FINDING signatures', async () => {
+    mkdirSync(join(workspace, 'src'), { recursive: true });
+    writeFileSync(
+      join(workspace, 'src', 'consumer.ts'),
+      "import { a, b, c, d, e, f } from './many.js';\nexport const use = () => a() + b() + c() + d() + e() + f();\n",
+    );
+    writeFileSync(
+      join(workspace, 'src', 'many.ts'),
+      [
+        'export function a() {}',
+        'export function b() {}',
+        'export function c() {}',
+        'export function d() {}',
+        'export function e() {}',
+        'export function f() {}',
+      ].join('\n') + '\n',
+    );
+    const graph = await buildInteractionGraph(workspace);
+    const consumer = graph.get('src/consumer.ts');
+    const snippet = 'a() + b() + c() + d() + e() + f()';
+    const sigs = resolveCrossFileSignatures(snippet, consumer!.fileContext.importedSymbols, graph);
+    // Cap defensivo enforcement
+    expect(sigs.length).toBeLessThanOrEqual(MAX_CROSS_FILE_SIGNATURES_PER_FINDING);
+    expect(sigs.length).toBe(3);
+    // Preserva orden de aparición en el snippet
+    expect(sigs[0]!.symbolName).toBe('a');
+    expect(sigs[1]!.symbolName).toBe('b');
+    expect(sigs[2]!.symbolName).toBe('c');
+  });
+
+  it('devuelve vacío cuando snippet undefined o no matches con importedSymbols', async () => {
+    mkdirSync(join(workspace, 'src'), { recursive: true });
+    writeFileSync(
+      join(workspace, 'src', 'a.ts'),
+      "import { x } from './b.js';\nexport const use = () => x();\n",
+    );
+    writeFileSync(join(workspace, 'src', 'b.ts'), 'export function x() {}\n');
+    const graph = await buildInteractionGraph(workspace);
+    const nodeA = graph.get('src/a.ts');
+
+    // snippet undefined
+    expect(
+      resolveCrossFileSignatures(undefined, nodeA!.fileContext.importedSymbols, graph),
+    ).toEqual([]);
+    // snippet sin identifiers importados
+    expect(
+      resolveCrossFileSignatures('const foo = 1;', nodeA!.fileContext.importedSymbols, graph),
+    ).toEqual([]);
+    // importedSymbols vacío
+    expect(resolveCrossFileSignatures('x()', [], graph)).toEqual([]);
   });
 });

@@ -5,7 +5,11 @@ import type { Pheromone } from '../types/pheromone.js';
 import type { Scan, ScanMode } from '../types/scan.js';
 import type { ScanRequest, ScoutAgent, ScoutResult, ScoutStatus } from '../types/scout-agent.js';
 import { isPathExcluded } from './excluded-paths.js';
-import { buildInteractionGraph, type InteractionGraphNode } from './interaction-graph.js';
+import {
+  buildInteractionGraph,
+  resolveCrossFileSignatures,
+  type InteractionGraphNode,
+} from './interaction-graph.js';
 
 /**
  * Presupuesto de tiempo por defecto para un scout: 5 minutos. Es un
@@ -305,10 +309,25 @@ export class Coordinator {
           /* se ignora */
         }
       }
+      // DG-127 A (Cycle 113 FASE II): precompute cross-file signatures
+      // desde el snippet del finding + importedSymbols del node + graph.
+      // Best-effort — snippet undefined o sin matches → array vacío. El
+      // resultado embed en la Finding para que el prompt formatter downstream
+      // pueda leerlo sin acceso al graph.
+      const crossFileSignatures = resolveCrossFileSignatures(
+        finding.location.snippet,
+        node.fileContext.importedSymbols,
+        interactionGraph,
+      );
       return {
         ...finding,
         fileContext: node.fileContext,
         symbolContext: node.symbolContext,
+        // Solo emit crossFileContext si hay matches — evita "empty" en
+        // findings sin snippet o sin imports resueltos.
+        ...(crossFileSignatures.length > 0
+          ? { crossFileContext: { signatures: crossFileSignatures } }
+          : {}),
       };
     });
 

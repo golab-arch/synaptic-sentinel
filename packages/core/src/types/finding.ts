@@ -1,5 +1,9 @@
 import { z } from 'zod';
-import { FileContextSchema, SymbolContextSchema } from '../coordinator/interaction-graph.js';
+import {
+  CrossFileContextSchema,
+  FileContextSchema,
+  SymbolContextSchema,
+} from '../coordinator/interaction-graph.js';
 import { PriorityScoreSchema } from '../coordinator/priority-score.js';
 import { SeveritySchema } from './severity.js';
 
@@ -251,6 +255,23 @@ export const FindingSchema = z.object({
    * `fileContext`.
    */
   symbolContext: SymbolContextSchema.optional(),
+  /**
+   * DG-127 A (Cycle 113 FASE II — R18 v2 symbol-level cross-file resolution).
+   *
+   * Signatures cross-file resueltas per-finding: para cada identifier del
+   * snippet que match un import, adjunta la signature del symbol en el
+   * archivo target. Precomputado en Coordinator Stage 1.5b desde
+   * `location.snippet` + `fileContext.importedSymbols` + graph nodes.
+   *
+   * Habilita al LLM razonar cross-module: en el caso original SQL injection
+   * cross-module (SYNAPTIC_SAAS `agent.ts` → `agentLoop.execute()`), el LLM
+   * ahora ve la signature de `execute()` desde `agent-loop.ts` sin pedir
+   * "internals". Cap defensivo: MAX_CROSS_FILE_SIGNATURES_PER_FINDING = 3.
+   *
+   * Aditivo backward-compat — findings de pre-DG-127 A en colony.db siguen
+   * valid con `crossFileContext` undefined.
+   */
+  crossFileContext: CrossFileContextSchema.optional(),
 });
 
 /** Hallazgo de seguridad. */
