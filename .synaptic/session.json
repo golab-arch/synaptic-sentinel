@@ -3,7 +3,7 @@
   "projectId": "sentinel-1779304140796",
   "projectName": "SENTINEL",
   "initializedAt": "2026-05-20T19:09:00.816Z",
-  "lastActivity": "2026-07-01T15:55:00.000Z",
+  "lastActivity": "2026-07-02T11:36:00.000Z",
   "currentCycle": 58,
   "currentPhase": 12,
   "synapticStrength": 100,
@@ -28,22 +28,27 @@
     "option": "A — Trust-first linear",
     "adopted_at": "2026-07-01T12:45:00.000Z",
     "current_phase": "FASE_I_foundations_of_trust",
-    "current_phase_progress": "1/2 DGs (DG-125 A shipped, DG-126 A pending)"
+    "current_phase_progress": "1.5/2 DGs (DG-125 A shipped + DG-125.0.1 shipped, DG-126 A R18 v1.1 pending post-Baseline-9b)"
   },
   "activeDG": {
-    "id": "DG-125-A",
-    "title": "Provider intermittent-empty root cause fix — retryOnEmptyContent + EmptyResponseError + graceful degradation a inconclusive verdict (Sub-A1 provider-agnostic)",
-    "status": "AWAITING_USER_BASELINE_9",
-    "artifact": "packages/vscode-extension/synaptic-sentinel-0.3.17-step-125-1.vsix",
-    "artifact_sha256": "98a88d8d9a06c328dfbd2df50b6686a53f80e84145433816592f27700910ac7c",
-    "artifact_bytes": 4136154,
+    "id": "DG-125.0.1",
+    "title": "Extensión graceful degradation a JSON parse errors — JsonParseError + Sub-A2 provider-agnostic + force clean rebuild (Cycle 112 FASE I)",
+    "status": "AWAITING_USER_BASELINE_9B_REINSTALL_CLEAN",
+    "artifact": "packages/vscode-extension/synaptic-sentinel-0.3.17-step-125-2.vsix",
+    "artifact_sha256": "bd94101893312910f3f751f0a0044e97c246a82d9cbd2d2232dd61d44720bf8f",
+    "artifact_bytes": 4136613,
     "artifact_files": 1849,
-    "parent_phase": "FASE_I_foundations_of_trust",
-    "option_selected": "Sub-A1 Conservative Minimal (application-level retry + graceful degradation)",
-    "provider_agnostic_scope": "Aplica a los 14+ providers OpenAI-compatible: openai, groq, deepseek, mistral, together, fireworks, perplexity, xAI, gemini-compat, AWS bedrock-mantle, Azure OpenAI v1, ollama, LM Studio, vLLM",
-    "baseline_9_acceptance": "install step-125-1.vsix + re-scan SENTINEL (learning_records aun limpio) + Re-triage all → (a) findings previamente API-empty son RESCATADOS (best case) O quedan persistidos como INC con rationale DG-125 A determinístico (guaranteed case); (b) latency total +2-9s por retries backoff; (c) NO más findings sin veredicto (guardan siempre en verdict, aunque sea inconclusive-DG-125 A); (d) provider-agnostic verificado (test 5 con groq-llama providerLabel)",
-    "verify_status": "VERDE 786 tests (779 baseline post-DG-124 A + 7 nuevos DG-125 A: retry rescue 1x/2x/exhausted + metadata carry + NON-empty pass-through + integration end-to-end)",
-    "bitacora_entries": [165, 166, 167],
-    "next_dg_in_fase_i": "DG-126 A R18 v1.1 refinements (bare imports informativos + role=leaf semantics + symbols=1 detectors.ts fix + graph cache) — post-Baseline-9 validation"
+    "bundle_markers_grep_count": 21,
+    "parent_dg": "DG-125-A",
+    "option_selected": "Sub-A2 Balanced Extension + force clean rebuild (rm -rf dist + tsbuildinfo)",
+    "baseline_9_2_error_classes_covered": {
+      "class_A_sin_texto_3_findings": "DG-125 A retry + graceful degradation (backoff 500ms+1000ms)",
+      "class_B_no_JSON_2_findings": "DG-125.0.1 JsonParseError → inconclusive determinístico (no retry — content-filter policy es determinístico)"
+    },
+    "baseline_9b_acceptance": "REINSTALL CLEAN (uninstall + verify carpeta borrada + install step-125-2 + reload window + grep verify 21 markers) + re-scan + re-triage con deepseek-v4-pro → (1) 0 lines '! triage failed for' — todos los findings tienen graceful degradation path; (2) findings previamente 'sin texto': rescate LLM O ⚠ INC 'EmptyResponseError from ...; DG-125 A graceful degradation'; (3) findings previamente 'no JSON': ⚠ INC 'JsonParseError; DG-125.0.1 graceful degradation' + rationale citing parseFailure + rawSample; (4) 6/6 findings tienen veredicto persistido en sidebar; (5) latency +5s vs step-125-1 esperado; (6) IF outcome differs from expected → hipótesis build-stale invalid → escalar Sub-A3 diagnostic env var",
+    "verify_status": "VERDE 789 tests (786 baseline post-DG-125 A + 3 nuevos DG-125.0.1: typed error throw, parseFailure+rawSample metadata carry, ellipsis truncation)",
+    "bitacora_entries": [165, 166, 167, 168, 169],
+    "hypothesis_build_stale_test": "step-125-2 built via `rm -rf packages/*/dist packages/*/.tsbuildinfo packages/*/tsconfig.tsbuildinfo && pnpm build` — descarta build-stale como cause raíz del comportamiento contradictorio en Baseline-9 (bundle contenía código pero terminal mostró mensaje raw). Reinstall CLEAN user-side descarta también VSCode cache staleness. Si Baseline-9b sigue mismo bug → escalate Sub-A3.",
+    "next_dg_in_fase_i": "DG-126 A R18 v1.1 refinements — post-Baseline-9b validation"
   }
 }
