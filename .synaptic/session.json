@@ -3,7 +3,7 @@
   "projectId": "sentinel-1779304140796",
   "projectName": "SENTINEL",
   "initializedAt": "2026-05-20T19:09:00.816Z",
-  "lastActivity": "2026-07-02T12:00:00.000Z",
+  "lastActivity": "2026-07-02T13:04:00.000Z",
   "currentCycle": 58,
   "currentPhase": 12,
   "synapticStrength": 100,
@@ -28,20 +28,23 @@
     "option": "A — Trust-first linear",
     "adopted_at": "2026-07-01T12:45:00.000Z",
     "current_phase": "FASE_I_foundations_of_trust",
-    "current_phase_progress": "1.5/2 DGs (DG-125 A + DG-125.0.1 shipped y validated Baseline-9b PASS, DG-126 A pending technical DG)"
+    "current_phase_progress": "2/2 DGs shipped (DG-125 A + DG-125.0.1 validated Baseline-9b PASS + DG-126 A pending Baseline-10 validation)"
   },
   "activeDG": {
     "id": "DG-126-A",
-    "title": "R18 v1.1 refinements — bare imports info + role=leaf semantics + symbols=1 detectors.ts fix + graph cache (último DG de FASE I)",
-    "status": "PENDING_TECHNICAL_DG",
+    "title": "R18 v1.1 refinements — R1 bare imports info + R2 inferRole semantics fix (R3 misdiagnosed, honestly DROPPED)",
+    "status": "AWAITING_USER_BASELINE_10",
+    "artifact": "packages/vscode-extension/synaptic-sentinel-0.3.17-step-126-1.vsix",
+    "artifact_sha256": "d214ef6eb9935f156331429b2fdec9bb1cc2a13b8ebe1d742bda4021796268a0",
+    "artifact_bytes": 4138159,
+    "artifact_files": 1849,
+    "bundle_markers_grep_count": 12,
     "parent_phase": "FASE_I_foundations_of_trust",
-    "predecessor_baseline_9b_status": "PASS empírico cross-model — 0 lines 'triage failed' + 6/6 findings persisted + DG-125 A EmptyResponseError fires + DG-125.0.1 JsonParseError fires",
-    "candidate_refinements_from_r18_v1_known_issues": {
-      "R1_bare_imports_info": "Actualmente imports=1 para colony-db.ts porque bare imports (zod, node-sqlite3-wasm, node:*) están excluidos. Agregar como informational metadata sin resolver a nodos del graph.",
-      "R2_role_leaf_semantics": "inferRole devuelve 'leaf' cuando importedByCount === 1 (después del check >= 2 → library). Conventionally 'leaf' implica 0 importers. Refinamiento: 'leaf' solo con importedByCount === 0, 'branch' o 'utility' con 1.",
-      "R3_symbols_count_detectors_ts": "detectors.ts muestra symbols=1 en telemetría. Probable bug en extractTypescriptSymbols para archivos con TypeScript patterns específicos (arrow-function-assigned consts, spread arrays, etc.). Investigar y fix.",
-      "R4_graph_cache": "Graph se reconstruye cada scan (~500ms-2s + 800ms-2s por WASM init). Cache invalidated by file-mtime hash del content de source files. Aceleraría re-scans en workspaces grandes."
-    },
-    "bitacora_entries": [165, 166, 167, 168, 169, 170]
+    "option_selected": "Sub-A2 Balanced (R1+R2+R3 → R1+R2 tras R3 misdiagnosis verificado)",
+    "r3_dropped_reason": "Verificación empírica pre-implementation reveló que detectors.ts symbols=1 es CORRECTO — el archivo tiene 1 export const + 1 export interface, y extractJsSymbols solo captura function/class/const intencionalmente. Interfaces son TS-only sin runtime. Anti-optimismo activo: NO ship fix para un no-bug.",
+    "baseline_10_acceptance": "install step-126-1.vsix + re-scan + re-triage con deepseek-v4-flash (recomendado para minimizar content-filter interference): (1) detectors.ts telemetry cambió role='leaf' → 'library' con importedBy=1 (R2 fix visible); (2) rationales del LLM en re-triage citan tecnología externa ('this file uses zod', 'depends on node:crypto') — R1 movió la aguja si sí, o LLM sigue local reasoning si no; (3) 0 findings 'triage failed' (DG-125 A + DG-125.0.1 intact); (4) latency similar; (5) NO incremento del EmptyResponseError rate por prompt bloat de bareImports (anti-optimismo #1 check)",
+    "verify_status": "VERDE 794 tests (789 baseline post-DG-125.0.1 + 5 nuevos DG-126 A: bare imports mixed + vacío + role=library>=1 + role=leaf===0 + role=entry precedence)",
+    "bitacora_entries": [165, 166, 167, 168, 169, 170, 171, 172],
+    "post_baseline_10_pass_action": "FASE I CLOSE + successfulCycles: 114 + open FASE II (Cycles 114-115): DG-127 A R18 v2 symbol-level cross-file resolution + DG-128 A cross-file taint propagation + DG-129 A R19 module trust boundary tagging. EL SALTO DEL NORTH STAR."
   }
 }
