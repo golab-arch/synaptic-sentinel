@@ -148,7 +148,7 @@ describe('buildInteractionGraph — TypeScript fixtures', () => {
     expect(graph.has('fixtures/fx.ts')).toBe(false);
   });
 
-  it('resuelve bare imports (paquete npm) como no-op — solo relative imports se resuelven', async () => {
+  it('resuelve bare imports (paquete npm) como no-op — solo relative imports se resuelven, bare van a bareImports', async () => {
     writeFileSync(
       join(workspace, 'app.ts'),
       "import react from 'react';\nimport { z } from 'zod';\nexport const app = react;\n",
@@ -156,8 +156,93 @@ describe('buildInteractionGraph — TypeScript fixtures', () => {
     const graph = await buildInteractionGraph(workspace);
     const node = graph.get('app.ts');
     expect(node).toBeDefined();
-    // Bare imports NO se agregan al imports resolved list
+    // Bare imports NO se agregan al imports resolved list (relative-only)
     expect(node?.fileContext.imports).toEqual([]);
+    // DG-126 A R1: pero SÍ se capturan como bareImports para prompt informacional
+    expect(node?.fileContext.bareImports).toContain('react');
+    expect(node?.fileContext.bareImports).toContain('zod');
+  });
+
+  // DG-126 A R1 (Cycle 112 FASE I): bare imports como metadata informacional.
+  // Cubren npm packages + node builtins + scoped packages.
+  it('DG-126 A R1 — captura bare imports mixed (npm + node builtins + scoped)', async () => {
+    writeFileSync(
+      join(workspace, 'handler.ts'),
+      [
+        "import express from 'express';",
+        "import { readFileSync } from 'node:fs';",
+        "import { z } from 'zod';",
+        "import type { Finding } from '@synaptic-sentinel/core';",
+        'export function handle() { return express(); }',
+      ].join('\n') + '\n',
+    );
+    const graph = await buildInteractionGraph(workspace);
+    const node = graph.get('handler.ts');
+    expect(node).toBeDefined();
+    expect(node?.fileContext.bareImports).toContain('express');
+    expect(node?.fileContext.bareImports).toContain('node:fs');
+    expect(node?.fileContext.bareImports).toContain('zod');
+    expect(node?.fileContext.bareImports).toContain('@synaptic-sentinel/core');
+    // Verify sort + dedup (Set semantics)
+    const bare = node!.fileContext.bareImports;
+    const sorted = [...bare].sort();
+    expect(bare).toEqual(sorted);
+    expect(new Set(bare).size).toBe(bare.length);
+  });
+
+  it('DG-126 A R1 — bareImports vacío cuando el archivo solo tiene relative imports', async () => {
+    mkdirSync(join(workspace, 'src'), { recursive: true });
+    writeFileSync(
+      join(workspace, 'src', 'a.ts'),
+      "import { b } from './b';\nexport const a = b;\n",
+    );
+    writeFileSync(join(workspace, 'src', 'b.ts'), 'export const b = 42;\n');
+    const graph = await buildInteractionGraph(workspace);
+    const node = graph.get('src/a.ts');
+    expect(node).toBeDefined();
+    expect(node?.fileContext.imports).toContain('src/b.ts');
+    expect(node?.fileContext.bareImports).toEqual([]);
+  });
+
+  // DG-126 A R2 (Cycle 112 FASE I): inferRole semantics fix — importedByCount === 1
+  // ahora es 'library' (antes fallthrough incorrecto a 'leaf').
+  it('DG-126 A R2 — role=library para archivo con importedByCount === 1 (antes bug: leaf)', async () => {
+    mkdirSync(join(workspace, 'src'), { recursive: true });
+    writeFileSync(join(workspace, 'src', 'util.ts'), 'export const util = () => 1;\n');
+    writeFileSync(
+      join(workspace, 'src', 'consumer.ts'),
+      "import { util } from './util';\nexport const app = util();\n",
+    );
+    const graph = await buildInteractionGraph(workspace);
+    const utilNode = graph.get('src/util.ts');
+    expect(utilNode).toBeDefined();
+    // Post-R2: importedBy=1 (consumer) → library (antes: leaf por fallthrough)
+    expect(utilNode?.fileContext.importedBy.length).toBe(1);
+    expect(utilNode?.fileContext.inferredRole).toBe('library');
+  });
+
+  it('DG-126 A R2 — role=leaf para archivo con importedByCount === 0 no-entry-filename (antes: entry)', async () => {
+    // Archivo standalone que NO es entry filename (no index/main/app/cli)
+    // y nadie lo importa. Semantics correcto: leaf (orphan/dead-code candidate).
+    writeFileSync(join(workspace, 'orphan.ts'), 'export const dead = 1;\n');
+    const graph = await buildInteractionGraph(workspace);
+    const node = graph.get('orphan.ts');
+    expect(node).toBeDefined();
+    // Post-R2: importedBy=0 + no entry filename → leaf
+    expect(node?.fileContext.importedBy.length).toBe(0);
+    expect(node?.fileContext.inferredRole).toBe('leaf');
+  });
+
+  it('DG-126 A R2 — role=entry para index.ts aunque tenga importedByCount === 0 (entry-filename precedence)', async () => {
+    mkdirSync(join(workspace, 'src'), { recursive: true });
+    writeFileSync(join(workspace, 'src', 'index.ts'), "export * from './internal';\n");
+    writeFileSync(join(workspace, 'src', 'internal.ts'), 'export const x = 1;\n');
+    const graph = await buildInteractionGraph(workspace);
+    const indexNode = graph.get('src/index.ts');
+    expect(indexNode).toBeDefined();
+    // Nadie importa a index.ts en este mini-workspace, pero es filename entry
+    expect(indexNode?.fileContext.importedBy.length).toBe(0);
+    expect(indexNode?.fileContext.inferredRole).toBe('entry');
   });
 
   // DG-123.0.2 (Cycle 111): fix del bug detectado en Baseline-8c (SENTINEL

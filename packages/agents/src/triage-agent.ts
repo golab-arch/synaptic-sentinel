@@ -132,6 +132,16 @@ function truncateContent(content: string): string {
 const MAX_LISTED_IMPORTS_IN_PROMPT = 8;
 const MAX_LISTED_IMPORTERS_IN_PROMPT = 8;
 const MAX_LISTED_SYMBOLS_IN_PROMPT = 12;
+/**
+ * DG-126 A R1 (Cycle 112 FASE I): cap más restrictivo para bare imports
+ * (npm packages / node builtins). Los archivos ricos en tech-surface tienen
+ * 10-20 bare deps; el LLM solo necesita ver las top-5 para inferir el rol
+ * tecnológico (Express handler / React component / Node util / etc.).
+ * Cap agresivo (vs 8 de imports relative) para minimizar prompt bloat
+ * observado en Baseline-9b como posible contribución al content-filter
+ * trigger rate en providers agresivos.
+ */
+const MAX_LISTED_BARE_IMPORTS_IN_PROMPT = 5;
 
 /**
  * Formatea el `fileContext` + `symbolContext` (DG-123 A Cycle 111) para
@@ -166,6 +176,20 @@ export function formatInteractionContext(finding: Finding): string {
       const elided = importedByCount - shown.length;
       const suffix = elided > 0 ? ` … (+${String(elided)} more)` : '';
       parts.push(`- Imported by: ${shown.join(', ')}${suffix}`);
+    }
+    // DG-126 A R1: bare imports (npm packages / node builtins) — informacional
+    // sobre la tech surface del archivo. Cap agresivo (5) para minimizar
+    // contribución al prompt bloat que podría triggerear content-filter en
+    // providers agresivos (observado empíricamente en Baseline-9b).
+    const bareImports = fc.bareImports ?? [];
+    const bareCount = bareImports.length;
+    if (bareCount > 0) {
+      const shown = bareImports.slice(0, MAX_LISTED_BARE_IMPORTS_IN_PROMPT);
+      const elided = bareCount - shown.length;
+      const suffix = elided > 0 ? ` … (+${String(elided)} more)` : '';
+      parts.push(
+        `- External deps (${String(bareCount)} bare import(s)): ${shown.join(', ')}${suffix}`,
+      );
     }
   }
   if (sc !== undefined) {

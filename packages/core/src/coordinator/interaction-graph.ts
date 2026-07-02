@@ -85,12 +85,35 @@ export const FileContextSchema = z.object({
    */
   importedBy: z.array(z.string()).default([]),
   /**
-   * Rol inferido heurísticamente:
-   * - `entry`: filename matchea index/main/app/cli, o tiene 0 importers.
-   * - `library`: >=2 importers (usado ampliamente).
+   * DG-126 A (Cycle 112 FASE I R1): bare imports informacionales — paquetes
+   * npm (`react`, `zod`, `express`, `@synaptic-sentinel/core`) y builtins de
+   * Node (`node:fs`, `node:path`). No se resuelven a nodos del graph (no
+   * corresponden a archivos del workspace) pero SÍ dan contexto de tecnología
+   * al LLM: "este archivo usa express+zod" → probablemente un handler web;
+   * "este archivo usa @google-cloud/firestore" → probablemente storage layer.
+   *
+   * Antes de R1 (DG-123 A original), estos imports desaparecían silenciosa-
+   * mente porque resolveImportPath devolvía null. Empíricamente en Baseline-9b:
+   * colony-db.ts mostraba imports=1 pero tiene ~8 bare deps (zod,
+   * node-sqlite3-wasm, node:*, etc.) — el LLM veía "1 module" cuando el file
+   * tiene MUY diverse tech surface. Aditivo backward-compat: findings de
+   * pre-DG-126 A siguen valid con bareImports undefined.
+   */
+  bareImports: z.array(z.string()).default([]),
+  /**
+   * Rol inferido heurísticamente (DG-126 A R2 — semantics fix):
+   * - `entry`: filename matchea index/main/app/cli (typical entry point).
+   * - `library`: >=1 importer (usado por al menos un consumidor del workspace).
    * - `test`: path contiene segmento `test`/`__test__` o filename `.test./.spec.`.
-   * - `leaf`: 0 importers y no matchea entry heurística.
+   * - `leaf`: 0 importers y no matchea entry heurística — orphan/dead-code
+   *   candidate O standalone script sin filename convencional.
    * - `unknown`: ninguno de los anteriores (raro — fallback).
+   *
+   * PRE-R2 (DG-123 A original): 'library' requería >=2 importers; el caso
+   * `importedByCount === 1` caía por fallthrough a 'leaf', que es semantics
+   * incorrecto (leaf en graph theory = 0 importers, NO 1). Empíricamente en
+   * Baseline-9b: detectors.ts mostraba role=leaf importedBy=1, confundente.
+   * Post-R2: >=1 → 'library'; solo 0 importers no-entry-filename → 'leaf'.
    */
   inferredRole: z.enum(['entry', 'library', 'test', 'leaf', 'unknown']),
 });
@@ -545,7 +568,13 @@ function resolveImportPath(importer: string, specifier: string, rootPath: string
 }
 
 /**
- * Infiere el rol de un archivo heurísticamente (v1).
+ * Infiere el rol de un archivo heurísticamente.
+ *
+ * DG-126 A R2 (Cycle 112 FASE I): fix semantics de 'leaf'/'library' — antes el
+ * caso `importedByCount === 1` caía por fallthrough a 'leaf', semantics
+ * incorrecto (graph theory leaf = 0 importers). Empíricamente en Baseline-9b:
+ * detectors.ts mostraba role=leaf importedBy=1 confundente. Post-R2: >=1 →
+ * 'library'; solo 0 importers no-entry-filename → 'leaf'.
  */
 function inferRole(
   relPath: string,
@@ -559,8 +588,13 @@ function inferRole(
   const hasTestFilename = filename.includes('.test.') || filename.includes('.spec.');
   if (hasTestSegment || hasTestFilename) return 'test';
   if (isEntryFilename) return 'entry';
-  if (importedByCount >= 2) return 'library';
-  if (importedByCount === 0) return 'entry'; // 0 importers → likely entry (no importer means it's called externally)
+  // R2 fix: >=1 importer → library (relajado desde >=2). Elimina el
+  // fallthrough incorrecto a leaf para importedByCount === 1.
+  if (importedByCount >= 1) return 'library';
+  // R2 fix: 0 importers no-entry-filename → leaf (semantics correcto —
+  // orphan/dead-code candidate o standalone script sin filename convencional).
+  // Antes devolvía 'entry' aquí, misleading porque el archivo puede ser
+  // dead-code y no realmente entry.
   return 'leaf';
 }
 
@@ -612,6 +646,12 @@ export async function buildInteractionGraph(
     relPath: string;
     language: SupportedLanguage;
     rawImports: string[];
+    /**
+     * DG-126 A R1 (Cycle 112 FASE I): bare imports (npm packages / node
+     * builtins) — populados en el pass resolve más abajo. Tuple readonly
+     * porque no mutan tras la separación relative/bare.
+     */
+    bareImports: string[];
     symbols: FileSymbol[];
   }
   const intermediate: Intermediate[] = [];
@@ -644,14 +684,25 @@ export async function buildInteractionGraph(
     const symbols =
       language === 'python' ? extractPythonSymbols(rootNode) : extractJsSymbols(rootNode);
     const relPath = relative(rootPath, absPath).split(/[\\/]/).join('/');
-    intermediate.push({ absPath, relPath, language, rawImports, symbols });
+    intermediate.push({ absPath, relPath, language, rawImports, bareImports: [], symbols });
   }
 
   // Resolve imports + build reverse-index.
+  // DG-126 A R1: separa bare imports (npm packages / node builtins) de los
+  // relativos en el mismo pass. Bare imports NO se resuelven a nodos del
+  // graph (no son archivos del workspace) pero SÍ se capturan como
+  // metadata informacional en fileContext.bareImports para el prompt del
+  // Triage Agent. Pre-R1 se descartaban silenciosamente en resolveImportPath.
   const importedByIndex = new Map<string, Set<string>>();
   for (const entry of intermediate) {
     const resolvedImports: string[] = [];
+    const bareImports: string[] = [];
     for (const spec of entry.rawImports) {
+      if (!spec.startsWith('.')) {
+        // Bare import — captura como informational metadata.
+        bareImports.push(spec);
+        continue;
+      }
       const resolved = resolveImportPath(entry.absPath, spec, rootPath);
       if (resolved !== null) {
         resolvedImports.push(resolved);
@@ -661,6 +712,7 @@ export async function buildInteractionGraph(
     }
     // Store back on entry for the final pass.
     entry.rawImports = resolvedImports;
+    entry.bareImports = bareImports;
   }
 
   // Final graph nodes.
@@ -677,6 +729,8 @@ export async function buildInteractionGraph(
       language: entry.language,
       imports: [...new Set(entry.rawImports)].sort(),
       importedBy,
+      // DG-126 A R1: bareImports dedupeados + sorted para determinism.
+      bareImports: [...new Set(entry.bareImports)].sort(),
       inferredRole,
     };
     const symbolContext: SymbolContext = {
