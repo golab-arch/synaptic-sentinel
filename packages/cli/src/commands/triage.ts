@@ -25,6 +25,7 @@ import {
   buildAnthropicFallbackConfig,
   createLlmClient,
   EmptyResponseError,
+  JsonParseError,
   RemediationAgent,
   resolveApiKeyFromEnv,
   runAgent,
@@ -477,6 +478,7 @@ export async function runTriageCommand(options: TriageCommandOptions): Promise<n
         // nuevo. Provider-agnostic — aplica a cualquiera de los 14+
         // providers OpenAI-compatible.
         drainObservation(triageWrapper, 'triage', finding.fingerprint);
+        // DG-125 A: EmptyResponseError → inconclusive determinístico.
         if (err instanceof EmptyResponseError) {
           const emptyVerdict: TriageVerdict = {
             classification: 'inconclusive',
@@ -502,6 +504,41 @@ export async function runTriageCommand(options: TriageCommandOptions): Promise<n
             `  ${renderTriageTag('inconclusive', color)}  ${finding.title} ` +
               `— ${finding.location.path}:${String(finding.location.startLine)} ` +
               `(EmptyResponseError from ${err.providerLabel}; DG-125 A graceful degradation)`,
+          );
+          continue;
+        }
+        // DG-125.0.1 (Cycle 112 FASE I): JsonParseError → inconclusive
+        // determinístico. Empíricamente observado en Baseline-9 con
+        // deepseek-v4-pro: refusal messages ("I cannot help with this
+        // security bypass request") devuelven texto plano sin JSON. UX
+        // graceful degradation idéntica a EmptyResponseError — persist
+        // verdict + log ⚠ INC line con nota diagnostic. Provider-agnostic
+        // (aplica a cualquier provider con content-filter policy).
+        if (err instanceof JsonParseError) {
+          const jsonParseVerdict: TriageVerdict = {
+            classification: 'inconclusive',
+            confidence: 0,
+            rationale:
+              `Provider returned non-JSON output that could not be parsed as a triage ` +
+              `verdict. This typically indicates a refusal message (content-filter policy) ` +
+              `or malformed response. Cause: ${err.parseFailure}. Raw sample: "${err.rawSample}". ` +
+              `Try re-triaging with a different model in agents.yaml (some providers refuse ` +
+              `security-analysis prompts) or investigate the provider's policy.`,
+          };
+          verdicts.push({
+            id: randomUUID(),
+            scanId,
+            fingerprint: finding.fingerprint,
+            classification: jsonParseVerdict.classification,
+            confidence: jsonParseVerdict.confidence,
+            rationale: jsonParseVerdict.rationale,
+            agentId: triageAgent.id,
+            createdAt: new Date().toISOString(),
+          });
+          console.error(
+            `  ${renderTriageTag('inconclusive', color)}  ${finding.title} ` +
+              `— ${finding.location.path}:${String(finding.location.startLine)} ` +
+              `(JsonParseError; DG-125.0.1 graceful degradation)`,
           );
           continue;
         }

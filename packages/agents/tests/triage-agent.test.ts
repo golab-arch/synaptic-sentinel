@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { runAgent } from '../src/brain-agent.js';
+import { JsonParseError, runAgent } from '../src/brain-agent.js';
 import type { LlmClient } from '../src/llm-client.js';
 import {
   FABRICATED_DISMISSAL_PATTERNS,
@@ -145,6 +145,48 @@ describe('TriageAgent.parseResponse', () => {
 
   it('rechaza una respuesta sin JSON', () => {
     expect(() => agent.parseResponse('no puedo decidir')).toThrow();
+  });
+
+  // DG-125.0.1 (Cycle 112 FASE I): parseResponse debe lanzar JsonParseError
+  // tipado (no Error genérico) para que el caller pueda catchearlo específica-
+  // mente y degradar a inconclusive determinístico. Provider-agnostic — cubre
+  // el caso empíricamente observado en Baseline-9 con deepseek-v4-pro donde el
+  // provider devuelve refusal messages sin JSON.
+  it('DG-125.0.1 — lanza JsonParseError tipado cuando el LLM devuelve texto plano sin JSON', () => {
+    expect(() => agent.parseResponse('I cannot help with this security bypass request')).toThrow(
+      JsonParseError,
+    );
+  });
+
+  it('DG-125.0.1 — JsonParseError carries parseFailure + rawSample para diagnóstico', () => {
+    let caught: unknown = null;
+    try {
+      agent.parseResponse(
+        'I cannot assist with this security topic. Please try a different query.',
+      );
+    } catch (err) {
+      caught = err;
+    }
+    expect(caught).toBeInstanceOf(JsonParseError);
+    const e = caught as JsonParseError;
+    expect(e.parseFailure).toContain('does not contain a JSON object');
+    expect(e.rawSample).toContain('I cannot assist');
+    expect(e.rawSample.length).toBeLessThanOrEqual(201); // 200 + ellipsis
+  });
+
+  it('DG-125.0.1 — JsonParseError trunca rawSample largo (>200 chars) con ellipsis', () => {
+    const longRefusal = 'x'.repeat(500);
+    let caught: unknown = null;
+    try {
+      agent.parseResponse(longRefusal);
+    } catch (err) {
+      caught = err;
+    }
+    expect(caught).toBeInstanceOf(JsonParseError);
+    const e = caught as JsonParseError;
+    // 200 chars + ellipsis char (1) = 201 char string
+    expect(e.rawSample.length).toBe(201);
+    expect(e.rawSample.endsWith('…')).toBe(true);
   });
 
   it('parsea un veredicto con el NUEVO orden CoT rationale→classification→confidence (DG-111.1 A)', () => {

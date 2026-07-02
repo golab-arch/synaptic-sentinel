@@ -8,7 +8,12 @@ import {
   type TriageClassification,
   type TriageVerdict,
 } from '@synaptic-sentinel/core';
-import { extractJsonObject, type AgentPrompt, type BrainAgent } from './brain-agent.js';
+import {
+  extractJsonObject,
+  JsonParseError,
+  type AgentPrompt,
+  type BrainAgent,
+} from './brain-agent.js';
 
 // Los tipos de triage viven en core (se persisten en la colony DB); se
 // reexportan para mantener estable el API de @synaptic-sentinel/agents.
@@ -344,8 +349,14 @@ export class TriageAgent implements BrainAgent<Finding, TriageVerdict> {
     try {
       parsed = JSON.parse(extractJsonObject(raw));
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      throw new Error(`Could not parse the triage verdict: ${message}`);
+      // DG-125.0.1 (Cycle 112 FASE I): usar JsonParseError tipado en vez de
+      // Error genérico, para que el caller (triage.ts) pueda catchearlo
+      // específicamente y degradar a inconclusive verdict determinístico,
+      // mismo pattern que EmptyResponseError de DG-125 A. Preserva la
+      // causa (message del err original) para diagnóstico + un snippet del
+      // raw text (primeros 200 chars) para el rationale user-facing.
+      const cause = err instanceof Error ? err.message : String(err);
+      throw new JsonParseError(raw, cause);
     }
     const verdict = TriageVerdictSchema.parse(parsed);
     return guardAgainstFabricatedDismissals(verdict, this.#lastFindingCategory);
