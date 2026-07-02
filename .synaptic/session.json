@@ -3,7 +3,7 @@
   "projectId": "sentinel-1779304140796",
   "projectName": "SENTINEL",
   "initializedAt": "2026-05-20T19:09:00.816Z",
-  "lastActivity": "2026-07-02T13:04:00.000Z",
+  "lastActivity": "2026-07-02T13:32:00.000Z",
   "currentCycle": 58,
   "currentPhase": 12,
   "synapticStrength": 100,
@@ -19,7 +19,7 @@
   "agentState": {
     "complianceScore": 100,
     "violationsCount": 0,
-    "successfulCycles": 113,
+    "successfulCycles": 114,
     "marketplacePublishedExtensionId": "RealGoLab.synaptic-sentinel",
     "marketplacePublishedVersion": "0.3.3",
     "githubReleaseLatest": "v0.3.17"
@@ -27,24 +27,28 @@
   "adopted_roadmap": {
     "option": "A — Trust-first linear",
     "adopted_at": "2026-07-01T12:45:00.000Z",
-    "current_phase": "FASE_I_foundations_of_trust",
-    "current_phase_progress": "2/2 DGs shipped (DG-125 A + DG-125.0.1 validated Baseline-9b PASS + DG-126 A pending Baseline-10 validation)"
+    "current_phase": "FASE_II_cross_module_intelligence_NORTH_STAR_LEAP",
+    "fase_i_closed_at": "2026-07-02T13:32:00.000Z",
+    "fase_i_summary": "3 DGs shipped (DG-125 A + DG-125.0.1 + DG-126 A), 3 Baselines empíricos (9, 9b, 10), Baseline-10 PARTIAL PASS classification. R2 fix VERIFIED empíricamente, R1 infra shipped pero utility empírica INCONCLUSIVA por colony memory saturation + SCA-dominated scan composition. R3 misdiagnosed y honestly dropped. Duration real: 2 días vs estimate 2-3 semanas — velocity alta por incremental scope de trust foundations (no aplicar la mismo velocity a FASE II — paradigm change requires more baselines).",
+    "fase_ii_open_at": "2026-07-02T13:32:00.000Z",
+    "fase_ii_dgs_candidatos": [
+      "DG-127 A R18 v2 symbol-level cross-file resolution (primer DG, EL SALTO DEL NORTH STAR)",
+      "DG-128 A cross-file taint propagation sobre R18 v2",
+      "DG-129 A R19 module trust boundary tagging (public-entry vs internal-handler vs test-fixture)"
+    ]
   },
   "activeDG": {
-    "id": "DG-126-A",
-    "title": "R18 v1.1 refinements — R1 bare imports info + R2 inferRole semantics fix (R3 misdiagnosed, honestly DROPPED)",
-    "status": "AWAITING_USER_BASELINE_10",
-    "artifact": "packages/vscode-extension/synaptic-sentinel-0.3.17-step-126-1.vsix",
-    "artifact_sha256": "d214ef6eb9935f156331429b2fdec9bb1cc2a13b8ebe1d742bda4021796268a0",
-    "artifact_bytes": 4138159,
-    "artifact_files": 1849,
-    "bundle_markers_grep_count": 12,
-    "parent_phase": "FASE_I_foundations_of_trust",
-    "option_selected": "Sub-A2 Balanced (R1+R2+R3 → R1+R2 tras R3 misdiagnosis verificado)",
-    "r3_dropped_reason": "Verificación empírica pre-implementation reveló que detectors.ts symbols=1 es CORRECTO — el archivo tiene 1 export const + 1 export interface, y extractJsSymbols solo captura function/class/const intencionalmente. Interfaces son TS-only sin runtime. Anti-optimismo activo: NO ship fix para un no-bug.",
-    "baseline_10_acceptance": "install step-126-1.vsix + re-scan + re-triage con deepseek-v4-flash (recomendado para minimizar content-filter interference): (1) detectors.ts telemetry cambió role='leaf' → 'library' con importedBy=1 (R2 fix visible); (2) rationales del LLM en re-triage citan tecnología externa ('this file uses zod', 'depends on node:crypto') — R1 movió la aguja si sí, o LLM sigue local reasoning si no; (3) 0 findings 'triage failed' (DG-125 A + DG-125.0.1 intact); (4) latency similar; (5) NO incremento del EmptyResponseError rate por prompt bloat de bareImports (anti-optimismo #1 check)",
-    "verify_status": "VERDE 794 tests (789 baseline post-DG-125.0.1 + 5 nuevos DG-126 A: bare imports mixed + vacío + role=library>=1 + role=leaf===0 + role=entry precedence)",
-    "bitacora_entries": [165, 166, 167, 168, 169, 170, 171, 172],
-    "post_baseline_10_pass_action": "FASE I CLOSE + successfulCycles: 114 + open FASE II (Cycles 114-115): DG-127 A R18 v2 symbol-level cross-file resolution + DG-128 A cross-file taint propagation + DG-129 A R19 module trust boundary tagging. EL SALTO DEL NORTH STAR."
+    "id": "DG-127-A",
+    "title": "R18 v2 symbol-level cross-file resolution — EL SALTO DEL NORTH STAR (primer DG de FASE II)",
+    "status": "PENDING_TECHNICAL_DG",
+    "parent_phase": "FASE_II_cross_module_intelligence_NORTH_STAR_LEAP",
+    "north_star_use_case": "SYNAPTIC_SAAS Baseline previa: sentinel-js-taint-sql-injection en agent.ts:62 con snippet `agentLoop.execute(orchestrationRequest)`. LLM produjo rationale 'without seeing the internals of agentLoop.execute(), cannot determine reachability' — v1 file-level graph no ayudó porque agentLoop.execute está definido en OTRO archivo. R18 v2 resolvería 'agentLoop from ../services/agent-loop.js' + attach 'execute() defined at agent-loop.ts:42 with signature: async execute(req: OrchestrationRequest): Promise<Result>'. LLM ahora puede razonar cross-file.",
+    "predecessor_baseline_10_status": "PARTIAL PASS — R2 verified, R1 shipped inconclusive; regression check clean. FASE I closed successfulCycles 114.",
+    "candidate_sub_dgs": {
+      "Sub_A1_Conservative": "Symbol import/export mapping — dice 'X is exported from B' pero no adjunta signature/body",
+      "Sub_A2_Balanced_RECOMMENDED": "Sub-A1 + signature attachment — captura first-line del export declaration (function signature o const initializer preview) + attach to prompt como 'X defined at B.ts:42 with signature `export function execute(req): Promise<Result>`'",
+      "Sub_A3_Innovative": "Sub-A2 + call graph reverse resolution + multi-hop backward reachability (agent.ts calls X, X calls Y, Y calls Z — track chain)"
+    },
+    "bitacora_entries": [173, 174]
   }
 }
