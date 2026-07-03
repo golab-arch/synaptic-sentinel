@@ -1,5 +1,6 @@
 import {
   TRIAGE_CLASSIFICATIONS,
+  TRUST_BOUNDARY_ATTACK_SURFACE,
   TriageClassificationSchema,
   TriageVerdictSchema,
   type DataflowTrace,
@@ -160,6 +161,18 @@ export function formatInteractionContext(finding: Finding): string {
   parts.push('File interaction context (DG-123 A — system-as-graph):');
   if (fc !== undefined) {
     parts.push(`- File role: ${fc.inferredRole} (language: ${fc.language})`);
+    // DG-129 A (Cycle 113 FASE II — R19 module trust boundary tagging):
+    // emit trust boundary + attack surface para que el LLM razone sobre
+    // exposición del finding. public-entry = HIGH surface (SQL injection
+    // aquí = alerta máxima); private-worker = LOW surface (attacker debe
+    // controlar la queue primero); test-fixture = N/A (skip triage).
+    const tb = fc.trustBoundary;
+    if (tb !== undefined) {
+      const surface = TRUST_BOUNDARY_ATTACK_SURFACE[tb];
+      const evidence = fc.boundaryEvidence !== undefined ? ` [${fc.boundaryEvidence}]` : '';
+      parts.push(`- Trust boundary: ${tb}${evidence}`);
+      parts.push(`- Attack surface: ${surface}`);
+    }
     const importsCount = fc.imports.length;
     const importedByCount = fc.importedBy.length;
     parts.push(

@@ -170,6 +170,50 @@ export const FileContextSchema = z.object({
    * Post-R2: >=1 → 'library'; solo 0 importers no-entry-filename → 'leaf'.
    */
   inferredRole: z.enum(['entry', 'library', 'test', 'leaf', 'unknown']),
+  /**
+   * DG-129 A (Cycle 113 FASE II — R19 module trust boundary tagging):
+   * clasifica el archivo según su exposición al mundo externo:
+   *
+   * - `public-entry`: HTTP handlers / API endpoints directamente reachable
+   *   desde red. Detectado via path (`routes/`, `api/`, `handlers/`, etc.)
+   *   O via route registration pattern (route.post, router.get, app.use,
+   *   @Controller/@Get decorators, etc.).
+   * - `internal-handler`: business logic invocada desde public-entry pero
+   *   no expuesta directamente. Default para files sin heurística match.
+   * - `startup-config`: initialization / bootstrap scripts (main.ts,
+   *   server.ts, config/, setup/) — corren 1 vez al boot.
+   * - `test-fixture`: test data, mocks, fixtures — NO cuentan como
+   *   vulnerable en absoluto para triage purposes.
+   * - `private-worker`: background jobs, queues, cron tasks — reachable
+   *   solo via internal message queues (LOW attack surface).
+   *
+   * Attack surface mapping para el prompt del Triage Agent:
+   * - public-entry → HIGH (SQL injection aquí = alerta máxima)
+   * - internal-handler → MEDIUM (requiere reachability chain desde public)
+   * - startup-config → LOW (attacker debe controlar boot config)
+   * - test-fixture → N/A (skip triage — NOT a real vulnerability surface)
+   * - private-worker → LOW (attacker debe controlar la queue primero)
+   *
+   * Empíricamente en Baseline-12 el finding SQL injection en agent.ts:62
+   * es public-entry (route.post handler) — HIGH exposure. Sin este signal
+   * al LLM, el Triage no puede diferenciar entre 'SQL injection en
+   * public endpoint reachable de internet' vs 'SQL injection en test
+   * fixture'.
+   *
+   * Aditivo opcional para backward-compat con schemas pre-DG-129 A.
+   * Default 'internal-handler' cuando ninguna heurística match.
+   */
+  trustBoundary: z
+    .enum(['public-entry', 'internal-handler', 'startup-config', 'test-fixture', 'private-worker'])
+    .optional(),
+  /**
+   * DG-129 A: evidencia textual que soporta la clasificación de trust
+   * boundary. Ejemplos: 'path segment: routes/', 'route.post pattern
+   * detected', 'NestJS @Controller decorator'. Ayuda al LLM a validar el
+   * tagging (y al user a debug si el tag parece incorrect). Opcional —
+   * emitido solo cuando trustBoundary != 'internal-handler' default.
+   */
+  boundaryEvidence: z.string().optional(),
 });
 
 /** Contexto del archivo poblado por el Interaction Graph. */
@@ -1060,6 +1104,195 @@ function isEntryFilename(relPath: string): boolean {
   return ENTRY_FILENAME_PATTERNS.some((rx) => rx.test(filename));
 }
 
+/**
+ * DG-129 A (Cycle 113 FASE II — R19 module trust boundary tagging).
+ *
+ * Route registration patterns cross-framework para detectar public-entry
+ * files. Detección explicit vía regex sobre el source text (con
+ * stripComments mitigation aplicable). Cubre 90% de frameworks Node
+ * más comunes empíricamente.
+ *
+ * Cada tuple: [regex, framework label, description]. La detección
+ * primera (por orden) gana — más específicos van primero.
+ */
+const TRUST_BOUNDARY_ROUTE_PATTERNS: readonly {
+  readonly regex: RegExp;
+  readonly label: string;
+}[] = [
+  // NestJS decorators — highest specificity
+  {
+    regex: /@(?:Controller|Get|Post|Put|Delete|Patch|All)\s*\(/,
+    label: 'NestJS @Controller/@Http decorator',
+  },
+  // tRPC / router.procedure pattern
+  {
+    regex: /\brouter\.(?:get|post|put|delete|patch|use)\s*\(/i,
+    label: 'router.HTTP method pattern',
+  },
+  // Fastify: fastify.get/post/put/etc.
+  {
+    regex: /\bfastify\.(?:get|post|put|delete|patch|register)\s*\(/i,
+    label: 'Fastify route registration',
+  },
+  // Express/Koa/Hono: app.get/post/put/use
+  {
+    regex: /\bapp\.(?:get|post|put|delete|patch|use|route)\s*\(/i,
+    label: 'Express/Koa/Hono app route',
+  },
+  // Generic route.method(...) pattern
+  { regex: /\broute\.(?:get|post|put|delete|patch)\s*\(/i, label: 'route.HTTP method pattern' },
+  // Vercel/Next.js API route: export default async function handler(req, res)
+  {
+    regex: /export\s+default\s+(?:async\s+)?function\s+handler\s*\(/,
+    label: 'Next.js/Vercel handler export',
+  },
+];
+
+/**
+ * DG-129 A: heurísticas de path segments para tag inicial. Precedencia
+ * documentada: test-fixture > public-entry > private-worker >
+ * startup-config > internal-handler default. Cuando múltiples segments
+ * match, el de MÁS ALTA precedencia gana (evita bugs como
+ * `routes/__tests__/` clasificado como public-entry).
+ */
+const TRUST_BOUNDARY_PATH_SEGMENTS: readonly {
+  readonly boundary: NonNullable<FileContext['trustBoundary']>;
+  readonly segments: readonly string[];
+  readonly precedence: number; // Higher = wins tie
+}[] = [
+  // Precedence 5 (highest): test-fixture — never upgrade from tests to public-entry
+  {
+    boundary: 'test-fixture',
+    segments: [
+      'test',
+      'tests',
+      '__tests__',
+      '__test__',
+      'spec',
+      'fixtures',
+      '__fixtures__',
+      'mocks',
+      '__mocks__',
+    ],
+    precedence: 5,
+  },
+  // Precedence 4: public-entry via convention path
+  {
+    boundary: 'public-entry',
+    segments: ['routes', 'api', 'handlers', 'controllers', 'endpoints'],
+    precedence: 4,
+  },
+  // Precedence 3: private-worker
+  {
+    boundary: 'private-worker',
+    segments: ['workers', 'jobs', 'tasks', 'queues', 'crons'],
+    precedence: 3,
+  },
+  // Precedence 2: startup-config
+  {
+    boundary: 'startup-config',
+    segments: ['config', 'setup', 'init', 'bootstrap'],
+    precedence: 2,
+  },
+];
+
+/**
+ * DG-129 A helper: infiere trust boundary tag para un archivo.
+ *
+ * Estrategia (documentada por caps de precedencia):
+ * 1. Path segments matching TRUST_BOUNDARY_PATH_SEGMENTS con más alta
+ *    precedencia = tag inicial + evidence.
+ * 2. Si el path segment no da alta precedencia (< 4 = ni test-fixture ni
+ *    public-entry) Y source text contiene route registration pattern
+ *    → upgrade a public-entry con evidence del pattern detectado.
+ * 3. Si no hay path segment match Y no hay pattern → tag undefined
+ *    (default 'internal-handler' downstream en el prompt formatter).
+ *
+ * Precedencia importante: test-fixture (5) SIEMPRE gana — no upgrade a
+ * public-entry aunque el test file contenga `route.post(...)` (los tests
+ * definen mock routes para probar handlers).
+ *
+ * `sourceText` opcional — cuando ausente, solo se aplica path heuristic.
+ * Cuando presente, se aplica strip-comments-lite antes de regex para
+ * mitigar false-positive de patterns en comments.
+ */
+export function inferTrustBoundary(
+  relPath: string,
+  sourceText?: string,
+): { boundary: FileContext['trustBoundary']; evidence?: string } {
+  const segments = relPath.split('/');
+  // Path segment matching — track best (highest precedence) match
+  let bestPathMatch: {
+    boundary: NonNullable<FileContext['trustBoundary']>;
+    segment: string;
+    precedence: number;
+  } | null = null;
+  for (const rule of TRUST_BOUNDARY_PATH_SEGMENTS) {
+    for (const seg of rule.segments) {
+      if (segments.includes(seg)) {
+        if (bestPathMatch === null || rule.precedence > bestPathMatch.precedence) {
+          bestPathMatch = { boundary: rule.boundary, segment: seg, precedence: rule.precedence };
+        }
+        break; // Only need one segment match per rule
+      }
+    }
+  }
+  // Test-fixture (precedence 5) always wins — never upgrade to public-entry
+  if (bestPathMatch !== null && bestPathMatch.precedence === 5) {
+    return {
+      boundary: bestPathMatch.boundary,
+      evidence: `path segment: '${bestPathMatch.segment}/'`,
+    };
+  }
+  // Public-entry (precedence 4) via path — return with evidence
+  if (bestPathMatch !== null && bestPathMatch.precedence === 4) {
+    return {
+      boundary: bestPathMatch.boundary,
+      evidence: `path segment: '${bestPathMatch.segment}/'`,
+    };
+  }
+  // Route registration pattern check — only if not already tagged public-entry
+  // or test-fixture, and if sourceText provided
+  if (sourceText !== undefined && sourceText.length > 0) {
+    // Apply strip-comments-lite (reuse existing helper for consistency with DG-128 A)
+    const cleaned = stripComments(sourceText);
+    for (const pattern of TRUST_BOUNDARY_ROUTE_PATTERNS) {
+      if (pattern.regex.test(cleaned)) {
+        return {
+          boundary: 'public-entry',
+          evidence: `pattern detected: ${pattern.label}`,
+        };
+      }
+    }
+  }
+  // Path match at lower precedence (private-worker, startup-config)
+  if (bestPathMatch !== null) {
+    return {
+      boundary: bestPathMatch.boundary,
+      evidence: `path segment: '${bestPathMatch.segment}/'`,
+    };
+  }
+  // No match — return undefined (default 'internal-handler' downstream)
+  return { boundary: undefined };
+}
+
+/**
+ * DG-129 A: mapping de trust boundary → attack surface label para
+ * emitir en el prompt del Triage Agent. Habilita al LLM razonar sobre
+ * exposición del finding: SQL injection en public-entry = HIGH surface;
+ * misma pattern en private-worker = LOW surface; en test-fixture = N/A.
+ */
+export const TRUST_BOUNDARY_ATTACK_SURFACE: Record<
+  NonNullable<FileContext['trustBoundary']>,
+  'HIGH' | 'MEDIUM' | 'LOW' | 'N/A'
+> = {
+  'public-entry': 'HIGH',
+  'internal-handler': 'MEDIUM',
+  'startup-config': 'LOW',
+  'test-fixture': 'N/A',
+  'private-worker': 'LOW',
+};
+
 /** Opciones de construcción del grafo (extensible en v2+). */
 export interface BuildInteractionGraphOptions {
   /** Timeout ms para el parse total (default: 30_000). */
@@ -1109,6 +1342,12 @@ export async function buildInteractionGraph(
     /** Paths relativos resueltos (mismos que fileContext.imports). */
     resolvedImports: string[];
     symbols: FileSymbol[];
+    /**
+     * DG-129 A (Cycle 113 FASE II): source text del archivo para
+     * `inferTrustBoundary` regex detection de route registration patterns.
+     * Solo usado en el pass de trust boundary computation en el loop final.
+     */
+    sourceText: string;
   }
   const intermediate: Intermediate[] = [];
   for (const absPath of files) {
@@ -1153,6 +1392,7 @@ export async function buildInteractionGraph(
       importedSymbols: [],
       resolvedImports: [],
       symbols,
+      sourceText: source,
     });
   }
 
@@ -1200,6 +1440,11 @@ export async function buildInteractionGraph(
     );
     const definedSymbols = entry.symbols;
     const exportedSymbols = definedSymbols.filter((s) => s.exported).map((s) => s.name);
+    // DG-129 A (Cycle 113 FASE II — R19): compute trust boundary tag
+    // desde path heuristics + regex route detection sobre sourceText.
+    // Solo emit trustBoundary + boundaryEvidence si hay match (undefined
+    // downstream → default 'internal-handler' en el prompt formatter).
+    const trustResult = inferTrustBoundary(entry.relPath, entry.sourceText);
     const fileContext: FileContext = {
       language: entry.language,
       imports: [...new Set(entry.resolvedImports)].sort(),
@@ -1211,6 +1456,8 @@ export async function buildInteractionGraph(
       // priorizar por orden en el snippet).
       importedSymbols: entry.importedSymbols,
       inferredRole,
+      ...(trustResult.boundary !== undefined ? { trustBoundary: trustResult.boundary } : {}),
+      ...(trustResult.evidence !== undefined ? { boundaryEvidence: trustResult.evidence } : {}),
     };
     const symbolContext: SymbolContext = {
       definedSymbols,

@@ -6,10 +6,12 @@ import {
   MAX_CROSS_FILE_SIGNATURES_PER_FINDING,
   SUPPORTED_LANGUAGES,
   TAINT_PATTERN_LABELS,
+  TRUST_BOUNDARY_ATTACK_SURFACE,
   buildInteractionGraph,
   detectLanguage,
   detectTaintPatternsInBody,
   extractIdentifiersFromSnippet,
+  inferTrustBoundary,
   resolveCrossFileSignatures,
 } from '../../src/coordinator/interaction-graph.js';
 
@@ -791,5 +793,138 @@ describe('DG-128 A — resolveCrossFileSignatures propagates taintPatterns', () 
     expect(greeterSig).toBeDefined();
     // Sin sink patterns detectados, taintPatterns es undefined (not emitted)
     expect(greeterSig!.taintPatterns).toBeUndefined();
+  });
+});
+
+// ============================================================================
+// DG-129 A (Cycle 113 FASE II) — R19 module trust boundary tagging
+// ============================================================================
+
+describe('DG-129 A — inferTrustBoundary path heuristics', () => {
+  it('detecta public-entry por path segment routes/', () => {
+    const result = inferTrustBoundary('src/api/routes/agent.ts');
+    expect(result.boundary).toBe('public-entry');
+    expect(result.evidence).toContain('routes');
+  });
+
+  it('detecta public-entry por path segment handlers/', () => {
+    const result = inferTrustBoundary('src/handlers/user.ts');
+    expect(result.boundary).toBe('public-entry');
+  });
+
+  it('detecta private-worker por path segment workers/', () => {
+    const result = inferTrustBoundary('src/workers/queue-processor.ts');
+    expect(result.boundary).toBe('private-worker');
+    expect(result.evidence).toContain('workers');
+  });
+
+  it('detecta startup-config por path segment config/', () => {
+    const result = inferTrustBoundary('src/config/app.ts');
+    expect(result.boundary).toBe('startup-config');
+  });
+
+  it('detecta test-fixture por path segment __tests__/', () => {
+    const result = inferTrustBoundary('src/__tests__/route-mocks.ts');
+    expect(result.boundary).toBe('test-fixture');
+  });
+
+  it('test-fixture SIEMPRE gana sobre public-entry — routes/__tests__/', () => {
+    // Precedence 5 (test-fixture) > 4 (public-entry). Test fixtures que
+    // definen mock routes NO deben ser tagged public-entry.
+    const result = inferTrustBoundary('src/routes/__tests__/auth-mock.ts');
+    expect(result.boundary).toBe('test-fixture');
+  });
+
+  it('devuelve undefined boundary cuando no hay match (default internal-handler downstream)', () => {
+    const result = inferTrustBoundary('src/utils/formatter.ts');
+    expect(result.boundary).toBeUndefined();
+  });
+});
+
+describe('DG-129 A — inferTrustBoundary regex route detection', () => {
+  it('upgrade a public-entry cuando source contiene route.post pattern', () => {
+    // Path no matches → internal-handler heuristic. Pero source tiene
+    // route.post(...) → upgrade a public-entry.
+    const source = "export function setup(route) { route.post('/api/x', handler); }";
+    const result = inferTrustBoundary('src/setup/wire.ts', source);
+    // path 'setup/' es startup-config (precedence 2). Body regex detecta
+    // route.post → override a public-entry.
+    // Actualmente el helper: si path segment es < 4 precedence, se aplica
+    // regex; si detecta pattern, override. Sin embargo el helper con path
+    // 'setup/' devuelve startup-config primero si no hay regex match.
+    // Verifiquemos comportamiento: source SÍ tiene route.post → public-entry.
+    expect(result.boundary).toBe('public-entry');
+    expect(result.evidence).toContain('pattern detected');
+  });
+
+  it('detecta Fastify: fastify.get pattern', () => {
+    const source = "export async function routes(fastify) { fastify.get('/users', h); }";
+    const result = inferTrustBoundary('src/router.ts', source);
+    expect(result.boundary).toBe('public-entry');
+    expect(result.evidence).toContain('Fastify');
+  });
+
+  it('detecta NestJS @Controller decorator', () => {
+    const source = '@Controller("users")\nexport class UsersController {}';
+    const result = inferTrustBoundary('src/users.ts', source);
+    expect(result.boundary).toBe('public-entry');
+    expect(result.evidence).toContain('NestJS');
+  });
+
+  it('NO false-positive por route.post en comment', () => {
+    // stripComments mitigation
+    const source = '// This file used to do route.post but no longer\nexport const x = 1;';
+    const result = inferTrustBoundary('src/utils.ts', source);
+    expect(result.boundary).toBeUndefined();
+  });
+
+  it('test-fixture NO se upgrade a public-entry aunque contenga route.post', () => {
+    const source = "// Mock router for testing\napp.post('/mock', h);";
+    const result = inferTrustBoundary('src/__tests__/route-mock.ts', source);
+    // Test-fixture path (precedence 5) SIEMPRE gana — no upgrade
+    expect(result.boundary).toBe('test-fixture');
+  });
+});
+
+describe('DG-129 A — TRUST_BOUNDARY_ATTACK_SURFACE mapping', () => {
+  it('mapping correcto de boundary → attack surface labels', () => {
+    expect(TRUST_BOUNDARY_ATTACK_SURFACE['public-entry']).toBe('HIGH');
+    expect(TRUST_BOUNDARY_ATTACK_SURFACE['internal-handler']).toBe('MEDIUM');
+    expect(TRUST_BOUNDARY_ATTACK_SURFACE['startup-config']).toBe('LOW');
+    expect(TRUST_BOUNDARY_ATTACK_SURFACE['test-fixture']).toBe('N/A');
+    expect(TRUST_BOUNDARY_ATTACK_SURFACE['private-worker']).toBe('LOW');
+  });
+});
+
+describe('DG-129 A — buildInteractionGraph populates trustBoundary', () => {
+  let workspace: string;
+
+  beforeEach(() => {
+    workspace = mkdtempSync(join(tmpdir(), 'sentinel-graph-dg129-'));
+  });
+
+  afterEach(() => {
+    rmSync(workspace, { recursive: true, force: true });
+  });
+
+  it('agent.ts en routes/ con route.post → trustBoundary public-entry con evidence', async () => {
+    mkdirSync(join(workspace, 'src', 'api', 'routes'), { recursive: true });
+    writeFileSync(
+      join(workspace, 'src', 'api', 'routes', 'agent.ts'),
+      "export function register(route) {\n  route.post('/agent', (req) => handle(req));\n}\n",
+    );
+    const graph = await buildInteractionGraph(workspace);
+    const node = graph.get('src/api/routes/agent.ts');
+    expect(node).toBeDefined();
+    expect(node!.fileContext.trustBoundary).toBe('public-entry');
+    expect(node!.fileContext.boundaryEvidence).toBeDefined();
+  });
+
+  it('archivo sin match heurística → trustBoundary undefined (default internal-handler downstream)', async () => {
+    writeFileSync(join(workspace, 'utility.ts'), 'export const util = (x) => x + 1;\n');
+    const graph = await buildInteractionGraph(workspace);
+    const node = graph.get('utility.ts');
+    expect(node).toBeDefined();
+    expect(node!.fileContext.trustBoundary).toBeUndefined();
   });
 });
