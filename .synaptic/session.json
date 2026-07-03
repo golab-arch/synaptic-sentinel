@@ -3,7 +3,7 @@
   "projectId": "sentinel-1779304140796",
   "projectName": "SENTINEL",
   "initializedAt": "2026-05-20T19:09:00.816Z",
-  "lastActivity": "2026-07-02T15:42:00.000Z",
+  "lastActivity": "2026-07-03T13:15:00.000Z",
   "currentCycle": 58,
   "currentPhase": 12,
   "synapticStrength": 100,
@@ -30,24 +30,19 @@
     "current_phase": "FASE_II_cross_module_intelligence_NORTH_STAR_LEAP",
     "fase_i_closed_at": "2026-07-02T13:32:00.000Z",
     "fase_ii_open_at": "2026-07-02T13:32:00.000Z",
-    "current_phase_progress": "1/3 DGs (DG-127 A shipped, DG-128 A + DG-129 A pending)"
+    "current_phase_progress": "1.5/3 DGs (DG-127 A shipped + validated PASS, DG-128 A pending, DG-129 A pending)"
   },
   "activeDG": {
-    "id": "DG-127-A",
-    "title": "R18 v2 symbol-level cross-file resolution — Sub-A2 signature attachment (Cycle 113 FASE II, EL SALTO DEL NORTH STAR)",
-    "status": "AWAITING_USER_BASELINE_11_REINSTALL_CLEAN_CROSS_WORKSPACE",
-    "artifact": "packages/vscode-extension/synaptic-sentinel-0.3.17-step-127-1.vsix",
-    "artifact_sha256": "cedcfa6951a843954523a67e4dcb2c0f8715908675e17b154a8c27d228cc6b61",
-    "artifact_bytes": 4141881,
-    "artifact_files": 1849,
-    "bundle_markers_grep_count": 17,
+    "id": "DG-128-A",
+    "title": "Cross-file taint propagation sobre R18 v2 — segundo DG de FASE II",
+    "status": "PENDING_TECHNICAL_DG",
     "parent_phase": "FASE_II_cross_module_intelligence_NORTH_STAR_LEAP",
-    "option_selected": "Sub-A2 Balanced signature attachment (Sub-A1 mapping + signature capture + cap defensivo 3)",
-    "north_star_use_case": "SYNAPTIC_SAAS Baseline previa: sentinel-js-taint-sql-injection en agent.ts:62 con snippet `agentLoop.execute(orchestrationRequest)`. LLM produjo rationale 'without seeing the internals of agentLoop.execute()'. Post-DG-127 A: el prompt del Triage muestra 'agentLoop defined at src/services/agent-loop.ts:42 with signature `export class agentLoop`'. Baseline-11 cross-workspace SYNAPTIC_SAAS es la prueba empírica del North Star.",
-    "baseline_11_acceptance": "REINSTALL CLEAN (uninstall + verify borrado + install step-127-1 + reload + grep verify 17 markers) + re-scan SENTINEL (regression check) + IDEALMENTE cross-workspace SYNAPTIC_SAAS con re-triage deepseek-v4-flash → (1) 0 findings 'triage failed' en SENTINEL; (2) telemetría enriched unchanged (backward-compat); (3) CRÍTICO cross-workspace SYNAPTIC_SAAS: rationale del LLM POST-DG-127 A menciona signature cross-file → PASS empírico North Star; (4) 0 incremento EmptyResponseError rate.",
-    "verify_status": "VERDE 803 tests (794 baseline post-DG-126 A + 9 nuevos DG-127 A: 4 extractIdentifiersFromSnippet + 2 buildInteractionGraph populate signatures/importedSymbols + 3 resolveCrossFileSignatures North Star)",
-    "bitacora_entries": [173, 174, 175, 176],
-    "post_baseline_11_pass_action": "Siguiente DG-128 A cross-file taint propagation sobre R18 v2 (aprovecha crossFileContext infra). O DG-127.0.1 prompt strengthening reactive si LLM no cita signatures aún con data rica.",
-    "fase_ii_progress": "1/3 DGs completos (DG-127 A shipped). DG-128 A + DG-129 A pending."
+    "predecessor_baseline_11_status": "H3-implicit-con-verdict-shift PASS empírico del North Star: SQL injection agent.ts:62 verdict transition INC 0.45 → FP 0.90 con rationale que atestigua conocimiento cross-file del target. R18 v1.1 + v2 combined move la aguja del LLM sobre el caso cross-module que originó el R18 v2 spec.",
+    "candidate_sub_dgs": {
+      "Sub_A1_Conservative": "Taint metadata mapping en fileContext — anotar en fileContext.importedSymbols qué symbols son known-taint-sources (request.body, req.query, etc.) y qué son known-sinks (db.query, exec, etc.). LLM ve el mapping pero infiere propagation.",
+      "Sub_A2_Balanced_RECOMMENDED": "Sub-A1 + taint annotations en cross-file signatures — anotar en el signature del target symbol si internamente tiene taint sink patterns (regex sobre body del target function). Ejemplo: `execute() [contains db.query with user input pattern]`.",
+      "Sub_A3_Innovative": "Full call graph reverse resolution con symbolic taint tracking — DAG de source→sink cross-file completo. Requiere CPG framework (Joern territory)."
+    },
+    "bitacora_entries": [177]
   }
 }
