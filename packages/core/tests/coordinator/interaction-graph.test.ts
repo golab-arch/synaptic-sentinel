@@ -5,8 +5,10 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   MAX_CROSS_FILE_SIGNATURES_PER_FINDING,
   SUPPORTED_LANGUAGES,
+  TAINT_PATTERN_LABELS,
   buildInteractionGraph,
   detectLanguage,
+  detectTaintPatternsInBody,
   extractIdentifiersFromSnippet,
   resolveCrossFileSignatures,
 } from '../../src/coordinator/interaction-graph.js';
@@ -596,5 +598,198 @@ describe('DG-127 A — resolveCrossFileSignatures (North Star use case)', () => 
     ).toEqual([]);
     // importedSymbols vacío
     expect(resolveCrossFileSignatures('x()', [], graph)).toEqual([]);
+  });
+});
+
+// ============================================================================
+// DG-128 A (Cycle 113 FASE II) — cross-file taint propagation via body scan
+// ============================================================================
+
+describe('DG-128 A — detectTaintPatternsInBody', () => {
+  it('detecta sql-query-with-interpolation en template literal con ${}', () => {
+    const body =
+      'function execute(req) { return db.query(`SELECT * FROM x WHERE id = ${req.id}`); }';
+    const patterns = detectTaintPatternsInBody(body);
+    expect(patterns).toContain('sql-query-with-interpolation');
+  });
+
+  it('detecta sql-query-with-concat en string concatenation', () => {
+    const body = 'function run(name) { return conn.query("SELECT * FROM u WHERE n = " + name); }';
+    const patterns = detectTaintPatternsInBody(body);
+    expect(patterns).toContain('sql-query-with-concat');
+  });
+
+  it('detecta command-exec-with-concat (spawn/exec con template o +)', () => {
+    const body = 'function run(cmd) { return exec(`ls ${cmd}`); }';
+    const patterns = detectTaintPatternsInBody(body);
+    expect(patterns).toContain('command-exec-with-concat');
+  });
+
+  it('detecta code-injection-eval con argumento no-literal', () => {
+    const body = 'function danger(x) { return eval(x); }';
+    const patterns = detectTaintPatternsInBody(body);
+    expect(patterns).toContain('code-injection-eval');
+  });
+
+  it('detecta code-injection-new-function con argumento no-literal', () => {
+    const body = 'function danger(code) { return new Function(code); }';
+    const patterns = detectTaintPatternsInBody(body);
+    expect(patterns).toContain('code-injection-new-function');
+  });
+
+  it('detecta file-write-with-concat', () => {
+    const body = 'function saveFile(name, data) { writeFileSync(`./out/${name}.txt`, data); }';
+    const patterns = detectTaintPatternsInBody(body);
+    expect(patterns).toContain('file-write-with-concat');
+  });
+
+  it('NO false-positive cuando el sink pattern está DENTRO de comment', () => {
+    const body =
+      '// This is fine because we use eval(safe) somewhere\n' +
+      'function safeOnly() {\n' +
+      '  return 42; // db.query("SELECT" + name) — used to be dangerous\n' +
+      '}\n';
+    const patterns = detectTaintPatternsInBody(body);
+    // Los patterns dentro de comments deben ser strippeados
+    expect(patterns).toEqual([]);
+  });
+
+  it('NO false-positive con eval sobre string literal (safe usage)', () => {
+    const body = 'function safe() { return eval("2 + 2"); }';
+    const patterns = detectTaintPatternsInBody(body);
+    // eval("literal") → safe
+    expect(patterns).not.toContain('code-injection-eval');
+  });
+
+  it('multi-pattern: detecta múltiples labels en un body con varios sinks', () => {
+    const body = `
+      function chaotic(req) {
+        db.query(\`SELECT * FROM x WHERE id = \${req.id}\`);
+        eval(req.payload);
+        exec(\`echo \${req.msg}\`);
+      }
+    `;
+    const patterns = detectTaintPatternsInBody(body);
+    expect(patterns).toContain('sql-query-with-interpolation');
+    expect(patterns).toContain('code-injection-eval');
+    expect(patterns).toContain('command-exec-with-concat');
+  });
+
+  it('TAINT_PATTERN_LABELS export incluye todos los labels usados', () => {
+    // Sanity check: los labels retornados por detect deben estar en el
+    // constants export para evitar drift.
+    const body = `
+      db.query(\`SELECT \${x}\`);
+      new Function(x);
+      writeFileSync(\`\${x}.txt\`, data);
+    `;
+    const patterns = detectTaintPatternsInBody(body);
+    for (const label of patterns) {
+      expect(TAINT_PATTERN_LABELS).toContain(label);
+    }
+  });
+});
+
+describe('DG-128 A — buildInteractionGraph populates FileSymbol.bodyTaintPatterns', () => {
+  let workspace: string;
+
+  beforeEach(() => {
+    workspace = mkdtempSync(join(tmpdir(), 'sentinel-graph-dg128-'));
+  });
+
+  afterEach(() => {
+    rmSync(workspace, { recursive: true, force: true });
+  });
+
+  it('populates bodyTaintPatterns en el target function del North Star case', async () => {
+    // Fixture del North Star case: agent.ts importa agentLoop de agent-loop.ts.
+    // agent-loop.ts contiene la function con SQL sink en el body.
+    mkdirSync(join(workspace, 'src', 'services'), { recursive: true });
+    writeFileSync(
+      join(workspace, 'src', 'agent.ts'),
+      "import { agentLoop } from './services/agent-loop.js';\nexport function route(req) { return agentLoop.execute(req); }\n",
+    );
+    writeFileSync(
+      join(workspace, 'src', 'services', 'agent-loop.ts'),
+      [
+        'export function agentLoop(req) {',
+        '  return db.query(`SELECT * FROM x WHERE id = ${req.id}`);',
+        '}',
+      ].join('\n') + '\n',
+    );
+    const graph = await buildInteractionGraph(workspace);
+    const targetNode = graph.get('src/services/agent-loop.ts');
+    expect(targetNode).toBeDefined();
+    const agentLoopSymbol = targetNode!.symbolContext.definedSymbols.find(
+      (s) => s.name === 'agentLoop',
+    );
+    expect(agentLoopSymbol).toBeDefined();
+    expect(agentLoopSymbol!.bodyTaintPatterns).toContain('sql-query-with-interpolation');
+  });
+
+  it('NO populates bodyTaintPatterns cuando body es safe', async () => {
+    writeFileSync(join(workspace, 'safe.ts'), 'export function add(a, b) { return a + b; }\n');
+    const graph = await buildInteractionGraph(workspace);
+    const node = graph.get('safe.ts');
+    const addSymbol = node!.symbolContext.definedSymbols.find((s) => s.name === 'add');
+    expect(addSymbol).toBeDefined();
+    // Con body safe, bodyTaintPatterns debe ser undefined (no emit)
+    expect(addSymbol!.bodyTaintPatterns).toBeUndefined();
+  });
+});
+
+describe('DG-128 A — resolveCrossFileSignatures propagates taintPatterns', () => {
+  let workspace: string;
+
+  beforeEach(() => {
+    workspace = mkdtempSync(join(tmpdir(), 'sentinel-graph-dg128-cross-'));
+  });
+
+  afterEach(() => {
+    rmSync(workspace, { recursive: true, force: true });
+  });
+
+  it('el snippet del North Star SQL injection ahora incluye taintPatterns del target', async () => {
+    mkdirSync(join(workspace, 'src', 'services'), { recursive: true });
+    writeFileSync(
+      join(workspace, 'src', 'agent.ts'),
+      "import { agentLoop } from './services/agent-loop.js';\nexport function route(req) { return agentLoop(req); }\n",
+    );
+    writeFileSync(
+      join(workspace, 'src', 'services', 'agent-loop.ts'),
+      'export function agentLoop(req) {\n  return db.query(`SELECT * FROM x WHERE id = ${req.id}`);\n}\n',
+    );
+    const graph = await buildInteractionGraph(workspace);
+    const agentNode = graph.get('src/agent.ts');
+    const snippet = 'agentLoop(req)';
+    const sigs = resolveCrossFileSignatures(snippet, agentNode!.fileContext.importedSymbols, graph);
+    expect(sigs.length).toBeGreaterThan(0);
+    const agentLoopSig = sigs.find((s) => s.symbolName === 'agentLoop');
+    expect(agentLoopSig).toBeDefined();
+    expect(agentLoopSig!.taintPatterns).toBeDefined();
+    expect(agentLoopSig!.taintPatterns).toContain('sql-query-with-interpolation');
+  });
+
+  it('cuando target NO tiene sink patterns, taintPatterns es undefined en el output', async () => {
+    mkdirSync(join(workspace, 'src'), { recursive: true });
+    writeFileSync(
+      join(workspace, 'src', 'consumer.ts'),
+      "import { greeter } from './greeter.js';\nexport const use = () => greeter('hola');\n",
+    );
+    writeFileSync(
+      join(workspace, 'src', 'greeter.ts'),
+      'export function greeter(name) { return `Hola ${name}`; }\n',
+    );
+    const graph = await buildInteractionGraph(workspace);
+    const consumer = graph.get('src/consumer.ts');
+    const sigs = resolveCrossFileSignatures(
+      "greeter('hola')",
+      consumer!.fileContext.importedSymbols,
+      graph,
+    );
+    const greeterSig = sigs.find((s) => s.symbolName === 'greeter');
+    expect(greeterSig).toBeDefined();
+    // Sin sink patterns detectados, taintPatterns es undefined (not emitted)
+    expect(greeterSig!.taintPatterns).toBeUndefined();
   });
 });

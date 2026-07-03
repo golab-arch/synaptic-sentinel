@@ -221,6 +221,16 @@ export function formatInteractionContext(finding: Finding): string {
       parts.push(
         `  · ${sig.symbolName} defined at ${sig.sourceFile}:${String(sig.sourceLine)} — \`${sig.signature}\``,
       );
+      // DG-128 A (Cycle 113 FASE II — cross-file taint propagation): si el
+      // target symbol tiene body sink patterns detectados por regex heurística,
+      // emitir señal al LLM. Habilita cross-file taint reasoning: el LLM sabe
+      // que la taint del snippet PUEDE flow a un sink real cross-file (no
+      // solo intra-file). Ejemplo output: "Body scan detected sink patterns:
+      // sql-query-with-interpolation, command-exec-with-concat".
+      const taint = sig.taintPatterns ?? [];
+      if (taint.length > 0) {
+        parts.push(`    ⚠ Body scan detected sink patterns (DG-128 A): ${taint.join(', ')}`);
+      }
     }
   }
   return parts.join('\n');

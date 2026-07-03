@@ -70,6 +70,27 @@ export const FileSymbolSchema = z.object({
    * Opcional para backward-compat con schemas legacy pre-DG-127 A.
    */
   signature: z.string().optional(),
+  /**
+   * DG-128 A (Cycle 113 FASE II — cross-file taint propagation): patrones
+   * de sink detectados dentro del body de este symbol (function/class).
+   * Emitidos por `detectTaintPatternsInBody` con regex heurísticas sobre el
+   * texto del body — cubre SQL query calls (`.query(`, `.execute(` con
+   * concat/template), command execution (`spawn|exec|execSync`), code
+   * injection (`eval|new Function`), file writes con concat, HTTP redirects
+   * con user input, y prototype pollution patterns.
+   *
+   * Ejemplo: para `export class agentLoop { static execute(req) { return
+   * db.query(`SELECT * FROM x WHERE id = ${req.id}`); } }` retornaría
+   * ['sql-query-with-interpolation'].
+   *
+   * Habilita al LLM razonar sobre taint propagation cross-file — el LLM
+   * ve "el body de este target function tiene patterns de SQL sink" y
+   * decide si el user input del snippet flow a un sink real.
+   *
+   * Aditivo opcional para backward-compat. Findings pre-DG-128 A validan
+   * con field undefined.
+   */
+  bodyTaintPatterns: z.array(z.string().min(1)).optional(),
 });
 
 /** Símbolo top-level de un archivo. */
@@ -216,6 +237,18 @@ export const CrossFileContextSchema = z.object({
          * `{` o const initializer preview truncado a ~150 chars).
          */
         signature: z.string().min(1),
+        /**
+         * DG-128 A (Cycle 113 FASE II): patrones de sink detectados en el
+         * body del target symbol — propagados desde
+         * FileSymbol.bodyTaintPatterns durante resolveCrossFileSignatures.
+         * Empty array o undefined si el target NO tiene sink patterns
+         * detectados. Habilita al LLM razonar sobre taint propagation
+         * cross-file: si el finding menciona un identifier que resuelve a un
+         * target con sink patterns, el LLM lo evalúa como potential taint
+         * flow cross-file (no solo intra-file). Ejemplo: 'sql-query-with-
+         * interpolation', 'command-exec-with-concat', 'eval-with-argument'.
+         */
+        taintPatterns: z.array(z.string().min(1)).optional(),
       }),
     )
     .default([]),
@@ -620,6 +653,141 @@ function extractSignatureFromNode(
 }
 
 /**
+ * DG-128 A (Cycle 113 FASE II — cross-file taint propagation) helper.
+ *
+ * Detecta patrones heurísticos de sink DENTRO del body de un target symbol
+ * (function/class). Ejecuta regex sobre el texto raw del body y retorna
+ * lista de labels que identifican las clases de sink encontradas.
+ *
+ * Provider-agnostic: el resultado se emite al prompt del Triage/Context
+ * Agent como metadata que habilita al LLM razonar sobre taint propagation
+ * cross-file (el finding menciona identifier X que resuelve a un target
+ * cuyo body contiene sink patterns → el LLM sabe que la taint del snippet
+ * puede flow a un sink real cross-file, no solo intra-file).
+ *
+ * Trade-offs (anti-optimismo activo):
+ * - Regex heurístico NO es symbolic execution: puede fabricar falsos
+ *   positivos (menciones a `db.query` en comments) — mitigation: skip
+ *   comment lines antes de aplicar patterns.
+ * - Solo 1-hop taint propagation: si body del target A llama a target B
+ *   que a su vez tiene sink patterns, esto NO se detecta (deferrable a
+ *   R18 v3 con Joern CPG).
+ * - Los patterns son heurísticos deliberadamente conservadores para
+ *   minimizar false positives en el prompt del LLM.
+ */
+export const TAINT_PATTERN_LABELS = [
+  'sql-query-with-interpolation',
+  'sql-query-with-concat',
+  'command-exec-with-concat',
+  'code-injection-eval',
+  'code-injection-new-function',
+  'file-write-with-concat',
+  'prototype-pollution-assign',
+  'redirect-with-user-input',
+] as const;
+
+export type TaintPatternLabel = (typeof TAINT_PATTERN_LABELS)[number];
+
+/**
+ * Skip comment lines (single-line `//` y multi-line `/* * /`) del body antes
+ * de aplicar patterns. Mitigation vs false positives donde el pattern
+ * aparece en documentación en vez de código real.
+ */
+function stripComments(source: string): string {
+  // Remove multi-line block comments (non-greedy)
+  const withoutBlock = source.replace(/\/\*[\s\S]*?\*\//g, '');
+  // Remove single-line comments (line-scoped)
+  return withoutBlock
+    .split('\n')
+    .map((line) => {
+      const commentIdx = line.indexOf('//');
+      if (commentIdx === -1) return line;
+      // Heurística conservadora: si `//` está después de comilla abierta, no
+      // strip (podría ser dentro de string). Simple heurística — count quotes.
+      const before = line.slice(0, commentIdx);
+      const dblQuotes = (before.match(/"/g) ?? []).length;
+      const singleQuotes = (before.match(/'/g) ?? []).length;
+      const backticks = (before.match(/`/g) ?? []).length;
+      // Si número de quotes es par en todas las variantes → no está dentro
+      // de string → seguro strip.
+      if (dblQuotes % 2 === 0 && singleQuotes % 2 === 0 && backticks % 2 === 0) {
+        return before.trimEnd();
+      }
+      return line;
+    })
+    .join('\n');
+}
+
+/**
+ * DG-128 A: helper que detecta patrones heurísticos de sink en el body
+ * de un symbol. Retorna labels únicos ordenados por primera aparición.
+ */
+export function detectTaintPatternsInBody(bodyText: string): TaintPatternLabel[] {
+  if (bodyText.length === 0) return [];
+  const stripped = stripComments(bodyText);
+  const found = new Set<TaintPatternLabel>();
+  const ordered: TaintPatternLabel[] = [];
+  const add = (label: TaintPatternLabel): void => {
+    if (!found.has(label)) {
+      found.add(label);
+      ordered.push(label);
+    }
+  };
+  // SQL query con template literal interpolation: `.query(`...${...}...`)`
+  // Match: .(query|execute|raw)( ... `...${...} pattern
+  if (/\.(query|execute|raw|prepare)\s*\([^)]*`[^`]*\$\{/i.test(stripped)) {
+    add('sql-query-with-interpolation');
+  }
+  // SQL query con string concat: .query("... " + var + " ...")
+  if (/\.(query|execute|raw|prepare)\s*\([^)]*['"][^'"]*['"]\s*\+/i.test(stripped)) {
+    add('sql-query-with-concat');
+  }
+  // Command execution con concat/interpolation
+  // Match: (exec|execSync|spawn)( ... + ... ) or template literal
+  if (
+    /\b(exec|execSync|spawn|spawnSync)\s*\([^)]*(?:['"][^'"]*['"]\s*\+|`[^`]*\$\{)/i.test(stripped)
+  ) {
+    add('command-exec-with-concat');
+  }
+  // Code injection via eval() con argument no-hardcoded (heurística: any
+  // eval(nonStringLiteral) pattern)
+  if (/\beval\s*\(\s*(?!['"`])[^)]*\)/i.test(stripped)) {
+    add('code-injection-eval');
+  }
+  // Code injection via new Function() con argument no-hardcoded
+  if (/\bnew\s+Function\s*\(\s*(?!['"`])[^)]*\)/i.test(stripped)) {
+    add('code-injection-new-function');
+  }
+  // File write con concat/interpolation en path o content
+  if (
+    /\b(writeFileSync|writeFile|appendFileSync|createWriteStream)\s*\([^)]*(?:['"][^'"]*['"]\s*\+|`[^`]*\$\{)/i.test(
+      stripped,
+    )
+  ) {
+    add('file-write-with-concat');
+  }
+  // Prototype pollution: `Object.assign(target, userControlled)` o `[x] = value`
+  // con `x` dinámico. Heurística simple: Object.assign con más de 1 arg y no
+  // literal
+  if (
+    /\bObject\.assign\s*\([^,)]+,\s*[a-zA-Z_$][a-zA-Z0-9_$]*(?:\.[a-zA-Z_$][a-zA-Z0-9_$]*)*\s*[,)]/i.test(
+      stripped,
+    )
+  ) {
+    add('prototype-pollution-assign');
+  }
+  // Redirect con user input: res.redirect(userInput), window.location = X
+  if (
+    /\b(res\.redirect|response\.redirect|window\.location(?:\.href)?\s*=)\s*\(?[^'"`)]/i.test(
+      stripped,
+    )
+  ) {
+    add('redirect-with-user-input');
+  }
+  return ordered;
+}
+
+/**
  * Extrae símbolos top-level (function/class/const) desde AST TS/JS.
  * `exported` = true si tiene modifier `export` o esta dentro de un
  * `export_statement`.
@@ -667,16 +835,40 @@ function extractJsSymbols(rootNode: any): FileSymbol[] {
     if (kind !== null && name !== undefined && name.length > 0) {
       // DG-127 A: capturar signature del target node (primera línea).
       const signature = extractSignatureFromNode(target, exported, kind);
+      // DG-128 A (Cycle 113 FASE II): capturar body text después del primer
+      // `{` y correr detectTaintPatternsInBody. Para functions/classes el
+      // body es el bloque {...}; para consts, es todo el text de la
+      // declaration (para initializers que pueden contener sinks tipo
+      // `const f = () => db.query(...)`)
+      const bodyTaintPatterns =
+        kind === 'function' || kind === 'class'
+          ? detectFunctionOrClassBodyTaint(target)
+          : detectTaintPatternsInBody(typeof target.text === 'string' ? target.text : '');
       symbols.push({
         name,
         kind,
         exported,
         startLine: target.startPosition.row + 1,
         ...(signature.length > 0 ? { signature } : {}),
+        ...(bodyTaintPatterns.length > 0 ? { bodyTaintPatterns } : {}),
       });
     }
   }
   return symbols;
+}
+
+/**
+ * DG-128 A helper — captura el body de un function/class node (todo lo que
+ * hay después del primer `{`) y corre detectTaintPatternsInBody. Para nodes
+ * sin body o con text vacío devuelve array vacío.
+ */
+function detectFunctionOrClassBodyTaint(targetNode: any): TaintPatternLabel[] {
+  const raw = typeof targetNode.text === 'string' ? targetNode.text : '';
+  if (raw.length === 0) return [];
+  const braceIdx = raw.indexOf('{');
+  if (braceIdx < 0) return [];
+  const body = raw.slice(braceIdx + 1);
+  return detectTaintPatternsInBody(body);
 }
 
 /**
@@ -1169,11 +1361,16 @@ export function resolveCrossFileSignatures(
     const targetSymbol = targetNode.symbolContext.definedSymbols.find((s) => s.name === identifier);
     if (targetSymbol === undefined) continue;
     if (targetSymbol.signature === undefined || targetSymbol.signature.length === 0) continue;
+    // DG-128 A: propagar bodyTaintPatterns del target symbol si están
+    // presentes. Emit solo si el array tiene elementos (evita empty en
+    // signatures sin sink patterns detectados).
+    const taintPatterns = targetSymbol.bodyTaintPatterns;
     result.push({
       symbolName: identifier,
       sourceFile: fromFile,
       sourceLine: targetSymbol.startLine,
       signature: targetSymbol.signature,
+      ...(taintPatterns !== undefined && taintPatterns.length > 0 ? { taintPatterns } : {}),
     });
   }
   return result;
