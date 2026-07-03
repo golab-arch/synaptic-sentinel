@@ -3,7 +3,7 @@
   "projectId": "sentinel-1779304140796",
   "projectName": "SENTINEL",
   "initializedAt": "2026-05-20T19:09:00.816Z",
-  "lastActivity": "2026-07-03T13:15:00.000Z",
+  "lastActivity": "2026-07-03T14:15:00.000Z",
   "currentCycle": 58,
   "currentPhase": 12,
   "synapticStrength": 100,
@@ -30,19 +30,34 @@
     "current_phase": "FASE_II_cross_module_intelligence_NORTH_STAR_LEAP",
     "fase_i_closed_at": "2026-07-02T13:32:00.000Z",
     "fase_ii_open_at": "2026-07-02T13:32:00.000Z",
-    "current_phase_progress": "1.5/3 DGs (DG-127 A shipped + validated PASS, DG-128 A pending, DG-129 A pending)"
+    "current_phase_progress": "2/3 DGs shipped (DG-127 A validated PASS + DG-128 A shipped pending Baseline-12), DG-129 A pending"
   },
   "activeDG": {
     "id": "DG-128-A",
-    "title": "Cross-file taint propagation sobre R18 v2 — segundo DG de FASE II",
-    "status": "PENDING_TECHNICAL_DG",
+    "title": "Cross-file taint propagation via body scan — Sub-A2 regex heurístico (Cycle 113 FASE II)",
+    "status": "AWAITING_USER_BASELINE_12_REINSTALL_CLEAN_CROSS_WORKSPACE",
+    "artifact": "packages/vscode-extension/synaptic-sentinel-0.3.17-step-128-1.vsix",
+    "artifact_sha256": "7fffa73a8b8725fbfc939542a03f617b3b3645256e3274474cc48e688b4aad98",
+    "artifact_bytes": 4143962,
+    "artifact_files": 1849,
+    "bundle_markers_grep_count": 17,
     "parent_phase": "FASE_II_cross_module_intelligence_NORTH_STAR_LEAP",
-    "predecessor_baseline_11_status": "H3-implicit-con-verdict-shift PASS empírico del North Star: SQL injection agent.ts:62 verdict transition INC 0.45 → FP 0.90 con rationale que atestigua conocimiento cross-file del target. R18 v1.1 + v2 combined move la aguja del LLM sobre el caso cross-module que originó el R18 v2 spec.",
-    "candidate_sub_dgs": {
-      "Sub_A1_Conservative": "Taint metadata mapping en fileContext — anotar en fileContext.importedSymbols qué symbols son known-taint-sources (request.body, req.query, etc.) y qué son known-sinks (db.query, exec, etc.). LLM ve el mapping pero infiere propagation.",
-      "Sub_A2_Balanced_RECOMMENDED": "Sub-A1 + taint annotations en cross-file signatures — anotar en el signature del target symbol si internamente tiene taint sink patterns (regex sobre body del target function). Ejemplo: `execute() [contains db.query with user input pattern]`.",
-      "Sub_A3_Innovative": "Full call graph reverse resolution con symbolic taint tracking — DAG de source→sink cross-file completo. Requiere CPG framework (Joern territory)."
-    },
-    "bitacora_entries": [177]
+    "option_selected": "Sub-A2 Balanced regex heurístico (8 sink patterns + stripComments mitigation + prompt integration)",
+    "gap_atacado_baseline_11": "LLM Sonnet-4.6 en Baseline-11 decidió FP 0.90 asumiendo 'agentLoop.execute is not a SQL execution sink; it is an orchestration method' SIN ver el body real del target. Si empíricamente agentLoop.execute() SÍ construye SQL con user input, verdict FP es peligroso. DG-128 A señala al LLM cuando el target body tiene sink patterns detectados por regex heurística.",
+    "baseline_12_acceptance": "REINSTALL CLEAN + re-scan SENTINEL (regression check FASE I+II intacta) + cross-workspace SYNAPTIC_SAAS con re-triage deepseek-v4-flash → (1) SENTINEL 0 findings 'triage failed'; (2) SYNAPTIC_SAAS finding SQL injection agent.ts:62 verdict/rationale POST-DG-128 A — si body real de agentLoop tiene SQL patterns → shift o rationale más robusto; si safe → sostiene FP con body scan evidence; (3) 0 incremento EmptyResponseError; (4) latency similar. Ambos outcomes son PASS del gap crítico.",
+    "verify_status": "VERDE 817 tests (803 baseline post-DG-127 A + 14 nuevos DG-128 A: 10 detectTaintPatternsInBody unit + 2 buildInteractionGraph populate + 2 resolveCrossFileSignatures propagate)",
+    "taint_pattern_labels_shipped": [
+      "sql-query-with-interpolation",
+      "sql-query-with-concat",
+      "command-exec-with-concat",
+      "code-injection-eval",
+      "code-injection-new-function",
+      "file-write-with-concat",
+      "prototype-pollution-assign",
+      "redirect-with-user-input"
+    ],
+    "bitacora_entries": [178, 179],
+    "post_baseline_12_pass_action": "Siguiente DG-129 A R19 module trust boundary tagging (último DG de FASE II) — anotar files como public-entry vs internal-handler vs test-fixture usando package.json exports, route definitions, tsconfig paths. Post-DG-129 A → FASE II CLOSE + FASE III open (trust cross-session).",
+    "fase_ii_progress": "2/3 DGs shipped (DG-127 A validated PASS + DG-128 A shipped pending validation)"
   }
 }
