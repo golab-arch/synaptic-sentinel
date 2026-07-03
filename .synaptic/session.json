@@ -3,7 +3,7 @@
   "projectId": "sentinel-1779304140796",
   "projectName": "SENTINEL",
   "initializedAt": "2026-05-20T19:09:00.816Z",
-  "lastActivity": "2026-07-03T15:35:00.000Z",
+  "lastActivity": "2026-07-03T16:05:00.000Z",
   "currentCycle": 58,
   "currentPhase": 12,
   "synapticStrength": 100,
@@ -30,20 +30,37 @@
     "current_phase": "FASE_II_cross_module_intelligence_NORTH_STAR_LEAP",
     "fase_i_closed_at": "2026-07-02T13:32:00.000Z",
     "fase_ii_open_at": "2026-07-02T13:32:00.000Z",
-    "current_phase_progress": "2.5/3 DGs (DG-127 A + DG-128 A shipped + validated PASS, DG-129 A pending como último de FASE II)"
+    "current_phase_progress": "3/3 DGs shipped (DG-127 A + DG-128 A validated PASS + DG-129 A shipped pending Baseline-13). Post-PASS → FASE II CLOSE + open FASE III."
   },
   "activeDG": {
     "id": "DG-129-A",
-    "title": "R19 module trust boundary tagging — último DG de FASE II 'cross-module intelligence'",
-    "status": "PENDING_TECHNICAL_DG",
+    "title": "R19 module trust boundary tagging — Sub-A2 path heuristics + regex framework detection (último DG de FASE II)",
+    "status": "AWAITING_USER_BASELINE_13_REINSTALL_CLEAN_CROSS_WORKSPACE",
+    "artifact": "packages/vscode-extension/synaptic-sentinel-0.3.17-step-129-1.vsix",
+    "artifact_sha256": "ca61915f15178d901ba4d62bdb594c9aebdbd4a9c0173b5a8ea3b91e89c9d4c0",
+    "artifact_bytes": 4147013,
+    "artifact_files": 1849,
+    "bundle_markers_grep_count": 26,
     "parent_phase": "FASE_II_cross_module_intelligence_NORTH_STAR_LEAP",
-    "predecessor_baseline_12_status": "H3-implicit-refinement PASS — rationale trajectory INC 0.45 (Baseline-8b) → hedged FP 0.90 (Baseline-11) → CATEGÓRICA FP 0.95 (Baseline-12). +50 confidence spread + verdict trajectory INC→FP→refined. R18 v2 completo (DG-127 A signature + DG-128 A body scan) transformó el pain point original del North Star principle empíricamente.",
-    "r19_spec_from_research_doc_12_4": "Module trust boundary tagging (P1 priority): parse package.json exports/main + route definitions (Express/Fastify/Hono/Koa) + tsconfig paths + test/src structure → tag cada file como 'public-entry' (API endpoints, HTTP handlers) / 'internal-handler' (business logic invoked from public-entry) / 'startup-config' (initialization, config loaders) / 'test-fixture' (test data, mocks) / 'private-worker' (background jobs, workers). Habilita al Triage Agent evaluar findings con contexto de exposición: SQL injection en public-entry = HIGH surface; misma pattern en private-worker = LOW surface. Empíricamente en Baseline-12 SYNAPTIC_SAAS agent.ts:62 es 'public-entry' (route.post) → si el finding fuera real TP, priority mucho más alto que si estuviera en private-worker.",
-    "candidate_sub_dgs": {
-      "Sub_A1_Conservative": "Filename + path heuristics solo — tag por convention (routes/, api/, handlers/ → public-entry; workers/, jobs/, tasks/ → private-worker; test/, __tests__/, fixtures/ → test-fixture). No parsing package.json ni tsconfig. Rápido de implementar pero superficial",
-      "Sub_A2_Balanced_RECOMMENDED": "Sub-A1 + parse package.json exports/main + basic route definition detection via regex heurístico (route.get, route.post, app.use, router.*, etc.) + tsconfig paths para monorepo public boundaries. Balance entre precision y scope",
-      "Sub_A3_Innovative": "Sub-A2 + full AST-level parsing de route definition frameworks (Fastify/Express/Hono/Koa/NestJS decorators) + parse compilerOptions.paths mapping + module.exports pattern detection para CJS + typescript-eslint-parser integration para type-aware analysis. Comprehensive pero multi-cycle"
+    "option_selected": "Sub-A2 Balanced (path heuristics + regex framework detection, 6 route patterns + 4 path rules con precedencia)",
+    "trust_boundary_tags_shipped": [
+      "public-entry",
+      "internal-handler",
+      "startup-config",
+      "test-fixture",
+      "private-worker"
+    ],
+    "attack_surface_mapping": {
+      "public-entry": "HIGH",
+      "internal-handler": "MEDIUM",
+      "startup-config": "LOW",
+      "test-fixture": "N/A",
+      "private-worker": "LOW"
     },
-    "bitacora_entries": [180]
+    "baseline_13_acceptance": "REINSTALL CLEAN + re-scan SENTINEL + cross-workspace SYNAPTIC_SAAS con re-triage deepseek-v4-flash → (1) SENTINEL 0 findings 'triage failed'; (2) SYNAPTIC_SAAS agent.ts:62 route.post handler debe recibir 'Trust boundary: public-entry [Fastify route registration]' + 'Attack surface: HIGH' en el prompt del Triage; (3) rationale POST-DG-129 A refleja consciousness del trust boundary (menciona public route/HTTP handler/exposed endpoint/attack surface) → PASS empírico; (4) 0 incremento EmptyResponseError; (5) latency similar.",
+    "verify_status": "VERDE 832 tests (817 baseline post-DG-128 A + 15 nuevos DG-129 A: 7 path heuristics + 5 regex framework detection + 1 attack surface mapping + 2 integration build populate)",
+    "post_baseline_13_pass_action": "FASE II CLOSE + successfulCycles 114 → 115 + open FASE III 'trust cross-session' con DG-130 A backlog #4 per-fingerprint verdict persistence + reproducibilidad cross-provider como primer DG.",
+    "fase_ii_progress": "3/3 DGs shipped (DG-127 A + DG-128 A validated PASS + DG-129 A shipped pending validation)",
+    "bitacora_entries": [181, 182]
   }
 }
