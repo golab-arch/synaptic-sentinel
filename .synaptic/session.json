@@ -3,7 +3,7 @@
   "projectId": "sentinel-1779304140796",
   "projectName": "SENTINEL",
   "initializedAt": "2026-05-20T19:09:00.816Z",
-  "lastActivity": "2026-07-04T12:20:00.000Z",
+  "lastActivity": "2026-07-04T20:00:00.000Z",
   "currentCycle": 58,
   "currentPhase": 12,
   "synapticStrength": 100,
@@ -19,7 +19,7 @@
   "agentState": {
     "complianceScore": 100,
     "violationsCount": 0,
-    "successfulCycles": 115,
+    "successfulCycles": 116,
     "marketplacePublishedExtensionId": "RealGoLab.synaptic-sentinel",
     "marketplacePublishedVersion": "0.3.3",
     "githubReleaseLatest": "v0.3.17"
@@ -33,18 +33,20 @@
     "fase_ii_closed_at": "2026-07-03T20:30:00.000Z",
     "fase_iii_open_at": "2026-07-03T20:30:00.000Z",
     "fase_ii_summary": "3 DGs shipped + 3 Baselines PASS validated: DG-127 A (signature attachment) H3-implicit-con-verdict-shift Baseline-11 INC→FP; DG-128 A (body scan taint propagation) H3-implicit-refinement Baseline-12 categorical FP; DG-129 A (module trust boundary tagging) H3-STRUCTURAL-SHIFT Baseline-13 FP→INC. Cumulative achievement: North Star principle empíricamente REALIZED — el LLM ahora razona sobre findings cross-module con contexto de signature + body content + attack surface. Duration real: 3 días vs estimate 3-4 semanas.",
-    "current_phase_progress": "1/3 DGs shipped (DG-130 A Sub-A2 IMPLEMENTED pending Baseline-14 validation). FASE III cubre: DG-130 A per-fingerprint verdict persistence + reproducibilidad cross-provider (backlog #4), DG-131 A R20 cross-finding correlation (Stage 3 groups), DG-132 A R22 diff-aware mode."
+    "current_phase_progress": "1/3 DGs shipped + validated PASS categorical (DG-130 A Sub-A2 Baseline-14 empíricamente confirmado). FASE III cubre: DG-130 A per-fingerprint verdict persistence + reproducibilidad cross-provider (backlog #4) COMPLETED, DG-131 A R20 cross-finding correlation (Stage 3 groups) PENDING, DG-132 A R22 diff-aware mode enhancement PENDING."
   },
   "activeDG": {
     "id": "DG-130-A",
-    "title": "Per-fingerprint verdict persistence + reproducibilidad cross-provider — primer DG de FASE III 'trust cross-session' — Sub-A2 Balanced IMPLEMENTED",
-    "status": "SHIPPED_PENDING_BASELINE_14",
+    "title": "Per-fingerprint verdict persistence + reproducibilidad cross-provider — primer DG de FASE III 'trust cross-session' — Sub-A2 Balanced COMPLETED_VALIDATED_PASS_CATEGORICAL",
+    "status": "COMPLETED_VALIDATED_PASS_CATEGORICAL",
     "parent_phase": "FASE_III_trust_cross_session",
     "chosen_sub_dg": "Sub_A2_Balanced",
     "shipped_at": "2026-07-04T12:15:00.000Z",
+    "validated_at": "2026-07-04T20:00:00.000Z",
     "vsix_capture": "synaptic-sentinel-0.3.18-step-130-1.vsix (SHA-256 c91a8636e771b5259447b672cd507f1b2f69cf38af03b8207da6a258ce78495c)",
-    "deliverables_summary": "Schema v6 verdict_history append-only table + TriageVerdictHistoryRecord type + colony-db helpers (insertVerdictHistoryBatch + getVerdictHistoryForFingerprint + getVerdictHistoryByFingerprints + getVerdictDiffAgainstPrevious) + triage.ts insert history + diff-aware line + reporters/tomo.ts scanDiff/previouslyVerdicts enrichment + extension schema + webview banner Verdict changed + Previously section + summary scan-diff line + show.ts + scan.ts pass enrichment + 17 tests (6 colony-db + 3 tomo + 8 webview) + version bump 0.3.17 → 0.3.18. INVARIANTE: clearTriageDataForFingerprints NO borra verdict_history (verified con test dedicado).",
-    "acceptance_empirica_a_medir_baseline_14": "REINSTALL CLEAN + SENTINEL regression + SYNAPTIC_SAAS Baseline-14 primer scan (verdict_history INSERT, no Previously section) + Baseline-14b re-triage (verdict_history NUEVO INSERT, Previously section visible con 1 prior verdict, banner Verdict changed si classification difiere). Terminal debe emit 'Scan diff vs previous triage: N new · M re-classified · K unchanged'. Sidebar summary debe mostrar scan-diff line.",
-    "bitacora_entries": [183, 184, 185]
+    "deliverables_summary": "Schema v6 verdict_history append-only table + TriageVerdictHistoryRecord type + colony-db helpers (insertVerdictHistoryBatch + getVerdictHistoryForFingerprint + getVerdictHistoryByFingerprints + getVerdictDiffAgainstPrevious) + triage.ts insert history + diff-aware line + reporters/tomo.ts scanDiff/previouslyVerdicts enrichment + extension schema + webview banner Verdict changed + Previously section + summary scan-diff line + show.ts + scan.ts pass enrichment + 17 tests (6 colony-db + 3 tomo + 8 webview) + version bump 0.3.17 → 0.3.18. INVARIANTE: clearTriageDataForFingerprints NO borra verdict_history (verified con test dedicado + empíricamente in production).",
+    "baseline_14_pass_signals": "(1) CLI terminal diff-aware line `Scan diff vs previous triage: 0 new, 0 re-classified, 44 unchanged.` PASS. (2) Sidebar summary scan-diff line matching terminal PASS. (3) Previously section colapsable renderiza en 44 findings con timestamps + providerLabels + rationales PASS. (4) providerLabel plumbing dual correcto: 'colony-memory' para colony-learning + 'deepseek/deepseek-v4-flash' para LLM real PASS. (5) BANNER `Verdict changed since last scan: false positive 95% → false positive 75%` con reason 'Different provider (deepseek/deepseek-v4-flash → colony-memory)' triggered empíricamente en agent.ts:62 finding target PASS. (6) verdict_history preserva cross clearTriageDataForFingerprints INVARIANTE verified in production PASS.",
+    "north_star_trajectory_updated": "agent.ts:62 SQL injection cross-baseline: 8b INC 0.45 (sonnet-4.6) → 11 FP 0.90 → 12 FP 0.95 → 13 INC 0.70 (verdict FLIP R19) → 14a FP 0.95 (deepseek-v4-flash) → 14b FP 0.75 (colony-memory pre-classified + BANNER emit correcto). Users AHORA VEN VISUALMENTE el shift cross-scan con reason heurístico — el trust cross-session behavior empíricamente REALIZED.",
+    "bitacora_entries": [183, 184, 185, 186]
   }
 }
