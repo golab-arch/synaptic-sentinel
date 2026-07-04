@@ -30,7 +30,7 @@ function makePheromone(
 describe('ColonyDb (base en memoria)', () => {
   it('aplica el schema y expone la version', () => {
     const db = ColonyDb.open(':memory:');
-    expect(db.getSchemaVersion()).toBe('4');
+    expect(db.getSchemaVersion()).toBe('6');
     db.close();
   });
 
@@ -441,7 +441,7 @@ describe('ColonyDb (base en disco)', () => {
       // El path-mágico ':memory:' es el contrato de sqlite para una DB en RAM.
       // Pre-flight de directorio NO debe disparar para este caso.
       const db = ColonyDb.open(':memory:');
-      expect(db.getSchemaVersion()).toBe('4');
+      expect(db.getSchemaVersion()).toBe('6');
       db.close();
     });
   });
@@ -665,5 +665,208 @@ describe('ColonyDb (base en disco)', () => {
       expect(rows.map((r) => r.providerLabel)).toEqual(['aaa/first', 'mmm/middle', 'zzz/last']);
       db.close();
     });
+  });
+});
+
+/**
+ * DG-130 A Sub-A2 (Cycle 116 FASE III): verdict_history append-only cross-scan.
+ *
+ * Cubre: insert transaccional, query DESC order, batch map, diff buckets
+ * (new/reclassified/unchanged), y — el invariante MÁS CRÍTICO — la
+ * persistencia del history a través de clearTriageDataForFingerprints
+ * (re-triage NO debe borrar el history).
+ */
+describe('ColonyDb - verdict history (schema v6, DG-130 A Sub-A2)', () => {
+  function makeHistoryRecord(
+    scanId: string,
+    overrides: Record<string, unknown> = {},
+  ): Record<string, unknown> {
+    return {
+      id: randomUUID(),
+      scanId,
+      fingerprint: 'fp-h',
+      classification: 'true_positive',
+      confidence: 0.8,
+      rationale: 'razón',
+      providerLabel: 'deepseek/deepseek-v4-flash',
+      agentId: 'triage',
+      createdAt: new Date().toISOString(),
+      ...overrides,
+    };
+  }
+
+  it('inserta history batch y recupera por fingerprint en orden DESC', () => {
+    const db = ColonyDb.open(':memory:');
+    const scan = makeScan();
+    db.insertScan(scan);
+    const scanId = String(scan['id']);
+    db.insertVerdictHistoryBatch([
+      makeHistoryRecord(scanId, {
+        fingerprint: 'fp-1',
+        confidence: 0.5,
+        createdAt: '2026-07-01T00:00:00.000Z',
+      }),
+      makeHistoryRecord(scanId, {
+        fingerprint: 'fp-1',
+        classification: 'false_positive',
+        confidence: 0.95,
+        createdAt: '2026-07-02T00:00:00.000Z',
+      }),
+      makeHistoryRecord(scanId, {
+        fingerprint: 'fp-1',
+        classification: 'inconclusive',
+        confidence: 0.7,
+        createdAt: '2026-07-03T00:00:00.000Z',
+      }),
+    ]);
+    const history = db.getVerdictHistoryForFingerprint('fp-1', 5);
+    expect(history).toHaveLength(3);
+    // DESC order: la más reciente (fecha mayor) primero.
+    expect(history[0]?.confidence).toBe(0.7);
+    expect(history[0]?.classification).toBe('inconclusive');
+    expect(history[1]?.confidence).toBe(0.95);
+    expect(history[2]?.confidence).toBe(0.5);
+    db.close();
+  });
+
+  it('getVerdictHistoryForFingerprint respeta el limit', () => {
+    const db = ColonyDb.open(':memory:');
+    const scan = makeScan();
+    db.insertScan(scan);
+    const scanId = String(scan['id']);
+    for (let i = 0; i < 10; i += 1) {
+      db.insertVerdictHistoryBatch([
+        makeHistoryRecord(scanId, {
+          fingerprint: 'fp-x',
+          createdAt: new Date(2026, 0, i + 1).toISOString(),
+        }),
+      ]);
+    }
+    expect(db.getVerdictHistoryForFingerprint('fp-x', 3)).toHaveLength(3);
+    expect(db.getVerdictHistoryForFingerprint('fp-x', 100)).toHaveLength(10);
+    db.close();
+  });
+
+  it('getVerdictHistoryByFingerprints devuelve mapa cap per-fingerprint', () => {
+    const db = ColonyDb.open(':memory:');
+    const scan = makeScan();
+    db.insertScan(scan);
+    const scanId = String(scan['id']);
+    db.insertVerdictHistoryBatch([
+      makeHistoryRecord(scanId, {
+        fingerprint: 'fp-a',
+        createdAt: '2026-07-01T00:00:00.000Z',
+      }),
+      makeHistoryRecord(scanId, {
+        fingerprint: 'fp-a',
+        classification: 'false_positive',
+        createdAt: '2026-07-02T00:00:00.000Z',
+      }),
+      makeHistoryRecord(scanId, {
+        fingerprint: 'fp-a',
+        classification: 'inconclusive',
+        createdAt: '2026-07-03T00:00:00.000Z',
+      }),
+      makeHistoryRecord(scanId, {
+        fingerprint: 'fp-b',
+        createdAt: '2026-07-01T00:00:00.000Z',
+      }),
+    ]);
+    const map = db.getVerdictHistoryByFingerprints(['fp-a', 'fp-b', 'fp-missing'], 2);
+    // fp-a tiene 3 registros → capped a 2 (los más recientes)
+    expect(map.get('fp-a')).toHaveLength(2);
+    expect(map.get('fp-a')?.[0]?.classification).toBe('inconclusive'); // más reciente
+    expect(map.get('fp-a')?.[1]?.classification).toBe('false_positive');
+    // fp-b tiene 1 → 1
+    expect(map.get('fp-b')).toHaveLength(1);
+    // fp-missing → no entry en el map
+    expect(map.has('fp-missing')).toBe(false);
+    db.close();
+  });
+
+  it('getVerdictDiffAgainstPrevious clasifica en new/reclassified/unchanged', () => {
+    const db = ColonyDb.open(':memory:');
+    const scan = makeScan();
+    db.insertScan(scan);
+    const scanId = String(scan['id']);
+    // fp-new: solo 1 registro → bucket "new"
+    // fp-flip: 2 registros con classification distinta → bucket "reclassified"
+    // fp-same: 2 registros con misma classification → bucket "unchanged"
+    // fp-orphan: sin ningún registro → excluido del diff
+    db.insertVerdictHistoryBatch([
+      makeHistoryRecord(scanId, {
+        fingerprint: 'fp-new',
+        createdAt: '2026-07-03T00:00:00.000Z',
+      }),
+      makeHistoryRecord(scanId, {
+        fingerprint: 'fp-flip',
+        classification: 'false_positive',
+        createdAt: '2026-07-01T00:00:00.000Z',
+      }),
+      makeHistoryRecord(scanId, {
+        fingerprint: 'fp-flip',
+        classification: 'inconclusive',
+        createdAt: '2026-07-02T00:00:00.000Z',
+      }),
+      makeHistoryRecord(scanId, {
+        fingerprint: 'fp-same',
+        classification: 'true_positive',
+        createdAt: '2026-07-01T00:00:00.000Z',
+      }),
+      makeHistoryRecord(scanId, {
+        fingerprint: 'fp-same',
+        classification: 'true_positive',
+        createdAt: '2026-07-02T00:00:00.000Z',
+      }),
+    ]);
+    const diff = db.getVerdictDiffAgainstPrevious(['fp-new', 'fp-flip', 'fp-same', 'fp-orphan']);
+    expect(diff.newFindings).toEqual(['fp-new']);
+    expect(diff.reclassified).toEqual([
+      { fingerprint: 'fp-flip', from: 'false_positive', to: 'inconclusive' },
+    ]);
+    expect(diff.unchanged).toEqual(['fp-same']);
+    db.close();
+  });
+
+  it('rechaza history record sin providerLabel (validacion zod)', () => {
+    const db = ColonyDb.open(':memory:');
+    const scan = makeScan();
+    db.insertScan(scan);
+    const scanId = String(scan['id']);
+    expect(() =>
+      db.insertVerdictHistoryBatch([makeHistoryRecord(scanId, { providerLabel: '' })]),
+    ).toThrow();
+    db.close();
+  });
+
+  it('history persiste a través de clearTriageDataForFingerprints (invariante crítico)', () => {
+    const db = ColonyDb.open(':memory:');
+    const scan = makeScan();
+    db.insertScan(scan);
+    const scanId = String(scan['id']);
+    // Simulamos el flow del CLI: insertar triage verdict + history al mismo tiempo.
+    const record = {
+      id: randomUUID(),
+      scanId,
+      fingerprint: 'fp-persist',
+      classification: 'false_positive' as const,
+      confidence: 0.95,
+      rationale: 'no reachable',
+      agentId: 'triage',
+      createdAt: new Date().toISOString(),
+    };
+    db.insertTriageVerdicts([record]);
+    db.insertVerdictHistoryBatch([{ ...record, providerLabel: 'anthropic/claude-haiku-4-5' }]);
+    // Sanity: ambos existen
+    expect(db.getTriagedFingerprints()).toContain('fp-persist');
+    expect(db.getVerdictHistoryForFingerprint('fp-persist').length).toBe(1);
+    // Re-triage flow: clearTriageDataForFingerprints borra triage_verdicts
+    const deleted = db.clearTriageDataForFingerprints(['fp-persist']);
+    expect(deleted).toBeGreaterThan(0);
+    // triage_verdicts vacío
+    expect(db.getTriagedFingerprints().has('fp-persist')).toBe(false);
+    // verdict_history PRESERVADO — este es el invariante crítico DG-130 A
+    expect(db.getVerdictHistoryForFingerprint('fp-persist').length).toBe(1);
+    db.close();
   });
 });

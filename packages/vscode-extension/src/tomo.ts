@@ -30,6 +30,26 @@ const ExtensionTriageSchema = z.object({
   rationale: z.string().min(1),
 });
 
+/**
+ * Veredicto histórico (subset render-only) — DG-130 A Sub-A2.
+ * Se renderea en la section "Previously (N prior verdicts)" del sidebar.
+ * `providerLabel` se usa para el banner heurístico de razón del cambio.
+ */
+const ExtensionPreviousVerdictSchema = z.object({
+  classification: z.string().min(1),
+  confidence: z.number().min(0).max(1),
+  rationale: z.string().min(1),
+  providerLabel: z.string().min(1),
+  createdAt: z.string().datetime(),
+});
+
+/** Diff-aware summary del scan actual (DG-130 A Sub-A2). */
+const ExtensionScanDiffSchema = z.object({
+  newFindingsCount: z.number().int().nonnegative(),
+  reclassifiedCount: z.number().int().nonnegative(),
+  unchangedCount: z.number().int().nonnegative(),
+});
+
 /** Explicacion de contexto del Brain Layer (forma minima, solo para mostrar). */
 const ExtensionContextSchema = z.object({
   summary: z.string().min(1),
@@ -62,6 +82,12 @@ const ExtensionFindingSchema = z.object({
   context: ExtensionContextSchema.optional(),
   /** Sugerencia de remediacion, presente solo si el hallazgo fue remediado. */
   remediation: ExtensionRemediationSchema.optional(),
+  /**
+   * DG-130 A Sub-A2: veredictos previos (append-only cross-scan). Ordenados
+   * DESC por `createdAt` — index 0 = veredicto ACTUAL, index 1 = anterior.
+   * Presente solo si la CLI cargó verdict_history. Aditivo backward-compat.
+   */
+  previouslyVerdicts: z.array(ExtensionPreviousVerdictSchema).optional(),
   /**
    * Priority/risk score (DG-118 A — Cycle 109). Computado por
    * `computePriorityScore` en el reporter desde (severity,
@@ -141,6 +167,11 @@ export const ExtensionTomoSchema = z.object({
     scanId: z.string().min(1),
     status: z.enum(['ok', 'degraded']),
     totalFindings: z.number().int().nonnegative(),
+    /**
+     * DG-130 A Sub-A2: diff-aware summary opcional. Presente solo si hay
+     * findings con history cargado. Aditivo backward-compat.
+     */
+    scanDiff: ExtensionScanDiffSchema.optional(),
   }),
   findings: z.array(ExtensionFindingSchema),
   /** Grupos SCA por package family — DG-113 A Step 4. Opcional. */
@@ -152,6 +183,12 @@ export type ExtensionTomo = z.infer<typeof ExtensionTomoSchema>;
 
 /** Hallazgo en la forma que consume la extension. */
 export type ExtensionFinding = z.infer<typeof ExtensionFindingSchema>;
+
+/** Veredicto histórico en la forma que consume la extension (DG-130 A). */
+export type ExtensionPreviousVerdict = z.infer<typeof ExtensionPreviousVerdictSchema>;
+
+/** Diff-aware summary en la forma que consume la extension (DG-130 A). */
+export type ExtensionScanDiff = z.infer<typeof ExtensionScanDiffSchema>;
 
 /** Valida y parsea el JSON de un tomo. Lanza si no cumple el contrato minimo. */
 export function parseTomo(raw: unknown): ExtensionTomo {

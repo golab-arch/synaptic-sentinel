@@ -18,6 +18,7 @@ import {
   type RemediationSuggestionRecord,
   type TokenUsageRecord,
   type TriageVerdict,
+  type TriageVerdictHistoryRecord,
   type TriageVerdictRecord,
 } from '@synaptic-sentinel/core';
 import {
@@ -550,6 +551,17 @@ export async function runTriageCommand(options: TriageCommandOptions): Promise<n
     }
 
     db.insertTriageVerdicts(verdicts);
+    // DG-130 A (Cycle 116 FASE III Sub-A2): historia append-only cross-scan.
+    // Cada re-triage añade nuevos registros SIN borrar los previos → habilita
+    // sidebar "Previously (N prior verdicts)" + banner "Verdict changed
+    // since last scan". providerLabel identifica el origen (LLM vs colony-
+    // memory) para el banner heurístico de razón.
+    const triageProviderLabel = providerLabels['triage'];
+    const verdictHistoryRecords: TriageVerdictHistoryRecord[] = verdicts.map((v) => ({
+      ...v,
+      providerLabel: v.agentId === 'colony-learning' ? 'colony-memory' : triageProviderLabel,
+    }));
+    db.insertVerdictHistoryBatch(verdictHistoryRecords);
     db.insertContextExplanations(explanations);
     db.insertRemediationSuggestions(remediations);
     db.recordLearningBatch(learningEntries, scanId);
@@ -561,6 +573,23 @@ export async function runTriageCommand(options: TriageCommandOptions): Promise<n
         `patterns learned: ${String(learningEntries.length)}; ` +
         `pre-classified from memory: ${String(learnedCount)}.`,
     );
+    // DG-130 A (Cycle 116 FASE III Sub-A2): diff-aware line post-triage.
+    // Compara los veredictos ACTUALES de los findings triaged en ESTA corrida
+    // contra sus veredictos previos en verdict_history. Solo cuenta findings
+    // que efectivamente pasaron por triage (toTriage). Los que fueron saltados
+    // (known-FP o already-triaged sin --re-triage) no participan del diff.
+    if (toTriage.length > 0) {
+      const triagedFingerprints = toTriage.map((f) => f.fingerprint);
+      const diff = db.getVerdictDiffAgainstPrevious(triagedFingerprints);
+      console.log(
+        `Scan diff vs previous triage: ${String(diff.newFindings.length)} new, ` +
+          `${String(diff.reclassified.length)} re-classified, ` +
+          `${String(diff.unchanged.length)} unchanged.`,
+      );
+      for (const rc of diff.reclassified) {
+        console.log(`  · re-classified ${rc.fingerprint.slice(0, 12)}: ${rc.from} → ${rc.to}`);
+      }
+    }
     // Cost visibility summary (DG-078 B + DG-085 A). El caveat del summary
     // distingue ahora entre tokens reales del provider y la proxy chars/4.
     if (tokenUsages.length > 0) {

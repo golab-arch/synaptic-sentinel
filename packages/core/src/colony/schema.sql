@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS meta (
   key   TEXT PRIMARY KEY,
   value TEXT NOT NULL
 );
-INSERT OR IGNORE INTO meta (key, value) VALUES ('schema_version', '5');
+INSERT OR IGNORE INTO meta (key, value) VALUES ('schema_version', '6');
 
 CREATE TABLE IF NOT EXISTS scans (
   id            TEXT PRIMARY KEY,
@@ -121,3 +121,31 @@ CREATE TABLE IF NOT EXISTS triage_token_usage (
 CREATE INDEX IF NOT EXISTS idx_token_usage_session     ON triage_token_usage(triage_session_id);
 CREATE INDEX IF NOT EXISTS idx_token_usage_scan        ON triage_token_usage(scan_id);
 CREATE INDEX IF NOT EXISTS idx_token_usage_provider    ON triage_token_usage(provider_label);
+
+-- Historial de veredictos cross-scan (schema v6 — DG-130 A, FASE III).
+-- Sub-A2 Balanced: preserva TODOS los veredictos emitidos (incluso los
+-- reemplazados por re-triage) para habilitar:
+--   (a) mostrar "Previously (N prior verdicts)" en el sidebar
+--   (b) banner "Verdict changed since last scan" cuando classification cambia
+--   (c) diff-aware line post scan ("N reclassified, M unchanged")
+--
+-- DIFERENCIA con `triage_verdicts`: esa tabla se BORRA al re-triage
+-- (clearTriageDataForFingerprints); `verdict_history` NUNCA se borra —
+-- es append-only por diseño para preservar la cadena empírica cross-scan.
+-- Incluye `provider_label` (que triage_verdicts NO tiene) para detectar
+-- "same/different provider" en el banner de razón heurística.
+CREATE TABLE IF NOT EXISTS verdict_history (
+  id             TEXT PRIMARY KEY,
+  scan_id        TEXT NOT NULL REFERENCES scans(id),
+  fingerprint    TEXT NOT NULL,               -- Finding.fingerprint
+  -- CHECK enum: defensa en profundidad anti Memory Poisoning (v0.4 9.6).
+  classification TEXT NOT NULL CHECK (classification IN
+                   ('true_positive', 'false_positive', 'inconclusive')),
+  confidence     REAL NOT NULL CHECK (confidence BETWEEN 0.0 AND 1.0),
+  rationale      TEXT NOT NULL,
+  provider_label TEXT NOT NULL,               -- "<provider>/<model>" o "colony-memory"
+  agent_id       TEXT NOT NULL,               -- trazabilidad (OWASP ASI 2026)
+  created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_verdict_history_fingerprint ON verdict_history(fingerprint, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_verdict_history_scan        ON verdict_history(scan_id);

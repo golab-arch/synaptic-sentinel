@@ -61,6 +61,7 @@ import {
   RemediationSuggestionRecordSchema,
   ScanSchema,
   TokenUsageRecordSchema,
+  TriageVerdictHistoryRecordSchema,
   TriageVerdictRecordSchema,
   type ContextExplanationRecord,
   type CostHistoryRow,
@@ -71,6 +72,8 @@ import {
   type RemediationSuggestionRecord,
   type Scan,
   type TokenUsageRecord,
+  type TriageClassification,
+  type TriageVerdictHistoryRecord,
   type TriageVerdictRecord,
 } from '../types/index.js';
 
@@ -152,6 +155,22 @@ function rowToTriageVerdict(row: unknown): TriageVerdictRecord {
     classification: r['classification'],
     confidence: r['confidence'],
     rationale: r['rationale'],
+    agentId: r['agent_id'],
+    createdAt: r['created_at'],
+  });
+}
+
+/** Convierte una fila de `verdict_history` en un `TriageVerdictHistoryRecord` validado. */
+function rowToVerdictHistory(row: unknown): TriageVerdictHistoryRecord {
+  const r = row as Record<string, unknown>;
+  return TriageVerdictHistoryRecordSchema.parse({
+    id: r['id'],
+    scanId: r['scan_id'],
+    fingerprint: r['fingerprint'],
+    classification: r['classification'],
+    confidence: r['confidence'],
+    rationale: r['rationale'],
+    providerLabel: r['provider_label'],
     agentId: r['agent_id'],
     createdAt: r['created_at'],
   });
@@ -276,7 +295,7 @@ export class ColonyDb {
     // v4: remediation_suggestions): las tablas se crean via CREATE TABLE IF
     // NOT EXISTS en el schema, sin reconstruir nada; aqui se sincroniza la
     // version de una base preexistente.
-    db.exec("UPDATE meta SET value = '4' WHERE key = 'schema_version'");
+    db.exec("UPDATE meta SET value = '6' WHERE key = 'schema_version'");
     return new ColonyDb(db);
   }
 
@@ -471,6 +490,158 @@ export class ColonyDb {
     return this.#db
       .all('SELECT * FROM triage_verdicts ORDER BY created_at')
       .map(rowToTriageVerdict);
+  }
+
+  /**
+   * Inserta un lote de registros de historia de veredictos (DG-130 A, FASE III)
+   * en una unica transaccion.
+   *
+   * A DIFERENCIA de {@link insertTriageVerdicts}, esta tabla es APPEND-ONLY:
+   * cada re-triage añade nuevos registros SIN borrar los anteriores. Esto
+   * habilita el sidebar "Previously (N prior verdicts)" y el banner
+   * "Verdict changed since last scan". Ver JSDoc de la tabla en schema.sql.
+   */
+  insertVerdictHistoryBatch(records: readonly TriageVerdictHistoryRecord[]): void {
+    if (records.length === 0) return;
+    withStmt(
+      this.#db,
+      'INSERT INTO verdict_history ' +
+        '(id, scan_id, fingerprint, classification, confidence, rationale, ' +
+        ' provider_label, agent_id, created_at) ' +
+        'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      (stmt) => {
+        this.#db.exec('BEGIN');
+        try {
+          for (const raw of records) {
+            const r = TriageVerdictHistoryRecordSchema.parse(raw);
+            stmt.run([
+              r.id,
+              r.scanId,
+              r.fingerprint,
+              r.classification,
+              r.confidence,
+              r.rationale,
+              r.providerLabel,
+              r.agentId,
+              r.createdAt,
+            ]);
+          }
+          this.#db.exec('COMMIT');
+        } catch (err) {
+          this.#db.exec('ROLLBACK');
+          throw err;
+        }
+      },
+    );
+  }
+
+  /**
+   * Devuelve los últimos `limit` veredictos históricos para un fingerprint,
+   * ordenados por `created_at` DESC (el más reciente primero).
+   *
+   * El primer elemento (índice 0) corresponde al veredicto actual
+   * post-último-triage. El segundo (índice 1) es el veredicto previo —
+   * usar para detección de cambio en el banner del sidebar.
+   */
+  getVerdictHistoryForFingerprint(
+    fingerprint: string,
+    limit: number = 5,
+  ): TriageVerdictHistoryRecord[] {
+    return this.#db
+      .all('SELECT * FROM verdict_history WHERE fingerprint = ? ORDER BY created_at DESC LIMIT ?', [
+        fingerprint,
+        limit,
+      ])
+      .map(rowToVerdictHistory);
+  }
+
+  /**
+   * Devuelve un mapa `{ fingerprint → últimos N history records DESC }` para
+   * el conjunto de fingerprints dado.
+   *
+   * Optimización batch — evita N queries independientes cuando se hidrata
+   * el tomo para el sidebar. Los history records vienen ordenados DESC dentro
+   * de cada arreglo del map.
+   */
+  getVerdictHistoryByFingerprints(
+    fingerprints: readonly string[],
+    limitPerFingerprint: number = 5,
+  ): Map<string, TriageVerdictHistoryRecord[]> {
+    const result = new Map<string, TriageVerdictHistoryRecord[]>();
+    if (fingerprints.length === 0) return result;
+    // SQLite max host parameters ~999 — batch 500 por seguridad.
+    const BATCH_SIZE = 500;
+    for (let i = 0; i < fingerprints.length; i += BATCH_SIZE) {
+      const batch = fingerprints.slice(i, i + BATCH_SIZE);
+      const placeholders = batch.map(() => '?').join(', ');
+      // Query TODO el history y luego cap per-fingerprint en JS — más simple
+      // que ROW_NUMBER (SQLite requiere versión reciente para window funcs).
+      const rows = this.#db.all(
+        `SELECT * FROM verdict_history WHERE fingerprint IN (${placeholders}) ` +
+          `ORDER BY fingerprint, created_at DESC`,
+        [...batch],
+      );
+      for (const raw of rows) {
+        const record = rowToVerdictHistory(raw);
+        const arr = result.get(record.fingerprint) ?? [];
+        if (arr.length < limitPerFingerprint) {
+          arr.push(record);
+          result.set(record.fingerprint, arr);
+        }
+      }
+    }
+    return result;
+  }
+
+  /**
+   * Diff-aware summary (DG-130 A): para el conjunto de fingerprints del scan
+   * actual, compara el veredicto ACTUAL (row DESC[0]) contra el ANTERIOR
+   * (row DESC[1]) del `verdict_history`. Devuelve buckets:
+   *  - `newFindings`: fingerprints sin veredicto previo (primera vez triaged)
+   *  - `reclassified`: fingerprints cuya classification cambió
+   *  - `unchanged`: fingerprints con la misma classification cross-scan
+   *
+   * NOTA: solo cuenta findings que EFECTIVAMENTE tienen un veredicto en
+   * el history. Un fingerprint del scan actual SIN veredicto en history
+   * queda fuera del diff (no aparece en ningún bucket) — típicamente
+   * porque nunca se corrió triage sobre él (skip por known-FP o por
+   * limit cap).
+   */
+  getVerdictDiffAgainstPrevious(fingerprints: readonly string[]): {
+    newFindings: string[];
+    reclassified: { fingerprint: string; from: TriageClassification; to: TriageClassification }[];
+    unchanged: string[];
+  } {
+    const newFindings: string[] = [];
+    const reclassified: {
+      fingerprint: string;
+      from: TriageClassification;
+      to: TriageClassification;
+    }[] = [];
+    const unchanged: string[] = [];
+    const historyMap = this.getVerdictHistoryByFingerprints(fingerprints, 2);
+    for (const fingerprint of fingerprints) {
+      const history = historyMap.get(fingerprint) ?? [];
+      if (history.length === 0) continue; // sin history → no clasificado
+      if (history.length === 1) {
+        // Solo un veredicto → primera vez triaged
+        newFindings.push(fingerprint);
+        continue;
+      }
+      const current = history[0];
+      const previous = history[1];
+      if (current === undefined || previous === undefined) continue;
+      if (current.classification !== previous.classification) {
+        reclassified.push({
+          fingerprint,
+          from: previous.classification,
+          to: current.classification,
+        });
+      } else {
+        unchanged.push(fingerprint);
+      }
+    }
+    return { newFindings, reclassified, unchanged };
   }
 
   /** Inserta un lote de explicaciones de contexto en una unica transaccion. */

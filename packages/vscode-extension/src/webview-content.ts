@@ -1,5 +1,5 @@
 import { triageLabel } from './diagnostics.js';
-import type { CostSummary, ExtensionFinding } from './tomo.js';
+import type { CostSummary, ExtensionFinding, ExtensionScanDiff } from './tomo.js';
 
 /** Escapa los caracteres con significado en HTML (defensa anti-inyeccion). */
 export function escapeHtml(value: string): string {
@@ -282,6 +282,41 @@ const STYLE = `
     border-left: 3px solid var(--vscode-editorWarning-foreground);
     border-radius: 3px;
     background: var(--vscode-textBlockQuote-background, transparent); }
+  /* DG-130 A Sub-A2 (Cycle 116 FASE III): verdict-change banner + Previously. */
+  .verdict-changed-banner { margin-top: 0.4rem; padding: 0.35rem 0.5rem;
+    border-radius: 3px; font-size: 0.85em;
+    border: 1px solid var(--vscode-inputValidation-warningBorder, #c87f0a);
+    border-left: 3px solid var(--vscode-editorWarning-foreground, #c87f0a);
+    background: var(--vscode-inputValidation-warningBackground, rgba(200, 127, 10, 0.12));
+    color: var(--vscode-foreground); }
+  .verdict-changed-banner .banner-title { font-weight: 700; }
+  .verdict-changed-banner .banner-reason {
+    color: var(--vscode-descriptionForeground);
+    font-style: italic; font-size: 0.95em; margin-top: 0.15rem; }
+  .previously { margin-top: 0.4rem; font-size: 0.85em; }
+  .previously summary { cursor: pointer; outline: none;
+    color: var(--vscode-descriptionForeground); font-weight: 600;
+    padding: 0.2rem 0; }
+  .previously summary::-webkit-details-marker { display: none; }
+  .previously summary::marker { display: none; content: ''; }
+  .previously summary::before { content: '▶ '; font-size: 0.7em; }
+  .previously[open] summary::before { content: '▼ '; }
+  .previously .prev-list { list-style: none; padding: 0;
+    margin: 0.25rem 0 0 0.8rem; }
+  .previously .prev-list li { padding: 0.2rem 0;
+    border-top: 1px dotted var(--vscode-panel-border); }
+  .previously .prev-list li:first-child { border-top: none; }
+  .previously .prev-timestamp { font-family: var(--vscode-editor-font-family), monospace;
+    font-size: 0.9em; color: var(--vscode-descriptionForeground); }
+  .previously .prev-classification { font-weight: 600; margin: 0 0.35rem; }
+  .previously .prev-provider { font-family: var(--vscode-editor-font-family), monospace;
+    font-size: 0.85em; color: var(--vscode-descriptionForeground); }
+  .previously .prev-rationale { display: block; margin-top: 0.15rem;
+    color: var(--vscode-descriptionForeground); font-size: 0.95em; }
+  .summary .scan-diff { margin-top: 0.35rem; font-size: 0.9em;
+    color: var(--vscode-descriptionForeground); }
+  .summary .scan-diff .diff-reclassified {
+    color: var(--vscode-editorWarning-foreground, #c87f0a); font-weight: 600; }
 `;
 
 /** Formatea la confidence (0..1) como porcentaje entero ("95%"). */
@@ -332,6 +367,12 @@ function renderCard(finding: ExtensionFinding): string {
     `<div class="msg">${escapeHtml(finding.message)}</div>`,
   ];
   if (finding.triage !== undefined) {
+    // DG-130 A Sub-A2 (Cycle 116 FASE III): banner "Verdict changed since
+    // last scan" cuando el classification actual difiere del previo en
+    // verdict_history. Empíricamente motivado por Baseline-13 donde el
+    // usuario vio FP 0.95 → INC 0.70 sin explicación.
+    const banner = renderVerdictChangedBanner(finding);
+    if (banner !== '') parts.push(banner);
     // DG-118 A: el LLM confidence% se muestra como linea secundaria con
     // label explicit "LLM confidence: N%" — clarifica que es CONFIANZA
     // del LLM en su veredicto, NO prioridad.
@@ -342,6 +383,9 @@ function renderCard(finding: ExtensionFinding): string {
         `${escapeHtml(finding.triage.rationale)}${confidenceHtml}</div>`,
     );
   }
+  // DG-130 A Sub-A2: section colapsable "Previously (N prior verdicts)".
+  const previously = renderPreviouslySection(finding);
+  if (previously !== '') parts.push(previously);
   if (finding.context !== undefined) {
     parts.push(
       `<div class="brain"><strong>Context:</strong> ` +
@@ -356,6 +400,106 @@ function renderCard(finding: ExtensionFinding): string {
   }
   parts.push('</div>');
   return parts.join('');
+}
+
+/**
+ * DG-130 A Sub-A2 (Cycle 116 FASE III): banner "Verdict changed since last
+ * scan" con delta rationale heurístico.
+ *
+ * Comportamiento:
+ *  - Emite '' si el finding no tiene `previouslyVerdicts` o el array es < 2
+ *    (primera vez triaged, no hay veredicto previo para comparar).
+ *  - Compara `previouslyVerdicts[0]` (current, mismo que `triage`) vs
+ *    `previouslyVerdicts[1]` (previous). Si son idénticos, emite ''.
+ *  - Si difieren en classification O confidence delta > 0.15, emite banner
+ *    con reason heurístico:
+ *      * Provider changed → "Different provider"
+ *      * Class change → "Verdict reclassified"
+ *      * Confidence delta significativo → "Confidence changed significantly"
+ *      * Fallback → "Re-analysis produced a different result"
+ */
+function renderVerdictChangedBanner(finding: ExtensionFinding): string {
+  const history = finding.previouslyVerdicts;
+  if (history === undefined || history.length < 2) return '';
+  const current = history[0];
+  const previous = history[1];
+  if (current === undefined || previous === undefined) return '';
+  const classChanged = current.classification !== previous.classification;
+  const confidenceDelta = Math.abs(current.confidence - previous.confidence);
+  const confidenceChanged = confidenceDelta >= 0.15;
+  if (!classChanged && !confidenceChanged) return '';
+  // Reason heurístico — precedencia: provider > class > confidence.
+  let reason: string;
+  if (current.providerLabel !== previous.providerLabel) {
+    reason =
+      `Different provider (${previous.providerLabel} → ${current.providerLabel}) — ` +
+      `cross-provider agreement is not guaranteed.`;
+  } else if (classChanged) {
+    reason =
+      `Verdict reclassified — likely new context signals available ` +
+      `(e.g., trust boundary, cross-file taint patterns).`;
+  } else {
+    reason = `Confidence changed significantly (Δ ${confidenceDelta.toFixed(2)}).`;
+  }
+  const prevPct = formatConfidence(previous.confidence);
+  const currPct = formatConfidence(current.confidence);
+  const prevLabel = escapeHtml(triageLabel(previous.classification));
+  const currLabel = escapeHtml(triageLabel(current.classification));
+  return (
+    `<div class="verdict-changed-banner">` +
+    `<div class="banner-title">⚠ Verdict changed since last scan: ` +
+    `${prevLabel} ${escapeHtml(prevPct)} → ${currLabel} ${escapeHtml(currPct)}</div>` +
+    `<div class="banner-reason">${escapeHtml(reason)}</div>` +
+    `</div>`
+  );
+}
+
+/**
+ * DG-130 A Sub-A2: section colapsable "Previously (N prior verdicts)".
+ *
+ * Muestra hasta 4 veredictos previos (index 1..4 del array — index 0 es
+ * el actual, ya renderizado en la triage line). Emite '' si no hay history
+ * o si solo hay 1 elemento (el actual).
+ */
+function renderPreviouslySection(finding: ExtensionFinding): string {
+  const history = finding.previouslyVerdicts;
+  if (history === undefined || history.length < 2) return '';
+  const previous = history.slice(1); // Skip index 0 (current).
+  const items = previous.map((v) => {
+    const label = escapeHtml(triageLabel(v.classification));
+    const pct = escapeHtml(formatConfidence(v.confidence));
+    const provider = escapeHtml(v.providerLabel);
+    const ts = escapeHtml(formatVerdictTimestamp(v.createdAt));
+    const rationale = escapeHtml(v.rationale);
+    return (
+      `<li>` +
+      `<span class="prev-timestamp">${ts}</span>` +
+      `<span class="prev-classification">${label} ${pct}</span>` +
+      `<span class="prev-provider">${provider}</span>` +
+      `<span class="prev-rationale">${rationale}</span>` +
+      `</li>`
+    );
+  });
+  return (
+    `<details class="previously">` +
+    `<summary>Previously (${String(previous.length)} prior verdict${previous.length === 1 ? '' : 's'})</summary>` +
+    `<ul class="prev-list">${items.join('')}</ul>` +
+    `</details>`
+  );
+}
+
+/**
+ * Formatea un ISO 8601 timestamp a "YYYY-MM-DD HH:MM" (UTC).
+ * Defensivo: si el input no parsea, devuelve el string crudo.
+ */
+function formatVerdictTimestamp(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  const pad = (n: number): string => String(n).padStart(2, '0');
+  return (
+    `${String(d.getUTCFullYear())}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())} ` +
+    `${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`
+  );
 }
 
 /**
@@ -474,6 +618,7 @@ export function renderCostCard(summary: CostSummary): string {
  */
 function renderSummary(
   buckets: Readonly<Record<TriageState, readonly ExtensionFinding[]>>,
+  scanDiff?: ExtensionScanDiff,
 ): string {
   const total = STATE_ORDER.reduce((acc, s) => acc + buckets[s].length, 0);
   const untriagedCount = buckets.untriaged.length;
@@ -506,6 +651,10 @@ function renderSummary(
         `Re-triage all` +
         `</button>`
       : '';
+  // DG-130 A Sub-A2 (Cycle 116 FASE III): diff-aware line en la summary
+  // card. Solo se emite si el tomo trae scanDiff y hay AL MENOS un finding
+  // en algún bucket del diff (evita ruido en el primer scan-ever).
+  const scanDiffHtml = renderScanDiffLine(scanDiff);
   return (
     `<div class="summary">` +
     `<span class="total">${String(total)} finding${total === 1 ? '' : 's'}</span>` +
@@ -514,7 +663,29 @@ function renderSummary(
       : '') +
     triageRemainingBtn +
     reTriageBtn +
+    scanDiffHtml +
     `<div class="loc">click a card to open the file</div>` +
+    `</div>`
+  );
+}
+
+/**
+ * DG-130 A Sub-A2: linea "Scan diff vs previous triage" en la summary card.
+ * Emite '' si `scanDiff` es undefined o si no hay actividad (0/0/0).
+ * Cuando hay reclassifications, se muestran con destaque visual naranja.
+ */
+function renderScanDiffLine(scanDiff: ExtensionScanDiff | undefined): string {
+  if (scanDiff === undefined) return '';
+  const { newFindingsCount, reclassifiedCount, unchangedCount } = scanDiff;
+  if (newFindingsCount === 0 && reclassifiedCount === 0 && unchangedCount === 0) return '';
+  const reclassPart =
+    reclassifiedCount > 0
+      ? `<span class="diff-reclassified">${String(reclassifiedCount)} re-classified</span>`
+      : `${String(reclassifiedCount)} re-classified`;
+  return (
+    `<div class="scan-diff">Scan diff vs previous triage: ` +
+    `${String(newFindingsCount)} new · ${reclassPart} · ` +
+    `${String(unchangedCount)} unchanged` +
     `</div>`
   );
 }
@@ -784,6 +955,7 @@ export function renderTomoWebviewHtml(
         | undefined;
     };
   }[],
+  scanDiff?: ExtensionScanDiff,
 ): string {
   const csp =
     `default-src 'none'; ` +
@@ -828,7 +1000,7 @@ export function renderTomoWebviewHtml(
           `</h3>` +
           groups.map(renderFindingGroupCard).join('')
         : '';
-    body = renderSummary(buckets) + costHtml + groupsHtml + sections.join('');
+    body = renderSummary(buckets, scanDiff) + costHtml + groupsHtml + sections.join('');
   }
 
   // El script: al hacer click en una tarjeta, pide a la extension abrir el

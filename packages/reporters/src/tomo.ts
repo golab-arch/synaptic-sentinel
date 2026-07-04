@@ -6,6 +6,7 @@ import {
   FindingSchema,
   RemediationSuggestionSchema,
   ScoutStatusSchema,
+  TRIAGE_CLASSIFICATIONS,
   TriageVerdictSchema,
   computePriorityScore,
   groupFindingsByCorrelation,
@@ -13,6 +14,7 @@ import {
   type Finding,
   type RemediationSuggestionRecord,
   type ScanOutcome,
+  type TriageVerdictHistoryRecord,
   type TriageVerdictRecord,
 } from '@synaptic-sentinel/core';
 
@@ -28,6 +30,23 @@ const TomoMetadataSchema = z.object({
 });
 
 /**
+ * Diff-aware summary cross-scan (DG-130 A, FASE III Sub-A2). Compara los
+ * veredictos ACTUALES contra los veredictos previos en `verdict_history`.
+ * Solo se emite si hay al menos un finding con history (0 en primera-vez).
+ */
+const TomoScanDiffSchema = z.object({
+  /** Fingerprints que aparecen por primera vez en history. */
+  newFindingsCount: z.number().int().nonnegative(),
+  /** Fingerprints cuyo classification cambió respecto al veredicto anterior. */
+  reclassifiedCount: z.number().int().nonnegative(),
+  /** Fingerprints con la misma classification cross-scan. */
+  unchangedCount: z.number().int().nonnegative(),
+});
+
+/** Diff-aware summary del scan actual. */
+export type TomoScanDiff = z.infer<typeof TomoScanDiffSchema>;
+
+/**
  * Resumen ejecutivo determinista del tomo: conteos por severidad y categoria.
  * El `posture_score` y los deltas del v0.4 §4.2 los agrega el Brain Layer.
  */
@@ -41,6 +60,12 @@ const TomoSummarySchema = z.object({
   byCategory: z.record(z.number().int().nonnegative()),
   /** Conteo de hallazgos por clasificacion de triage (vacio si no hubo triage). */
   byTriage: z.record(z.number().int().nonnegative()),
+  /**
+   * DG-130 A (Sub-A2): diff cross-scan opcional. Presente solo si hay al
+   * menos un finding con veredicto histórico cargado. Aditivo backward-compat:
+   * tomos legacy sin este field siguen validando.
+   */
+  scanDiff: TomoScanDiffSchema.optional(),
 });
 
 /** Metodologia: scouts ejecutados y ventana temporal del scan. */
@@ -63,10 +88,34 @@ const TomoMethodologySchema = z.object({
  * sugerencia de remediacion, cada uno presente solo si el agente
  * correspondiente proceso el hallazgo.
  */
+/**
+ * Registro histórico de veredicto en la forma que consume el reporter/UI
+ * (DG-130 A Sub-A2). Subset de {@link TriageVerdictHistoryRecord} con solo
+ * los fields que el sidebar necesita renderar en la section "Previously".
+ */
+const TomoPreviousVerdictSchema = z.object({
+  classification: z.enum(TRIAGE_CLASSIFICATIONS),
+  confidence: z.number().min(0).max(1),
+  rationale: z.string().min(1),
+  providerLabel: z.string().min(1),
+  createdAt: z.string().datetime(),
+});
+
+/** Veredicto previo (histórico) — subset render-only. */
+export type TomoPreviousVerdict = z.infer<typeof TomoPreviousVerdictSchema>;
+
 export const TomoFindingSchema = FindingSchema.extend({
   triage: TriageVerdictSchema.optional(),
   context: ContextExplanationSchema.optional(),
   remediation: RemediationSuggestionSchema.optional(),
+  /**
+   * DG-130 A Sub-A2: historia de veredictos previos ordenada DESC por
+   * `createdAt` (el más reciente primero). El primer elemento (index 0) es
+   * el veredicto ACTUAL (mismo que `triage`). El segundo (index 1) es el
+   * PREVIO — usar para banner "Verdict changed since last scan". Presente
+   * solo si el reporter cargó history. Aditivo backward-compat.
+   */
+  previouslyVerdicts: z.array(TomoPreviousVerdictSchema).optional(),
 });
 
 /** Hallazgo del tomo (Finding + triage opcional). */
@@ -139,6 +188,17 @@ export interface TomoEnrichment {
   readonly contextExplanations?: readonly ContextExplanationRecord[];
   /** Sugerencias de remediacion a unir con los hallazgos por `fingerprint`. */
   readonly remediationSuggestions?: readonly RemediationSuggestionRecord[];
+  /**
+   * DG-130 A Sub-A2: mapa `fingerprint → history DESC` con los últimos N
+   * veredictos de la tabla `verdict_history`. Cuando presente, cada finding
+   * emite `previouslyVerdicts` en el tomo (subset render-only). Aditivo.
+   */
+  readonly verdictHistoryByFingerprint?: ReadonlyMap<string, readonly TriageVerdictHistoryRecord[]>;
+  /**
+   * DG-130 A Sub-A2: diff-aware summary del scan actual vs previous triage.
+   * Cuando presente, se emite en el summary del tomo como `scanDiff`.
+   */
+  readonly scanDiff?: TomoScanDiff;
 }
 
 /**
@@ -186,6 +246,18 @@ export function buildTomo(
     // Si no hay verdict, classification = undefined → untriaged
     // pessimistic (severity directly mapped).
     const priorityScore = computePriorityScore(finding.severity, verdict?.classification);
+    // DG-130 A Sub-A2: history subset render-only para el sidebar
+    // "Previously (N prior verdicts)". El primer elemento del arreglo es el
+    // veredicto ACTUAL (mismo que `triage`). El renderer del webview usa
+    // index 1 para detectar cambios y emitir el banner "Verdict changed".
+    const history = enrichment.verdictHistoryByFingerprint?.get(finding.fingerprint);
+    const previouslyVerdicts = history?.map((h) => ({
+      classification: h.classification,
+      confidence: h.confidence,
+      rationale: h.rationale,
+      providerLabel: h.providerLabel,
+      createdAt: h.createdAt,
+    }));
     return {
       ...finding,
       priorityScore,
@@ -197,6 +269,9 @@ export function buildTomo(
               rationale: verdict.rationale,
             },
           }
+        : {}),
+      ...(previouslyVerdicts !== undefined && previouslyVerdicts.length > 0
+        ? { previouslyVerdicts }
         : {}),
       ...(explanation !== undefined
         ? {
@@ -244,6 +319,7 @@ export function buildTomo(
       bySeverity,
       byCategory,
       byTriage,
+      ...(enrichment.scanDiff !== undefined ? { scanDiff: enrichment.scanDiff } : {}),
     },
     findings: tomoFindings,
     methodology: {

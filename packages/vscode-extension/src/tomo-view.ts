@@ -2,7 +2,12 @@ import { randomUUID } from 'node:crypto';
 import { join } from 'node:path';
 import * as vscode from 'vscode';
 import { renderTomoWebviewHtml } from './webview-content.js';
-import type { CostSummary, ExtensionFinding, ExtensionFindingGroup } from './tomo.js';
+import type {
+  CostSummary,
+  ExtensionFinding,
+  ExtensionFindingGroup,
+  ExtensionScanDiff,
+} from './tomo.js';
 
 /**
  * Proveedor del webview "tomo vivo" (v0.4 §4.3): un panel lateral con los
@@ -20,6 +25,7 @@ export class SentinelTomoViewProvider implements vscode.WebviewViewProvider {
   #findings: readonly ExtensionFinding[] = [];
   #groups: readonly ExtensionFindingGroup[] = [];
   #costSummary: CostSummary | null = null;
+  #scanDiff: ExtensionScanDiff | undefined = undefined;
   #workspacePath: string | undefined;
 
   /** Lo invoca VSCode cuando el panel se abre por primera vez. */
@@ -44,6 +50,7 @@ export class SentinelTomoViewProvider implements vscode.WebviewViewProvider {
     findings: readonly ExtensionFinding[],
     costSummary?: CostSummary | null,
     groups?: readonly ExtensionFindingGroup[],
+    scanDiff?: ExtensionScanDiff,
   ): void {
     this.#workspacePath = workspacePath;
     this.#findings = findings;
@@ -52,6 +59,9 @@ export class SentinelTomoViewProvider implements vscode.WebviewViewProvider {
     // cada update; si el caller no pasa `groups`, se preserva el ultimo
     // set (e.g. hidratacion + cost-history update no tocan los grupos).
     if (groups !== undefined) this.#groups = groups;
+    // DG-130 A Sub-A2: scanDiff se sobreescribe cuando el caller lo pasa.
+    // Undefined explícito no borra el previo (mismo patrón que costSummary).
+    if (scanDiff !== undefined) this.#scanDiff = scanDiff;
     this.#render();
   }
 
@@ -67,6 +77,7 @@ export class SentinelTomoViewProvider implements vscode.WebviewViewProvider {
       },
       this.#costSummary,
       this.#groups,
+      this.#scanDiff,
     );
   }
 

@@ -41,3 +41,25 @@ export const TriageVerdictRecordSchema = TriageVerdictSchema.extend({
 
 /** Veredicto de triage persistido. */
 export type TriageVerdictRecord = z.infer<typeof TriageVerdictRecordSchema>;
+
+/**
+ * Registro de historia de veredictos append-only (DG-130 A, FASE III).
+ *
+ * Se persiste en la tabla `verdict_history` de la colony DB para preservar
+ * TODOS los veredictos emitidos cross-scan — incluso los que fueron
+ * reemplazados por re-triage. Habilita:
+ *  - Section "Previously (N prior verdicts)" en el sidebar
+ *  - Banner "Verdict changed since last scan" con delta rationale
+ *  - Diff-aware line post scan
+ *
+ * DIFERENCIA con {@link TriageVerdictRecord}: este record incluye
+ * `providerLabel` (necesario para el banner heurístico "same/different
+ * provider changed"). El schema es aditivo — extiende TriageVerdictRecordSchema.
+ */
+export const TriageVerdictHistoryRecordSchema = TriageVerdictRecordSchema.extend({
+  /** Label "<provider>/<model>" o "colony-memory" (si el veredicto vino del enjambre). */
+  providerLabel: z.string().min(1),
+});
+
+/** Registro de historia de veredictos (append-only cross-scan). */
+export type TriageVerdictHistoryRecord = z.infer<typeof TriageVerdictHistoryRecordSchema>;

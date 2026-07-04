@@ -97,6 +97,17 @@ export function runShowCommand(options: ShowCommandOptions): number {
       startedAt: scan.startedAt,
       finishedAt: scan.finishedAt ?? scan.startedAt,
     };
+    // DG-130 A Sub-A2 (Cycle 116 FASE III): carga verdict_history +
+    // computa scan diff para hidratar el sidebar "Previously" + banner
+    // "Verdict changed" + summary card diff-aware line.
+    const fingerprintsForHistory = findings.map((f) => f.fingerprint);
+    const verdictHistoryByFingerprint = db.getVerdictHistoryByFingerprints(
+      fingerprintsForHistory,
+      5,
+    );
+    const diff = db.getVerdictDiffAgainstPrevious(fingerprintsForHistory);
+    const anyDiffActivity =
+      diff.newFindings.length > 0 || diff.reclassified.length > 0 || diff.unchanged.length > 0;
     const tomo = buildTomo(
       outcome,
       findings,
@@ -105,6 +116,16 @@ export function runShowCommand(options: ShowCommandOptions): number {
         triageVerdicts: db.getTriageVerdicts(),
         contextExplanations: db.getContextExplanations(),
         remediationSuggestions: db.getRemediationSuggestions(),
+        verdictHistoryByFingerprint,
+        ...(anyDiffActivity
+          ? {
+              scanDiff: {
+                newFindingsCount: diff.newFindings.length,
+                reclassifiedCount: diff.reclassified.length,
+                unchangedCount: diff.unchanged.length,
+              },
+            }
+          : {}),
       },
     );
     if (options.exportPath !== undefined) {

@@ -1000,3 +1000,190 @@ describe('renderOverrideDirective — DG-115 A Step 5 / §4 #15 (prismjs)', () =
     expect(html).not.toContain('override-directive');
   });
 });
+
+/**
+ * DG-130 A Sub-A2 (Cycle 116 FASE III): render banner "Verdict changed" +
+ * section "Previously" + summary card scan-diff line.
+ */
+describe('renderTomoWebviewHtml — DG-130 A Sub-A2 (verdict history + diff)', () => {
+  it('no emite banner ni Previously cuando el finding no tiene previouslyVerdicts', () => {
+    const finding = makeFinding({
+      triage: { classification: 'true_positive', confidence: 0.9, rationale: 'r' },
+    });
+    const html = renderTomoWebviewHtml([finding], opts);
+    // `verdict-changed-banner` aparece en el CSS SIEMPRE, buscamos DIV real
+    expect(html).not.toContain('class="verdict-changed-banner"');
+    expect(html).not.toContain('<details class="previously">');
+  });
+
+  it('no emite banner ni Previously cuando solo hay 1 entry (primera vez triaged)', () => {
+    const finding = makeFinding({
+      triage: { classification: 'true_positive', confidence: 0.9, rationale: 'r' },
+      previouslyVerdicts: [
+        {
+          classification: 'true_positive',
+          confidence: 0.9,
+          rationale: 'r',
+          providerLabel: 'deepseek/v4-flash',
+          createdAt: '2026-07-03T00:00:00.000Z',
+        },
+      ],
+    });
+    const html = renderTomoWebviewHtml([finding], opts);
+    expect(html).not.toContain('class="verdict-changed-banner"');
+    expect(html).not.toContain('<details class="previously">');
+  });
+
+  it('emite banner cuando classification CAMBIÓ vs previous', () => {
+    const finding = makeFinding({
+      triage: { classification: 'inconclusive', confidence: 0.7, rationale: 'ambiguous' },
+      previouslyVerdicts: [
+        {
+          classification: 'inconclusive',
+          confidence: 0.7,
+          rationale: 'current',
+          providerLabel: 'deepseek/v4-flash',
+          createdAt: '2026-07-03T00:00:00.000Z',
+        },
+        {
+          classification: 'false_positive',
+          confidence: 0.95,
+          rationale: 'prior',
+          providerLabel: 'deepseek/v4-flash',
+          createdAt: '2026-07-02T00:00:00.000Z',
+        },
+      ],
+    });
+    const html = renderTomoWebviewHtml([finding], opts);
+    expect(html).toContain('class="verdict-changed-banner"');
+    expect(html).toContain('Verdict changed since last scan');
+    // Baseline-13 empirical: FP 95% → INC 70%
+    expect(html).toContain('95%');
+    expect(html).toContain('70%');
+    // Reason heurístico: same provider + class change → "Verdict reclassified"
+    expect(html).toContain('Verdict reclassified');
+  });
+
+  it('emite banner con reason "Different provider" cuando cambió el provider', () => {
+    const finding = makeFinding({
+      triage: { classification: 'true_positive', confidence: 0.9, rationale: 'r' },
+      previouslyVerdicts: [
+        {
+          classification: 'true_positive',
+          confidence: 0.9,
+          rationale: 'current',
+          providerLabel: 'openai/gpt-4o',
+          createdAt: '2026-07-03T00:00:00.000Z',
+        },
+        {
+          classification: 'inconclusive',
+          confidence: 0.5,
+          rationale: 'prior',
+          providerLabel: 'deepseek/v4-flash',
+          createdAt: '2026-07-02T00:00:00.000Z',
+        },
+      ],
+    });
+    const html = renderTomoWebviewHtml([finding], opts);
+    expect(html).toContain('class="verdict-changed-banner"');
+    expect(html).toContain('Different provider');
+    expect(html).toContain('deepseek/v4-flash');
+    expect(html).toContain('openai/gpt-4o');
+  });
+
+  it('no emite banner cuando el classification NO cambió y confidence delta es pequeño', () => {
+    const finding = makeFinding({
+      triage: { classification: 'true_positive', confidence: 0.92, rationale: 'r' },
+      previouslyVerdicts: [
+        {
+          classification: 'true_positive',
+          confidence: 0.92,
+          rationale: 'current',
+          providerLabel: 'deepseek/v4-flash',
+          createdAt: '2026-07-03T00:00:00.000Z',
+        },
+        {
+          classification: 'true_positive',
+          confidence: 0.9, // delta 0.02 < 0.15 threshold
+          rationale: 'prior',
+          providerLabel: 'deepseek/v4-flash',
+          createdAt: '2026-07-02T00:00:00.000Z',
+        },
+      ],
+    });
+    const html = renderTomoWebviewHtml([finding], opts);
+    expect(html).not.toContain('class="verdict-changed-banner"');
+    // Previously SÍ debe aparecer (length >= 2)
+    expect(html).toContain('<details class="previously">');
+    expect(html).toContain('1 prior verdict');
+  });
+
+  it('section Previously excluye el actual y muestra solo los históricos', () => {
+    const finding = makeFinding({
+      triage: { classification: 'inconclusive', confidence: 0.7, rationale: 'r' },
+      previouslyVerdicts: [
+        {
+          classification: 'inconclusive',
+          confidence: 0.7,
+          rationale: 'ACTUAL DEBE ESTAR EN CARD TRIAGE, NO EN LA LISTA',
+          providerLabel: 'deepseek/v4-flash',
+          createdAt: '2026-07-03T00:00:00.000Z',
+        },
+        {
+          classification: 'false_positive',
+          confidence: 0.95,
+          rationale: 'MOTIVO_PREVIO_UNICO',
+          providerLabel: 'deepseek/v4-flash',
+          createdAt: '2026-07-02T00:00:00.000Z',
+        },
+        {
+          classification: 'inconclusive',
+          confidence: 0.45,
+          rationale: 'MOTIVO_ANTERIOR_ANTERIOR',
+          providerLabel: 'anthropic/claude-haiku-4-5',
+          createdAt: '2026-07-01T00:00:00.000Z',
+        },
+      ],
+    });
+    const html = renderTomoWebviewHtml([finding], opts);
+    expect(html).toContain('<details class="previously">');
+    expect(html).toContain('2 prior verdicts');
+    // El rationale ACTUAL aparece en la triage line (card), NO dentro de la
+    // sección Previously — verificamos que los prior rationales sí aparecen
+    expect(html).toContain('MOTIVO_PREVIO_UNICO');
+    expect(html).toContain('MOTIVO_ANTERIOR_ANTERIOR');
+    // "ACTUAL DEBE ESTAR..." está en la triage line pero no debería duplicarse
+    // dentro de <ul class="prev-list"> — chequeo laxo:
+    const prevListStart = html.indexOf('<ul class="prev-list">');
+    const prevListEnd = html.indexOf('</ul>', prevListStart);
+    const prevListSection = html.slice(prevListStart, prevListEnd);
+    expect(prevListSection).not.toContain('ACTUAL DEBE ESTAR');
+  });
+
+  it('summary card emite scan-diff line cuando scanDiff.reclassifiedCount > 0', () => {
+    const finding = makeFinding({
+      triage: { classification: 'true_positive', confidence: 0.9, rationale: 'r' },
+    });
+    const html = renderTomoWebviewHtml([finding], opts, undefined, undefined, {
+      newFindingsCount: 2,
+      reclassifiedCount: 1,
+      unchangedCount: 5,
+    });
+    expect(html).toContain('class="scan-diff"');
+    expect(html).toContain('Scan diff vs previous triage');
+    expect(html).toContain('2 new');
+    expect(html).toContain('1 re-classified');
+    expect(html).toContain('5 unchanged');
+    // reclassified > 0 tiene destaque visual con clase "diff-reclassified"
+    expect(html).toContain('diff-reclassified');
+  });
+
+  it('summary card NO emite scan-diff line cuando scanDiff es undefined', () => {
+    const finding = makeFinding({
+      triage: { classification: 'true_positive', confidence: 0.9, rationale: 'r' },
+    });
+    const html = renderTomoWebviewHtml([finding], opts);
+    expect(html).not.toContain('class="scan-diff"');
+    expect(html).not.toContain('Scan diff vs previous triage');
+  });
+});

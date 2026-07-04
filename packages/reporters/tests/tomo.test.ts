@@ -268,4 +268,99 @@ describe('buildTomo — DG-113 A Step 4: SCA groups en el tomo', () => {
     expect(verifyTomoIntegrity(without)).toBe(true);
     expect(verifyTomoIntegrity(withGroups)).toBe(true);
   });
+
+  /**
+   * DG-130 A Sub-A2 (Cycle 116 FASE III): enrichment con verdict_history +
+   * scanDiff. El tomo debe emitir `previouslyVerdicts` per-finding y
+   * `scanDiff` en summary cuando el caller los pasa.
+   */
+  it('adjunta previouslyVerdicts al finding cuando enrichment trae history', () => {
+    const finding = makeFinding('high', 'SAST');
+    finding['fingerprint'] = 'fp-hist';
+    const historyMap = new Map<
+      string,
+      readonly {
+        id: string;
+        scanId: string;
+        fingerprint: string;
+        classification: 'true_positive' | 'false_positive' | 'inconclusive';
+        confidence: number;
+        rationale: string;
+        providerLabel: string;
+        agentId: string;
+        createdAt: string;
+      }[]
+    >([
+      [
+        'fp-hist',
+        [
+          {
+            id: randomUUID(),
+            scanId: 'scan-1',
+            fingerprint: 'fp-hist',
+            classification: 'inconclusive',
+            confidence: 0.7,
+            rationale: 'current',
+            providerLabel: 'deepseek/deepseek-v4-flash',
+            agentId: 'triage',
+            createdAt: '2026-07-03T00:00:00.000Z',
+          },
+          {
+            id: randomUUID(),
+            scanId: 'scan-0',
+            fingerprint: 'fp-hist',
+            classification: 'false_positive',
+            confidence: 0.95,
+            rationale: 'prior',
+            providerLabel: 'deepseek/deepseek-v4-flash',
+            agentId: 'triage',
+            createdAt: '2026-07-02T00:00:00.000Z',
+          },
+        ],
+      ],
+    ]);
+    const tomo = buildTomo(
+      makeOutcome('scan-1'),
+      [finding],
+      { rootPath: '/p', sentinelVersion: '0.0.0' },
+      { verdictHistoryByFingerprint: historyMap },
+    );
+    const previously = tomo.findings[0]?.previouslyVerdicts;
+    expect(previously).toBeDefined();
+    expect(previously).toHaveLength(2);
+    expect(previously?.[0]?.classification).toBe('inconclusive');
+    expect(previously?.[0]?.providerLabel).toBe('deepseek/deepseek-v4-flash');
+    expect(previously?.[1]?.classification).toBe('false_positive');
+  });
+
+  it('emite scanDiff en summary cuando enrichment lo pasa', () => {
+    const tomo = buildTomo(
+      makeOutcome('scan-1'),
+      [makeFinding('high', 'SAST')],
+      { rootPath: '/p', sentinelVersion: '0.0.0' },
+      {
+        scanDiff: {
+          newFindingsCount: 2,
+          reclassifiedCount: 1,
+          unchangedCount: 5,
+        },
+      },
+    );
+    expect(tomo.summary.scanDiff).toEqual({
+      newFindingsCount: 2,
+      reclassifiedCount: 1,
+      unchangedCount: 5,
+    });
+    // integrity hash debe verificar (canonical incluye scanDiff)
+    expect(verifyTomoIntegrity(tomo)).toBe(true);
+  });
+
+  it('sin enrichment de history/diff, el tomo NO trae previouslyVerdicts ni scanDiff (backward-compat)', () => {
+    const tomo = buildTomo(makeOutcome('scan-1'), [makeFinding('high', 'SAST')], {
+      rootPath: '/p',
+      sentinelVersion: '0.0.0',
+    });
+    expect(tomo.findings[0]?.previouslyVerdicts).toBeUndefined();
+    expect(tomo.summary.scanDiff).toBeUndefined();
+  });
 });

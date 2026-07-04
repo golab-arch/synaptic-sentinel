@@ -203,7 +203,7 @@ async function hydrateSidebarFromCache(
     // Cost summary tambien viene de colony.db; si no hay triage previo
     // devuelve null y la cost card simplemente no se renderea.
     const costSummary = await runCliCostHistory({ cliEntry, workspacePath, limit: 1 });
-    tomoView?.update(workspacePath, tomo.findings, costSummary, tomo.groups);
+    tomoView?.update(workspacePath, tomo.findings, costSummary, tomo.groups, tomo.summary.scanDiff);
     setStatusResult(statusBar, tomo.findings.length);
   } catch {
     // Hidratacion best-effort: cualquier error → empty state silencioso.
@@ -399,7 +399,13 @@ async function runScanCommand(
         });
         lastScan = { workspacePath, findings: tomo.findings };
         renderDiagnostics(diagnostics, workspacePath, tomo.findings);
-        tomoView?.update(workspacePath, tomo.findings, undefined, tomo.groups);
+        tomoView?.update(
+          workspacePath,
+          tomo.findings,
+          undefined,
+          tomo.groups,
+          tomo.summary.scanDiff,
+        );
         setStatusResult(statusBar, tomo.findings.length);
         void vscode.window.showInformationMessage(
           `SYNAPTIC Sentinel: ${String(tomo.findings.length)} finding(s) in the workspace.`,
@@ -577,7 +583,13 @@ async function triageWorkspace(
           limit: 1,
           signal: controller.signal,
         });
-        tomoView?.update(workspacePath, tomo.findings, costSummary, tomo.groups);
+        tomoView?.update(
+          workspacePath,
+          tomo.findings,
+          costSummary,
+          tomo.groups,
+          tomo.summary.scanDiff,
+        );
         setStatusResult(statusBar, tomo.findings.length);
         void vscode.window.showInformationMessage('SYNAPTIC Sentinel: triage complete.');
       } catch (err) {

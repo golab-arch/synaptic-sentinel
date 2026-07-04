@@ -346,6 +346,15 @@ export async function runScanCommand(options: ScanCommandOptions): Promise<numbe
       // El tomo se enriquece con los veredictos de triage, las explicaciones
       // de contexto y las sugerencias de remediacion ya persistidas (de una
       // corrida previa de `triage`).
+      // DG-130 A Sub-A2 (Cycle 116 FASE III): + verdict_history + scan diff.
+      const fingerprintsForHistory = findings.map((f) => f.fingerprint);
+      const verdictHistoryByFingerprint = db.getVerdictHistoryByFingerprints(
+        fingerprintsForHistory,
+        5,
+      );
+      const diff = db.getVerdictDiffAgainstPrevious(fingerprintsForHistory);
+      const anyDiffActivity =
+        diff.newFindings.length > 0 || diff.reclassified.length > 0 || diff.unchanged.length > 0;
       const tomo = buildTomo(
         outcome,
         findings,
@@ -354,6 +363,16 @@ export async function runScanCommand(options: ScanCommandOptions): Promise<numbe
           triageVerdicts: db.getTriageVerdicts(),
           contextExplanations: db.getContextExplanations(),
           remediationSuggestions: db.getRemediationSuggestions(),
+          verdictHistoryByFingerprint,
+          ...(anyDiffActivity
+            ? {
+                scanDiff: {
+                  newFindingsCount: diff.newFindings.length,
+                  reclassifiedCount: diff.reclassified.length,
+                  unchangedCount: diff.unchanged.length,
+                },
+              }
+            : {}),
         },
       );
       if (options.exportPath !== undefined) {
