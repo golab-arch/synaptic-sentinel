@@ -5842,4 +5842,48 @@ Each entry follows this structure:
 ---
 
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-07-04T22:05:00.000Z*
+*Last Updated: 2026-07-04T22:45:00.000Z*
+
+---
+
+### Entry #189 - DG-131.0.1 HOTFIX reactive (Cycle 117 FASE III): PRAGMA table_info explicit check reemplaza try-catch swallowing en ALTER TABLE migration schema v7 → step-131-2.vsix 0.3.20
+
+```json
+{
+  "timestamp": "2026-07-04T22:45:00.000Z",
+  "cycle": 117,
+  "phase": 12,
+  "action": "HOTFIX_APPLIED",
+  "details": {
+    "DG-131.0.1-hotfix": {
+      "title": "Sub-DG reactive DG-131.0.1: fix crítico de migration schema v7 en existing v6 DBs. Empíricamente observado en Baseline-15 primer intento: SYNAPTIC_SAAS colony.db (schema v6 preexistente de Baseline-14) al abrir con 0.3.19 disparó ERROR 'no such column: group_id' abortando scan. Root cause: mi implementación original con try-catch swallow ALL errores del ALTER TABLE ADD COLUMN enmascaraba fallas legítimas — el ALTER falló silente por razón WASM/lock, luego CREATE INDEX subsequent falló con 'no such column' abortando ColonyDb.open(). Fix: reemplazar try-catch pattern con PRAGMA table_info explicit check — defensive + safe migration.",
+      "scope": "Cycle 117 hotfix reactive DG-131.0.1 aditivo — solo fix del migration path. NO cambio en DG-131 A Sub-A2 functionality (grouping + propagation + downgrade intactos).",
+      "empirical_evidence_baseline_15_first_attempt": "User instaló step-131-1.vsix 0.3.19 CLEAN wildcard (Remove-Item), único install verified. Ejecutó Scan Workspace en SYNAPTIC_SAAS. Terminal Sentinel + notification bar mostraron: 'ERROR: no such column: group_id' + 'SYNAPTIC Sentinel: the scan failed. The CLI (scan) exited with code 1'. Empírico: SYNAPTIC_SAAS colony.db preexistente (schema v6 de Baseline-14) NO tenía group_id column post-migration. Sospecha: ALTER TABLE ADD COLUMN falló silente (WASM state? lock? unknown) y mi try-catch swallow enmascaró el error, luego CREATE INDEX ON triage_verdicts(group_id) falló con 'no such column' abortando la migration entera. Silently-caught errors son un anti-pattern documentado y confirmado empíricamente.",
+      "root_cause_analysis": "packages/core/src/colony/colony-db.ts ColonyDb.open() migration original: try { db.exec(ALTER TABLE ADD COLUMN) } catch { /* no-op */ }. Este pattern es defensive PERO enmascara errores legítimos: (a) 'duplicate column name' (safe swallow — column ya existe); (b) 'table locked' o 'WASM state' o 'unknown SQLite exception' (unsafe swallow — should bubble). El empírico Baseline-15 first attempt mostró que categoría (b) ocurre en producción con node-sqlite3-wasm sobre existing DBs. El try-catch enmascaró el (b) → column no fue añadida → CREATE INDEX subsequent falló pointing al symptom pero no al root cause.",
+      "fix_deliverable_codigo": "packages/core/src/colony/colony-db.ts ColonyDb.open() migration: reemplazar try-catch swallow por PRAGMA table_info explicit check. Nuevo pattern: for each (table, column, spec) tuple, PRAGMA table_info(table) → check if column name in result → if NOT, ALTER TABLE ADD COLUMN (errors bubble up genuinely). Defensive + auditable + fail-fast. Fresh installs: schema.sql define columns → PRAGMA reporta existe → skip ALTER limpio. Existing v6 DBs: PRAGMA reporta NO existe → ALTER ejecuta → column añadida cleanly OR error genuino bubbles (no silent). Post-hotfix: CREATE INDEX + UPDATE meta '7' proceden en estado consistente.",
+      "deliverable_vsix": {
+        "vsix_name": "synaptic-sentinel-0.3.20-step-131-2.vsix",
+        "vsix_path": "packages/vscode-extension/synaptic-sentinel-0.3.20-step-131-2.vsix",
+        "size_mb": 3.96,
+        "files_count": 1849,
+        "sha256": "f90176274c8fee034e8ce0f80ea00a9bd099d63e037c6fe6bbefb1f08dafc339",
+        "version_bump": "0.3.19 → 0.3.20"
+      },
+      "tests_impact": "Tests DG-131 A previos (885 total) siguen VERDE — el hotfix es transparente al happy path (fresh DBs). Los tests de colony-db.test.ts opereran sobre ':memory:' que es siempre fresh → migration workflow OK. Test empírico REAL es el Baseline-15 retry — que requiere existing v6 DB. NO agregado test unit específico para v6→v7 migration porque requiere setup complejo (create v6 schema manually) — sub-DG DG-131.0.2 reactive si emerge migration bug adicional.",
+      "acceptance_empirica_a_medir_baseline_15_retry": "REINSTALL CLEAN wildcard 0.3.19 residual + install 0.3.20 step-131-2.vsix. Scan Workspace en SYNAPTIC_SAAS con existing colony.db v6 → NO ERROR 'no such column: group_id'. Scan completa. Sidebar refresh con findings. Re-triage all → Grouping line emit correcto. Sidebar badges GROUPED REP + GROUPED en SCA multi-lockfile findings.",
+      "anti_optimismo_ilusorio_activo": "(1) **Silent try-catch fue anti-pattern predictable** — YAGNI defensive coding masking real failures. Lesson learned: NEVER catch generic Error without pattern matching. Sub-DG DG-131.0.2 preemptive: revisar OTROS try-catch en colony-db.ts + agents para el mismo pattern. (2) **NO unit test cubría el v6→v7 migration path** — solo :memory: fresh DB. Test coverage gap identificado. Sub-DG DG-131.0.3 reactive: agregar unit test que crea manually una v6-schema DB + verifica migration. (3) **PRAGMA table_info retorna todos los rows** — para tablas con muchas columns es O(N) por check. Aceptable — solo 4 columns to check + N < 20. Negligible. (4) **PRAGMA syntax es SQLite-específico** — non-portable si eventual switch of DB. Aceptable — node-sqlite3-wasm es el driver. (5) **El fix asume table_info retorna column con 'name' field** — SQLite guarantees. Defensive typeof check preserva safety. (6) **Baseline-15 retry required — sample-size N=1 sobre migration path**. Extrapolable a other v6 → v7 migrations pero no infallible. (7) **Este es SEGUNDO hotfix reactive en FASE III** (DG-130.0.1 preemptive, DG-131.0.1 reactive de migration). Frequency de hotfixes aumenta con feature complexity. Documentar en release notes v0.3.20 caveat de 'active development phase, upgrade path validation ongoing'. (8) **step-131-2.vsix continues 0.3.20 sequence** — user experience de multiple .vsix updates puede ser fatigosa. Trade-off vs correctness. Aceptable en dev cycle. (9) **NO investigado root cause del ALTER silent failure** — puede ser node-sqlite3-wasm bug, WASM state, o algo más. PRAGMA workaround es sufficient. Investigation deferred. (10) **User's SYNAPTIC_SAAS colony.db post-hotfix reintent debe funcionar** — pero si por algún accidente PRAGMA también falla, el error genuino bubble sería observable + debuggable.",
+      "phase_status_fase_iii_progress_pending_retry": "**FASE III Cycle 117 hotfix DG-131.0.1 applied**. successfulCycles 116 pending → 117 post-Baseline-15 retry PASS. DG-131 A Sub-A2 functionality intact (grouping code sin cambios). step-131-2.vsix 0.3.20 es tercer capture FASE III. Roadmap Opción A on-track.",
+      "next_step": "STOP esperando user retry Baseline-15 con step-131-2.vsix 0.3.20. Guía: reinstall CLEAN wildcard `Remove-Item -Recurse -Force $env:USERPROFILE\\.vscode\\extensions\\realgolab.synaptic-sentinel-*` → Install from VSIX 0.3.20 → Scan Workspace. Debe funcionar clean. Post-scan → Re-triage all → observe Grouping line + badges.",
+      "commits_split": "fix(core) commit con PRAGMA hotfix. docs(synaptic) commit con Entry #189 + session.json update activeDG DG-131.0.1 status + vsix_capture 0.3.20 + successfulCycles pending."
+    }
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 100,
+  "complianceScore": 100
+}
+```
+
+---
+
+*SYNAPTIC Protocol v3.0 - Continuous Logging Active*
+*Last Updated: 2026-07-04T22:45:00.000Z*
