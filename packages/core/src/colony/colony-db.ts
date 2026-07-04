@@ -303,23 +303,29 @@ export class ColonyDb {
     // v4: remediation_suggestions): las tablas se crean via CREATE TABLE IF
     // NOT EXISTS en el schema, sin reconstruir nada; aqui se sincroniza la
     // version de una base preexistente.
-    // DG-131 A Sub-A2 (schema v7): ALTER TABLE ADD COLUMN idempotente.
-    // SQLite no soporta IF NOT EXISTS en ALTER TABLE, y ejecutar 2 veces el
-    // ADD sobre una tabla que ya tiene la column tira "duplicate column
-    // name". Try-catch por column es la forma canonica del pattern.
-    // Para bases NUEVAS: las columns ya vienen del CREATE TABLE (schema.sql)
-    // → ALTER lanza + swallow. Para bases pre-v7: ALTER añade la column.
-    const addColumnIdempotent = (table: string, column: string, spec: string): void => {
-      try {
-        db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${spec}`);
-      } catch {
-        // Column ya existe (fresh DB o migration previa) — no-op idempotente.
-      }
+    // DG-131 A Sub-A2 + DG-131.0.1 HOTFIX (schema v7): migración idempotente
+    // segura via PRAGMA table_info explicit check en lugar de try-catch
+    // swallowing. La versión anterior con try-catch enmascaraba fallas
+    // legítimas del ALTER — empíricamente observado en Baseline-15 SYNAPTIC_SAAS
+    // DB v6 preexistente: ALTER falló silente (razón WASM/lock), CREATE INDEX
+    // subsequent falló con "no such column: group_id" abortando el scan.
+    // PRAGMA table_info es explícito + defensive: si la column NO existe, ALTER
+    // ejecuta y errores reales bubblean up (no silent). Si existe, skip clean.
+    const columnsToAdd: readonly [string, string, string][] = [
+      ['triage_verdicts', 'group_id', 'TEXT'],
+      ['triage_verdicts', 'is_group_representative', 'INTEGER'],
+      ['verdict_history', 'group_id', 'TEXT'],
+      ['verdict_history', 'is_group_representative', 'INTEGER'],
+    ];
+    const hasColumn = (table: string, column: string): boolean => {
+      const rows = db.all(`PRAGMA table_info(${table})`) as { name?: unknown }[];
+      return rows.some((row) => typeof row.name === 'string' && row.name === column);
     };
-    addColumnIdempotent('triage_verdicts', 'group_id', 'TEXT');
-    addColumnIdempotent('triage_verdicts', 'is_group_representative', 'INTEGER');
-    addColumnIdempotent('verdict_history', 'group_id', 'TEXT');
-    addColumnIdempotent('verdict_history', 'is_group_representative', 'INTEGER');
+    for (const [table, column, spec] of columnsToAdd) {
+      if (!hasColumn(table, column)) {
+        db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${spec}`);
+      }
+    }
     // Índices sobre las columns nuevas (CREATE INDEX IF NOT EXISTS es idempotente).
     db.exec('CREATE INDEX IF NOT EXISTS idx_triage_verdicts_group_id ON triage_verdicts(group_id)');
     db.exec('CREATE INDEX IF NOT EXISTS idx_verdict_history_group_id ON verdict_history(group_id)');
