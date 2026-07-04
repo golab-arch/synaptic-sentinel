@@ -3,7 +3,7 @@
   "projectId": "sentinel-1779304140796",
   "projectName": "SENTINEL",
   "initializedAt": "2026-05-20T19:09:00.816Z",
-  "lastActivity": "2026-07-03T20:30:00.000Z",
+  "lastActivity": "2026-07-04T12:20:00.000Z",
   "currentCycle": 58,
   "currentPhase": 12,
   "synapticStrength": 100,
@@ -33,20 +33,18 @@
     "fase_ii_closed_at": "2026-07-03T20:30:00.000Z",
     "fase_iii_open_at": "2026-07-03T20:30:00.000Z",
     "fase_ii_summary": "3 DGs shipped + 3 Baselines PASS validated: DG-127 A (signature attachment) H3-implicit-con-verdict-shift Baseline-11 INC→FP; DG-128 A (body scan taint propagation) H3-implicit-refinement Baseline-12 categorical FP; DG-129 A (module trust boundary tagging) H3-STRUCTURAL-SHIFT Baseline-13 FP→INC. Cumulative achievement: North Star principle empíricamente REALIZED — el LLM ahora razona sobre findings cross-module con contexto de signature + body content + attack surface. Duration real: 3 días vs estimate 3-4 semanas.",
-    "current_phase_progress": "0/3 DGs (DG-130 A pending como primer DG). FASE III cubre: DG-130 A per-fingerprint verdict persistence + reproducibilidad cross-provider (backlog #4), DG-131 A R20 cross-finding correlation (Stage 3 groups), DG-132 A R22 diff-aware mode."
+    "current_phase_progress": "1/3 DGs shipped (DG-130 A Sub-A2 IMPLEMENTED pending Baseline-14 validation). FASE III cubre: DG-130 A per-fingerprint verdict persistence + reproducibilidad cross-provider (backlog #4), DG-131 A R20 cross-finding correlation (Stage 3 groups), DG-132 A R22 diff-aware mode."
   },
   "activeDG": {
     "id": "DG-130-A",
-    "title": "Per-fingerprint verdict persistence + reproducibilidad cross-provider — primer DG de FASE III 'trust cross-session'",
-    "status": "PENDING_TECHNICAL_DG",
+    "title": "Per-fingerprint verdict persistence + reproducibilidad cross-provider — primer DG de FASE III 'trust cross-session' — Sub-A2 Balanced IMPLEMENTED",
+    "status": "SHIPPED_PENDING_BASELINE_14",
     "parent_phase": "FASE_III_trust_cross_session",
-    "predecessor_fase_ii_status": "FASE II COMPLETE PASS — 3/3 DGs validated con 3 Baselines cross-workspace empíricos. R18 v2 completo + R19 shipped. El pain point original del North Star principle (Baseline-8b INC 0.45 'without seeing internals') transformado empíricamente a Baseline-13 INC 0.70 con caution structural sobre HIGH surface exposure.",
-    "empirical_motivation_fase_iii": "Baseline-13 reveló verdict shift FP 0.95 → INC 0.70 cross-baseline sobre EL MISMO finding. Empíricamente: users que ven verdict inconsistency entre re-triage runs pueden confundirse. FASE III attaca: (1) fingerprint stability cross-scans (mismo finding tiene consistent fingerprint sobre scans consecutivos); (2) verdict history tracking (users pueden ver 'verdict changed from FP 0.95 to INC 0.70 in this scan because Trust boundary signal added'); (3) reproducibilidad cross-provider (si user cambia deepseek → openai → anthropic, verdict debe ser reproducible dentro de tolerance); (4) diff-aware mode (mostrar diff vs último scan — 'N new findings since main', '2 re-classified INCs').",
-    "candidate_sub_dgs": {
-      "Sub_A1_Conservative": "Solo fingerprint stability + basic verdict history — un finding sobre múltiples scans consecutive genera el mismo fingerprint (canonical hash de path+ruleId+startLine). Nueva table 'verdict_history' con { fingerprint, verdict, confidence, rationale, timestamp, provider_label }. Sidebar muestra 'previously verdicts' section",
-      "Sub_A2_Balanced_RECOMMENDED": "Sub-A1 + verdict change detection + diff-aware mode básico. Cuando re-triage cambia verdict (FP→INC como Baseline-13), emit banner explícito en el sidebar 'Verdict changed since last scan — why?' con delta rationale. Diff-aware mode simple: 'N new findings since last scan', 'M re-classified'",
-      "Sub_A3_Innovative": "Sub-A2 + reproducibilidad cross-provider (voting mechanism entre providers) + explicit trust boundary reasoning trace + Stage 3 cross-finding correlation R20 preview. Multi-cycle scope real"
-    },
-    "bitacora_entries": [183]
+    "chosen_sub_dg": "Sub_A2_Balanced",
+    "shipped_at": "2026-07-04T12:15:00.000Z",
+    "vsix_capture": "synaptic-sentinel-0.3.18-step-130-1.vsix (SHA-256 c91a8636e771b5259447b672cd507f1b2f69cf38af03b8207da6a258ce78495c)",
+    "deliverables_summary": "Schema v6 verdict_history append-only table + TriageVerdictHistoryRecord type + colony-db helpers (insertVerdictHistoryBatch + getVerdictHistoryForFingerprint + getVerdictHistoryByFingerprints + getVerdictDiffAgainstPrevious) + triage.ts insert history + diff-aware line + reporters/tomo.ts scanDiff/previouslyVerdicts enrichment + extension schema + webview banner Verdict changed + Previously section + summary scan-diff line + show.ts + scan.ts pass enrichment + 17 tests (6 colony-db + 3 tomo + 8 webview) + version bump 0.3.17 → 0.3.18. INVARIANTE: clearTriageDataForFingerprints NO borra verdict_history (verified con test dedicado).",
+    "acceptance_empirica_a_medir_baseline_14": "REINSTALL CLEAN + SENTINEL regression + SYNAPTIC_SAAS Baseline-14 primer scan (verdict_history INSERT, no Previously section) + Baseline-14b re-triage (verdict_history NUEVO INSERT, Previously section visible con 1 prior verdict, banner Verdict changed si classification difiere). Terminal debe emit 'Scan diff vs previous triage: N new · M re-classified · K unchanged'. Sidebar summary debe mostrar scan-diff line.",
+    "bitacora_entries": [183, 184, 185]
   }
 }
