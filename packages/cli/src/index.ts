@@ -24,6 +24,7 @@ Usage:
                          [--export-sarif <file>] [--fail-on <severity>]
   synaptic-sentinel mark-fp --fingerprint <fp> [--path <dir>] [--reason <text>]
   synaptic-sentinel triage [--path <dir>] [--limit <n>] [--re-triage]
+                          [--no-group]
                           [--agent-provider <agent>=<provider>/<model>]...
   synaptic-sentinel cost-history [--path <dir>] [--limit <n>] [--json]
   synaptic-sentinel show [--path <dir>] [--export <file>]
@@ -63,6 +64,11 @@ Options:
                          latest scan BEFORE triaging (triage command). Use this
                          after changing the configured provider in
                          .sentinel/agents.yaml to re-evaluate the same findings.
+  --no-group             DG-131 A Sub-A2: disable cross-finding correlation
+                         grouping (R20). Each finding gets its own LLM call
+                         instead of sharing a group representative. Escape
+                         hatch for when you want per-finding autonomy over
+                         cost savings.
                          Preserves fp_known (manual FPs) and triage_token_usage
                          (cost history rollup).
   --agent-provider <a>=<p>/<m>
@@ -106,6 +112,7 @@ async function main(): Promise<void> {
       global: { type: 'boolean' },
       json: { type: 'boolean' },
       're-triage': { type: 'boolean' },
+      'no-group': { type: 'boolean' },
       help: { type: 'boolean', short: 'h' },
     },
   });
@@ -185,6 +192,7 @@ async function main(): Promise<void> {
       ...(agentProviderOverrides !== undefined ? { agentProviderOverrides } : {}),
       ...(values['no-color'] === true ? { noColor: true } : {}),
       ...(values['re-triage'] === true ? { reTriage: true } : {}),
+      ...(values['no-group'] === true ? { noGroup: true } : {}),
     });
     return;
   }

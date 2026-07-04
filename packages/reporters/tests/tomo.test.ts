@@ -363,4 +363,57 @@ describe('buildTomo — DG-113 A Step 4: SCA groups en el tomo', () => {
     expect(tomo.findings[0]?.previouslyVerdicts).toBeUndefined();
     expect(tomo.summary.scanDiff).toBeUndefined();
   });
+
+  /**
+   * DG-131 A Sub-A2 (Cycle 117 FASE III R20): group metadata propagation
+   * desde el verdict record al TomoFinding. Habilita badge [grouped] en el
+   * sidebar del webview.
+   */
+  it('propaga groupId + isGroupRepresentative desde el verdict al TomoFinding', () => {
+    const finding = makeFinding('high', 'SAST');
+    finding['fingerprint'] = 'fp-grouped';
+    const verdict = {
+      id: randomUUID(),
+      scanId: 'scan-1',
+      fingerprint: 'fp-grouped',
+      classification: 'true_positive',
+      confidence: 0.75,
+      rationale: 'group rep rationale',
+      agentId: 'triage',
+      groupId: 'group-abc',
+      isGroupRepresentative: true,
+      createdAt: '2026-07-04T00:00:00.000Z',
+    };
+    const tomo = buildTomo(
+      makeOutcome('scan-1'),
+      [finding],
+      { rootPath: '/p', sentinelVersion: '0.0.0' },
+      { triageVerdicts: [verdict] },
+    );
+    expect(tomo.findings[0]?.groupId).toBe('group-abc');
+    expect(tomo.findings[0]?.isGroupRepresentative).toBe(true);
+  });
+
+  it('finding sin group metadata NO emite groupId/isGroupRepresentative (backward-compat)', () => {
+    const finding = makeFinding('high', 'SAST');
+    finding['fingerprint'] = 'fp-ungrouped';
+    const verdict = {
+      id: randomUUID(),
+      scanId: 'scan-1',
+      fingerprint: 'fp-ungrouped',
+      classification: 'false_positive',
+      confidence: 0.9,
+      rationale: 'ungrouped',
+      agentId: 'triage',
+      createdAt: '2026-07-04T00:00:00.000Z',
+    };
+    const tomo = buildTomo(
+      makeOutcome('scan-1'),
+      [finding],
+      { rootPath: '/p', sentinelVersion: '0.0.0' },
+      { triageVerdicts: [verdict] },
+    );
+    expect(tomo.findings[0]?.groupId).toBeUndefined();
+    expect(tomo.findings[0]?.isGroupRepresentative).toBeUndefined();
+  });
 });

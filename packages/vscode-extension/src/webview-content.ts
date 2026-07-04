@@ -317,6 +317,17 @@ const STYLE = `
     color: var(--vscode-descriptionForeground); }
   .summary .scan-diff .diff-reclassified {
     color: var(--vscode-editorWarning-foreground, #c87f0a); font-weight: 600; }
+  /* DG-131 A Sub-A2 (Cycle 117 FASE III): grouped badge para findings del R20 grupo. */
+  .grouped-badge { display: inline-block; font-size: 0.65em; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.3px;
+    border-radius: 3px; padding: 0.05rem 0.35rem;
+    margin-left: 0.4rem;
+    background: #6b46c1; color: #fff;
+    border: 1px solid transparent; }
+  .grouped-badge.grouped-representative { background: #8b5cf6; }
+  .grouped-badge.grouped-member { background: #6b46c1; opacity: 0.85; }
+  .grouped-hint { font-size: 0.8em; color: var(--vscode-descriptionForeground);
+    margin-top: 0.2rem; font-style: italic; }
 `;
 
 /** Formatea la confidence (0..1) como porcentaje entero ("95%"). */
@@ -361,6 +372,7 @@ function renderCard(finding: ExtensionFinding): string {
     `<div class="head"><span class="badge badge-${escapeHtml(severity)}">` +
       `${escapeHtml(severity)}</span>` +
       priorityBadge +
+      renderGroupedBadge(finding) +
       `<span class="title">${escapeHtml(finding.title)}</span>` +
       `<span class="state-badge">${escapeHtml(stateBadgeText(state))}</span></div>`,
     `<div class="loc">${escapeHtml(loc)} · ${escapeHtml(finding.category)}</div>`,
@@ -400,6 +412,27 @@ function renderCard(finding: ExtensionFinding): string {
   }
   parts.push('</div>');
   return parts.join('');
+}
+
+/**
+ * DG-131 A Sub-A2 (Cycle 117 FASE III R20): badge visual "[grouped]" para
+ * findings que pertenecen a un grupo triage-agregado.
+ *
+ * Distingue representative (fuentes primaria del LLM call) vs member
+ * (verdict propagado con confidence downgrade). Emit '' si no hay group.
+ */
+function renderGroupedBadge(finding: ExtensionFinding): string {
+  if (finding.groupId === undefined) return '';
+  const isRep = finding.isGroupRepresentative === true;
+  const cls = isRep ? 'grouped-representative' : 'grouped-member';
+  const label = isRep ? 'GROUPED REP' : 'GROUPED';
+  const title = isRep
+    ? 'Group representative — made the LLM call; verdict propagated to members.'
+    : 'Group member — verdict propagated from representative, confidence downgraded.';
+  return (
+    `<span class="grouped-badge ${cls}" title="${escapeHtml(title)}">` +
+    `${escapeHtml(label)}</span>`
+  );
 }
 
 /**

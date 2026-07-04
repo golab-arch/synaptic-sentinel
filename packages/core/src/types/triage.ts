@@ -35,6 +35,20 @@ export const TriageVerdictRecordSchema = TriageVerdictSchema.extend({
   fingerprint: z.string().min(1),
   /** Agente que emitio el veredicto — trazabilidad (OWASP ASI 2026). */
   agentId: z.string().min(1),
+  /**
+   * DG-131 A Sub-A2 (R20 cross-finding correlation): id opaco del grupo
+   * triage al que pertenece este veredicto. NULL/undefined = no agrupado
+   * (triaged individualmente). Findings con mismo groupId comparten
+   * verdict base pero pueden diferir en confidence per-finding (downgrade
+   * heurístico aplicado a non-representative members).
+   */
+  groupId: z.string().min(1).optional(),
+  /**
+   * DG-131 A Sub-A2: `true` si este record es el representative del grupo
+   * (el que realmente hizo la LLM call). `false` si es un member propagado
+   * desde el representative. `undefined` para findings sin grupo.
+   */
+  isGroupRepresentative: z.boolean().optional(),
   /** Marca temporal de creacion (ISO-8601). */
   createdAt: z.string().datetime(),
 });

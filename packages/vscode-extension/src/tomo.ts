@@ -89,6 +89,16 @@ const ExtensionFindingSchema = z.object({
    */
   previouslyVerdicts: z.array(ExtensionPreviousVerdictSchema).optional(),
   /**
+   * DG-131 A Sub-A2 (R20): id opaco del grupo triage-agregado. Aditivo
+   * backward-compat. El sidebar usa esto para renderear badge [grouped].
+   */
+  groupId: z.string().min(1).optional(),
+  /**
+   * DG-131 A Sub-A2: `true` para representative del grupo, `false` para
+   * members propagados. `undefined` sin grupo. Aditivo backward-compat.
+   */
+  isGroupRepresentative: z.boolean().optional(),
+  /**
    * Priority/risk score (DG-118 A — Cycle 109). Computado por
    * `computePriorityScore` en el reporter desde (severity,
    * triage.classification). SEPARADO del `triage.confidence` (que es

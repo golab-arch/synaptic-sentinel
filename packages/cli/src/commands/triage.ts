@@ -3,9 +3,12 @@ import { randomUUID } from 'node:crypto';
 import { resolve } from 'node:path';
 import {
   ColonyDb,
+  deriveDowngradedConfidence,
   deriveFromLearning,
   estimateCostUsd,
   FindingSchema,
+  formatMemberRationaleTag,
+  groupPendingFindings,
   loadAgentsConfig,
   patternSignature,
   resolveColonyDbPath,
@@ -14,9 +17,11 @@ import {
   type AgentsConfig,
   type BrainAgentId,
   type ContextExplanationRecord,
+  type Finding,
   type LearningClassification,
   type RemediationSuggestionRecord,
   type TokenUsageRecord,
+  type TriageFindingGroup,
   type TriageVerdict,
   type TriageVerdictHistoryRecord,
   type TriageVerdictRecord,
@@ -76,6 +81,13 @@ export interface TriageCommandOptions {
    * DG-073 B). Combinados con la precedencia: CLI > agents.yaml > fallback.
    */
   readonly agentProviderOverrides?: AgentProviderOverrides;
+  /**
+   * DG-131 A Sub-A2: si `true`, desactiva el agrupamiento cross-finding
+   * (R20) y trata cada finding como solitary (LLM call individual).
+   * Escape hatch para cuando el user quiere resoluciones per-finding
+   * (ej. sospecha que 1 finding específico del grupo difiere semánticamente).
+   */
+  readonly noGroup?: boolean;
   /** Desactiva el color ANSI (tambien lo desactivan `NO_COLOR` y un stdout no-TTY). */
   readonly noColor?: boolean;
 }
@@ -378,7 +390,39 @@ export async function runTriageCommand(options: TriageCommandOptions): Promise<n
     // sin gastar una llamada LLM (economia de tokens, v0.4 §187).
     const learningRecords = db.getLearningRecords();
     let learnedCount = 0;
-    for (const finding of toTriage) {
+    // DG-131 A Sub-A2 (Cycle 117 FASE III R20): split toTriage en
+    // groups (≥ MIN_GROUP_SIZE members con misma ruleId+package) + solitary.
+    // options.noGroup === true bypassa grouping enteramente (test/UX escape).
+    // Representative de cada grupo hace 1 LLM call; members propagan verdict
+    // con confidence downgrade. Reduce cost significativamente en workspaces
+    // con muchos SCA duplicados (22 protobufjs findings → 1 LLM call).
+    const { groups: triageGroups, solitary: solitaryFindings } =
+      options.noGroup === true
+        ? {
+            groups: [] as readonly TriageFindingGroup[],
+            solitary: toTriage as readonly Finding[],
+          }
+        : groupPendingFindings(toTriage, () => randomUUID());
+    if (triageGroups.length > 0) {
+      const groupMemberTotal = triageGroups.reduce((acc, g) => acc + g.members.length, 0);
+      console.log(
+        `Grouping (DG-131 A R20): ${String(triageGroups.length)} group(s) covering ` +
+          `${String(groupMemberTotal)} finding(s); ${String(solitaryFindings.length)} ` +
+          `solitary. LLM calls saved by grouping: ${String(groupMemberTotal - triageGroups.length)}.`,
+      );
+    }
+    // Findings que efectivamente pasan por el LLM path: representatives + solitary.
+    const findingsToLLM: readonly Finding[] = [
+      ...triageGroups.map((g) => g.members[0] as Finding),
+      ...solitaryFindings,
+    ];
+    // Map fingerprint → grupo, para setear groupId + isGroupRepresentative
+    // en el verdict record durante el loop principal.
+    const fingerprintToGroup = new Map<string, TriageFindingGroup>();
+    for (const group of triageGroups) {
+      fingerprintToGroup.set(group.members[0]!.fingerprint, group);
+    }
+    for (const finding of findingsToLLM) {
       try {
         const signature = patternSignature(finding);
         const learned = deriveFromLearning(signature, learningRecords);
@@ -397,6 +441,7 @@ export async function runTriageCommand(options: TriageCommandOptions): Promise<n
           verdict = await runAgent(triageAgent, finding, clients.triage);
           drainObservation(triageWrapper, 'triage', finding.fingerprint);
         }
+        const groupOfThisFinding = fingerprintToGroup.get(finding.fingerprint);
         verdicts.push({
           id: randomUUID(),
           scanId,
@@ -405,6 +450,9 @@ export async function runTriageCommand(options: TriageCommandOptions): Promise<n
           confidence: verdict.confidence,
           rationale: verdict.rationale,
           agentId: learned !== undefined ? 'colony-learning' : triageAgent.id,
+          ...(groupOfThisFinding !== undefined
+            ? { groupId: groupOfThisFinding.groupId, isGroupRepresentative: true }
+            : {}),
           createdAt: new Date().toISOString(),
         });
         const sourceTag = learned !== undefined ? ' (colony memory)' : '';
@@ -491,6 +539,7 @@ export async function runTriageCommand(options: TriageCommandOptions): Promise<n
               `model in agents.yaml) or investigate the provider's content-filter / ` +
               `token-budget for this prompt.`,
           };
+          const groupOfThisFinding = fingerprintToGroup.get(finding.fingerprint);
           verdicts.push({
             id: randomUUID(),
             scanId,
@@ -499,6 +548,9 @@ export async function runTriageCommand(options: TriageCommandOptions): Promise<n
             confidence: emptyVerdict.confidence,
             rationale: emptyVerdict.rationale,
             agentId: triageAgent.id,
+            ...(groupOfThisFinding !== undefined
+              ? { groupId: groupOfThisFinding.groupId, isGroupRepresentative: true }
+              : {}),
             createdAt: new Date().toISOString(),
           });
           console.error(
@@ -526,6 +578,7 @@ export async function runTriageCommand(options: TriageCommandOptions): Promise<n
               `Try re-triaging with a different model in agents.yaml (some providers refuse ` +
               `security-analysis prompts) or investigate the provider's policy.`,
           };
+          const groupOfThisFinding = fingerprintToGroup.get(finding.fingerprint);
           verdicts.push({
             id: randomUUID(),
             scanId,
@@ -534,6 +587,9 @@ export async function runTriageCommand(options: TriageCommandOptions): Promise<n
             confidence: jsonParseVerdict.confidence,
             rationale: jsonParseVerdict.rationale,
             agentId: triageAgent.id,
+            ...(groupOfThisFinding !== undefined
+              ? { groupId: groupOfThisFinding.groupId, isGroupRepresentative: true }
+              : {}),
             createdAt: new Date().toISOString(),
           });
           console.error(
@@ -547,6 +603,42 @@ export async function runTriageCommand(options: TriageCommandOptions): Promise<n
         // legacy — degraded > failed (v0.4 §3.7).
         const message = err instanceof Error ? err.message : String(err);
         console.error(`  ! triage failed for "${finding.title}": ${message}`);
+      }
+    }
+
+    // DG-131 A Sub-A2 (Cycle 117 FASE III R20): propagación de verdict de
+    // representative a non-representative members del grupo. Cada member
+    // recibe classification+rationale del representative, confidence
+    // downgraded (0.9x default), member tag en el rationale + groupId +
+    // isGroupRepresentative=false. NO se hacen LLM calls adicionales —
+    // ese es el ahorro de tokens que atacamos con R20.
+    for (const group of triageGroups) {
+      const representative = group.members[0];
+      if (representative === undefined) continue;
+      const repVerdict = verdicts.find((v) => v.fingerprint === representative.fingerprint);
+      if (repVerdict === undefined) continue; // Representative sin verdict → skip propagation
+      for (let i = 1; i < group.members.length; i += 1) {
+        const member = group.members[i];
+        if (member === undefined) continue;
+        const downgradedConfidence = deriveDowngradedConfidence(repVerdict.confidence);
+        const memberTag = formatMemberRationaleTag(group.groupKey, i, group.members.length);
+        verdicts.push({
+          id: randomUUID(),
+          scanId,
+          fingerprint: member.fingerprint,
+          classification: repVerdict.classification,
+          confidence: downgradedConfidence,
+          rationale: repVerdict.rationale + memberTag,
+          agentId: repVerdict.agentId,
+          groupId: group.groupId,
+          isGroupRepresentative: false,
+          createdAt: new Date().toISOString(),
+        });
+        console.log(
+          `  ${renderTriageTag(repVerdict.classification, color)}  ${member.title} ` +
+            `— ${member.location.path}:${String(member.location.startLine)} ` +
+            `(confidence ${downgradedConfidence.toFixed(2)}) [group member ${String(i + 1)}/${String(group.members.length)}]`,
+        );
       }
     }
 

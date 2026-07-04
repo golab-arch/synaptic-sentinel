@@ -1187,3 +1187,46 @@ describe('renderTomoWebviewHtml — DG-130 A Sub-A2 (verdict history + diff)', (
     expect(html).not.toContain('Scan diff vs previous triage');
   });
 });
+
+/**
+ * DG-131 A Sub-A2 (Cycle 117 FASE III R20): badge [grouped] en finding card.
+ */
+describe('renderTomoWebviewHtml — DG-131 A Sub-A2 (group badge)', () => {
+  it('no emite grouped-badge cuando finding no tiene groupId', () => {
+    const finding = makeFinding({
+      triage: { classification: 'true_positive', confidence: 0.9, rationale: 'r' },
+    });
+    const html = renderTomoWebviewHtml([finding], opts);
+    expect(html).not.toContain('class="grouped-badge');
+    expect(html).not.toContain('GROUPED REP');
+    expect(html).not.toContain('>GROUPED<');
+  });
+
+  it('emite GROUPED REP badge cuando finding es representative', () => {
+    const finding = makeFinding({
+      triage: { classification: 'true_positive', confidence: 0.75, rationale: 'r' },
+      groupId: 'group-xyz',
+      isGroupRepresentative: true,
+    });
+    const html = renderTomoWebviewHtml([finding], opts);
+    expect(html).toContain('grouped-representative');
+    expect(html).toContain('GROUPED REP');
+    expect(html).toContain('Group representative');
+  });
+
+  it('emite GROUPED badge cuando finding es member (non-representative)', () => {
+    const finding = makeFinding({
+      triage: {
+        classification: 'true_positive',
+        confidence: 0.675,
+        rationale: 'r [group SCA:x, member 2 of 3]',
+      },
+      groupId: 'group-xyz',
+      isGroupRepresentative: false,
+    });
+    const html = renderTomoWebviewHtml([finding], opts);
+    expect(html).toContain('grouped-member');
+    expect(html).toContain('>GROUPED<');
+    expect(html).toContain('Group member');
+  });
+});

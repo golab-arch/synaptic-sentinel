@@ -72,12 +72,59 @@ describe('runTriageCommand', () => {
     root = join(tmpdir(), `triage-${randomUUID()}`);
     seedDb(root, ['fp-1', 'fp-2']);
 
-    expect(await runTriageCommand({ path: root, llmClient: fakeLlm() })).toBe(0);
+    // DG-131 A Sub-A2: noGroup=true preserva la semántica pre-grouping
+    // (cada finding → 1 context call). Sin noGroup, los 2 findings con
+    // mismo ruleId 'r' se agrupan y solo el representative obtiene context.
+    expect(await runTriageCommand({ path: root, llmClient: fakeLlm(), noGroup: true })).toBe(0);
 
     const db = openDb(root);
     expect([...db.getTriagedFingerprints()].sort()).toEqual(['fp-1', 'fp-2']);
     // Ambos hallazgos clasificados true_positive => el Context Agent corrio.
     expect(db.getContextExplanations()).toHaveLength(2);
+    db.close();
+  });
+
+  /**
+   * DG-131 A Sub-A2 (Cycle 117 FASE III R20): sin noGroup, findings con
+   * mismo ruleId + package se agrupan. Solo el representative obtiene
+   * context explanation. Los members reciben verdict propagado con
+   * confidence downgrade + rationale suffix.
+   */
+  it('agrupa findings con mismo ruleId + representative obtiene 1 context call', async () => {
+    root = join(tmpdir(), `triage-group-${randomUUID()}`);
+    seedDb(root, ['fp-grouped-1', 'fp-grouped-2', 'fp-grouped-3']);
+
+    expect(await runTriageCommand({ path: root, llmClient: fakeLlm() })).toBe(0);
+
+    const db = openDb(root);
+    expect([...db.getTriagedFingerprints()].sort()).toEqual([
+      'fp-grouped-1',
+      'fp-grouped-2',
+      'fp-grouped-3',
+    ]);
+    // Solo el representative obtiene context (no propagado a members).
+    expect(db.getContextExplanations()).toHaveLength(1);
+    const verdicts = db.getTriageVerdicts();
+    expect(verdicts).toHaveLength(3);
+    // Todos deben compartir groupId + tener el mismo classification.
+    const groupIds = new Set(verdicts.map((v) => v.groupId));
+    expect(groupIds.size).toBe(1);
+    expect([...groupIds][0]).toBeDefined();
+    // Exactly 1 representative + 2 members.
+    const reps = verdicts.filter((v) => v.isGroupRepresentative === true);
+    const members = verdicts.filter((v) => v.isGroupRepresentative === false);
+    expect(reps).toHaveLength(1);
+    expect(members).toHaveLength(2);
+    // Members tienen confidence downgraded (< representative).
+    const repConf = reps[0]?.confidence ?? 0;
+    for (const m of members) {
+      expect(m.confidence).toBeLessThan(repConf);
+    }
+    // Members incluyen tag "member N of M" en el rationale.
+    for (const m of members) {
+      expect(m.rationale).toContain('group');
+      expect(m.rationale).toMatch(/member \d+ of 3/);
+    }
     db.close();
   });
 

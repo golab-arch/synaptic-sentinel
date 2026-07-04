@@ -30,7 +30,7 @@ function makePheromone(
 describe('ColonyDb (base en memoria)', () => {
   it('aplica el schema y expone la version', () => {
     const db = ColonyDb.open(':memory:');
-    expect(db.getSchemaVersion()).toBe('6');
+    expect(db.getSchemaVersion()).toBe('7');
     db.close();
   });
 
@@ -441,7 +441,7 @@ describe('ColonyDb (base en disco)', () => {
       // El path-mágico ':memory:' es el contrato de sqlite para una DB en RAM.
       // Pre-flight de directorio NO debe disparar para este caso.
       const db = ColonyDb.open(':memory:');
-      expect(db.getSchemaVersion()).toBe('6');
+      expect(db.getSchemaVersion()).toBe('7');
       db.close();
     });
   });
@@ -867,6 +867,108 @@ describe('ColonyDb - verdict history (schema v6, DG-130 A Sub-A2)', () => {
     expect(db.getTriagedFingerprints().has('fp-persist')).toBe(false);
     // verdict_history PRESERVADO — este es el invariante crítico DG-130 A
     expect(db.getVerdictHistoryForFingerprint('fp-persist').length).toBe(1);
+    db.close();
+  });
+});
+
+/**
+ * DG-131 A Sub-A2 (Cycle 117 FASE III R20): persistence de groupId +
+ * isGroupRepresentative en triage_verdicts + verdict_history schema v7.
+ * Aditivo backward-compat (NULL default para findings sin group).
+ */
+describe('ColonyDb - group metadata persistence (schema v7, DG-131 A Sub-A2)', () => {
+  it('persiste groupId + isGroupRepresentative en triage_verdicts + los recupera', () => {
+    const db = ColonyDb.open(':memory:');
+    const scan = makeScan();
+    db.insertScan(scan);
+    const scanId = String(scan['id']);
+    const groupId = 'group-abc-123';
+    db.insertTriageVerdicts([
+      {
+        id: randomUUID(),
+        scanId,
+        fingerprint: 'fp-rep',
+        classification: 'true_positive',
+        confidence: 0.75,
+        rationale: 'group representative rationale',
+        agentId: 'triage',
+        groupId,
+        isGroupRepresentative: true,
+        createdAt: new Date().toISOString(),
+      },
+      {
+        id: randomUUID(),
+        scanId,
+        fingerprint: 'fp-member',
+        classification: 'true_positive',
+        confidence: 0.675,
+        rationale: 'group representative rationale [group SCA:x, member 2 of 2]',
+        agentId: 'triage',
+        groupId,
+        isGroupRepresentative: false,
+        createdAt: new Date().toISOString(),
+      },
+    ]);
+    const verdicts = db.getTriageVerdicts();
+    expect(verdicts).toHaveLength(2);
+    const rep = verdicts.find((v) => v.fingerprint === 'fp-rep');
+    const member = verdicts.find((v) => v.fingerprint === 'fp-member');
+    expect(rep?.groupId).toBe(groupId);
+    expect(rep?.isGroupRepresentative).toBe(true);
+    expect(member?.groupId).toBe(groupId);
+    expect(member?.isGroupRepresentative).toBe(false);
+    db.close();
+  });
+
+  it('findings sin groupId siguen persistiendo (backward-compat)', () => {
+    const db = ColonyDb.open(':memory:');
+    const scan = makeScan();
+    db.insertScan(scan);
+    const scanId = String(scan['id']);
+    db.insertTriageVerdicts([
+      {
+        id: randomUUID(),
+        scanId,
+        fingerprint: 'fp-solitary',
+        classification: 'false_positive',
+        confidence: 0.9,
+        rationale: 'ungrouped rationale',
+        agentId: 'triage',
+        createdAt: new Date().toISOString(),
+      },
+    ]);
+    const verdicts = db.getTriageVerdicts();
+    expect(verdicts).toHaveLength(1);
+    expect(verdicts[0]?.groupId).toBeUndefined();
+    expect(verdicts[0]?.isGroupRepresentative).toBeUndefined();
+    db.close();
+  });
+
+  it('verdict_history preserva groupId + isGroupRepresentative cross-scan', () => {
+    const db = ColonyDb.open(':memory:');
+    const scan = makeScan();
+    db.insertScan(scan);
+    const scanId = String(scan['id']);
+    const groupId = 'group-persist-xyz';
+    db.insertVerdictHistoryBatch([
+      {
+        id: randomUUID(),
+        scanId,
+        fingerprint: 'fp-h-rep',
+        classification: 'true_positive',
+        confidence: 0.75,
+        rationale: 'rep rationale',
+        providerLabel: 'deepseek/deepseek-v4-flash',
+        agentId: 'triage',
+        groupId,
+        isGroupRepresentative: true,
+        createdAt: '2026-07-04T18:00:00.000Z',
+      },
+    ]);
+    const history = db.getVerdictHistoryForFingerprint('fp-h-rep');
+    expect(history).toHaveLength(1);
+    expect(history[0]?.groupId).toBe(groupId);
+    expect(history[0]?.isGroupRepresentative).toBe(true);
     db.close();
   });
 });

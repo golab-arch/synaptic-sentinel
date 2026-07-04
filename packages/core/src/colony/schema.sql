@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS meta (
   key   TEXT PRIMARY KEY,
   value TEXT NOT NULL
 );
-INSERT OR IGNORE INTO meta (key, value) VALUES ('schema_version', '6');
+INSERT OR IGNORE INTO meta (key, value) VALUES ('schema_version', '7');
 
 CREATE TABLE IF NOT EXISTS scans (
   id            TEXT PRIMARY KEY,
@@ -55,16 +55,19 @@ CREATE TABLE IF NOT EXISTS learning_records (
 -- Veredictos de triage del Brain Layer (schema v2 — tabla aditiva).
 -- Cada veredicto es un registro estructurado, no una feromona del enjambre.
 CREATE TABLE IF NOT EXISTS triage_verdicts (
-  id             TEXT PRIMARY KEY,
-  scan_id        TEXT NOT NULL REFERENCES scans(id),
-  fingerprint    TEXT NOT NULL,               -- Finding.fingerprint
+  id                       TEXT PRIMARY KEY,
+  scan_id                  TEXT NOT NULL REFERENCES scans(id),
+  fingerprint              TEXT NOT NULL,     -- Finding.fingerprint
   -- CHECK enum: defensa en profundidad anti Memory Poisoning (v0.4 9.6).
-  classification TEXT NOT NULL CHECK (classification IN
-                   ('true_positive', 'false_positive', 'inconclusive')),
-  confidence     REAL NOT NULL CHECK (confidence BETWEEN 0.0 AND 1.0),
-  rationale      TEXT NOT NULL,
-  agent_id       TEXT NOT NULL,               -- trazabilidad (OWASP ASI 2026)
-  created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  classification           TEXT NOT NULL CHECK (classification IN
+                             ('true_positive', 'false_positive', 'inconclusive')),
+  confidence               REAL NOT NULL CHECK (confidence BETWEEN 0.0 AND 1.0),
+  rationale                TEXT NOT NULL,
+  agent_id                 TEXT NOT NULL,     -- trazabilidad (OWASP ASI 2026)
+  -- DG-131 A Sub-A2 (schema v7): grouping metadata aditivo NULL default.
+  group_id                 TEXT,              -- opaque group id (rule+package o similar); NULL si no agrupado
+  is_group_representative  INTEGER,           -- 1 si hizo el LLM call, 0 si propagado; NULL sin group
+  created_at               TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 CREATE INDEX IF NOT EXISTS idx_triage_fingerprint ON triage_verdicts(fingerprint);
 CREATE INDEX IF NOT EXISTS idx_triage_scan        ON triage_verdicts(scan_id);
@@ -135,17 +138,41 @@ CREATE INDEX IF NOT EXISTS idx_token_usage_provider    ON triage_token_usage(pro
 -- Incluye `provider_label` (que triage_verdicts NO tiene) para detectar
 -- "same/different provider" en el banner de razón heurística.
 CREATE TABLE IF NOT EXISTS verdict_history (
-  id             TEXT PRIMARY KEY,
-  scan_id        TEXT NOT NULL REFERENCES scans(id),
-  fingerprint    TEXT NOT NULL,               -- Finding.fingerprint
+  id                       TEXT PRIMARY KEY,
+  scan_id                  TEXT NOT NULL REFERENCES scans(id),
+  fingerprint              TEXT NOT NULL,     -- Finding.fingerprint
   -- CHECK enum: defensa en profundidad anti Memory Poisoning (v0.4 9.6).
-  classification TEXT NOT NULL CHECK (classification IN
-                   ('true_positive', 'false_positive', 'inconclusive')),
-  confidence     REAL NOT NULL CHECK (confidence BETWEEN 0.0 AND 1.0),
-  rationale      TEXT NOT NULL,
-  provider_label TEXT NOT NULL,               -- "<provider>/<model>" o "colony-memory"
-  agent_id       TEXT NOT NULL,               -- trazabilidad (OWASP ASI 2026)
-  created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  classification           TEXT NOT NULL CHECK (classification IN
+                             ('true_positive', 'false_positive', 'inconclusive')),
+  confidence               REAL NOT NULL CHECK (confidence BETWEEN 0.0 AND 1.0),
+  rationale                TEXT NOT NULL,
+  provider_label           TEXT NOT NULL,     -- "<provider>/<model>" o "colony-memory"
+  agent_id                 TEXT NOT NULL,     -- trazabilidad (OWASP ASI 2026)
+  -- DG-131 A Sub-A2 (schema v7): grouping metadata aditivo NULL default.
+  group_id                 TEXT,              -- opaque group id (rule+package o similar); NULL si no agrupado
+  is_group_representative  INTEGER,           -- 1 si hizo el LLM call, 0 si propagado; NULL sin group
+  created_at               TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 CREATE INDEX IF NOT EXISTS idx_verdict_history_fingerprint ON verdict_history(fingerprint, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_verdict_history_scan        ON verdict_history(scan_id);
+
+-- Schema v7 (DG-131 A R20 cross-finding correlation FASE III):
+-- ALTER TABLE idempotente para añadir group_id + is_group_representative
+-- a triage_verdicts + verdict_history. SQLite no soporta IF NOT EXISTS
+-- en ALTER TABLE ADD COLUMN — usamos el pattern try-catch en JS
+-- (colony-db.ts) para hacer el ALTER idempotente. Aquí solo documentamos.
+--
+-- Columns aditivas backward-compat (NULL por default):
+--   - group_id TEXT NULL — id opaco del grupo triage. NULL = no agrupado
+--     (triaged individually). Findings del mismo grupo comparten group_id
+--     y verdict base pero pueden diferir en per-finding confidence downgrade.
+--   - is_group_representative INTEGER NULL — 1 si este record es el
+--     representative del grupo (el que hizo la LLM call real). 0 si es
+--     un member propagado. NULL para findings sin grupo (legacy o solo).
+--
+-- Rationale: propagation de group verdict debe ser inspeccionable —
+-- users pueden filtrar por group_id + entender que N findings comparten
+-- semantics + solo 1 pagó el token cost del LLM.
+
+CREATE INDEX IF NOT EXISTS idx_triage_verdicts_group_id  ON triage_verdicts(group_id);
+CREATE INDEX IF NOT EXISTS idx_verdict_history_group_id  ON verdict_history(group_id);

@@ -116,6 +116,18 @@ export const TomoFindingSchema = FindingSchema.extend({
    * solo si el reporter cargó history. Aditivo backward-compat.
    */
   previouslyVerdicts: z.array(TomoPreviousVerdictSchema).optional(),
+  /**
+   * DG-131 A Sub-A2 (R20): id opaco del grupo triage. Presente si el finding
+   * pertenece a un grupo triage-agregado (≥ 2 members compartiendo mismo
+   * rule+package). Aditivo backward-compat.
+   */
+  groupId: z.string().min(1).optional(),
+  /**
+   * DG-131 A Sub-A2: `true` si este finding es el representative del grupo
+   * (hizo la LLM call real). `false` si es un member propagado con confidence
+   * downgrade. `undefined` para findings sin grupo. Aditivo backward-compat.
+   */
+  isGroupRepresentative: z.boolean().optional(),
 });
 
 /** Hallazgo del tomo (Finding + triage opcional). */
@@ -272,6 +284,12 @@ export function buildTomo(
         : {}),
       ...(previouslyVerdicts !== undefined && previouslyVerdicts.length > 0
         ? { previouslyVerdicts }
+        : {}),
+      // DG-131 A Sub-A2 (R20): expone group metadata al tomo si el verdict
+      // tiene groupId. El sidebar usa esto para renderear badge "[grouped]".
+      ...(verdict?.groupId !== undefined ? { groupId: verdict.groupId } : {}),
+      ...(verdict?.isGroupRepresentative !== undefined
+        ? { isGroupRepresentative: verdict.isGroupRepresentative }
         : {}),
       ...(explanation !== undefined
         ? {

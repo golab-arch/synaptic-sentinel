@@ -156,6 +156,10 @@ function rowToTriageVerdict(row: unknown): TriageVerdictRecord {
     confidence: r['confidence'],
     rationale: r['rationale'],
     agentId: r['agent_id'],
+    ...(typeof r['group_id'] === 'string' ? { groupId: r['group_id'] } : {}),
+    ...(r['is_group_representative'] !== undefined && r['is_group_representative'] !== null
+      ? { isGroupRepresentative: r['is_group_representative'] === 1 }
+      : {}),
     createdAt: r['created_at'],
   });
 }
@@ -172,6 +176,10 @@ function rowToVerdictHistory(row: unknown): TriageVerdictHistoryRecord {
     rationale: r['rationale'],
     providerLabel: r['provider_label'],
     agentId: r['agent_id'],
+    ...(typeof r['group_id'] === 'string' ? { groupId: r['group_id'] } : {}),
+    ...(r['is_group_representative'] !== undefined && r['is_group_representative'] !== null
+      ? { isGroupRepresentative: r['is_group_representative'] === 1 }
+      : {}),
     createdAt: r['created_at'],
   });
 }
@@ -295,7 +303,27 @@ export class ColonyDb {
     // v4: remediation_suggestions): las tablas se crean via CREATE TABLE IF
     // NOT EXISTS en el schema, sin reconstruir nada; aqui se sincroniza la
     // version de una base preexistente.
-    db.exec("UPDATE meta SET value = '6' WHERE key = 'schema_version'");
+    // DG-131 A Sub-A2 (schema v7): ALTER TABLE ADD COLUMN idempotente.
+    // SQLite no soporta IF NOT EXISTS en ALTER TABLE, y ejecutar 2 veces el
+    // ADD sobre una tabla que ya tiene la column tira "duplicate column
+    // name". Try-catch por column es la forma canonica del pattern.
+    // Para bases NUEVAS: las columns ya vienen del CREATE TABLE (schema.sql)
+    // → ALTER lanza + swallow. Para bases pre-v7: ALTER añade la column.
+    const addColumnIdempotent = (table: string, column: string, spec: string): void => {
+      try {
+        db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${spec}`);
+      } catch {
+        // Column ya existe (fresh DB o migration previa) — no-op idempotente.
+      }
+    };
+    addColumnIdempotent('triage_verdicts', 'group_id', 'TEXT');
+    addColumnIdempotent('triage_verdicts', 'is_group_representative', 'INTEGER');
+    addColumnIdempotent('verdict_history', 'group_id', 'TEXT');
+    addColumnIdempotent('verdict_history', 'is_group_representative', 'INTEGER');
+    // Índices sobre las columns nuevas (CREATE INDEX IF NOT EXISTS es idempotente).
+    db.exec('CREATE INDEX IF NOT EXISTS idx_triage_verdicts_group_id ON triage_verdicts(group_id)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_verdict_history_group_id ON verdict_history(group_id)');
+    db.exec("UPDATE meta SET value = '7' WHERE key = 'schema_version'");
     return new ColonyDb(db);
   }
 
@@ -442,8 +470,9 @@ export class ColonyDb {
     withStmt(
       this.#db,
       'INSERT INTO triage_verdicts ' +
-        '(id, scan_id, fingerprint, classification, confidence, rationale, agent_id, created_at) ' +
-        'VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        '(id, scan_id, fingerprint, classification, confidence, rationale, ' +
+        ' agent_id, group_id, is_group_representative, created_at) ' +
+        'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
       (stmt) => {
         this.#db.exec('BEGIN');
         try {
@@ -457,6 +486,8 @@ export class ColonyDb {
               r.confidence,
               r.rationale,
               r.agentId,
+              r.groupId ?? null,
+              r.isGroupRepresentative === undefined ? null : r.isGroupRepresentative ? 1 : 0,
               r.createdAt,
             ]);
           }
@@ -507,8 +538,8 @@ export class ColonyDb {
       this.#db,
       'INSERT INTO verdict_history ' +
         '(id, scan_id, fingerprint, classification, confidence, rationale, ' +
-        ' provider_label, agent_id, created_at) ' +
-        'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        ' provider_label, agent_id, group_id, is_group_representative, created_at) ' +
+        'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
       (stmt) => {
         this.#db.exec('BEGIN');
         try {
@@ -523,6 +554,8 @@ export class ColonyDb {
               r.rationale,
               r.providerLabel,
               r.agentId,
+              r.groupId ?? null,
+              r.isGroupRepresentative === undefined ? null : r.isGroupRepresentative ? 1 : 0,
               r.createdAt,
             ]);
           }
