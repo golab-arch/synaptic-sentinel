@@ -3,7 +3,7 @@
   "projectId": "sentinel-1779304140796",
   "projectName": "SENTINEL",
   "initializedAt": "2026-05-20T19:09:00.816Z",
-  "lastActivity": "2026-07-04T22:45:00.000Z",
+  "lastActivity": "2026-07-04T23:15:00.000Z",
   "currentCycle": 58,
   "currentPhase": 12,
   "synapticStrength": 100,
@@ -43,10 +43,11 @@
     "chosen_sub_dg": "Sub_A2_Balanced",
     "shipped_at": "2026-07-04T22:00:00.000Z",
     "hotfix_dg_131_0_1_applied_at": "2026-07-04T22:45:00.000Z",
-    "vsix_capture": "synaptic-sentinel-0.3.20-step-131-2.vsix (SHA-256 f90176274c8fee034e8ce0f80ea00a9bd099d63e037c6fe6bbefb1f08dafc339) — hotfix DG-131.0.1 (PRAGMA table_info reemplaza try-catch swallow). step-131-1 0.3.19 obsoleto por bug migration v6→v7.",
+    "hotfix_dg_131_0_2_applied_at": "2026-07-04T23:15:00.000Z",
+    "vsix_capture": "synaptic-sentinel-0.3.21-step-131-3.vsix (SHA-256 708ed93a111961ee5eed9e7d0f96fb8ca0d0bc58a55eced4dfa0d923e0ae6708) — hotfix DG-131.0.2 root cause auténtico (schema.sql CREATE INDEX ON group_id removidos, movidos SOLO a colony-db.ts JS post-ALTER). Empirical PASS pre-ship sobre real v6 clone: 6→7 bumped, 49 verdicts intactos, cols + indexes creados. step-131-1 (0.3.19) + step-131-2 (0.3.20) obsoletos.",
     "deliverables_summary": "Schema v7 aditivo backward-compat con group_id + is_group_representative columns en triage_verdicts + verdict_history + ALTER TABLE idempotente + triage-grouping.ts nuevo módulo con findingGroupKey (SCA:pkg@version:ruleId o category:ruleId) + groupPendingFindings + deriveDowngradedConfidence (factor 0.9) + formatMemberRationaleTag (member N of M) + constantes MIN_GROUP_SIZE=2 + triage.ts CLI wire con split groups + solitary + 1 LLM call per group representative + post-loop propagation N-1 members con downgraded confidence + rationale suffix + --no-group global CLI flag escape hatch + Tomo enrichment groupId + isGroupRepresentative + extension schema + webview badge GROUPED REP purple + GROUPED con tooltip explicativo + 18 tests DG-131 A (12 grouping + 3 colony-db + 2 tomo + 3 webview + 1 CLI integration test) + version bump 0.3.18 → 0.3.19. MVP scope trimmed: per-finding 'Re-triage individually' button deferred to Sub-A2 v2 (DG-131.0.1 reactive), --fingerprint CLI flag deferred (DG-131.0.3 reactive), prompt group-context engineering deferred (DG-131.0.2 reactive). Context+remediation solo para representative (members inherit verdict, no C+R records).",
     "predecessor_dg_130_a_status": "COMPLETED_VALIDATED_PASS_CATEGORICAL (Baseline-14 + 14b empíricamente confirmado 2026-07-04T20:00:00Z). Trayectoria agent.ts:62 SQL injection cross-baseline: INC 0.45 → FP 0.90 → FP 0.95 → INC 0.70 → FP 0.95 → FP 0.75 con banner Different provider trigger empírico.",
     "acceptance_empirica_a_medir_baseline_15": "REINSTALL CLEAN wildcard Remove-Item (crítico — lesson learned de Baseline-14 cache issue con 0.3.17+0.3.18 coexistentes) + SENTINEL regression + SYNAPTIC_SAAS Baseline-15a primer scan (terminal 'Grouping (DG-131 A R20): N group(s) covering M finding(s); K solitary. LLM calls saved by grouping: X.' line emit + sidebar badges GROUPED REP + GROUPED en SCA multi-finding + rationale suffix `[group KEY, member N of M]` visible + confidence downgrade rep 0.75 vs member 0.675) + Baseline-15b re-triage (fresh 44 findings sin colony memory pre-classified — real test grouping impact: 30+ LLM calls saved).",
-    "bitacora_entries": [183, 184, 185, 186, 187, 188, 189]
+    "bitacora_entries": [183, 184, 185, 186, 187, 188, 189, 190]
   }
 }

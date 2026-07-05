@@ -5841,11 +5841,6 @@ Each entry follows this structure:
 
 ---
 
-*SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-07-04T22:45:00.000Z*
-
----
-
 ### Entry #189 - DG-131.0.1 HOTFIX reactive (Cycle 117 FASE III): PRAGMA table_info explicit check reemplaza try-catch swallowing en ALTER TABLE migration schema v7 → step-131-2.vsix 0.3.20
 
 ```json
@@ -5885,5 +5880,47 @@ Each entry follows this structure:
 
 ---
 
+### Entry #190 - DG-131.0.2 HOTFIX REAL (Cycle 117 FASE III): schema.sql CREATE INDEX ON group_id removidos — root cause auténtico descubierto empíricamente via node-sqlite3-wasm inspection → step-131-3.vsix 0.3.21
+
+```json
+{
+  "timestamp": "2026-07-04T23:15:00.000Z",
+  "cycle": 117,
+  "phase": 12,
+  "action": "HOTFIX_APPLIED",
+  "details": {
+    "DG-131.0.2-hotfix-real": {
+      "title": "SEGUNDO hotfix del mismo scan failure, esta vez con root cause REAL descubierto empíricamente. DG-131.0.1 (PRAGMA replace try-catch) NO resolvió el bug — mi PRAGMA fix estaba en un path que JAMÁS se ejecutaba. Root cause auténtico: agregué CREATE INDEX ON triage_verdicts(group_id) + CREATE INDEX ON verdict_history(group_id) en schema.sql, que se ejecuta ANTES del ALTER TABLE en JS. En existing v6 DBs, CREATE TABLE IF NOT EXISTS skip (table exists sin column), luego CREATE INDEX intenta indexar column inexistente → SQL throw → abortaba db.exec(schema.sql) → mi PRAGMA fix en JS jamás corría. Fix: remover los 2 CREATE INDEX del schema.sql. Los índices se crean SOLO en colony-db.ts DESPUÉS del ALTER TABLE (orden garantizado en JS).",
+      "scope": "Cycle 117 hotfix reactive real DG-131.0.2 — schema.sql surgical edit (2 líneas removidas + comment explain). Cero cambio en DG-131 A Sub-A2 functionality.",
+      "empirical_diagnostic_methodology_lesson_learned": "User reportó SEGUNDO scan failure con step-131-2.vsix 0.3.20 (mi hotfix DG-131.0.1). Anti-optimismo activo: en lugar de más edits especulativos, hice DIAGNÓSTICO EMPÍRICO directo. (a) Verified installed CLI 0.3.20 tiene PRAGMA fix bundleado (grep 'PRAGMA table_info' count = 1). (b) Inspeccioné real state de SYNAPTIC_SAAS colony.db via node + node-sqlite3-wasm bundleado en el .vsix instalado. (c) Empíricamente observado: schema_version = '6' (NO '7'), triage_verdicts SIN group_id column, verdict_history SIN group_id column, NO indexes idx_*_group_id, 49 triage_verdicts + 88 verdict_history rows intactas. Empirical state → mi migration JAMÁS corrió → el error tuvo que ser en el paso ANTERIOR a la migration → `db.exec(schema.sql)` throwing. Grep schema.sql para 'CREATE INDEX' encontró las 2 líneas que causaban el throw. Root cause identified in ~5 min via empirical inspection vs horas debuggeando el sintoma. LESSON LEARNED: SIEMPRE inspeccionar estado empírico ANTES de asumir cause.",
+      "root_cause_authentic": "packages/core/src/colony/schema.sql líneas 177-178 (pre-hotfix): `CREATE INDEX IF NOT EXISTS idx_triage_verdicts_group_id ON triage_verdicts(group_id);` + `CREATE INDEX IF NOT EXISTS idx_verdict_history_group_id ON verdict_history(group_id);`. schema.sql se ejecuta via `db.exec(readFileSync(SCHEMA_PATH, 'utf8'))` como PRIMER paso de ColonyDb.open(), ANTES de mi migration JS. Fresh installs: CREATE TABLE crea tables CON group_id column → CREATE INDEX ejecuta OK. Existing v6 DBs (Baseline-14 SYNAPTIC_SAAS): CREATE TABLE IF NOT EXISTS skip (table exists sin group_id) → CREATE INDEX intenta indexar column inexistente → SQLite throws 'no such column: group_id' → db.exec(schema.sql) throws → ColonyDb.open() throws → scan aborta con el error visible al user. Mi migration JS (PRAGMA fix DG-131.0.1) jamás llegó a ejecutar.",
+      "fix_deliverable_codigo": "packages/core/src/colony/schema.sql: remover las 2 líneas CREATE INDEX ON group_id + agregar comment explicativo de por qué NO viven ahí. Los índices se crean en colony-db.ts DESPUÉS del PRAGMA-guarded ALTER TABLE, garantizando orden correcto para fresh installs Y v6→v7 migrations.",
+      "empirical_verification_pre_ship": "ANTES de shippear el vsix, hice test empírico usando copy del real v6 DB de SYNAPTIC_SAAS. Copié la DB a temp path, luego ejecuté ColonyDb.open() del CLI local con el fix aplicado. Result: (a) schema_version bumped correctamente '6' → '7'; (b) 49 triage_verdicts preservados intactos; (c) triage_verdicts + verdict_history tables ahora tienen group_id + is_group_representative columns via PRAGMA-guarded ALTER; (d) indexes idx_triage_verdicts_group_id + idx_verdict_history_group_id creados; (e) getVerdictHistoryForFingerprint operacional. Cero errors thrown. Fix confirmado EMPÍRICAMENTE sobre el real user data BEFORE shipping — invariant preserved (data intacta + schema evolved).",
+      "deliverable_vsix": {
+        "vsix_name": "synaptic-sentinel-0.3.21-step-131-3.vsix",
+        "vsix_path": "packages/vscode-extension/synaptic-sentinel-0.3.21-step-131-3.vsix",
+        "size_mb": 3.96,
+        "files_count": 1849,
+        "sha256": "708ed93a111961ee5eed9e7d0f96fb8ca0d0bc58a55eced4dfa0d923e0ae6708",
+        "version_bump": "0.3.20 → 0.3.21",
+        "predecessor_vsix_obsoletas": [
+          "step-131-1.vsix (0.3.19) — bug schema.sql CREATE INDEX + try-catch swallow",
+          "step-131-2.vsix (0.3.20) — DG-131.0.1 PRAGMA fix jamás corría por bug schema.sql anterior"
+        ]
+      },
+      "anti_optimismo_ilusorio_activo_actualizado": "(1) **DG-131.0.1 fix fue placebo** — PRAGMA replace try-catch estaba en el path correcto, pero ese path jamás corría por el bug en schema.sql (anterior en el flow). Los fixes especulativos SIN diagnóstico empírico primero son placebos peligrosos. (2) **Empirical inspection debió ser el PRIMER paso** después del user error report, NO edit especulativo. Institutional lesson learned. (3) **DOS hotfixes en cadena reveal architectural fragility** del migration path. schema.sql + JS migration split invita este bug. Sub-DG futuro: consolidar migration path en un lugar. Deferrable — DG-131 A Sub-A2 functionality intact. (4) **User experience de TRES .vsix updates en 1 día** es alta friction. Trade-off vs correctness. Documentar en release notes v0.3.21. (5) **Test coverage gap SIGUE** — no unit test para v6→v7 migration path. Empirical test pre-ship es workaround manual. Sub-DG DG-131.0.3 reactive: agregar unit test que crea v6 schema DB manually + open + verify migration end-to-end. (6) **CREATE INDEX en schema.sql es historically un pattern usado** en DG-127/128/129 versions previas sin bug. Este bug emerge SOLO cuando column referenciada por index es NEW en aditivo migration. Design anti-pattern documented — evitar CREATE INDEX ON new-column en schema.sql. (7) **User's DB post-hotfix retry**: v6→v7 migration should proceed cleanly (verified empíricamente pre-ship). Si más issues, otro hotfix vendrá. Aceptado — dev cycle activo. (8) **Node-sqlite3-wasm error 'no such column' es reasonable** — no es un WASM bug, es SQL semantics. Mis architectural decisions causaron el bug. (9) **Empirical inspection tool creation** (inspect-db.mjs + test-migration.mjs + verify-cols.mjs en scratchpad) puede ser reused futuros migration debugs. Saved as tooling reference. (10) **Confidence baja on 100% success** — hasta que user ejecute Baseline-15 en real y comparta terminal + sidebar output, no puedo declarar PASS. Empirical test pre-ship es strong evidence pero N=1 sample sobre my copy.",
+      "phase_status_fase_iii_progress_pending_retry_2": "**FASE III Cycle 117 hotfix DG-131.0.2 applied — SEGUNDO reactive del scan failure**. successfulCycles 116 pending → 117 post-Baseline-15 retry-2 PASS. DG-131 A Sub-A2 functionality intact. step-131-3.vsix 0.3.21 es CUARTO capture FASE III.",
+      "next_step": "STOP esperando user retry Baseline-15 SEGUNDA VEZ con step-131-3.vsix 0.3.21. Guía: reinstall CLEAN wildcard `Remove-Item -Recurse -Force $env:USERPROFILE\\.vscode\\extensions\\realgolab.synaptic-sentinel-*` → Install from VSIX 0.3.21 → Scan Workspace. Debe funcionar cleanly (verified empíricamente sobre real v6 clone).",
+      "commits_split": "fix(core) commit con schema.sql surgical edit removiendo CREATE INDEX + comment explain. docs(synaptic) commit con Entry #190 + session.json update activeDG vsix_capture 0.3.21."
+    }
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 100,
+  "complianceScore": 100
+}
+```
+
+---
+
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-07-04T22:45:00.000Z*
+*Last Updated: 2026-07-04T23:15:00.000Z*
