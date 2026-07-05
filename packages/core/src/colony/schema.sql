@@ -173,6 +173,13 @@ CREATE INDEX IF NOT EXISTS idx_verdict_history_scan        ON verdict_history(sc
 -- Rationale: propagation de group verdict debe ser inspeccionable —
 -- users pueden filtrar por group_id + entender que N findings comparten
 -- semantics + solo 1 pagó el token cost del LLM.
-
-CREATE INDEX IF NOT EXISTS idx_triage_verdicts_group_id  ON triage_verdicts(group_id);
-CREATE INDEX IF NOT EXISTS idx_verdict_history_group_id  ON verdict_history(group_id);
+--
+-- DG-131.0.2 HOTFIX: los CREATE INDEX ON <table>(group_id) NO viven en
+-- schema.sql — viven en colony-db.ts DESPUÉS del ALTER TABLE ADD COLUMN.
+-- Razón empírica: en existing v6 DBs (Baseline-14 SYNAPTIC_SAAS), CREATE
+-- TABLE IF NOT EXISTS skip (table exists sin group_id column) → luego
+-- CREATE INDEX ON triage_verdicts(group_id) falla con "no such column"
+-- porque column no existe todavía → abortaba db.exec(schema.sql) →
+-- mi PRAGMA fix en JS jamás corría. Solución: schema.sql NO tiene
+-- CREATE INDEX de group_id. Los indexes se crean en colony-db.ts
+-- DESPUÉS del ALTER TABLE (orden garantizado en JS).
