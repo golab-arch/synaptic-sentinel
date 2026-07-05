@@ -5958,5 +5958,80 @@ Each entry follows this structure:
 
 ---
 
+### Entry #192 - DG-132 A (Cycle 118 FASE III) FEATURE_IMPLEMENTED: R22 diff-aware mode enhancement Sub-A2 Balanced — breakdown line + CI/CD gates per-severity + JSON diff export + reason categorization
+
+```json
+{
+  "timestamp": "2026-07-05T03:00:00.000Z",
+  "cycle": 118,
+  "phase": 12,
+  "action": "FEATURE_IMPLEMENTED",
+  "details": {
+    "DG-132-A-Sub-A2": {
+      "title": "Tercer y último DG de FASE III 'trust cross-session'. R22 diff-aware mode enhancement Sub-A2 Balanced RECOMENDADA + IMPLEMENTADA per user 'vamos con sub A-2'. Extiende el basic diff-aware mode de DG-130 A con: (a) reclassified breakdown por reason (class-changed | confidence-delta | provider-changed) — cuenta los 5 findings de Baseline-15 con banner Confidence-changed que antes contaban como 'unchanged' en el summary line; (b) per-severity CI/CD gates (--fail-on-new-tp-critical/high/medium) — exit code 1 si new TP findings exceed threshold; (c) CLI diff --json command con structured output para CI/CD tooling downstream (parse without regex, feed dashboards); (d) tomo + extension webview scan-diff line con breakdown suffix (X class, Y confidence, Z provider). MVP scope: sidebar interactive chip filter deferred to Sub-A2 v2 (DG-132.0.1 reactive if user feedback).",
+      "scope": "Cycle 118 FASE III Sub-A2 último DG. Estimate 10-12 horas plan, real ~2 horas por reuso del pattern DG-130 A + DG-131 A (schema aditivo + colony-db helper extend + tomo enrichment + webview line + CLI command boilerplate). SUB-DECISION: sidebar chip filter trimado del MVP (mantendría core CI/CD contract + terminal UX).",
+      "empirical_motivation_baseline_15_reveal": "Baseline-15 mostró empíricamente el gap del diff summary: 5 findings con banner '⚠ Verdict changed since last scan: Confidence changed significantly (Δ X)' contaron como 'unchanged' en el summary line `Scan diff vs previous triage: 1 new · 0 re-classified · 43 unchanged`. Semánticamente esos 5 findings SÍ cambiaron (delta Δ 0.20 - 0.68), pero el bucket 'reclassified' del diff summary solo contaba class-change. DG-132 A resuelve: reclassified ahora incluye confidence-delta (threshold configurable) + provider-changed + class-changed con reason breakdown visible. Terminal + sidebar summary line ahora: `Scan diff vs previous triage: 1 new · 5 re-classified (0 class, 5 confidence, 0 provider) · 38 unchanged`.",
+      "deliverable_codigo_colony_db_extend": "packages/core/src/colony/colony-db.ts getVerdictDiffAgainstPrevious(): (a) nuevo parámetro options.confidenceDeltaThreshold?: number (default 0.15 matching banner heuristic); (b) reclassified entries ahora incluyen reason: 'class-changed' | 'provider-changed' | 'confidence-delta' + confidenceDelta + fromConfidence + toConfidence + fromProvider + toProvider; (c) reason precedence: class > provider > confidence (matches DG-130 A banner heuristic). Bucket assignment: si classChanged OR providerChanged OR confidenceDelta ≥ threshold → reclassified con reason precedence; else → unchanged.",
+      "deliverable_codigo_triage_cli_breakdown_and_gate": "packages/cli/src/commands/triage.ts: (a) breakdown line replace Scan diff old line con `Scan diff vs previous triage: N new, M re-classified (X class, Y confidence, Z provider), K unchanged.`; (b) per-rc detail line ahora incluye reason: `re-classified <fp> [<reason>]: <details>`; (c) NEW `evaluateCIGate` helper cuenta NEW-TP + reclassified-to-TP class-changed por severity, compara contra thresholds `failOnNewTpCritical/High/Medium`, retorna exit code + messages; (d) TriageCommandOptions extended con `failOnNewTpCritical?: number, failOnNewTpHigh?: number, failOnNewTpMedium?: number`. Post-triage: if hasAnyGate, evaluate + emit stderr messages + exit 1 si algún threshold FAIL.",
+      "deliverable_codigo_cli_flags_parser": "packages/cli/src/index.ts: (a) new flags 'fail-on-new-tp-critical/high/medium': string parseArgs option; (b) new flag 'confidence-delta-threshold': string parseArgs; (c) helper parseNonNegativeInt para validation + error exit; (d) Usage + Options sections updated con documentation clara + example uso 'zero-tolerance critical + tolerate up to 3 high per PR'.",
+      "deliverable_codigo_diff_command_new": "packages/cli/src/commands/diff.ts nuevo (~110 lines): CLI command `synaptic-sentinel diff --path <dir> [--confidence-delta-threshold <n>]` que output JSON structured a stdout. Contract: { scanId, summary: {newFindings, reclassified, unchanged}, reclassifiedByReason: {classChanged, confidenceDelta, providerChanged}, newFindings: [...findingSubset], reclassified: [...findingSubset con reason + delta metrics], unchanged: [...] }. Read-only (no re-triage). findingSubset = {fingerprint, ruleId, severity, location, title} — enough for CI dashboards sin exposar internals.",
+      "deliverable_codigo_reporters_tomo_extend": "packages/reporters/src/tomo.ts + packages/vscode-extension/src/tomo.ts: TomoScanDiffSchema + ExtensionScanDiffSchema extended con reclassifiedByReason?: {classChanged, confidenceDelta, providerChanged} opcional aditivo backward-compat. show.ts + scan.ts populate el breakdown desde diff.reclassified filter por reason.",
+      "deliverable_codigo_webview_line_breakdown": "packages/vscode-extension/src/webview-content.ts: renderScanDiffLine extended con breakdown suffix cuando reclassifiedByReason presente + reclassifiedCount > 0. Output: `Scan diff vs previous triage: 1 new · 5 re-classified (0 class, 5 confidence, 0 provider) · 38 unchanged`.",
+      "deliverable_tests_9_nuevos": "9 tests DG-132 A añadidos: 2 colony-db.test.ts (reason precedence class > provider > confidence + delta metrics, threshold configurable), 1 colony-db.test.ts (existing test updated con objectContaining para nueva shape), 2 reporters/tomo.test.ts (reclassifiedByReason breakdown propagate al TomoScanDiff + backward-compat sin breakdown), 2 vscode-extension/webview-content.test.ts (breakdown suffix presente cuando reclassifiedByReason emit + backward-compat sin breakdown), 3 packages/cli/tests/diff.test.ts (JSON structured output con summary + reason breakdown, confidence-delta-threshold custom, exit code 1 sin colony.db). Total tests 885 → 894.",
+      "empirical_verification_pre_ship_dogfood": "Corrí el bundled CLI del vsix `node dist/cli.mjs diff --path SYNAPTIC_SAAS` empíricamente sobre la real user DB y observé output production-ready JSON: 10 reclassified findings detectados, TODOS categorizados como `provider-changed` — empirical evidence de que en algún scan cycle previo (antes de Baseline-14a) el user cambió provider de deepseek-v4-flash a deepseek-v4-pro. El diff --json revela esta trayectoria histórica que estaba invisible antes. Structured JSON validated: summary + reclassifiedByReason + arrays de reclassified con reason + delta metrics + provider labels. Contract sólido para CI/CD tooling.",
+      "tests_existentes_NO_se_rompen": "pnpm verify VERDE end-to-end: format:check + lint + tsc -b + 894 tests / 3 skipped / 70 test files + verify-extension-activate + verify-manifest 18 checks.",
+      "acceptance_empirica_a_medir_baseline_16": "REINSTALL CLEAN wildcard + install 0.3.22 step-132-1.vsix + SENTINEL regression + SYNAPTIC_SAAS Baseline-16. CRÍTICO 1: terminal Sentinel post-triage debe emit línea nueva `Scan diff vs previous triage: N new, M re-classified (X class, Y confidence, Z provider), K unchanged.` — verifica breakdown funcional. CRÍTICO 2: sidebar summary card debe mostrar `Scan diff vs previous triage: N new · M re-classified (X class, Y confidence, Z provider) · K unchanged` matching terminal. CRÍTICO 3: los 5 findings con banner Confidence-changed de Baseline-15 debe categorizar como `reclassified.confidence-delta` (no unchanged). CRÍTICO 4: run `synaptic-sentinel diff --json --path SYNAPTIC_SAAS` retorna JSON structured con {summary, reclassifiedByReason, newFindings, reclassified, unchanged} arrays. CRÍTICO 5: run `synaptic-sentinel triage --path SYNAPTIC_SAAS --re-triage --fail-on-new-tp-critical 0` debe exit code 0 (colony memory stable, no new critical TP) — verifica CI gate funcional.",
+      "anti_optimismo_ilusorio_activo": "(1) **Sidebar chip filter trimado del MVP** — deferred Sub-A2 v2 DG-132.0.1 reactive. Users que quieren filter interactive sobre 44 findings en el sidebar deben scroll. Trade-off vs correctness + core CI/CD contract shipped primero. (2) **Confidence delta threshold 0.15 opinionated** — matches DG-130 A banner heuristic para consistency. Users que quieren mayor sensitivity deben pasar --confidence-delta-threshold custom. Sub-DG DG-132.0.2 reactive si emerge feedback de threshold. (3) **CI gates cuentan NEW-TP + reclassified-to-TP class-changed pero NO reclassified-to-TP provider-changed** — provider change es a diferent trust signal, no un nuevo bug real. Trade-off vs comprehensive gate. Users que quieren strict gate deben check reason en diff --json manually. (4) **Per-severity CI gates solo cubren critical/high/medium** — 'low' + 'info' NO cubren. Design decision — 'low' rarely blocking en CI. Sub-DG reactive si emerge. (5) **diff --json output puede ser grande** en workspaces con muchos findings — no pagination. Trade-off vs contract simplicity. Aceptable para v1. (6) **Reason precedence class > provider > confidence** puede confundir cuando ambos cambiaron (class + provider). Muestra solo class (highest precedence). Reason field es SOURCE OF TRUTH — user puede filter por reason. (7) **Empirical dogfood reveló 10 provider-changed findings** en el user's DB — histórica evidencia de provider switching preservada. Semánticamente valuable pero puede confundir si user no recuerda el switch. Trade-off vs data integrity. (8) **N=1 empirical PASS pre-ship** sobre real DB. Extrapolation cross-workspace requiere Baseline-16 validation. Sub-DG DG-132.0.3 reactive si emerge migration issue. (9) **CLI gate exit code 1 puede confundir con exit code 2 del scan --fail-on** — 2 distintos exit code contracts. Documentar en release notes. (10) **JSON output contract stable pero potentially breaking en futuras extensiones** — semver semantics: v0.3.22 emit stable structure, extensions aditivos serán semver-minor. Users deben pin JSON schema version en CI si stability crítico.",
+      "phase_status_fase_iii_progress_3_de_3_pending_baseline_16": "**FASE III 'trust cross-session' PROGRESS Cycle 118** — 3/3 DGs shipped (DG-130 A validated PASS + DG-131 A validated PASS + DG-132 A IMPLEMENTED pending Baseline-16). Roadmap Opción A on-track. Post-Baseline-16 PASS → FASE III CLOSE (3/3 validated PASS categorical) + successfulCycles 117 → 118. 42 sub-DGs + 11 hotfixes decimal + 4 release DGs.",
+      "next_step": "ARTIFACT_BUILT Entry #193 (siguiente). Después STOP esperando user reinstall CLEAN wildcard + install 0.3.22 step-132-1.vsix + Baseline-16.",
+      "commits_split": "feat(core,cli,extension) commit con schema breakdown + reason precedence + CI gate + diff.ts CLI command + 9 tests. docs(synaptic) commit con Entries #192 + #193 + session.json update."
+    }
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 100,
+  "complianceScore": 100
+}
+```
+
+---
+
+### Entry #193 - DG-132 A follow-up: ARTIFACT_BUILT — synaptic-sentinel-0.3.22-step-132-1.vsix Sub-A2 R22 diff-aware mode enhancement para Baseline-16 (último DG FASE III)
+
+```json
+{
+  "timestamp": "2026-07-05T03:05:00.000Z",
+  "cycle": 118,
+  "phase": 12,
+  "action": "ARTIFACT_BUILT",
+  "details": {
+    "DG-132-A-vsix": {
+      "title": "step-132-1.vsix — quinto y último capture .vsix de FASE III con DG-132 A Sub-A2 implementation (R22 diff-aware mode enhancement: reason breakdown class/confidence/provider + CI/CD gates per-severity + JSON diff export + terminal + sidebar breakdown line). Version bumped 0.3.21 → 0.3.22. Ready para Baseline-16 empirical validation.",
+      "scope": "Cycle 118 artifact for user testing. Build post force clean rebuild + pnpm verify VERDE end-to-end + empirical dogfood pre-ship sobre real user DB.",
+      "build_info": {
+        "vsix_name": "synaptic-sentinel-0.3.22-step-132-1.vsix",
+        "vsix_path": "packages/vscode-extension/synaptic-sentinel-0.3.22-step-132-1.vsix",
+        "size_bytes_approx": 4165000,
+        "size_mb": 3.97,
+        "files_count": 1849,
+        "sha256": "3584fc17ed607b458c4a11f1fb50b98889a1ec71115bab67e71453c81484a0ca",
+        "cli_mjs_size_kb": 548.1
+      },
+      "acceptance_local_pre_baseline_16": "pnpm verify VERDE post-force-clean-rebuild end-to-end. Zero prettier warnings, lint clean, tsc -b clean, test:unit 70 files / 894 tests / 3 skipped. verify-extension-activate + verify-manifest 18 checks OK. Empirical dogfood pre-ship: node dist/cli.mjs diff --path SYNAPTIC_SAAS produjo structured JSON con 10 reclassified findings todos categorizados como provider-changed (histórica evidencia del user's cross-provider triage cycle).",
+      "install_instructions_baseline_16": "Guía nivel 101 usuario Windows: (1) Cerrar TODAS las ventanas VSCode; (2) Task Manager → End Task → Code.exe; (3) Remove-Item -Recurse -Force $env:USERPROFILE\\.vscode\\extensions\\realgolab.synaptic-sentinel-*; (4) Verificar folder vacío; (5) Abrir VSCode → Ctrl+Shift+X → '...' → Install from VSIX → step-132-1.vsix; (6) Reload window; (7) Verificar único install 0.3.22; (8) Abrir SYNAPTIC_SAAS + Scan Workspace + Re-triage all + observar terminal Grouping line + Scan diff vs previous triage con breakdown.",
+      "empirical_test_matrix_baseline_16": "(A) SENTINEL regression scan intacto. (B) SYNAPTIC_SAAS Re-triage all: terminal debe emit 'Scan diff vs previous triage: N new, M re-classified (X class, Y confidence, Z provider), K unchanged.' con breakdown numeric. (C) Sidebar summary card debe mostrar mismo breakdown. (D) run 'synaptic-sentinel diff --json --path SYNAPTIC_SAAS' via terminal Sentinel — retorna structured JSON. (E) run 'synaptic-sentinel triage --re-triage --fail-on-new-tp-critical 0 --path SYNAPTIC_SAAS' — should exit 0 (no new critical TP). (F) run mismo con '--fail-on-new-tp-critical -1' (invalid) — should exit 1 con error message.",
+      "anti_optimismo_pre_baseline_16": "(1) Sidebar chip filter NO implementado — user experience de filtering es via CLI diff --json manual. Sub-DG DG-132.0.1 reactive. (2) CI gate flags solo en triage command NO en scan — user debe run scan → triage sequence. Design constraint. (3) diff --json puede ser verbose en 44 findings — sin pagination. Trade-off vs contract simplicity. (4) Empirical PASS pre-ship pero N=1 sample cross-workspace. Baseline-16 empírico requerido para confirm. (5) Un vsix update más (0.3.21 → 0.3.22) suma al user install fatigue de FASE III (5 vsix updates total). Trade-off vs correctness.",
+      "phase_status": "Cycle 118 FASE III último DG shipped pending Baseline-16. Post-PASS → FASE III CLOSE (3/3 validated) + successfulCycles 117 → 118. step-132-1.vsix es capture final de FASE III.",
+      "next_step": "STOP esperando user reinstall CLEAN wildcard + install 0.3.22 + retry Baseline-16. Post-PASS → BITACORA Entry #194 CLASSIFIED PASS + FASE III CLOSE + presentar roadmap decision: FASE IV (backlog remaining) o Cycle 118 CLOSE esperando input user.",
+      "commits_split": "feat commit del código DG-132 A (shipped en Entry #192). docs(synaptic) commit con Entries #192 + #193 + session.json update. Post-Baseline-16 PASS → docs commit con Baseline-16 classification + FASE III CLOSE entry."
+    }
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 100,
+  "complianceScore": 100
+}
+```
+
+---
+
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-07-05T02:30:00.000Z*
+*Last Updated: 2026-07-05T03:05:00.000Z*
