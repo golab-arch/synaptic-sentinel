@@ -3,7 +3,7 @@
   "projectId": "sentinel-1779304140796",
   "projectName": "SENTINEL",
   "initializedAt": "2026-05-20T19:09:00.816Z",
-  "lastActivity": "2026-07-04T23:15:00.000Z",
+  "lastActivity": "2026-07-05T02:30:00.000Z",
   "currentCycle": 58,
   "currentPhase": 12,
   "synapticStrength": 100,
@@ -19,7 +19,7 @@
   "agentState": {
     "complianceScore": 100,
     "violationsCount": 0,
-    "successfulCycles": 116,
+    "successfulCycles": 117,
     "marketplacePublishedExtensionId": "RealGoLab.synaptic-sentinel",
     "marketplacePublishedVersion": "0.3.3",
     "githubReleaseLatest": "v0.3.17"
@@ -33,12 +33,13 @@
     "fase_ii_closed_at": "2026-07-03T20:30:00.000Z",
     "fase_iii_open_at": "2026-07-03T20:30:00.000Z",
     "fase_ii_summary": "3 DGs shipped + 3 Baselines PASS validated: DG-127 A (signature attachment) H3-implicit-con-verdict-shift Baseline-11 INC→FP; DG-128 A (body scan taint propagation) H3-implicit-refinement Baseline-12 categorical FP; DG-129 A (module trust boundary tagging) H3-STRUCTURAL-SHIFT Baseline-13 FP→INC. Cumulative achievement: North Star principle empíricamente REALIZED — el LLM ahora razona sobre findings cross-module con contexto de signature + body content + attack surface. Duration real: 3 días vs estimate 3-4 semanas.",
-    "current_phase_progress": "2/3 DGs shipped (DG-130 A validated PASS categorical + DG-131 A Sub-A2 IMPLEMENTED pending Baseline-15 validation). FASE III cubre: DG-130 A per-fingerprint verdict persistence + reproducibilidad cross-provider (backlog #4) COMPLETED, DG-131 A R20 cross-finding correlation (Stage 3 groups) SHIPPED_PENDING_BASELINE_15, DG-132 A R22 diff-aware mode enhancement PENDING."
+    "current_phase_progress": "2/3 DGs shipped + validated PASS categorical (DG-130 A Sub-A2 Baseline-14 PASS + DG-131 A Sub-A2 Baseline-15 PASS post-hotfixes DG-131.0.1 placebo + DG-131.0.2 real). FASE III cubre: DG-130 A per-fingerprint verdict persistence + reproducibilidad cross-provider (backlog #4) COMPLETED_VALIDATED_PASS_CATEGORICAL, DG-131 A R20 cross-finding correlation (Stage 3 groups) COMPLETED_VALIDATED_PASS_CATEGORICAL, DG-132 A R22 diff-aware mode enhancement PENDING."
   },
   "activeDG": {
     "id": "DG-131-A",
-    "title": "R20 cross-finding correlation (Stage 3 groups) — segundo DG de FASE III 'trust cross-session' — Sub-A2 Balanced IMPLEMENTED",
-    "status": "SHIPPED_PENDING_BASELINE_15",
+    "title": "R20 cross-finding correlation (Stage 3 groups) — segundo DG de FASE III 'trust cross-session' — Sub-A2 Balanced COMPLETED_VALIDATED_PASS_CATEGORICAL",
+    "status": "COMPLETED_VALIDATED_PASS_CATEGORICAL",
+    "validated_at": "2026-07-05T02:30:00.000Z",
     "parent_phase": "FASE_III_trust_cross_session",
     "chosen_sub_dg": "Sub_A2_Balanced",
     "shipped_at": "2026-07-04T22:00:00.000Z",
@@ -48,6 +49,8 @@
     "deliverables_summary": "Schema v7 aditivo backward-compat con group_id + is_group_representative columns en triage_verdicts + verdict_history + ALTER TABLE idempotente + triage-grouping.ts nuevo módulo con findingGroupKey (SCA:pkg@version:ruleId o category:ruleId) + groupPendingFindings + deriveDowngradedConfidence (factor 0.9) + formatMemberRationaleTag (member N of M) + constantes MIN_GROUP_SIZE=2 + triage.ts CLI wire con split groups + solitary + 1 LLM call per group representative + post-loop propagation N-1 members con downgraded confidence + rationale suffix + --no-group global CLI flag escape hatch + Tomo enrichment groupId + isGroupRepresentative + extension schema + webview badge GROUPED REP purple + GROUPED con tooltip explicativo + 18 tests DG-131 A (12 grouping + 3 colony-db + 2 tomo + 3 webview + 1 CLI integration test) + version bump 0.3.18 → 0.3.19. MVP scope trimmed: per-finding 'Re-triage individually' button deferred to Sub-A2 v2 (DG-131.0.1 reactive), --fingerprint CLI flag deferred (DG-131.0.3 reactive), prompt group-context engineering deferred (DG-131.0.2 reactive). Context+remediation solo para representative (members inherit verdict, no C+R records).",
     "predecessor_dg_130_a_status": "COMPLETED_VALIDATED_PASS_CATEGORICAL (Baseline-14 + 14b empíricamente confirmado 2026-07-04T20:00:00Z). Trayectoria agent.ts:62 SQL injection cross-baseline: INC 0.45 → FP 0.90 → FP 0.95 → INC 0.70 → FP 0.95 → FP 0.75 con banner Different provider trigger empírico.",
     "acceptance_empirica_a_medir_baseline_15": "REINSTALL CLEAN wildcard Remove-Item (crítico — lesson learned de Baseline-14 cache issue con 0.3.17+0.3.18 coexistentes) + SENTINEL regression + SYNAPTIC_SAAS Baseline-15a primer scan (terminal 'Grouping (DG-131 A R20): N group(s) covering M finding(s); K solitary. LLM calls saved by grouping: X.' line emit + sidebar badges GROUPED REP + GROUPED en SCA multi-finding + rationale suffix `[group KEY, member N of M]` visible + confidence downgrade rep 0.75 vs member 0.675) + Baseline-15b re-triage (fresh 44 findings sin colony memory pre-classified — real test grouping impact: 30+ LLM calls saved).",
-    "bitacora_entries": [183, 184, 185, 186, 187, 188, 189, 190]
+    "baseline_15_pass_signals": "(1) Migration hotfix DG-131.0.2 verified in production: schema v6→v7 exitosa sobre real SYNAPTIC_SAAS DB, cero 'no such column: group_id' error. (2) Terminal 'Grouping (DG-131 A R20): 12 group(s) covering 24 finding(s); 20 solitary. LLM calls saved by grouping: 12.' PASS. (3) Sidebar badges GROUPED REP (purple oscuro) + GROUPED (purple claro) render con tooltip functional en 12 reps + 12 members. (4) Rationale suffix `[group SCA:pkg@ver:CVE, member N of M]` visible en members. (5) Confidence downgrade matemático rep × 0.9 = member observable (75%→68%, 90%→81%, 60%→54%, 30%→27%). (6) LLM cost reduction 20% (8 calls vs 10) directamente atribuible a grouping. (7) BANNER path 'Confidence changed significantly (Δ X)' triggered empíricamente EN 5 FINDINGS DE UN SOLO SCAN — el signal que faltaba del banner heurístico DG-130 A: @grpc/grpc-js Δ 0.30, protobufjs DoS Δ 0.26, protobufjs-cli Δ 0.60, prismjs Δ 0.20, protobufjs-cli member Δ 0.68. (8) Previously (2 prior verdicts) preserved cross-3-scans (14a + 14b + 15) — DG-130 A regression PASS.",
+    "banner_heuristico_3_paths_empirical_completion_cross_baseline": "Path 'Different provider' triggered Baseline-14b (agent.ts:62 deepseek → colony-memory). Path 'Confidence changed significantly' triggered Baseline-15 (5 findings con delta > 0.15). Path 'Verdict reclassified' (class change) unit-tested + NO empirically triggered en Baselines 14/15 (colony memory dominante). Coverage completa entre unit tests + empirical validation.",
+    "bitacora_entries": [183, 184, 185, 186, 187, 188, 189, 190, 191]
   }
 }
