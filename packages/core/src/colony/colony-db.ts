@@ -633,29 +633,59 @@ export class ColonyDb {
   }
 
   /**
-   * Diff-aware summary (DG-130 A): para el conjunto de fingerprints del scan
-   * actual, compara el veredicto ACTUAL (row DESC[0]) contra el ANTERIOR
-   * (row DESC[1]) del `verdict_history`. Devuelve buckets:
+   * Diff-aware summary (DG-130 A + DG-132 A Sub-A2 extension): para el
+   * conjunto de fingerprints del scan actual, compara el veredicto ACTUAL
+   * (row DESC[0]) contra el ANTERIOR (row DESC[1]) del `verdict_history`.
+   *
+   * Buckets:
    *  - `newFindings`: fingerprints sin veredicto previo (primera vez triaged)
-   *  - `reclassified`: fingerprints cuya classification cambió
-   *  - `unchanged`: fingerprints con la misma classification cross-scan
+   *  - `reclassified`: fingerprints cuya classification cambió O provider
+   *    cambió O confidence delta ≥ threshold. Cada entry incluye `reason` +
+   *    delta metrics.
+   *  - `unchanged`: fingerprints con misma classification + provider + delta
+   *    de confidence < threshold cross-scan.
+   *
+   * **DG-132 A extension**: reclassified reason precedence:
+   *  1. `class-changed` — classification actual != previa (strongest signal)
+   *  2. `provider-changed` — classification igual pero providerLabel != (cross-
+   *     provider agreement is not guaranteed)
+   *  3. `confidence-delta` — classification+provider iguales pero |Δ conf| ≥
+   *     threshold (default 0.15 matching banner heuristic DG-130 A)
    *
    * NOTA: solo cuenta findings que EFECTIVAMENTE tienen un veredicto en
-   * el history. Un fingerprint del scan actual SIN veredicto en history
-   * queda fuera del diff (no aparece en ningún bucket) — típicamente
-   * porque nunca se corrió triage sobre él (skip por known-FP o por
-   * limit cap).
+   * el history. Fingerprints sin history quedan fuera del diff (no aparecen
+   * en ningún bucket) — típicamente porque nunca se corrió triage sobre él.
    */
-  getVerdictDiffAgainstPrevious(fingerprints: readonly string[]): {
+  getVerdictDiffAgainstPrevious(
+    fingerprints: readonly string[],
+    options: { confidenceDeltaThreshold?: number } = {},
+  ): {
     newFindings: string[];
-    reclassified: { fingerprint: string; from: TriageClassification; to: TriageClassification }[];
+    reclassified: {
+      fingerprint: string;
+      from: TriageClassification;
+      to: TriageClassification;
+      reason: 'class-changed' | 'provider-changed' | 'confidence-delta';
+      confidenceDelta: number;
+      fromConfidence: number;
+      toConfidence: number;
+      fromProvider: string;
+      toProvider: string;
+    }[];
     unchanged: string[];
   } {
+    const threshold = options.confidenceDeltaThreshold ?? 0.15;
     const newFindings: string[] = [];
     const reclassified: {
       fingerprint: string;
       from: TriageClassification;
       to: TriageClassification;
+      reason: 'class-changed' | 'provider-changed' | 'confidence-delta';
+      confidenceDelta: number;
+      fromConfidence: number;
+      toConfidence: number;
+      fromProvider: string;
+      toProvider: string;
     }[] = [];
     const unchanged: string[] = [];
     const historyMap = this.getVerdictHistoryByFingerprints(fingerprints, 2);
@@ -670,11 +700,28 @@ export class ColonyDb {
       const current = history[0];
       const previous = history[1];
       if (current === undefined || previous === undefined) continue;
-      if (current.classification !== previous.classification) {
+      const classChanged = current.classification !== previous.classification;
+      const providerChanged = current.providerLabel !== previous.providerLabel;
+      const confidenceDelta = Math.abs(current.confidence - previous.confidence);
+      const confidenceExceedsThreshold = confidenceDelta >= threshold;
+      if (classChanged || providerChanged || confidenceExceedsThreshold) {
+        // Reason precedence: class > provider > confidence (matches DG-130 A
+        // banner heuristic + gives strongest semantic signal priority).
+        const reason: 'class-changed' | 'provider-changed' | 'confidence-delta' = classChanged
+          ? 'class-changed'
+          : providerChanged
+            ? 'provider-changed'
+            : 'confidence-delta';
         reclassified.push({
           fingerprint,
           from: previous.classification,
           to: current.classification,
+          reason,
+          confidenceDelta,
+          fromConfidence: previous.confidence,
+          toConfidence: current.confidence,
+          fromProvider: previous.providerLabel,
+          toProvider: current.providerLabel,
         });
       } else {
         unchanged.push(fingerprint);

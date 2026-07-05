@@ -394,6 +394,48 @@ describe('buildTomo — DG-113 A Step 4: SCA groups en el tomo', () => {
     expect(tomo.findings[0]?.isGroupRepresentative).toBe(true);
   });
 
+  it('DG-132 A Sub-A2: scanDiff emite reclassifiedByReason breakdown cuando presente', () => {
+    const tomo = buildTomo(
+      makeOutcome('scan-1'),
+      [makeFinding('high', 'SAST')],
+      { rootPath: '/p', sentinelVersion: '0.0.0' },
+      {
+        scanDiff: {
+          newFindingsCount: 1,
+          reclassifiedCount: 5,
+          unchangedCount: 30,
+          reclassifiedByReason: {
+            classChanged: 2,
+            confidenceDelta: 3,
+            providerChanged: 0,
+          },
+        },
+      },
+    );
+    expect(tomo.summary.scanDiff?.reclassifiedByReason).toEqual({
+      classChanged: 2,
+      confidenceDelta: 3,
+      providerChanged: 0,
+    });
+    expect(verifyTomoIntegrity(tomo)).toBe(true);
+  });
+
+  it('DG-132 A Sub-A2: scanDiff SIN reclassifiedByReason valida (backward-compat)', () => {
+    const tomo = buildTomo(
+      makeOutcome('scan-1'),
+      [makeFinding('high', 'SAST')],
+      { rootPath: '/p', sentinelVersion: '0.0.0' },
+      {
+        scanDiff: {
+          newFindingsCount: 0,
+          reclassifiedCount: 0,
+          unchangedCount: 44,
+        },
+      },
+    );
+    expect(tomo.summary.scanDiff?.reclassifiedByReason).toBeUndefined();
+  });
+
   it('finding sin group metadata NO emite groupId/isGroupRepresentative (backward-compat)', () => {
     const finding = makeFinding('high', 'SAST');
     finding['fingerprint'] = 'fp-ungrouped';

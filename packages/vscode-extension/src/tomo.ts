@@ -43,11 +43,22 @@ const ExtensionPreviousVerdictSchema = z.object({
   createdAt: z.string().datetime(),
 });
 
-/** Diff-aware summary del scan actual (DG-130 A Sub-A2). */
+/** Diff-aware summary del scan actual (DG-130 A Sub-A2 + DG-132 A Sub-A2 breakdown). */
 const ExtensionScanDiffSchema = z.object({
   newFindingsCount: z.number().int().nonnegative(),
   reclassifiedCount: z.number().int().nonnegative(),
   unchangedCount: z.number().int().nonnegative(),
+  /**
+   * DG-132 A Sub-A2 (R22): reclassified breakdown por reason. Aditivo
+   * backward-compat: tomos legacy sin este field siguen validando.
+   */
+  reclassifiedByReason: z
+    .object({
+      classChanged: z.number().int().nonnegative(),
+      confidenceDelta: z.number().int().nonnegative(),
+      providerChanged: z.number().int().nonnegative(),
+    })
+    .optional(),
 });
 
 /** Explicacion de contexto del Brain Layer (forma minima, solo para mostrar). */

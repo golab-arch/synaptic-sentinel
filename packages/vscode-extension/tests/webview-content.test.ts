@@ -1189,6 +1189,45 @@ describe('renderTomoWebviewHtml — DG-130 A Sub-A2 (verdict history + diff)', (
 });
 
 /**
+ * DG-132 A Sub-A2 (Cycle 118 FASE III R22): scan-diff line breakdown por reason.
+ */
+describe('renderTomoWebviewHtml — DG-132 A Sub-A2 (scan-diff breakdown)', () => {
+  it('emite breakdown (X class, Y confidence, Z provider) cuando reclassifiedByReason presente', () => {
+    const finding = makeFinding({
+      triage: { classification: 'true_positive', confidence: 0.9, rationale: 'r' },
+    });
+    const html = renderTomoWebviewHtml([finding], opts, undefined, undefined, {
+      newFindingsCount: 1,
+      reclassifiedCount: 5,
+      unchangedCount: 30,
+      reclassifiedByReason: {
+        classChanged: 2,
+        confidenceDelta: 3,
+        providerChanged: 0,
+      },
+    });
+    expect(html).toContain('5 re-classified (2 class, 3 confidence, 0 provider)');
+    expect(html).toContain('1 new');
+    expect(html).toContain('30 unchanged');
+  });
+
+  it('sin reclassifiedByReason NO emite breakdown suffix (backward-compat)', () => {
+    const finding = makeFinding({
+      triage: { classification: 'true_positive', confidence: 0.9, rationale: 'r' },
+    });
+    const html = renderTomoWebviewHtml([finding], opts, undefined, undefined, {
+      newFindingsCount: 1,
+      reclassifiedCount: 2,
+      unchangedCount: 10,
+    });
+    // NO paréntesis con class/confidence/provider en el output
+    expect(html).not.toContain('class,');
+    expect(html).not.toContain('confidence,');
+    expect(html).not.toContain('provider)');
+  });
+});
+
+/**
  * DG-131 A Sub-A2 (Cycle 117 FASE III R20): badge [grouped] en finding card.
  */
 describe('renderTomoWebviewHtml — DG-131 A Sub-A2 (group badge)', () => {

@@ -37,10 +37,23 @@ const TomoMetadataSchema = z.object({
 const TomoScanDiffSchema = z.object({
   /** Fingerprints que aparecen por primera vez en history. */
   newFindingsCount: z.number().int().nonnegative(),
-  /** Fingerprints cuyo classification cambió respecto al veredicto anterior. */
+  /** Fingerprints cuyo verdict cambió (class + provider + confidence delta ≥ threshold). */
   reclassifiedCount: z.number().int().nonnegative(),
   /** Fingerprints con la misma classification cross-scan. */
   unchangedCount: z.number().int().nonnegative(),
+  /**
+   * DG-132 A Sub-A2 (Cycle 118 FASE III R22): reclassified count breakdown por reason.
+   * Ayuda al user a distinguir class-changed (semantic shift) vs confidence-delta
+   * (sampling variance) vs provider-changed (cross-provider agreement). Aditivo
+   * backward-compat: tomos legacy sin este field siguen validando.
+   */
+  reclassifiedByReason: z
+    .object({
+      classChanged: z.number().int().nonnegative(),
+      confidenceDelta: z.number().int().nonnegative(),
+      providerChanged: z.number().int().nonnegative(),
+    })
+    .optional(),
 });
 
 /** Diff-aware summary del scan actual. */

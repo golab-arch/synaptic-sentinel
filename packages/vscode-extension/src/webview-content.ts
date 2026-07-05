@@ -703,17 +703,28 @@ function renderSummary(
 }
 
 /**
- * DG-130 A Sub-A2: linea "Scan diff vs previous triage" en la summary card.
+ * DG-130 A Sub-A2 + DG-132 A Sub-A2 (Cycle 118 R22): linea "Scan diff vs
+ * previous triage" en la summary card con breakdown de reclassified por
+ * reason (class-changed / confidence-delta / provider-changed).
+ *
  * Emite '' si `scanDiff` es undefined o si no hay actividad (0/0/0).
  * Cuando hay reclassifications, se muestran con destaque visual naranja.
+ * Breakdown se muestra entre paréntesis cuando reason breakdown está
+ * disponible (DG-132 A) — matches terminal output format.
  */
 function renderScanDiffLine(scanDiff: ExtensionScanDiff | undefined): string {
   if (scanDiff === undefined) return '';
-  const { newFindingsCount, reclassifiedCount, unchangedCount } = scanDiff;
+  const { newFindingsCount, reclassifiedCount, unchangedCount, reclassifiedByReason } = scanDiff;
   if (newFindingsCount === 0 && reclassifiedCount === 0 && unchangedCount === 0) return '';
+  const breakdownSuffix =
+    reclassifiedByReason !== undefined && reclassifiedCount > 0
+      ? ` (${String(reclassifiedByReason.classChanged)} class, ` +
+        `${String(reclassifiedByReason.confidenceDelta)} confidence, ` +
+        `${String(reclassifiedByReason.providerChanged)} provider)`
+      : '';
   const reclassPart =
     reclassifiedCount > 0
-      ? `<span class="diff-reclassified">${String(reclassifiedCount)} re-classified</span>`
+      ? `<span class="diff-reclassified">${String(reclassifiedCount)} re-classified${escapeHtml(breakdownSuffix)}</span>`
       : `${String(reclassifiedCount)} re-classified`;
   return (
     `<div class="scan-diff">Scan diff vs previous triage: ` +

@@ -88,8 +88,86 @@ export interface TriageCommandOptions {
    * (ej. sospecha que 1 finding específico del grupo difiere semánticamente).
    */
   readonly noGroup?: boolean;
+  /**
+   * DG-132 A Sub-A2 (Cycle 118 FASE III R22): CI/CD gates per-severity.
+   * Post-triage, cuenta findings con verdict TP que son NEW (primera vez
+   * triaged) O reclassified-to-TP (class change → TP). Si el count por
+   * severity supera el threshold, exit code 1 (CI fail).
+   *
+   * Undefined → skip check para esa severity. 0 → any new TP fails.
+   * Uso típico CI: `--fail-on-new-tp-critical 0 --fail-on-new-tp-high 3`
+   * (zero tolerance critical, tolerate up to 3 high per PR).
+   */
+  readonly failOnNewTpCritical?: number;
+  readonly failOnNewTpHigh?: number;
+  readonly failOnNewTpMedium?: number;
   /** Desactiva el color ANSI (tambien lo desactivan `NO_COLOR` y un stdout no-TTY). */
   readonly noColor?: boolean;
+}
+
+/**
+ * DG-132 A Sub-A2 CI/CD gate evaluator. Cuenta findings con verdict TP que
+ * son "nuevo TP" (new-first-triage con TP verdict O reclassified-a-TP)
+ * agrupados por severity. Compara contra thresholds y decide exit code.
+ *
+ * Return contract:
+ *   - `exitCode` 0 = PASS (todos los thresholds satisfied o no configurados)
+ *   - `exitCode` 1 = FAIL (al menos un threshold excedido)
+ *   - `messages` = líneas de log para stderr describiendo el resultado
+ */
+function evaluateCIGate(
+  diff: ReturnType<ColonyDb['getVerdictDiffAgainstPrevious']>,
+  findings: readonly import('@synaptic-sentinel/core').Finding[],
+  verdicts: readonly TriageVerdictRecord[],
+  options: TriageCommandOptions,
+): { exitCode: number; messages: readonly string[] } {
+  const hasAnyGate =
+    options.failOnNewTpCritical !== undefined ||
+    options.failOnNewTpHigh !== undefined ||
+    options.failOnNewTpMedium !== undefined;
+  if (!hasAnyGate) return { exitCode: 0, messages: [] };
+  const findingsByFp = new Map(findings.map((f) => [f.fingerprint, f]));
+  const verdictsByFp = new Map(verdicts.map((v) => [v.fingerprint, v]));
+  // "New TP" = fingerprint is new OR reclassified class-changed to TP.
+  const isNewTPFingerprint = (fp: string): boolean => {
+    const verdict = verdictsByFp.get(fp);
+    if (verdict?.classification !== 'true_positive') return false;
+    if (diff.newFindings.includes(fp)) return true;
+    const reclass = diff.reclassified.find((r) => r.fingerprint === fp);
+    return reclass !== undefined && reclass.reason === 'class-changed';
+  };
+  const counts: Record<'critical' | 'high' | 'medium', number> = {
+    critical: 0,
+    high: 0,
+    medium: 0,
+  };
+  for (const fp of [...diff.newFindings, ...diff.reclassified.map((r) => r.fingerprint)]) {
+    if (!isNewTPFingerprint(fp)) continue;
+    const finding = findingsByFp.get(fp);
+    if (finding === undefined) continue;
+    if (finding.severity === 'critical') counts.critical += 1;
+    else if (finding.severity === 'high') counts.high += 1;
+    else if (finding.severity === 'medium') counts.medium += 1;
+  }
+  const messages: string[] = [];
+  const fails: string[] = [];
+  const check = (severity: 'critical' | 'high' | 'medium', threshold: number | undefined): void => {
+    if (threshold === undefined) return;
+    const count = counts[severity];
+    const status = count > threshold ? 'FAIL' : 'PASS';
+    messages.push(
+      `Diff-aware CI gate: ${String(count)} new TP ${severity} (threshold ${String(threshold)}) — ${status}`,
+    );
+    if (status === 'FAIL') fails.push(`${severity}: ${String(count)} > ${String(threshold)}`);
+  };
+  check('critical', options.failOnNewTpCritical);
+  check('high', options.failOnNewTpHigh);
+  check('medium', options.failOnNewTpMedium);
+  if (fails.length > 0) {
+    messages.push(`Diff-aware CI gate FAILED: ${fails.join(', ')}. Exiting with code 1.`);
+    return { exitCode: 1, messages };
+  }
+  return { exitCode: 0, messages };
 }
 
 /**
@@ -670,16 +748,40 @@ export async function runTriageCommand(options: TriageCommandOptions): Promise<n
     // contra sus veredictos previos en verdict_history. Solo cuenta findings
     // que efectivamente pasaron por triage (toTriage). Los que fueron saltados
     // (known-FP o already-triaged sin --re-triage) no participan del diff.
+    // DG-132 A Sub-A2 (Cycle 118 FASE III): breakdown line con reason
+    // categorization. Ataca gap empírico Baseline-15: los 5 findings con
+    // "Confidence changed significantly" contaban como "unchanged" en el
+    // diff summary a pesar del banner. Ahora se cuentan como
+    // reclassified.confidence-delta.
     if (toTriage.length > 0) {
       const triagedFingerprints = toTriage.map((f) => f.fingerprint);
       const diff = db.getVerdictDiffAgainstPrevious(triagedFingerprints);
+      const rClass = diff.reclassified.filter((r) => r.reason === 'class-changed').length;
+      const rProvider = diff.reclassified.filter((r) => r.reason === 'provider-changed').length;
+      const rConfidence = diff.reclassified.filter((r) => r.reason === 'confidence-delta').length;
       console.log(
         `Scan diff vs previous triage: ${String(diff.newFindings.length)} new, ` +
-          `${String(diff.reclassified.length)} re-classified, ` +
+          `${String(diff.reclassified.length)} re-classified ` +
+          `(${String(rClass)} class, ${String(rConfidence)} confidence, ${String(rProvider)} provider), ` +
           `${String(diff.unchanged.length)} unchanged.`,
       );
       for (const rc of diff.reclassified) {
-        console.log(`  · re-classified ${rc.fingerprint.slice(0, 12)}: ${rc.from} → ${rc.to}`);
+        const detail =
+          rc.reason === 'class-changed'
+            ? `${rc.from} → ${rc.to}`
+            : rc.reason === 'provider-changed'
+              ? `${rc.fromProvider} → ${rc.toProvider}`
+              : `Δ ${rc.confidenceDelta.toFixed(2)} (${rc.fromConfidence.toFixed(2)} → ${rc.toConfidence.toFixed(2)})`;
+        console.log(`  · re-classified ${rc.fingerprint.slice(0, 12)} [${rc.reason}]: ${detail}`);
+      }
+      // DG-132 A Sub-A2: per-severity CI gate check post-triage.
+      // Count NEW-TP + reclassified-to-TP by severity, exit 1 if threshold.
+      const gateResult = evaluateCIGate(diff, findings, verdicts, options);
+      if (gateResult.exitCode !== 0) {
+        for (const msg of gateResult.messages) {
+          console.error(msg);
+        }
+        return gateResult.exitCode;
       }
     }
     // Cost visibility summary (DG-078 B + DG-085 A). El caveat del summary

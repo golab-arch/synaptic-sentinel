@@ -108,6 +108,12 @@ export function runShowCommand(options: ShowCommandOptions): number {
     const diff = db.getVerdictDiffAgainstPrevious(fingerprintsForHistory);
     const anyDiffActivity =
       diff.newFindings.length > 0 || diff.reclassified.length > 0 || diff.unchanged.length > 0;
+    // DG-132 A Sub-A2: breakdown de reclassified por reason.
+    const reclassifiedByReason = {
+      classChanged: diff.reclassified.filter((r) => r.reason === 'class-changed').length,
+      confidenceDelta: diff.reclassified.filter((r) => r.reason === 'confidence-delta').length,
+      providerChanged: diff.reclassified.filter((r) => r.reason === 'provider-changed').length,
+    };
     const tomo = buildTomo(
       outcome,
       findings,
@@ -123,6 +129,7 @@ export function runShowCommand(options: ShowCommandOptions): number {
                 newFindingsCount: diff.newFindings.length,
                 reclassifiedCount: diff.reclassified.length,
                 unchangedCount: diff.unchanged.length,
+                reclassifiedByReason,
               },
             }
           : {}),

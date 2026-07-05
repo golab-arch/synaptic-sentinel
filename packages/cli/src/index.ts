@@ -11,6 +11,7 @@ import { runMarkFpCommand } from './commands/mark-fp.js';
 import { runTriageCommand } from './commands/triage.js';
 import { runCostHistoryCommand } from './commands/cost-history.js';
 import { runShowCommand } from './commands/show.js';
+import { runDiffCommand } from './commands/diff.js';
 import { parseAgentProviderFlags } from './commands/agent-provider-flag.js';
 import { runScannersInstallCommand } from './commands/scanners-install.js';
 
@@ -25,9 +26,12 @@ Usage:
   synaptic-sentinel mark-fp --fingerprint <fp> [--path <dir>] [--reason <text>]
   synaptic-sentinel triage [--path <dir>] [--limit <n>] [--re-triage]
                           [--no-group]
+                          [--fail-on-new-tp-critical <n>] [--fail-on-new-tp-high <n>]
+                          [--fail-on-new-tp-medium <n>]
                           [--agent-provider <agent>=<provider>/<model>]...
   synaptic-sentinel cost-history [--path <dir>] [--limit <n>] [--json]
   synaptic-sentinel show [--path <dir>] [--export <file>]
+  synaptic-sentinel diff [--path <dir>] [--confidence-delta-threshold <n>]
   synaptic-sentinel scanners install [--global]
 
 Commands:
@@ -69,6 +73,21 @@ Options:
                          instead of sharing a group representative. Escape
                          hatch for when you want per-finding autonomy over
                          cost savings.
+  --fail-on-new-tp-critical <n>
+  --fail-on-new-tp-high <n>
+  --fail-on-new-tp-medium <n>
+                         DG-132 A Sub-A2 CI/CD gates: exit code 1 if the
+                         number of NEW true-positive findings (first-time
+                         triaged with TP OR reclassified-to-TP class change)
+                         at that severity exceeds the threshold. Use e.g.
+                         --fail-on-new-tp-critical 0 --fail-on-new-tp-high 3
+                         for zero-tolerance critical + tolerate up to 3 high
+                         per PR. Undefined = skip check for that severity.
+  --confidence-delta-threshold <n>
+                         DG-132 A Sub-A2 (diff command): threshold [0..1] for
+                         confidence delta to count as "reclassified.
+                         confidence-delta" reason. Default 0.15 (matches
+                         DG-130 A banner heuristic).
                          Preserves fp_known (manual FPs) and triage_token_usage
                          (cost history rollup).
   --agent-provider <a>=<p>/<m>
@@ -90,6 +109,19 @@ API keys are read from SENTINEL_<PROVIDER>_API_KEY env vars (or
 ANTHROPIC_API_KEY for the legacy Anthropic path). Keys never appear in
 command-line arguments.
 `;
+
+/**
+ * DG-132 A Sub-A2: parse a non-negative integer from a CLI flag value.
+ * Exits with a helpful message if invalid (used by --fail-on-new-tp-* flags).
+ */
+function parseNonNegativeInt(raw: string, flagName: string): number {
+  const parsed = Number.parseInt(raw, 10);
+  if (!Number.isInteger(parsed) || parsed < 0) {
+    console.error(`--${flagName} must be a non-negative integer (got "${raw}").`);
+    process.exit(1);
+  }
+  return parsed;
+}
 
 async function main(): Promise<void> {
   const { values, positionals } = parseArgs({
@@ -113,6 +145,10 @@ async function main(): Promise<void> {
       json: { type: 'boolean' },
       're-triage': { type: 'boolean' },
       'no-group': { type: 'boolean' },
+      'fail-on-new-tp-critical': { type: 'string' },
+      'fail-on-new-tp-high': { type: 'string' },
+      'fail-on-new-tp-medium': { type: 'string' },
+      'confidence-delta-threshold': { type: 'string' },
       help: { type: 'boolean', short: 'h' },
     },
   });
@@ -193,6 +229,30 @@ async function main(): Promise<void> {
       ...(values['no-color'] === true ? { noColor: true } : {}),
       ...(values['re-triage'] === true ? { reTriage: true } : {}),
       ...(values['no-group'] === true ? { noGroup: true } : {}),
+      ...(values['fail-on-new-tp-critical'] !== undefined
+        ? {
+            failOnNewTpCritical: parseNonNegativeInt(
+              values['fail-on-new-tp-critical'],
+              'fail-on-new-tp-critical',
+            ),
+          }
+        : {}),
+      ...(values['fail-on-new-tp-high'] !== undefined
+        ? {
+            failOnNewTpHigh: parseNonNegativeInt(
+              values['fail-on-new-tp-high'],
+              'fail-on-new-tp-high',
+            ),
+          }
+        : {}),
+      ...(values['fail-on-new-tp-medium'] !== undefined
+        ? {
+            failOnNewTpMedium: parseNonNegativeInt(
+              values['fail-on-new-tp-medium'],
+              'fail-on-new-tp-medium',
+            ),
+          }
+        : {}),
     });
     return;
   }
@@ -201,6 +261,27 @@ async function main(): Promise<void> {
     process.exitCode = runShowCommand({
       path: values.path ?? process.cwd(),
       ...(values.export !== undefined ? { exportPath: values.export } : {}),
+    });
+    return;
+  }
+
+  if (command === 'diff') {
+    let confidenceDeltaThreshold: number | undefined;
+    if (values['confidence-delta-threshold'] !== undefined) {
+      confidenceDeltaThreshold = Number.parseFloat(values['confidence-delta-threshold']);
+      if (
+        !Number.isFinite(confidenceDeltaThreshold) ||
+        confidenceDeltaThreshold < 0 ||
+        confidenceDeltaThreshold > 1
+      ) {
+        console.error('--confidence-delta-threshold must be a number in [0, 1].\n');
+        process.exitCode = 1;
+        return;
+      }
+    }
+    process.exitCode = runDiffCommand({
+      path: values.path ?? process.cwd(),
+      ...(confidenceDeltaThreshold !== undefined ? { confidenceDeltaThreshold } : {}),
     });
     return;
   }

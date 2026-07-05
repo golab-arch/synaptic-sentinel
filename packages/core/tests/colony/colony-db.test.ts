@@ -821,9 +821,15 @@ describe('ColonyDb - verdict history (schema v6, DG-130 A Sub-A2)', () => {
     ]);
     const diff = db.getVerdictDiffAgainstPrevious(['fp-new', 'fp-flip', 'fp-same', 'fp-orphan']);
     expect(diff.newFindings).toEqual(['fp-new']);
-    expect(diff.reclassified).toEqual([
-      { fingerprint: 'fp-flip', from: 'false_positive', to: 'inconclusive' },
-    ]);
+    expect(diff.reclassified).toHaveLength(1);
+    expect(diff.reclassified[0]).toEqual(
+      expect.objectContaining({
+        fingerprint: 'fp-flip',
+        from: 'false_positive',
+        to: 'inconclusive',
+        reason: 'class-changed',
+      }),
+    );
     expect(diff.unchanged).toEqual(['fp-same']);
     db.close();
   });
@@ -941,6 +947,173 @@ describe('ColonyDb - group metadata persistence (schema v7, DG-131 A Sub-A2)', (
     expect(verdicts).toHaveLength(1);
     expect(verdicts[0]?.groupId).toBeUndefined();
     expect(verdicts[0]?.isGroupRepresentative).toBeUndefined();
+    db.close();
+  });
+
+  it('DG-132 A: reclassified reason precedence class > provider > confidence + delta metrics', () => {
+    const db = ColonyDb.open(':memory:');
+    const scan = makeScan();
+    db.insertScan(scan);
+    const scanId = String(scan['id']);
+    // Setup 4 fingerprints con distintos reclassification reasons:
+    // fp-class: class changed (TP → FP)
+    // fp-provider: same class, diff provider
+    // fp-confidence: same class + provider, confidence delta >= 0.15
+    // fp-unchanged: same class + provider + confidence
+    db.insertVerdictHistoryBatch([
+      // fp-class prior
+      {
+        id: randomUUID(),
+        scanId,
+        fingerprint: 'fp-class',
+        classification: 'true_positive',
+        confidence: 0.9,
+        rationale: 'r',
+        providerLabel: 'deepseek/x',
+        agentId: 'triage',
+        createdAt: '2026-07-01T00:00:00.000Z',
+      },
+      // fp-class current (class flipped)
+      {
+        id: randomUUID(),
+        scanId,
+        fingerprint: 'fp-class',
+        classification: 'false_positive',
+        confidence: 0.9,
+        rationale: 'r',
+        providerLabel: 'deepseek/x',
+        agentId: 'triage',
+        createdAt: '2026-07-02T00:00:00.000Z',
+      },
+      // fp-provider prior
+      {
+        id: randomUUID(),
+        scanId,
+        fingerprint: 'fp-provider',
+        classification: 'true_positive',
+        confidence: 0.8,
+        rationale: 'r',
+        providerLabel: 'deepseek/x',
+        agentId: 'triage',
+        createdAt: '2026-07-01T00:00:00.000Z',
+      },
+      // fp-provider current (only provider changed)
+      {
+        id: randomUUID(),
+        scanId,
+        fingerprint: 'fp-provider',
+        classification: 'true_positive',
+        confidence: 0.8,
+        rationale: 'r',
+        providerLabel: 'anthropic/y',
+        agentId: 'triage',
+        createdAt: '2026-07-02T00:00:00.000Z',
+      },
+      // fp-confidence prior
+      {
+        id: randomUUID(),
+        scanId,
+        fingerprint: 'fp-confidence',
+        classification: 'inconclusive',
+        confidence: 0.9,
+        rationale: 'r',
+        providerLabel: 'deepseek/x',
+        agentId: 'triage',
+        createdAt: '2026-07-01T00:00:00.000Z',
+      },
+      // fp-confidence current (delta 0.30)
+      {
+        id: randomUUID(),
+        scanId,
+        fingerprint: 'fp-confidence',
+        classification: 'inconclusive',
+        confidence: 0.6,
+        rationale: 'r',
+        providerLabel: 'deepseek/x',
+        agentId: 'triage',
+        createdAt: '2026-07-02T00:00:00.000Z',
+      },
+      // fp-unchanged prior
+      {
+        id: randomUUID(),
+        scanId,
+        fingerprint: 'fp-unchanged',
+        classification: 'true_positive',
+        confidence: 0.75,
+        rationale: 'r',
+        providerLabel: 'deepseek/x',
+        agentId: 'triage',
+        createdAt: '2026-07-01T00:00:00.000Z',
+      },
+      {
+        id: randomUUID(),
+        scanId,
+        fingerprint: 'fp-unchanged',
+        classification: 'true_positive',
+        confidence: 0.78,
+        rationale: 'r',
+        providerLabel: 'deepseek/x',
+        agentId: 'triage',
+        createdAt: '2026-07-02T00:00:00.000Z',
+      },
+    ]);
+    const diff = db.getVerdictDiffAgainstPrevious([
+      'fp-class',
+      'fp-provider',
+      'fp-confidence',
+      'fp-unchanged',
+    ]);
+    expect(diff.reclassified).toHaveLength(3);
+    expect(diff.unchanged).toEqual(['fp-unchanged']);
+    const byFp = new Map(diff.reclassified.map((r) => [r.fingerprint, r]));
+    expect(byFp.get('fp-class')?.reason).toBe('class-changed');
+    expect(byFp.get('fp-class')?.from).toBe('true_positive');
+    expect(byFp.get('fp-class')?.to).toBe('false_positive');
+    expect(byFp.get('fp-provider')?.reason).toBe('provider-changed');
+    expect(byFp.get('fp-provider')?.fromProvider).toBe('deepseek/x');
+    expect(byFp.get('fp-provider')?.toProvider).toBe('anthropic/y');
+    expect(byFp.get('fp-confidence')?.reason).toBe('confidence-delta');
+    expect(byFp.get('fp-confidence')?.confidenceDelta).toBeCloseTo(0.3, 5);
+    db.close();
+  });
+
+  it('DG-132 A: confidence-delta threshold configurable (default 0.15 vs custom)', () => {
+    const db = ColonyDb.open(':memory:');
+    const scan = makeScan();
+    db.insertScan(scan);
+    const scanId = String(scan['id']);
+    db.insertVerdictHistoryBatch([
+      {
+        id: randomUUID(),
+        scanId,
+        fingerprint: 'fp-x',
+        classification: 'inconclusive',
+        confidence: 0.9,
+        rationale: 'r',
+        providerLabel: 'deepseek/x',
+        agentId: 'triage',
+        createdAt: '2026-07-01T00:00:00.000Z',
+      },
+      {
+        id: randomUUID(),
+        scanId,
+        fingerprint: 'fp-x',
+        classification: 'inconclusive',
+        confidence: 0.8, // delta 0.10 — below default 0.15, above custom 0.05
+        rationale: 'r',
+        providerLabel: 'deepseek/x',
+        agentId: 'triage',
+        createdAt: '2026-07-02T00:00:00.000Z',
+      },
+    ]);
+    const diffDefault = db.getVerdictDiffAgainstPrevious(['fp-x']);
+    expect(diffDefault.reclassified).toHaveLength(0);
+    expect(diffDefault.unchanged).toEqual(['fp-x']);
+    const diffLower = db.getVerdictDiffAgainstPrevious(['fp-x'], {
+      confidenceDeltaThreshold: 0.05,
+    });
+    expect(diffLower.reclassified).toHaveLength(1);
+    expect(diffLower.reclassified[0]?.reason).toBe('confidence-delta');
     db.close();
   });
 
