@@ -104,6 +104,16 @@ API keys come from `SENTINEL_<PROVIDER>_API_KEY` environment variables (`SENTINE
 
 The three agents share a learning store on disk in your repo (`.sentinel/colony.db` — same `.sentinel/` directory that holds `agents.yaml`): a triage pattern seen with strong evidence is pre-classified on the next scan **without spending an LLM token**. _Backward-compat:_ if your repo still has the legacy `.synaptic-sentinel/colony.db` from v0.3.5 or earlier, the CLI keeps reading it and emits a log suggesting you move it; no automatic migration to avoid data loss.
 
+### Trust cross-session (new in v0.3.22 — FASE III)
+
+Cross-provider triage is inherently noisy: the same finding can come back TP one day and INC the next after you swap providers. Instead of hiding this variance, Sentinel makes it **visible**:
+
+- **Previously (N prior verdicts)** — a collapsible section under every finding card in the sidebar showing the full triage history for that fingerprint (timestamp + `providerLabel` + full rationale). The verdict trajectory across every scan you've ever run is one click away.
+- **⚠ Verdict changed since last scan** banner — when the current verdict differs from the previous, the sidebar shows a warning banner with a reason heuristic: `Different provider (X → Y) — cross-provider agreement is not guaranteed.` / `Verdict reclassified — likely new context signals available.` / `Confidence changed significantly (Δ 0.XX).`
+- **Scan diff line** — both the terminal and the sidebar summary card show `Scan diff vs previous triage: N new · M re-classified (X class, Y confidence, Z provider) · K unchanged` with reason breakdown. The empirical validation of FASE III collected a dramatic reproducibility case (`fast-xml-parser CVE-2026-41650` oscillated between 0.0 and 1.0 confidence across 5 scans with 2 providers) — now nothing about that shift is hidden from the user.
+- **Cross-finding correlation (grouping)** — when N ≥ 2 findings share the same rule + package + version, only the group representative pays the LLM token cost; members inherit the verdict with a 0.9× confidence downgrade (epistemic honesty: high confidence on the group, medium on each member individually). The sidebar shows `GROUPED REP` (purple) on the representative and `GROUPED` (lighter purple) on members, plus a `[group SCA:pkg@ver:CVE, member N of M]` rationale suffix. Empirically saved 12 LLM calls in a single re-triage of SYNAPTIC_SAAS (44 findings → 8 calls + 24 colony-memory + 12 propagated).
+- **`--no-group` CLI flag** — global escape hatch if you want per-finding autonomy over the cost savings.
+
 ### Turnkey from install to first scan
 
 1. Install the extension.
@@ -121,6 +131,7 @@ The three agents share a learning store on disk in your repo (`.sentinel/colony.
 | `SYNAPTIC Sentinel: Triage Findings (Brain Layer)`   | Runs the three Brain Layer agents over the last scan. Requires BYOK. |
 | `SYNAPTIC Sentinel: Configure Brain Layer Providers` | Opens the multi-provider Settings panel.                             |
 | `SYNAPTIC Sentinel: Install Scanners`                | One-time download of the scout binaries to the per-user cache.       |
+| `SYNAPTIC Sentinel: Re-triage all`                   | Clears existing verdicts + re-runs the Brain Layer on the last scan (useful after a provider swap in `agents.yaml`). |
 
 Plus Code Actions on each finding: **mark as false positive** (suppressed in future scans), and **copy suggested remediation**.
 
@@ -129,6 +140,12 @@ Plus Code Actions on each finding: **mark as false positive** (suppressed in fut
 ## CI-native
 
 Sentinel's CLI bundle ships with the extension and is also runnable standalone. The CLI exports the audit tome to **JSON**, **HTML** (an audit report you can hand to a reviewer), and **SARIF 2.1.0** (GitHub Code Scanning, Azure DevOps). The `--fail-on <severity>` flag turns the scan into a CI gate (exit code 2 if there are findings at or above the threshold).
+
+**Diff-aware CI (new in v0.3.22 — DG-132 A)**:
+
+- `synaptic-sentinel diff --json [--path <dir>] [--confidence-delta-threshold <n>]` — structured JSON output comparing the latest triage against the previous one. Shape: `{ scanId, summary, reclassifiedByReason, newFindings[], reclassified[], unchanged[] }`. Feed to a dashboard, gate a PR, alert on drift. Read-only — no re-triage, no LLM tokens.
+- `synaptic-sentinel triage --fail-on-new-tp-critical <n> --fail-on-new-tp-high <n> --fail-on-new-tp-medium <n>` — per-severity CI gates on the triage step. Exit code 1 if the number of NEW true-positive findings (first-time triaged **or** reclassified to TP from a different classification) at that severity exceeds the threshold. Use `--fail-on-new-tp-critical 0 --fail-on-new-tp-high 3` for zero-tolerance critical + tolerate up to 3 high per PR.
+- `synaptic-sentinel triage --no-group` — escape hatch: disables the cross-finding correlation grouping (R20) and forces one LLM call per finding. Trade cost for per-finding autonomy.
 
 The `synaptic-sentinel cost-history` sub-command lets you wire cost reports into your CI summary too.
 

@@ -4,6 +4,76 @@ All notable changes to the SYNAPTIC Sentinel extension will be documented in thi
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.22] - 2026-07-05
+
+**FASE III "trust cross-session" complete — three empirically validated DGs delivering per-fingerprint verdict persistence, cross-finding correlation via grouping, and diff-aware CI/CD integration.** (Cycles 116-118, DG-130 A + DG-131 A + DG-132 A + hotfixes DG-131.0.1/.0.2 + DG-130.0.1 preemptive). Users now **visually see cross-scan verdict drift, provider shifts, confidence deltas, and grouping propagation** with reason categorization + delta metrics — the "trust cross-session" behavior the FASE III roadmap set out to build is empirically REALIZED across 5-baseline trajectories.
+
+**Empirical validation trajectory across 3 baselines (SYNAPTIC_SAAS + SENTINEL regression)**:
+
+- **Baseline-14** — DG-130 A Sub-A2 PASS categorical. Banner heuristic 3-path validated cross-baseline: (a) `Different provider` triggered (agent.ts:62 SQL injection FP 0.95 deepseek → FP 0.75 colony-memory); (b) `Verdict reclassified` unit-tested; (c) `Confidence changed significantly` deferred to Baseline-15 empirical.
+- **Baseline-15** — DG-131 A Sub-A2 PASS categorical (post-hotfixes DG-131.0.1 placebo + DG-131.0.2 real). Grouping 12 group(s) covering 24 finding(s); 20 solitary. LLM calls saved by grouping: 12. Confidence downgrade math verified (75%→68%, 90%→81%). Banner `Confidence changed significantly (Δ X)` empirically triggered on 5 findings — completing the 3-path banner heuristic validation.
+- **Baseline-16** — DG-132 A Sub-A2 PASS categorical. Breakdown line `Scan diff vs previous triage: 1 new, 9 re-classified (0 class, 9 confidence, 0 provider), 34 unchanged` empirically observable in terminal + sidebar. Institutional lesson learned reinforced: initial anomaly (`0 provider-changed` vs pre-ship dogfood `10 provider-changed`) resolved via empirical DB inspection revealing a "mystery" user triage at 03:11 with `deepseek-v4-pro` — reason precedence (class > provider > confidence) working 100% correctly.
+
+**Cross-provider reproducibility gap EMPIRICALLY COLLECTED**: `fast-xml-parser CVE-2026-41650` trajectory cross-5 scans: INC 0.5 (v4-flash) → INC 1.0 (v4-flash) → INC 0.9 (v4-flash) → INC 1.0 (v4-pro) → INC 0.0 (v4-pro JsonParseError). Same finding, same code, drastically different verdicts across provider swaps — validates the North Star principle + FASE III design goals.
+
+### Added
+
+- **DG-130 A — Sub-A2 Balanced: per-fingerprint verdict persistence + reproducibilidad cross-provider** (Cycle 116, backlog #4). New `verdict_history` table in `colony.db` (schema v6, append-only cross-scan) — invariante crítico: `clearTriageDataForFingerprints` does NOT touch `verdict_history` (verified with dedicated test + empirically in production). `TriageVerdictHistoryRecordSchema` extends the triage verdict record with `providerLabel` (necessary for the banner heuristic "same/different provider"). New colony-db helpers: `insertVerdictHistoryBatch`, `getVerdictHistoryForFingerprint`, `getVerdictHistoryByFingerprints` (batch map), `getVerdictDiffAgainstPrevious`.
+
+  New CLI diff-aware line post-triage: `Scan diff vs previous triage: N new, M re-classified, K unchanged.`. Sidebar summary card mirrors this line. Per-finding **⚠ Verdict changed since last scan** banner emit when previous verdict differs, with reason heuristic (precedence: provider > class > confidence): `Different provider (X → Y) — cross-provider agreement is not guaranteed.` / `Verdict reclassified — likely new context signals available.` / `Confidence changed significantly (Δ 0.XX).`
+
+  New sidebar collapsible **Previously (N prior verdicts)** section per-finding with timestamps + `providerLabel` (colony-memory / real LLM label) + full rationale preserved cross-scan. Users can inspect the trajectory of any finding across all triage runs.
+
+- **DG-131 A — Sub-A2 Balanced: R20 cross-finding correlation via grouping + shared verdict + confidence downgrade** (Cycle 117, backlog #5). Schema v7 (aditivo backward-compat): `group_id` + `is_group_representative` columns in `triage_verdicts` + `verdict_history`. New module `packages/core/src/coordinator/triage-grouping.ts` (~170 lines) with `findingGroupKey` (SCA:`packageName@installedVersion:ruleId` or `category:ruleId`), `groupPendingFindings`, `deriveDowngradedConfidence` (factor 0.9), `formatMemberRationaleTag` (with 80-char truncation), constants `MIN_GROUP_SIZE = 2` and `GROUP_MEMBER_CONFIDENCE_DOWNGRADE_FACTOR = 0.9`.
+
+  Reduces LLM cost significantly in workspaces with many SCA duplicates (empirical Baseline-15: 22 protobufjs findings across 2 lockfiles → 1 LLM call per rule/version pair via group representative + N-1 members propagated). Empirical Baseline-15: 12 LLM calls saved by grouping, 20% total cost reduction ($0.0011 vs $0.0013).
+
+  Sidebar renders new **GROUPED REP** badge (purple #8b5cf6) on group representatives and **GROUPED** badge (purple #6b46c1) on member findings with tooltip explaining semantics. Member rationale gets appended with `[group SCA:pkg@ver:CVE, member N of M]` suffix. New CLI flag `--no-group` globally bypasses grouping (escape hatch for per-finding autonomy). Terminal emit: `Grouping (DG-131 A R20): N group(s) covering M finding(s); K solitary. LLM calls saved by grouping: X.`
+
+- **DG-132 A — Sub-A2 Balanced: R22 diff-aware mode enhancement (breakdown + CI/CD gates + JSON export)** (Cycle 118, backlog #7). `getVerdictDiffAgainstPrevious` extended with `confidenceDeltaThreshold` option (default 0.15, matching banner heuristic). Reclassified entries now include `reason: 'class-changed' | 'provider-changed' | 'confidence-delta'` + `confidenceDelta` + `fromConfidence` + `toConfidence` + `fromProvider` + `toProvider`. Reason precedence: class > provider > confidence.
+
+  Terminal + sidebar summary card **breakdown line**: `Scan diff vs previous triage: N new · M re-classified (X class, Y confidence, Z provider) · K unchanged`. Attacks the empirical gap of Baseline-15 where 5 findings with confidence delta ≥ 0.15 counted as "unchanged" in the summary line despite the banner. Now counted correctly as `reclassified.confidence-delta`.
+
+  New CLI command `synaptic-sentinel diff --json [--path <dir>] [--confidence-delta-threshold <n>]` — structured JSON output for CI/CD tooling downstream. Contract: `{ scanId, summary, reclassifiedByReason, newFindings[], reclassified[], unchanged[] }`. Read-only (no re-triage). Empirically dogfood-tested pre-ship on real user DB revealing historical cross-provider evidence (10 findings all as `provider-changed` from a deepseek-v4-flash → v4-pro cycle).
+
+  New CLI gate flags on `triage`: `--fail-on-new-tp-critical <n>`, `--fail-on-new-tp-high <n>`, `--fail-on-new-tp-medium <n>` — exit code 1 if the number of NEW true-positive findings (first-time triaged OR class-reclassified-to-TP) at that severity exceeds the threshold. Use e.g. `--fail-on-new-tp-critical 0 --fail-on-new-tp-high 3` for zero-tolerance critical + tolerate up to 3 high per PR.
+
+### Hotfixes
+
+- **DG-130.0.1 — Preemptive schema v6 migration on colony.db open** (Cycle 116 preemptive). PRAGMA-guarded ALTER TABLE ADD COLUMN with explicit `table_info` check before mutation. Idempotent for fresh DBs (columns exist from CREATE TABLE) and existing DBs (columns added via ALTER). Later reinforced by DG-131.0.1 + DG-131.0.2 during FASE III grouping migration path.
+
+- **DG-131.0.1 — PRAGMA table_info replace try-catch swallow for schema v7 migration** (Cycle 117 reactive placebo). Attempted to fix empirical Baseline-15 first-attempt scan failure (`ERROR: no such column: group_id`) by replacing the silent-error try-catch in `ALTER TABLE ADD COLUMN` with explicit PRAGMA check. **Placebo** — the fix was in a code path that never executed because of the root cause fixed by DG-131.0.2. Documented as institutional lesson learned: `SIEMPRE empirical inspection FIRST before speculative fixes.`
+
+- **DG-131.0.2 — Real root cause: schema.sql `CREATE INDEX ON group_id` removed** (Cycle 117 reactive real). Root cause identified via `node + node-sqlite3-wasm` inspection of the real user's `SYNAPTIC_SAAS` `colony.db`: schema.sql had `CREATE INDEX IF NOT EXISTS idx_*_group_id ON <table>(group_id)` statements running BEFORE the ALTER TABLE in JS (schema.sql executes first via `db.exec(readFileSync)`). On existing v6 DBs, `CREATE TABLE IF NOT EXISTS` skipped (table exists without column), then `CREATE INDEX ON group_id` failed with "no such column" aborting the whole migration path. Fix: remove those CREATE INDEX statements from schema.sql; keep them only in colony-db.ts JS after the PRAGMA-guarded ALTER. Empirically verified pre-ship on a clone of the real user's v6 DB: schema `6→7` bumped cleanly, 49 verdicts preserved, columns + indexes created without errors.
+
+### Changed
+
+- `TomoScanDiffSchema` extended with `reclassifiedByReason?: { classChanged, confidenceDelta, providerChanged }` optional — additive backward-compat. Legacy tomos without this field remain valid.
+- `TomoFindingSchema` extended with `previouslyVerdicts?: TomoPreviousVerdict[]` + `groupId?: string` + `isGroupRepresentative?: boolean` — all optional additive.
+- `ExtensionFindingSchema` mirrors the tomo extensions (extension parses a minimal subset).
+- Extension webview `renderCard` now emits: `renderGroupedBadge(finding)` (GROUPED REP / GROUPED), `renderVerdictChangedBanner(finding)` (⚠ banner if history[0] differs from history[1] with reason heuristic), `renderPreviouslySection(finding)` (collapsible details section with N prior verdicts). New CSS classes: `.grouped-badge`, `.grouped-representative`, `.grouped-member`, `.verdict-changed-banner`, `.previously`, `.prev-list`, `.scan-diff`, `.diff-reclassified`.
+- CLI `triage` command flow: split `toTriage` into `groups` + `solitary` (or all solitary if `--no-group`); 1 LLM call per group representative; POST-loop propagation of N-1 members with downgraded confidence + rationale suffix + `groupId` + `isGroupRepresentative=false`; post-triage breakdown line with reason categorization + CI gate evaluation.
+
+### Known Issues / Honest tradeoffs (anti-optimism active)
+
+- **User's `agents.yaml` config bug persistent** (side observation, not FASE III related) — `context=Anthropic` + `remediation=Anthropic` with `model: deepseek-v4-pro` (or `v4-flash`) triggers 404 "model: deepseek-v4-flash not_found_error" on 46 calls per scan (23 context + 23 remediation). Documented since Baseline-13. User-side fix pending — better error messages could help discovery (candidate for follow-up).
+- **Sidebar interactive chip filter NOT implemented in v1** — deferred to Sub-A2 v2 (DG-132.0.1 reactive if user feedback). Users who want to filter by diff status (new/reclassified/unchanged) must scroll the sidebar. The CLI `diff --json` command is available as escape hatch for programmatic filtering.
+- **Group representative choice = `members[0]`** (order of appearance in the Coordinator) — deterministic but not necessarily "best" (highest severity + reachability). Trade-off acceptable for v1; refinement candidate (DG-131.0.5 reactive if empirical evidence emerges).
+- **`findingGroupKey` uses literal `ruleId`** — 2 distinct CVEs on the same package do NOT group. Trade-off vs semantic grouping (that would cross-CVE if same package/version). More cautious posture — acceptable v1.
+- **Context + Remediation only for group representative** — members inherit the triage verdict but sidebar shows "no context" + "no remediation" sections for members. Trade-off vs N-1 duplicate agent calls. The GROUPED badge signals to the user that the semantics live in the representative.
+- **Confidence downgrade factor 0.9 is opinionated** — matches DG-131 A design goal (epistemic honesty: high confidence on the group, medium confidence on each member individually). Users who want a different weight should file a follow-up.
+- **Migration test coverage gap** — no unit test for the v6→v7 schema migration path (requires manual setup: create v6 DB, upgrade, verify). Empirical pre-ship testing on real user DB clone was the workaround. Follow-up candidate.
+- **Cost varies significantly across providers** — Baseline-16 with `deepseek-v4-pro` cost 4× Baseline-15 with `deepseek-v4-flash` on identical workload; v4-pro also produced 3 JsonParseError degradations vs 0 for v4-flash. User-side cost/quality trade-off (BYOK design preserves user choice).
+- **N=1 empirical sample per baseline** — extrapolation across workspaces requires further validation. 5 baselines in a single workspace is strong evidence but not conclusive.
+- **FASE III took 5 vsix updates** (step-130-1 + step-131-1 broken + step-131-2 placebo + step-131-3 real + step-132-1) — user install fatigue moderate. Trade-off vs correctness.
+
+### Notes
+
+- **Empirical validation trajectory across 3 baselines**: Baseline-14 (DG-130 A) → Baseline-15 (DG-131 A post-hotfixes) → Baseline-16 (DG-132 A). Total FASE III duration: 3 days (2026-07-03 to 2026-07-05) vs estimate 4-6 weeks. Velocity high due to incremental scope + strong empirical validation loops + institutional lesson learned reinforced.
+- `pnpm verify` VERDE: **70 test files / 894 tests / 3 skipped** + manifest gate + activation gate (9 commands + 15 subscriptions). Test growth from v0.3.17 (779 tests) to v0.3.22: **+115 tests** cumulative across all FASE III DGs (17 DG-130 A + 18 DG-131 A + 9 DG-132 A + others).
+- `vsce publish` to the VS Code Marketplace is **not** part of this release. The Marketplace listing remains on v0.3.3; **19 GitHub-only releases** now accumulate (v0.3.4 → v0.3.22) — new maximum skip range. To install in VS Code, download `synaptic-sentinel-0.3.22.vsix` from the GitHub Release and use `code --install-extension` or _Install from VSIX..._. Marketplace publish planned as a separate cycle (BYOK PAT + `vsce publish` stay user-side per project policy).
+- **Roadmap next**: FASE IV backlog attack. Priority candidates (empirically motivated): (a) R25 sidebar interactive chip filter (DG-132.0.1 reactive — completes Sub-A2 v2 promise from Baseline-16 user friction); (b) Better `agents.yaml` config validation error messages (help users discover their model/provider mismatch faster); (c) R21 SBOM export (SPDX / CycloneDX) for compliance workflows.
+
 ## [0.3.17] - 2026-07-01
 
 **Interaction Graph Layer (R18 v1) infrastructure + telemetry + critical TypeScript ESM resolver fix** (Cycle 111, DG-123 A + DG-123.0.1 + DG-123.0.2). Adds a file-level Interaction Graph to the Coordinator — every Finding in a supported language (TS/TSX/JS/Python) now carries `fileContext` (role + imports/importedBy) and `symbolContext` (top-level symbols) that the Brain Layer receives as part of the Triage prompt. Ships with Output-channel telemetry to observe the graph, plus a critical hotfix for the resolver that made it useful for TypeScript ESM projects (specifiers ending in `.js`).
