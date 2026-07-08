@@ -6119,5 +6119,63 @@ Each entry follows this structure:
 
 ---
 
+### Entry #196 — Post-FASE III Sub-A3 Phase 1 EXECUTION: GitHub Release v0.3.22 SHIPPED (user authorized), marketplace vsce publish + website deploy delegated user-side per BYOK
+
+```json
+{
+  "timestamp": "2026-07-08T19:20:00.000Z",
+  "cycle": 119,
+  "phase": 12,
+  "action": "RELEASE_SHIPPED_v0.3.22",
+  "details": {
+    "sub_a3_hybrid_phase_1_partial_execution": {
+      "title": "Sub-A3 Hybrid Phase 1 EXECUTION post user 'yes a todo' authorization. Action 1 (gh release create) executed by assistant via gh CLI (repo scope authenticated golab-arch). Actions 2 (marketplace vsce publish) + 3 (website deploy golab.cl) delegated user-side per BYOK protocol + GoLab infrastructure ownership. Phase 1 partial complete — release público visible + downloadable, Marketplace + website pending user-side execution.",
+      "scope": "Cycle 119 Sub-A3 Phase 1 execution partial. Assistant ejecutó 1 external action authorized. User-side actions (2+3) pending user execution. Post-completion → BITACORA Entry #197 con Marketplace URL + website deploy confirmation → Phase 2 FASE IV Decision Gate.",
+      "action_1_gh_release_create_EXECUTED": {
+        "status": "SHIPPED",
+        "release_url": "https://github.com/golab-arch/synaptic-sentinel/releases/tag/v0.3.22",
+        "release_title": "v0.3.22 — FASE III complete: trust cross-session",
+        "asset_name": "synaptic-sentinel-0.3.22-step-132-1.vsix",
+        "asset_sha256_verified": "3584fc17ed607b458c4a11f1fb50b98889a1ec71115bab67e71453c81484a0ca",
+        "asset_size_bytes": 4159806,
+        "asset_download_url": "https://github.com/golab-arch/synaptic-sentinel/releases/download/v0.3.22/synaptic-sentinel-0.3.22-step-132-1.vsix",
+        "published_at": "2026-07-08T19:14:35Z",
+        "notes_source": "packages/vscode-extension/RELEASE_NOTES_v0.3.22.md",
+        "gh_cli_auth": "golab-arch account con repo scope — assistant ejecutó vía Bash gh release create",
+        "sha256_verification_note": "El SHA-256 del asset uploaded matches el registrado en BITACORA Entry #193 (build time) — integrity preserved end-to-end sin corruption."
+      },
+      "action_2_marketplace_vsce_publish_DELEGATED_USER_SIDE": {
+        "status": "PENDING_USER_EXECUTION",
+        "reason": "BYOK PAT stays user-side per project policy. Assistant NO ejecuta credentials-required external actions.",
+        "user_commands_prepared": [
+          "cd d:/GoLAB/PROYECTOS/SENTINEL/packages/vscode-extension",
+          "pnpm exec vsce publish --packagePath synaptic-sentinel-0.3.22-step-132-1.vsix -p <YOUR_MARKETPLACE_PAT>"
+        ],
+        "expected_url_after_publish": "https://marketplace.visualstudio.com/items?itemName=RealGoLab.synaptic-sentinel",
+        "version_gap_closing": "Marketplace currently on 0.3.3 → will jump to 0.3.22 (19-version accumulated skip). Release notes v0.3.22 doc reference esta gap explicit para user transparency.",
+        "post_publish_action": "User confirma URL final + assistant registers Entry #197 con marketplacePublishedVersion 0.3.3 → 0.3.22 en session.json."
+      },
+      "action_3_website_deploy_golab_cl_DELEGATED_USER_SIDE": {
+        "status": "PENDING_USER_DEPLOYMENT",
+        "reason": "GoLab manages own golab.cl infrastructure. Assistant NO deploya external websites.",
+        "artifact_ready": "docs/WEBSITE_GOLAB_CL_v0.3.22.md",
+        "recommendation_default": "Option B (long-form product page ~1500 words) — includes empirical trajectory table + cost visibility example + honest tradeoffs. Alternativamente Option A (short landing card ~300 words) for family showcase card slot.",
+        "user_action": "User picks Option A o B (o both), paste al golab.cl CMS/deployment pipeline. Assistant confirma post-deploy URL final."
+      },
+      "empirical_verification_release_integrity_pre_delegated_actions": "Post-gh release create, assistant ejecutó gh release view v0.3.22 --json name,tagName,url,publishedAt,assets → verified: (a) release name matches expected; (b) tagName v0.3.22 correcto; (c) asset SHA-256 uploaded matches BITACORA #193 registered SHA (integrity end-to-end); (d) asset size 4159806 bytes matches build time size; (e) publishedAt timestamp captured. Zero corruption pre-marketplace publish. Users descargando desde el Release URL obtienen el mismo binary que testeamos empíricamente en Baselines 15+16.",
+      "anti_optimismo_ilusorio_activo_release_execution": "(1) **Assistant executed gh release create** — external-visible action affecting shared state. User authorized 'yes a todo'. Registered explicit en Entry #196 con full URL + SHA + timestamp para auditability. (2) **Marketplace publish delegated user-side** — BYOK PAT stays user-side. NO shortcuts para skip user step. Assistant NO manejo credentials. (3) **Website deploy delegated user-side** — GoLab manages own infrastructure. Assistant NO despliega external services. (4) **19-version marketplace gap disclosure honest** — release notes + website copy both mention gap explicit. Users transitioning desde marketplace-0.3.3 install verán jump grande — release notes describe. (5) **SHA-256 integrity end-to-end verified** — build time SHA (Entry #193) matches uploaded asset SHA (Entry #196). No supply chain gap. (6) **gh CLI auth check pre-execution** — `gh auth status` verified golab-arch con repo scope antes de release create. NO speculative execution. (7) **release notes formato Keep-a-Changelog** — may render slightly diferent en gh release page vs markdown viewer. Trade-off acceptable. (8) **Users who follow install instructions con Remove-Item wildcard** deben deshacer cache correctamente. Institutional lesson learned FASE III surfaced en install section. (9) **N=1 empirical claims cited multiple times** en release notes + website. Honesty over polish. (10) **FASE III hotfixes cascade narrative NO whitewashed** — placebo → real fix documented in release notes. Users see full trajectory, respect implied. (11) **Phase 2 FASE IV Decision Gate NOT auto-triggered** — pending user completion Actions 2+3, THEN Phase 2 present. Sequential integrity. (12) **BITACORA registro action-by-action** — Entry #196 solo Action 1 completed. Entry #197 será post-Actions 2+3 confirmation. NO batching que oculte partial state.",
+      "phase_status_partial_success_awaiting_delegated_actions": "Sub-A3 Hybrid Phase 1 EXECUTION 1/3 assistant-side complete + 2/3 delegated user-side pending. successfulCycles 118 unchanged (Phase 1 completion requires Actions 2+3 confirmation). Phase 2 FASE IV Decision Gate DEFERRED until Phase 1 complete confirmation.",
+      "next_step": "STOP esperando user confirmation de: (a) marketplace vsce publish executed + final URL confirmed; (b) website Option A o B deployed to golab.cl + final URL confirmed. Post-user-confirmation → BITACORA Entry #197 con marketplace + website URLs + session.json update marketplacePublishedVersion 0.3.3 → 0.3.22 + githubReleaseLatest v0.3.17 → v0.3.22. THEN Phase 2 FASE IV Decision Gate 3-option presentation.",
+      "commits_split": "docs(synaptic) commit con Entry #196 + session.json update githubReleaseLatest v0.3.17 → v0.3.22 + external_actions_status updates. NO codigo tocado (release documentation only)."
+    }
+  },
+  "outcome": "SUCCESS_PARTIAL_AWAITING_USER_ACTIONS",
+  "synapticStrength": 100,
+  "complianceScore": 100
+}
+```
+
+---
+
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-07-08T20:00:00.000Z*
+*Last Updated: 2026-07-08T19:20:00.000Z*
