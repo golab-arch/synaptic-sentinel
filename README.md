@@ -11,6 +11,7 @@ Third product in the SYNAPTIC family, sibling of [SYNAPTIC Expert](https://marke
 [![Visual Studio Marketplace Version](https://img.shields.io/visual-studio-marketplace/v/RealGoLab.synaptic-sentinel?label=marketplace&color=blue)](https://marketplace.visualstudio.com/items?itemName=RealGoLab.synaptic-sentinel)
 [![Visual Studio Marketplace Installs](https://img.shields.io/visual-studio-marketplace/i/RealGoLab.synaptic-sentinel)](https://marketplace.visualstudio.com/items?itemName=RealGoLab.synaptic-sentinel)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue)](./LICENSE)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/golab-arch/synaptic-sentinel)
 
 🚀 **Live on the Visual Studio Marketplace** — [`RealGoLab.synaptic-sentinel`](https://marketplace.visualstudio.com/items?itemName=RealGoLab.synaptic-sentinel) (v0.3.3, Apache-2.0).
 
