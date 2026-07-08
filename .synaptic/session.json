@@ -3,7 +3,7 @@
   "projectId": "sentinel-1779304140796",
   "projectName": "SENTINEL",
   "initializedAt": "2026-05-20T19:09:00.816Z",
-  "lastActivity": "2026-07-08T19:20:00.000Z",
+  "lastActivity": "2026-07-08T21:00:00.000Z",
   "currentCycle": 58,
   "currentPhase": 12,
   "synapticStrength": 100,
@@ -19,9 +19,12 @@
   "agentState": {
     "complianceScore": 100,
     "violationsCount": 0,
-    "successfulCycles": 118,
+    "successfulCycles": 119,
     "marketplacePublishedExtensionId": "RealGoLab.synaptic-sentinel",
-    "marketplacePublishedVersion": "0.3.3",
+    "marketplacePublishedVersion": "0.3.22",
+    "marketplacePublishedVersion_url": "https://marketplace.visualstudio.com/items?itemName=RealGoLab.synaptic-sentinel",
+    "marketplacePublishedVersion_user_confirmed_at": "2026-07-08T21:00:00.000Z",
+    "marketplacePublishedVersion_gap_closed": "0.3.3 → 0.3.22 (19-version accumulated skip closed en single publish)",
     "githubReleaseLatest": "v0.3.22",
     "githubReleaseLatest_url": "https://github.com/golab-arch/synaptic-sentinel/releases/tag/v0.3.22",
     "githubReleaseLatest_asset_sha256": "3584fc17ed607b458c4a11f1fb50b98889a1ec71115bab67e71453c81484a0ca",
@@ -54,11 +57,12 @@
     "predecessor_dgs_status": "DG-130 A Sub-A2 COMPLETED_VALIDATED_PASS_CATEGORICAL Baseline-14 (banner heurístico 3-path). DG-131 A Sub-A2 COMPLETED_VALIDATED_PASS_CATEGORICAL Baseline-15 post-hotfixes DG-131.0.1 placebo + DG-131.0.2 real (grouping + downgrade + rationale suffix + confidence-changed path #3 empirical).",
     "empirical_verification_pre_ship_dogfood": "Ran bundled CLI diff --path SYNAPTIC_SAAS via node dist/cli.mjs → 10 reclassified findings detectados ALL categorized as provider-changed (empirical evidence de cross-provider triage cycle histórico deepseek-v4-flash → deepseek-v4-pro). Structured JSON output validated: summary + reclassifiedByReason + arrays con reason + delta metrics + provider labels.",
     "acceptance_empirica_a_medir_baseline_16": "REINSTALL CLEAN wildcard 0.3.21 residual + install 0.3.22 step-132-1.vsix. SYNAPTIC_SAAS Re-triage all → terminal breakdown line + sidebar breakdown line matching. Run diff --json empíricamente + verify structured output. Run triage --fail-on-new-tp-critical 0 → exit 0 (no new critical TP con colony memory stable).",
-    "bitacora_entries": [183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196],
+    "bitacora_entries": [183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197],
     "post_fase_iii_roadmap": {
       "chosen_option": "Sub_A3_Hybrid",
       "chosen_at": "2026-07-08T19:30:00.000Z",
-      "phase_1_release_sprint_status": "PARTIAL_COMPLETE_ACTION_1_SHIPPED_ACTIONS_2_3_PENDING_USER",
+      "phase_1_release_sprint_status": "CLOSED_SUBSTANTIVE_2_of_3_EXECUTED_1_of_3_CHOSEN_DEFERRED_USER",
+      "phase_1_closed_at": "2026-07-08T21:00:00.000Z",
       "phase_1_action_1_gh_release_SHIPPED": {
         "shipped_at": "2026-07-08T19:14:35Z",
         "url": "https://github.com/golab-arch/synaptic-sentinel/releases/tag/v0.3.22",
@@ -69,22 +73,22 @@
         "asset_download_url": "https://github.com/golab-arch/synaptic-sentinel/releases/download/v0.3.22/synaptic-sentinel-0.3.22-step-132-1.vsix",
         "executed_by": "assistant via gh CLI (repo scope golab-arch account)"
       },
-      "phase_1_action_2_marketplace_vsce_publish_PENDING_USER": {
-        "status": "PENDING_USER_EXECUTION_LOCAL_SHELL",
-        "reason": "BYOK PAT credentials stay user-side per project policy",
-        "user_command_sequence": [
-          "cd d:/GoLAB/PROYECTOS/SENTINEL/packages/vscode-extension",
-          "pnpm exec vsce publish --packagePath synaptic-sentinel-0.3.22-step-132-1.vsix -p <YOUR_MARKETPLACE_PAT>"
-        ],
-        "expected_url_after_publish": "https://marketplace.visualstudio.com/items?itemName=RealGoLab.synaptic-sentinel"
+      "phase_1_action_2_marketplace_vsce_publish_USER_CONFIRMED": {
+        "status": "USER_CONFIRMED_EXECUTED",
+        "user_confirmed_at": "2026-07-08T21:00:00.000Z",
+        "marketplace_url": "https://marketplace.visualstudio.com/items?itemName=RealGoLab.synaptic-sentinel",
+        "version_jump_closed": "0.3.3 → 0.3.22 (19-version accumulated skip)",
+        "empirical_cross_verification_note": "Assistant attempted node fetch Marketplace API pero user interrupted validation con 'tranquilo, ya lo he publicado'. Trust user confirmation. Full audit trail via github release SHA-256 immutable."
       },
-      "phase_1_action_3_website_deploy_golab_cl_PENDING_USER": {
-        "status": "PENDING_USER_DEPLOYMENT",
-        "reason": "GoLab manages own golab.cl infrastructure",
+      "phase_1_action_3_website_deploy_golab_cl_CHOSEN_DEFERRED_USER": {
+        "status": "USER_CHOSE_OPTION_B_DEFERRED_TO_LATER",
+        "option_chosen": "Option B long-form product page ~1500 words",
+        "user_message": "'vamos con la Opcion B ... la web lo veo mas tarde'",
         "artifact_ready": "docs/WEBSITE_GOLAB_CL_v0.3.22.md",
-        "recommendation_default": "Option B long-form product page ~1500 words for detailed product page slot"
+        "deferred_reason": "User's later action — no bloquea Phase 2 FASE IV",
+        "url_pending": "Registered when user deploys and shares final URL"
       },
-      "phase_2_fase_iv_decision_gate_status": "PENDING_POST_PHASE_1_ACTIONS_2_3_COMPLETION",
+      "phase_2_fase_iv_decision_gate_status": "READY_FOR_PRESENTATION",
       "phase_2_backlog_priority_candidates": [
         "R25 sidebar interactive chip filter (DG-132.0.1 reactive — completes Sub-A2 v2 promise from Baseline-16 friction)",
         "agents.yaml config validation better error messages (help discover model/provider mismatch faster — 46-call 404 cascade documented since Baseline-13)",
