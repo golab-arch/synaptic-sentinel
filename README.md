@@ -4,7 +4,7 @@
 
 **SYNAPTIC Sentinel** audits a project **inside the client's perimeter** — your code never leaves your machine — and produces inline findings for the developer plus an audit _tome_ (evidence package) for compliance and CI.
 
-Third product in the SYNAPTIC family, sibling of [SYNAPTIC Expert](https://marketplace.visualstudio.com/items?itemName=GoLab.synaptic-expert).
+Third product in the SYNAPTIC family, sibling of [SYNAPTIC Expert](https://marketplace.visualstudio.com/items?itemName=RealGoLab.synaptic-expert).
 
 ## Status
 
