@@ -3,7 +3,7 @@
   "projectId": "sentinel-1779304140796",
   "projectName": "SENTINEL",
   "initializedAt": "2026-05-20T19:09:00.816Z",
-  "lastActivity": "2026-07-08T22:00:00.000Z",
+  "lastActivity": "2026-07-08T23:05:00.000Z",
   "currentCycle": 58,
   "currentPhase": 12,
   "synapticStrength": 100,
@@ -57,7 +57,7 @@
     "predecessor_dgs_status": "DG-130 A Sub-A2 COMPLETED_VALIDATED_PASS_CATEGORICAL Baseline-14 (banner heurístico 3-path). DG-131 A Sub-A2 COMPLETED_VALIDATED_PASS_CATEGORICAL Baseline-15 post-hotfixes DG-131.0.1 placebo + DG-131.0.2 real (grouping + downgrade + rationale suffix + confidence-changed path #3 empirical).",
     "empirical_verification_pre_ship_dogfood": "Ran bundled CLI diff --path SYNAPTIC_SAAS via node dist/cli.mjs → 10 reclassified findings detectados ALL categorized as provider-changed (empirical evidence de cross-provider triage cycle histórico deepseek-v4-flash → deepseek-v4-pro). Structured JSON output validated: summary + reclassifiedByReason + arrays con reason + delta metrics + provider labels.",
     "acceptance_empirica_a_medir_baseline_16": "REINSTALL CLEAN wildcard 0.3.21 residual + install 0.3.22 step-132-1.vsix. SYNAPTIC_SAAS Re-triage all → terminal breakdown line + sidebar breakdown line matching. Run diff --json empíricamente + verify structured output. Run triage --fail-on-new-tp-critical 0 → exit 0 (no new critical TP con colony memory stable).",
-    "bitacora_entries": [183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199],
+    "bitacora_entries": [183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201],
     "parenthesis_history": {
       "chema_alonso_marketing_content": {
         "started_at": "2026-07-08T21:30:00.000Z",
@@ -73,11 +73,18 @@
       }
     },
     "phase_2_fase_iv_state": {
-      "status": "ACTIVE_CYCLE_120_OPEN",
+      "status": "CYCLE_120_DG133A_SHIPPED_PENDING_BASELINE_17",
       "resumed_at": "2026-07-08T22:00:00.000Z",
       "user_selected_candidate": "A",
-      "active_dg_pending_technical_presentation": "DG-133 A — R25 sidebar interactive chip filter",
-      "assistant_pre_technical_recommendation": "Sub-A2 Balanced (5 chips + reclassified sub-chips)"
+      "dg_133_a_shipped_at": "2026-07-08T23:05:00.000Z",
+      "dg_133_a_sub_option_chosen": "Sub-A2 Balanced",
+      "dg_133_a_vsix_capture": "synaptic-sentinel-0.3.23-step-133-1.vsix (SHA-256 b0fb86817d3028911ea5ba655a3ca8abd4c73b9558b831a6b3d0d40c84f6e2d0)",
+      "dg_133_a_deliverables_summary": "Sidebar interactive chip filter con 5 base chips (new/reclassified/unchanged/grouped/untriaged) + reclassified sub-chips (class/confidence/provider) + × clear reset button + count badges matching scanDiff.reclassifiedByReason. Zero backend changes — data-diff-status + data-grouped attributes computed en render + JS filter puro DOM visibility. 14 tests DG-133 A nuevos (908 total). Version bump 0.3.22 → 0.3.23.",
+      "acceptance_empirica_a_medir_baseline_17": "REINSTALL CLEAN + Baseline-17 SYNAPTIC_SAAS: chip row emit + 5 base chips + count badges accurate + click [reclassified]+[confidence] override parent filter + [grouped] AND filter + × clear reset + section h3.section auto-hide + light + dark theme integration OK.",
+      "cycle_121_next_dg_candidates": {
+        "B_agents_yaml_validation": "DG-134 A agents.yaml config validation better error messages (82% highest confidence) — 46-call 404 cascade fix documented desde Baseline-13",
+        "C_sbom_export": "DG-134 A R21 SBOM export SPDX/CycloneDX (65% confidence) — compliance value speculative"
+      }
     },
     "post_fase_iii_roadmap": {
       "chosen_option": "Sub_A3_Hybrid",

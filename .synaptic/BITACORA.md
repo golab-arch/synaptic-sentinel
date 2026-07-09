@@ -6322,5 +6322,79 @@ Each entry follows this structure:
 
 ---
 
+### Entry #200 — DG-133 A Sub-A2 (Cycle 120 FASE IV R25) FEATURE_IMPLEMENTED: sidebar interactive chip filter con 5 base chips + reclassified sub-chips + AND semantics + reset button + count badges
+
+```json
+{
+  "timestamp": "2026-07-08T23:00:00.000Z",
+  "cycle": 120,
+  "phase": 12,
+  "action": "FEATURE_IMPLEMENTED",
+  "details": {
+    "DG_133_A_Sub_A2": {
+      "title": "Primer DG de FASE IV completa el Sub-A2 v2 promise diferido en DG-132.0.1 reactive. Sidebar chip filter interactivo empíricamente motivado por Baseline-16 friction observado (44 findings scroll sin filter). Sub-A2 Balanced RECOMENDADA + IMPLEMENTADA per user 'vamos con sub-A2': (a) computeDiffStatus helper deriva status desde previouslyVerdicts sin backend changes; (b) computeChipCounts agregación cross-mixed findings + grouped orthogonal; (c) renderChipFilter con 5 base chips (new/reclassified/unchanged/grouped/untriaged) + reclassified sub-chips (class/confidence/provider) + × clear reset button + chip count badges matching scanDiff.reclassifiedByReason numbers; (d) JS filter state Set<string> + AND semantics + sub-chip override parent + section header visibility auto-hide vacías; (e) CSS .chip + [data-active] + .chip-count styling con VS Code theme variables. Zero backend changes — data-diff-status + data-grouped attributes computed one-shot en render, JS filter puro DOM visibility toggle.",
+      "scope": "Cycle 120 FASE IV Sub-A2 primer DG. Estimate 8-10 horas plan, real ~2 horas por reuso pattern DG-132 A (schema + tests + build + BITACORA + guide). Zero code churn en backend — solo webview-content.ts + tests.",
+      "empirical_motivation_baseline_16_friction": "Baseline-16 empíricamente mostró sidebar sin chip filter forced scroll de 44 findings post-Re-triage all. User workflow: (a) 33 TP + 10 INC + 1 FP total 44; (b) 9 confidence-changed reclassifications de interés; (c) user wants aislar those 9 findings pero debe scroll 44 cards. Chip filter solves: click [reclassified] + [confidence] → 9 findings visible en 2 clicks. CLI synaptic-sentinel diff --json era escape hatch programático pero no UX interactivo. DG-133 A completes Sub-A2 v2 UX promise.",
+      "deliverable_helpers_diff_status_computation": "packages/vscode-extension/src/webview-content.ts nuevos exports: computeDiffStatus(finding, confidenceDeltaThreshold=0.15) retorna 'new'|'reclassified-class'|'reclassified-provider'|'reclassified-confidence'|'unchanged'|'untriaged'. Precedencia matches DG-132 A CLI logic (class > provider > confidence). computeChipCounts(findings) agrega counts cross-categories con grouped orthogonal boolean. ChipCounts interface exportado.",
+      "deliverable_renderChipFilter_wire": "renderChipFilter helper emit chip row cuando hay actividad diff (new + reclassified + unchanged > 0 OR grouped > 0). Chip row estructura: (a) × clear button hidden by default; (b) 5 base chips new/reclassified/unchanged/grouped/untriaged con count badges; (c) chip-subrow reclassified con 3 sub-chips class/confidence/provider hidden by default. renderSummary signature extended con chipCounts?: ChipCounts opcional. renderTomoWebviewHtml compute chipCounts one-shot desde findings array.",
+      "deliverable_data_attributes_finding_card": "renderCard extended con data-diff-status + data-grouped attributes en el <div class=\"finding\">. Computed one-shot via computeDiffStatus + finding.groupId presence. JS filter usa estos para show/hide sin re-render.",
+      "deliverable_js_filter_state_management": "Script extended con activeChips Set<string> + isVisible(el) function + updateSectionVisibility() + applyFilter() + chip click handler. Semantics: activeChips.size === 0 default show all. anySubActive() checks if any reclassified sub-chip active. anyDiffActive() checks diff-status OR sub-chip. grouped chip AND filter orthogonal. Sub-chips OVERRIDE parent reclassified chip cuando active (más específico wins). Section h3.section hidden auto cuando ningún child visible.",
+      "deliverable_css_styling": "CSS .chip-row + .chip-subrow + .chip-sub-label + .chip + .chip:hover + .chip[data-active] + .chip .chip-count + .chip.chip-clear + .chip.chip-clear:hover + .chip.chip-reclassified[data-active] + .chip.chip-grouped[data-active] + .chip.chip-sub + .finding[hidden] + h3.section[hidden]. VS Code theme variables (--vscode-badge-background, --vscode-button-*, --vscode-panel-border, --vscode-editorWarning-foreground) para consistencia con VS Code UI + graceful fallbacks.",
+      "deliverable_tests_14_nuevos": "packages/vscode-extension/tests/webview-content.test.ts +14 tests DG-133 A: 6 tests computeDiffStatus (untriaged, new, reclassified-class con precedence, reclassified-provider, reclassified-confidence delta ≥ 0.15, unchanged delta < 0.15), 2 tests computeChipCounts (mixed 6 findings covering all statuses + grouped orthogonal, empty array), 6 tests renderTomoWebviewHtml chip filter rendering (chip row emit cuando actividad diff, data-diff-status + data-grouped attributes en finding card, untriaged + no-groupId → attributes correct, chip count badges matching numbers exactos, NO chip row cuando todos untriaged sin actividad filter, CSS + JS chip filter present en HTML output). Bug empírico fix: 'hasFilterableActivity' condition — chip row solo aparece cuando hay findings CON history (new/reclassified/unchanged > 0) O grouped > 0. Untriaged only + no grouped → no chip row (no utility filter). Total tests 894 → 908 (+14).",
+      "tests_existentes_NO_se_rompen": "pnpm verify VERDE end-to-end: format:check + lint + tsc -b + 908 tests / 3 skipped / 70 test files + verify-extension-activate + verify-manifest. Prettier auto-fix a 6 files (docs prep for Chema Alonso + webview-content.ts). Zero regression tests DG-130/131/132 A.",
+      "acceptance_empirica_a_medir_baseline_17": "REINSTALL CLEAN wildcard + install 0.3.23 step-133-1.vsix + SYNAPTIC_SAAS Baseline-17. CRÍTICO 1: sidebar debe mostrar chip row post-scan+triage con 5 base chips + count badges matching scanDiff.reclassifiedByReason numbers (9 confidence en el estado Baseline-16 current). CRÍTICO 2: click [reclassified] → sub-chip row aparece + sección summary line matching. CRÍTICO 3: click [reclassified] + [confidence] → sub-chip override parent, filter to only reclassified-confidence findings. CRÍTICO 4: click [grouped] → AND filter shows only grouped findings. CRÍTICO 5: × clear button aparece cuando ≥ 1 chip activa + click reset. CRÍTICO 6: section headers h3.section auto-hide cuando ningún finding visible en esa section.",
+      "anti_optimismo_ilusorio_activo": "(1) **Zero backend changes** — data-diff-status + data-grouped computed en render sin backend round-trip. Ventaja: no schema migration risk (post DG-131.0.2 institutional trauma). Trade-off: no filter persistence cross-session (deferred Sub-A3). (2) **CSS performance en workspaces 500+ findings NO empirically tested** — attribute selectors typically fine <500 findings. Sub-DG DG-133.0.1 reactive si lag. (3) **JS state Set<string> minimal** — no debounce needed dado single-user click cadence. (4) **Sub-chip override parent semantic** puede confundir users que activan [reclassified] + [reclassified-class] esperando OR semantics. Trade-off vs simpler filter model. Tooltips describen behavior. (5) **Chip row solo aparece cuando hasFilterableActivity** — findings all-untriaged NO chip row. Semantic correcto (filter no útil) pero puede sorprender user Baseline-17. Documentar en release notes v0.3.23. (6) **Section auto-hide** cuando no children visible → may confuse users si expected to always see empty section header. Trade-off vs cleaner filtered view. Aceptable. (7) **Chip count badges show absolute numbers** — no percentages. Trade-off vs additional cognitive load. Matches breakdown line format. (8) **Reset button hidden by default** hasta ≥ 1 chip activa — reduces visual noise but users may not discover feature. Tooltip helps. (9) **Reclassified sub-chip precedence** class > confidence > provider matches CLI logic — consistent user model cross-features. (10) **Baseline-17 en SYNAPTIC_SAAS 44 findings only sample** — extrapolation a workspaces con 500+ findings pendiente empirical demand. Sub-DG DG-133.0.1 reactive.",
+      "phase_status_fase_iv_progress_1_de_N": "**FASE IV 'trust cross-session UX polish' PROGRESS Cycle 120** — 1/N DGs shipped pending Baseline-17. successfulCycles 119 pending → 120 post-Baseline-17 PASS. step-133-1.vsix (0.3.23) es primer capture de FASE IV. Roadmap Opción A + FASE III + Sub-A3 Phase 1 released + Sub-A3 Phase 2 (backlog remaining) attack via DG-133 A first item.",
+      "next_step": "ARTIFACT_BUILT Entry #201 (siguiente). Después STOP esperando user reinstall CLEAN + install 0.3.23 step-133-1.vsix + Baseline-17. Empíricamente medir: (a) chip row emit; (b) count badges accurate; (c) filter interactions AND semantics work; (d) sub-chip override parent; (e) grouped AND filter; (f) × clear reset; (g) section auto-hide; (h) VS Code theme integration (light + dark themes).",
+      "commits_split": "feat(vscode-extension) commit con webview-content.ts helpers + JS filter + CSS + data attributes + 14 tests + version bump 0.3.23. docs(synaptic) commit con Entries #200 + #201 + session update."
+    }
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 100,
+  "complianceScore": 100
+}
+```
+
+---
+
+### Entry #201 — DG-133 A follow-up: ARTIFACT_BUILT synaptic-sentinel-0.3.23-step-133-1.vsix — Sub-A2 chip filter para Baseline-17 (primer DG FASE IV Cycle 120)
+
+```json
+{
+  "timestamp": "2026-07-08T23:05:00.000Z",
+  "cycle": 120,
+  "phase": 12,
+  "action": "ARTIFACT_BUILT",
+  "details": {
+    "DG_133_A_vsix": {
+      "title": "step-133-1.vsix — primer capture .vsix de FASE IV con DG-133 A Sub-A2 implementation (sidebar interactive chip filter 5 base chips + reclassified sub-chips + AND semantics + reset button + count badges). Version bump 0.3.22 → 0.3.23. Ready para Baseline-17 empirical validation post reinstall CLEAN.",
+      "scope": "Cycle 120 primer artifact FASE IV. Build post pnpm verify VERDE end-to-end + prettier auto-fix.",
+      "build_info": {
+        "vsix_name": "synaptic-sentinel-0.3.23-step-133-1.vsix",
+        "vsix_path": "packages/vscode-extension/synaptic-sentinel-0.3.23-step-133-1.vsix",
+        "size_bytes_approx": 4173000,
+        "size_mb": 3.98,
+        "files_count": 1850,
+        "sha256": "b0fb86817d3028911ea5ba655a3ca8abd4c73b9558b831a6b3d0d40c84f6e2d0",
+        "cli_mjs_size_kb": 548.3,
+        "extension_cjs_size_delta_vs_0322": "~+4KB (CSS chip styling + JS filter state management + helpers)"
+      },
+      "acceptance_local_pre_baseline_17": "pnpm verify VERDE end-to-end: format:check + lint + tsc -b + 908 tests / 3 skipped / 70 test files + verify-extension-activate 9 commands + 15 subs + verify-manifest 18 checks.",
+      "install_instructions_baseline_17": "Guía nivel 101 usuario Windows: (1) Cerrar TODAS las ventanas VSCode; (2) Task Manager → End Task → Code.exe; (3) Remove-Item -Recurse -Force $env:USERPROFILE\\.vscode\\extensions\\realgolab.synaptic-sentinel-*; (4) Verificar folder vacío; (5) Abrir VSCode → Ctrl+Shift+X → '...' → Install from VSIX → step-133-1.vsix; (6) Reload window; (7) Verificar único install 0.3.23; (8) Abrir SYNAPTIC_SAAS + observar chip row en summary card + click chips + verify AND semantics.",
+      "empirical_test_matrix_baseline_17": "(A) SENTINEL regression scan intacto. (B) SYNAPTIC_SAAS scan + refresh sidebar: chip row visible con 5 base chips + count badges. (C) Click [reclassified] → sub-chip row aparece + findings filtered a solo reclassified. (D) Click [reclassified] + [confidence] → sub-chip override parent, filter to only 9 reclassified-confidence findings (matching scanDiff.reclassifiedByReason.confidenceDelta). (E) Click [grouped] → AND filter con activa diff-status chip. (F) × clear button aparece + click reset all filters + return default show all. (G) Section h3.section auto-hide cuando ningún finding visible. (H) Light + Dark theme integration OK con VS Code variables.",
+      "anti_optimismo_pre_baseline_17": "(1) CSS performance en workspaces 500+ findings NO empirically tested. (2) JS state edge cases (rapid multi-click chips durante DOM update) NO empirically stressed. (3) Section auto-hide may sorprender users. (4) Sub-chip override parent semantic requires user learning. (5) Chip count badges show absolute numbers no percentages. (6) Reset button hidden by default reduces discoverability. (7) N=1 sample cross-workspace pendiente. (8) VS Code theme integration light + dark ambos NO empirically stressed. (9) Baseline-17 solo puede validar UX en SYNAPTIC_SAAS 44 findings — enterprise workspaces 500+ deferred. (10) Chip filter no persiste cross-webview reload (session-only) — trade-off DG-133 A Sub-A2 vs Sub-A3.",
+      "phase_status": "Cycle 120 FASE IV primer DG shipped pending Baseline-17. Post-PASS → successfulCycles 119 → 120 + FASE IV Cycle 121 next DG.",
+      "next_step": "STOP esperando user reinstall CLEAN + Baseline-17. Post-PASS → Entry #202 CLASSIFIED PASS + Phase 3 FASE IV Cycle 121 next DG Decision Gate (Candidate B agents.yaml validation o Candidate C SBOM export).",
+      "commits_split": "feat(vscode-extension) commit del código DG-133 A. docs(synaptic) commit con Entries #200 + #201 + session update."
+    }
+  },
+  "outcome": "SUCCESS",
+  "synapticStrength": 100,
+  "complianceScore": 100
+}
+```
+
+---
+
 *SYNAPTIC Protocol v3.0 - Continuous Logging Active*
-*Last Updated: 2026-07-08T22:00:00.000Z*
+*Last Updated: 2026-07-08T23:05:00.000Z*
