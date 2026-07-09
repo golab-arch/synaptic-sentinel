@@ -66,13 +66,13 @@ The FASE III release focuses on a single principle: **cross-provider triage vari
 
 Same finding (`fast-xml-parser CVE-2026-41650`, same code, same lockfile) across 5 scans and 2 providers:
 
-| Scan   | Provider              | Verdict      | Confidence |
-| ------ | --------------------- | ------------ | ---------- |
-| 1st    | deepseek/v4-flash     | Inconclusive | 0.50       |
-| 2nd    | deepseek/v4-flash     | Inconclusive | 1.00       |
-| 3rd    | deepseek/v4-flash     | Inconclusive | 0.90       |
-| 4th    | deepseek/v4-pro       | Inconclusive | 1.00       |
-| 5th    | deepseek/v4-pro       | Inconclusive | 0.00       |
+| Scan | Provider          | Verdict      | Confidence |
+| ---- | ----------------- | ------------ | ---------- |
+| 1st  | deepseek/v4-flash | Inconclusive | 0.50       |
+| 2nd  | deepseek/v4-flash | Inconclusive | 1.00       |
+| 3rd  | deepseek/v4-flash | Inconclusive | 0.90       |
+| 4th  | deepseek/v4-pro   | Inconclusive | 1.00       |
+| 5th  | deepseek/v4-pro   | Inconclusive | 0.00       |
 
 Before v0.3.22 this drift would be invisible — the sidebar would show only the latest verdict. After v0.3.22, the trajectory + reason for each shift is one click away. **Trust cross-session is a measurable UX property, not a slogan.**
 

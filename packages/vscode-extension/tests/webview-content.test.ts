@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
+  computeChipCounts,
+  computeDiffStatus,
   escapeHtml,
   formatLastSessionAt,
   groupByTriageState,
@@ -1267,5 +1269,355 @@ describe('renderTomoWebviewHtml — DG-131 A Sub-A2 (group badge)', () => {
     expect(html).toContain('grouped-member');
     expect(html).toContain('>GROUPED<');
     expect(html).toContain('Group member');
+  });
+});
+
+/**
+ * DG-133 A Sub-A2 (Cycle 120 FASE IV R25): sidebar chip filter interactivo.
+ * Tests unit para computeDiffStatus + computeChipCounts + chip render logic
+ * y AND semantics via HTML output.
+ */
+describe('computeDiffStatus — DG-133 A', () => {
+  it('sin previouslyVerdicts → untriaged', () => {
+    expect(computeDiffStatus(makeFinding())).toBe('untriaged');
+  });
+
+  it('history length 1 → new', () => {
+    const finding = makeFinding({
+      previouslyVerdicts: [
+        {
+          classification: 'true_positive',
+          confidence: 0.9,
+          rationale: 'r',
+          providerLabel: 'deepseek/v4-flash',
+          createdAt: '2026-07-05T00:00:00.000Z',
+        },
+      ],
+    });
+    expect(computeDiffStatus(finding)).toBe('new');
+  });
+
+  it('class changed → reclassified-class (highest precedence)', () => {
+    const finding = makeFinding({
+      previouslyVerdicts: [
+        {
+          classification: 'false_positive',
+          confidence: 0.5,
+          rationale: 'r',
+          providerLabel: 'anthropic/y',
+          createdAt: '2026-07-05T02:00:00.000Z',
+        },
+        {
+          classification: 'true_positive',
+          confidence: 0.9,
+          rationale: 'r',
+          providerLabel: 'deepseek/x',
+          createdAt: '2026-07-04T00:00:00.000Z',
+        },
+      ],
+    });
+    // provider ALSO changed + confidence delta 0.4, but class wins precedence
+    expect(computeDiffStatus(finding)).toBe('reclassified-class');
+  });
+
+  it('provider changed (same class) → reclassified-provider', () => {
+    const finding = makeFinding({
+      previouslyVerdicts: [
+        {
+          classification: 'true_positive',
+          confidence: 0.9,
+          rationale: 'r',
+          providerLabel: 'anthropic/y',
+          createdAt: '2026-07-05T02:00:00.000Z',
+        },
+        {
+          classification: 'true_positive',
+          confidence: 0.9,
+          rationale: 'r',
+          providerLabel: 'deepseek/x',
+          createdAt: '2026-07-04T00:00:00.000Z',
+        },
+      ],
+    });
+    expect(computeDiffStatus(finding)).toBe('reclassified-provider');
+  });
+
+  it('confidence delta ≥ threshold (same class + provider) → reclassified-confidence', () => {
+    const finding = makeFinding({
+      previouslyVerdicts: [
+        {
+          classification: 'inconclusive',
+          confidence: 0.6,
+          rationale: 'r',
+          providerLabel: 'deepseek/x',
+          createdAt: '2026-07-05T00:00:00.000Z',
+        },
+        {
+          classification: 'inconclusive',
+          confidence: 0.9,
+          rationale: 'r',
+          providerLabel: 'deepseek/x',
+          createdAt: '2026-07-04T00:00:00.000Z',
+        },
+      ],
+    });
+    // Delta 0.30 ≥ 0.15 default
+    expect(computeDiffStatus(finding)).toBe('reclassified-confidence');
+  });
+
+  it('confidence delta < threshold → unchanged', () => {
+    const finding = makeFinding({
+      previouslyVerdicts: [
+        {
+          classification: 'inconclusive',
+          confidence: 0.9,
+          rationale: 'r',
+          providerLabel: 'deepseek/x',
+          createdAt: '2026-07-05T00:00:00.000Z',
+        },
+        {
+          classification: 'inconclusive',
+          confidence: 0.85,
+          rationale: 'r',
+          providerLabel: 'deepseek/x',
+          createdAt: '2026-07-04T00:00:00.000Z',
+        },
+      ],
+    });
+    // Delta 0.05 < 0.15
+    expect(computeDiffStatus(finding)).toBe('unchanged');
+  });
+});
+
+describe('computeChipCounts — DG-133 A', () => {
+  it('agrega correctamente cross-mixed findings + grouped orthogonal', () => {
+    const rec = (
+      classification: string,
+      confidence: number,
+      provider: string,
+      when: string,
+    ): {
+      classification: string;
+      confidence: number;
+      rationale: string;
+      providerLabel: string;
+      createdAt: string;
+    } => ({
+      classification,
+      confidence,
+      rationale: 'r',
+      providerLabel: provider,
+      createdAt: when,
+    });
+    const findings: ExtensionFinding[] = [
+      // 1 untriaged
+      makeFinding({ fingerprint: 'fp-u1' }),
+      // 1 new + grouped
+      makeFinding({
+        fingerprint: 'fp-n1',
+        groupId: 'g-1',
+        previouslyVerdicts: [rec('true_positive', 0.9, 'x', '2026-07-05T00:00:00.000Z')],
+      }),
+      // 1 reclassified-class + grouped
+      makeFinding({
+        fingerprint: 'fp-c1',
+        groupId: 'g-2',
+        previouslyVerdicts: [
+          rec('false_positive', 0.9, 'x', '2026-07-05T02:00:00.000Z'),
+          rec('true_positive', 0.9, 'x', '2026-07-04T00:00:00.000Z'),
+        ],
+      }),
+      // 1 reclassified-confidence
+      makeFinding({
+        fingerprint: 'fp-conf1',
+        previouslyVerdicts: [
+          rec('inconclusive', 0.6, 'x', '2026-07-05T02:00:00.000Z'),
+          rec('inconclusive', 0.9, 'x', '2026-07-04T00:00:00.000Z'),
+        ],
+      }),
+      // 1 reclassified-provider + grouped
+      makeFinding({
+        fingerprint: 'fp-prov1',
+        groupId: 'g-3',
+        previouslyVerdicts: [
+          rec('inconclusive', 0.8, 'y', '2026-07-05T02:00:00.000Z'),
+          rec('inconclusive', 0.8, 'x', '2026-07-04T00:00:00.000Z'),
+        ],
+      }),
+      // 1 unchanged
+      makeFinding({
+        fingerprint: 'fp-u2',
+        previouslyVerdicts: [
+          rec('true_positive', 0.9, 'x', '2026-07-05T02:00:00.000Z'),
+          rec('true_positive', 0.9, 'x', '2026-07-04T00:00:00.000Z'),
+        ],
+      }),
+    ];
+    const counts = computeChipCounts(findings);
+    expect(counts.new).toBe(1);
+    expect(counts.reclassifiedClass).toBe(1);
+    expect(counts.reclassifiedConfidence).toBe(1);
+    expect(counts.reclassifiedProvider).toBe(1);
+    expect(counts.reclassifiedTotal).toBe(3);
+    expect(counts.unchanged).toBe(1);
+    expect(counts.untriaged).toBe(1);
+    // Grouped orthogonal: 3 findings (fp-n1, fp-c1, fp-prov1)
+    expect(counts.grouped).toBe(3);
+  });
+
+  it('array vacío devuelve counts ceros', () => {
+    const counts = computeChipCounts([]);
+    expect(counts.new).toBe(0);
+    expect(counts.reclassifiedTotal).toBe(0);
+    expect(counts.unchanged).toBe(0);
+    expect(counts.grouped).toBe(0);
+    expect(counts.untriaged).toBe(0);
+  });
+});
+
+describe('renderTomoWebviewHtml — DG-133 A chip filter rendering', () => {
+  it('emite chip row cuando hay actividad diff (findings con history)', () => {
+    const finding = makeFinding({
+      triage: { classification: 'true_positive', confidence: 0.9, rationale: 'r' },
+      previouslyVerdicts: [
+        {
+          classification: 'true_positive',
+          confidence: 0.9,
+          rationale: 'r',
+          providerLabel: 'deepseek/x',
+          createdAt: '2026-07-05T00:00:00.000Z',
+        },
+      ],
+    });
+    const html = renderTomoWebviewHtml([finding], opts);
+    // chip row present
+    expect(html).toContain('class="chip-row"');
+    // Base chips render con count badges
+    expect(html).toContain('data-chip="new"');
+    expect(html).toContain('data-chip="reclassified"');
+    expect(html).toContain('data-chip="unchanged"');
+    expect(html).toContain('data-chip="grouped"');
+    expect(html).toContain('data-chip="untriaged"');
+    // Sub-chip row hidden by default
+    expect(html).toContain('chip-subrow');
+    expect(html).toContain('data-chip="reclassified-class"');
+    expect(html).toContain('data-chip="reclassified-confidence"');
+    expect(html).toContain('data-chip="reclassified-provider"');
+    // Clear button hidden by default
+    expect(html).toContain('data-chip="clear"');
+  });
+
+  it('finding card lleva data-diff-status + data-grouped attributes', () => {
+    const finding = makeFinding({
+      groupId: 'g-1',
+      isGroupRepresentative: true,
+      triage: { classification: 'true_positive', confidence: 0.9, rationale: 'r' },
+      previouslyVerdicts: [
+        {
+          classification: 'true_positive',
+          confidence: 0.9,
+          rationale: 'r',
+          providerLabel: 'deepseek/x',
+          createdAt: '2026-07-05T00:00:00.000Z',
+        },
+      ],
+    });
+    const html = renderTomoWebviewHtml([finding], opts);
+    // data-diff-status="new" (history.length === 1)
+    expect(html).toContain('data-diff-status="new"');
+    // data-grouped="true" (groupId presente)
+    expect(html).toContain('data-grouped="true"');
+  });
+
+  it('finding SIN previouslyVerdicts + SIN groupId → data-diff-status="untriaged" + data-grouped="false"', () => {
+    const finding = makeFinding({
+      triage: { classification: 'true_positive', confidence: 0.9, rationale: 'r' },
+    });
+    const html = renderTomoWebviewHtml([finding], opts);
+    expect(html).toContain('data-diff-status="untriaged"');
+    expect(html).toContain('data-grouped="false"');
+  });
+
+  it('chip filter row emite chip-count badges con conteos correctos', () => {
+    const rec = (
+      classification: string,
+      confidence: number,
+      provider: string,
+      when: string,
+    ): {
+      classification: string;
+      confidence: number;
+      rationale: string;
+      providerLabel: string;
+      createdAt: string;
+    } => ({
+      classification,
+      confidence,
+      rationale: 'r',
+      providerLabel: provider,
+      createdAt: when,
+    });
+    const findings: ExtensionFinding[] = [
+      makeFinding({
+        fingerprint: 'fp-n',
+        previouslyVerdicts: [rec('true_positive', 0.9, 'x', '2026-07-05T00:00:00.000Z')],
+      }),
+      makeFinding({
+        fingerprint: 'fp-c1',
+        previouslyVerdicts: [
+          rec('inconclusive', 0.6, 'x', '2026-07-05T02:00:00.000Z'),
+          rec('inconclusive', 0.9, 'x', '2026-07-04T00:00:00.000Z'),
+        ],
+      }),
+      makeFinding({
+        fingerprint: 'fp-c2',
+        previouslyVerdicts: [
+          rec('inconclusive', 0.5, 'x', '2026-07-05T02:00:00.000Z'),
+          rec('inconclusive', 0.9, 'x', '2026-07-04T00:00:00.000Z'),
+        ],
+      }),
+    ];
+    const html = renderTomoWebviewHtml(findings, opts);
+    // Verify chip count badges exist con numbers matching counts
+    // new: 1, reclassified-confidence: 2 (aggregate reclassified: 2)
+    expect(html).toMatch(/data-chip="new"[^>]*>new<span class="chip-count">1</);
+    expect(html).toMatch(/data-chip="reclassified"[^>]*>reclassified<span class="chip-count">2</);
+    expect(html).toMatch(
+      /data-chip="reclassified-confidence"[^>]*>confidence<span class="chip-count">2</,
+    );
+  });
+
+  it('NO emite chip row cuando todos los findings son untriaged (sin actividad diff)', () => {
+    const finding = makeFinding({
+      triage: { classification: 'true_positive', confidence: 0.9, rationale: 'r' },
+      // No previouslyVerdicts, no groupId → untriaged, no grouped
+    });
+    const html = renderTomoWebviewHtml([finding], opts);
+    // chip row NO presente
+    expect(html).not.toContain('class="chip-row"');
+    expect(html).not.toContain('data-chip="new"');
+  });
+
+  it('CSS + JS chip filter present en el HTML output', () => {
+    const finding = makeFinding({
+      previouslyVerdicts: [
+        {
+          classification: 'true_positive',
+          confidence: 0.9,
+          rationale: 'r',
+          providerLabel: 'deepseek/x',
+          createdAt: '2026-07-05T00:00:00.000Z',
+        },
+      ],
+    });
+    const html = renderTomoWebviewHtml([finding], opts);
+    // CSS class definitions
+    expect(html).toContain('.chip {');
+    expect(html).toContain('.chip[data-active]');
+    expect(html).toContain('.chip-count');
+    // JS filter logic
+    expect(html).toContain('const activeChips = new Set()');
+    expect(html).toContain('function isVisible');
+    expect(html).toContain('function applyFilter');
   });
 });

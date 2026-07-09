@@ -98,7 +98,7 @@ node "$USERPROFILE/.vscode/extensions/realgolab.synaptic-sentinel-0.3.22/dist/cl
 
 **Cómo**: abre el panel _Problems_ (Ctrl+Shift+M). Encuentra un finding SAST (ej. sentinel-js-taint-sql-injection en `src/api/routes/agent.ts:62`) y click en la bombilla del _quick fix_.
 
-**Caption sugerido**: _"Los findings aparecen también como diagnósticos inline y en el panel _Problems_. El _quick fix_ 'Mark as false positive' añade el finding a `fp_known` en `colony.db` — no se vuelve a mostrar en scans posteriores, sin que la información se pierda del historial."_
+**Caption sugerido**: _"Los findings aparecen también como diagnósticos inline y en el panel \_Problems_. El _quick fix_ 'Mark as false positive' añade el finding a `fp_known` en `colony.db` — no se vuelve a mostrar en scans posteriores, sin que la información se pierda del historial."\_
 
 ---
 
@@ -150,16 +150,16 @@ Chema exige explícitamente:
 1. Abre [https://www.mypublicinbox.com](https://www.mypublicinbox.com) en el navegador.
 2. Click en **Sign up** (esquina superior derecha) o el equivalente en la home.
 3. Registrar cuenta con:
-    - Email personal / profesional (el que quieras que se asocie públicamente).
-    - Nombre real (Chema y su audiencia respetan el uso del nombre real; los pseudónimos generan fricción salvo casos justificados).
-    - Contraseña robusta.
+   - Email personal / profesional (el que quieras que se asocie públicamente).
+   - Nombre real (Chema y su audiencia respetan el uso del nombre real; los pseudónimos generan fricción salvo casos justificados).
+   - Contraseña robusta.
 4. Verificar email vía enlace enviado por MyPublicInbox.
 5. **Configurar perfil público**:
-    - Foto / avatar. Puede ser una foto tuya o el logo de GoLab.
-    - Bio corta (~200 caracteres). Sugerencia: _"Autor de SYNAPTIC Sentinel, herramienta open-source Apache-2.0 de auditoría de seguridad para vibe-coding. Fundador/Ingeniero de GoLab."_ (ajusta según rol real).
-    - Enlaces: GitHub personal, Twitter/X si lo tienes, LinkedIn, sitio de GoLab.
-    - **Marca el perfil como público** (checkbox o toggle específico en la configuración de privacidad).
-    - Opcional: define un precio simbólico por mensaje (algunos autores lo hacen para filtrar spam; otros lo dejan gratis).
+   - Foto / avatar. Puede ser una foto tuya o el logo de GoLab.
+   - Bio corta (~200 caracteres). Sugerencia: _"Autor de SYNAPTIC Sentinel, herramienta open-source Apache-2.0 de auditoría de seguridad para vibe-coding. Fundador/Ingeniero de GoLab."_ (ajusta según rol real).
+   - Enlaces: GitHub personal, Twitter/X si lo tienes, LinkedIn, sitio de GoLab.
+   - **Marca el perfil como público** (checkbox o toggle específico en la configuración de privacidad).
+   - Opcional: define un precio simbólico por mensaje (algunos autores lo hacen para filtrar spam; otros lo dejan gratis).
 6. Copia la URL de tu perfil público (formato típico: `https://www.mypublicinbox.com/tu-nombre` o similar).
 7. Cuando respondas a Saulo o directamente a Chema, incluye esa URL en el email, junto con el artículo, las capturas y el enlace al vídeo si lo grabaste.
 

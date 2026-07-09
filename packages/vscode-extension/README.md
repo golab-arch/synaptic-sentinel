@@ -125,12 +125,12 @@ Cross-provider triage is inherently noisy: the same finding can come back TP one
 
 ## Commands
 
-| Command                                              | What                                                                 |
-| ---------------------------------------------------- | -------------------------------------------------------------------- |
-| `SYNAPTIC Sentinel: Scan Workspace`                  | Runs the five scouts and paints findings as diagnostics.             |
-| `SYNAPTIC Sentinel: Triage Findings (Brain Layer)`   | Runs the three Brain Layer agents over the last scan. Requires BYOK. |
-| `SYNAPTIC Sentinel: Configure Brain Layer Providers` | Opens the multi-provider Settings panel.                             |
-| `SYNAPTIC Sentinel: Install Scanners`                | One-time download of the scout binaries to the per-user cache.       |
+| Command                                              | What                                                                                                                 |
+| ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `SYNAPTIC Sentinel: Scan Workspace`                  | Runs the five scouts and paints findings as diagnostics.                                                             |
+| `SYNAPTIC Sentinel: Triage Findings (Brain Layer)`   | Runs the three Brain Layer agents over the last scan. Requires BYOK.                                                 |
+| `SYNAPTIC Sentinel: Configure Brain Layer Providers` | Opens the multi-provider Settings panel.                                                                             |
+| `SYNAPTIC Sentinel: Install Scanners`                | One-time download of the scout binaries to the per-user cache.                                                       |
 | `SYNAPTIC Sentinel: Re-triage all`                   | Clears existing verdicts + re-runs the Brain Layer on the last scan (useful after a provider swap in `agents.yaml`). |
 
 Plus Code Actions on each finding: **mark as false positive** (suppressed in future scans), and **copy suggested remediation**.

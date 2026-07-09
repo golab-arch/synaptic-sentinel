@@ -86,7 +86,7 @@ Cuando N ≥ 2 findings comparten la misma regla + paquete + versión (típico e
 
 En el sidebar aparecen dos badges de color púrpura: **GROUPED REP** (representante) y **GROUPED** (miembro), con un sufijo en el racional del tipo `[group SCA:pkg@ver:CVE, member N of M]`.
 
-**Impacto empírico real**: en nuestro workspace de test SYNAPTIC_SAAS (44 findings, muchos SCA duplicados entre `package-lock.json` raíz y `packages/web/package-lock.json`), la agrupación ahorró **12 llamadas LLM en un solo re-triage**. Los 44 findings se resolvieron con 8 llamadas LLM + 24 pre-clasificaciones de _colony memory_ + 12 propagaciones. Reducción del 20% en coste sobre esa carga concreta.
+**Impacto empírico real**: en nuestro workspace de test SYNAPTIC*SAAS (44 findings, muchos SCA duplicados entre `package-lock.json` raíz y `packages/web/package-lock.json`), la agrupación ahorró **12 llamadas LLM en un solo re-triage**. Los 44 findings se resolvieron con 8 llamadas LLM + 24 pre-clasificaciones de \_colony memory* + 12 propagaciones. Reducción del 20% en coste sobre esa carga concreta.
 
 Escape hatch por si quieres autonomía por-finding: `synaptic-sentinel triage --no-group`.
 
@@ -122,13 +122,13 @@ Exit code 1 si el número de _nuevos_ verdaderos positivos (primera vez triagead
 
 Prefiero enseñar antes de contar. Este es el ejemplo real de la trayectoria de un finding específico (`fast-xml-parser CVE-2026-41650`, DoS por XML injection en escapado de comentarios y CDATA) a lo largo de cinco scans y dos proveedores en nuestro workspace de test:
 
-| Scan | Proveedor           | Veredicto    | Confianza                  |
-| ---- | ------------------- | ------------ | -------------------------- |
-| 1º   | deepseek/v4-flash   | Inconcluyente | 0.50                       |
-| 2º   | deepseek/v4-flash   | Inconcluyente | 1.00                       |
-| 3º   | deepseek/v4-flash   | Inconcluyente | 0.90                       |
-| 4º   | deepseek/v4-pro     | Inconcluyente | 1.00                       |
-| 5º   | deepseek/v4-pro     | Inconcluyente | 0.00 (JsonParseError)      |
+| Scan | Proveedor         | Veredicto     | Confianza             |
+| ---- | ----------------- | ------------- | --------------------- |
+| 1º   | deepseek/v4-flash | Inconcluyente | 0.50                  |
+| 2º   | deepseek/v4-flash | Inconcluyente | 1.00                  |
+| 3º   | deepseek/v4-flash | Inconcluyente | 0.90                  |
+| 4º   | deepseek/v4-pro   | Inconcluyente | 1.00                  |
+| 5º   | deepseek/v4-pro   | Inconcluyente | 0.00 (JsonParseError) |
 
 Mismo código. Mismo lockfile. La confianza oscila entre 0.00 y 1.00 según el proveedor y el momento. Y ojo con el quinto scan: `JsonParseError` significa que el proveedor devolvió texto sin JSON válido (típicamente un _refusal_ por política de contenido — el LLM entra en modo "no puedo ayudar con esto"), y Sentinel lo degrada a INC 0.00 en lugar de dejar el finding sin veredicto. Comportamiento intencionado, documentado, no roto.
 
@@ -148,23 +148,23 @@ Para el lector que quiera probar sin fricción:
 
 3. **Configura al menos un proveedor LLM** con tu API key. Command Palette → "SYNAPTIC Sentinel: Configure Brain Layer Providers", o edita `.sentinel/agents.yaml` directamente. Ejemplo mínimo (usando DeepSeek v4-flash para todo):
 
-    ```yaml
-    agents:
-      triage:
-        provider: openai-compatible
-        baseUrl: https://api.deepseek.com/v1
-        model: deepseek-v4-flash
-      context:
-        provider: openai-compatible
-        baseUrl: https://api.deepseek.com/v1
-        model: deepseek-v4-flash
-      remediation:
-        provider: openai-compatible
-        baseUrl: https://api.deepseek.com/v1
-        model: deepseek-v4-flash
-    ```
+   ```yaml
+   agents:
+     triage:
+       provider: openai-compatible
+       baseUrl: https://api.deepseek.com/v1
+       model: deepseek-v4-flash
+     context:
+       provider: openai-compatible
+       baseUrl: https://api.deepseek.com/v1
+       model: deepseek-v4-flash
+     remediation:
+       provider: openai-compatible
+       baseUrl: https://api.deepseek.com/v1
+       model: deepseek-v4-flash
+   ```
 
-    La API key se lee desde `SENTINEL_DEEPSEEK_API_KEY` (o `SENTINEL_<PROVIDER>_API_KEY` para cualquier proveedor). Nunca en la línea de comandos.
+   La API key se lee desde `SENTINEL_DEEPSEEK_API_KEY` (o `SENTINEL_<PROVIDER>_API_KEY` para cualquier proveedor). Nunca en la línea de comandos.
 
 4. **Command Palette → "SYNAPTIC Sentinel: Scan Workspace"**. Los findings aparecen como diagnósticos inline, en el panel _Problems_, y en el _living tome_ del sidebar.
 

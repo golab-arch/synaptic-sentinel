@@ -328,6 +328,46 @@ const STYLE = `
   .grouped-badge.grouped-member { background: #6b46c1; opacity: 0.85; }
   .grouped-hint { font-size: 0.8em; color: var(--vscode-descriptionForeground);
     margin-top: 0.2rem; font-style: italic; }
+  /* DG-133 A Sub-A2 (Cycle 120 FASE IV R25): chip filter row + sub-chips. */
+  .chip-row { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 0.4rem;
+    align-items: center; }
+  .chip-subrow { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 0.3rem;
+    padding-left: 0.6rem; align-items: center; }
+  .chip-subrow .chip-sub-label { font-size: 0.75em; font-weight: 600;
+    color: var(--vscode-descriptionForeground); text-transform: uppercase;
+    letter-spacing: 0.4px; margin-right: 0.2rem; }
+  .chip { display: inline-flex; align-items: center; gap: 0.25rem;
+    font-size: 0.8em; font-weight: 500;
+    padding: 0.15rem 0.5rem; border-radius: 999px; cursor: pointer;
+    background: var(--vscode-badge-background, transparent);
+    color: var(--vscode-badge-foreground, var(--vscode-foreground));
+    border: 1px solid var(--vscode-panel-border);
+    user-select: none;
+    transition: background 120ms ease, border-color 120ms ease; }
+  .chip:hover { background: var(--vscode-list-hoverBackground, transparent);
+    border-color: var(--vscode-focusBorder, var(--vscode-panel-border)); }
+  .chip[data-active] { background: var(--vscode-button-background);
+    color: var(--vscode-button-foreground);
+    border-color: var(--vscode-button-background); font-weight: 600; }
+  .chip[data-active]:hover { background: var(--vscode-button-hoverBackground); }
+  .chip .chip-count { font-size: 0.85em; opacity: 0.8;
+    padding: 0.02rem 0.3rem; border-radius: 8px;
+    background: rgba(128, 128, 128, 0.15); }
+  .chip[data-active] .chip-count { background: rgba(255, 255, 255, 0.22);
+    opacity: 1; }
+  .chip.chip-clear { background: transparent;
+    color: var(--vscode-descriptionForeground);
+    border-color: var(--vscode-panel-border); font-size: 0.75em; }
+  .chip.chip-clear:hover { color: var(--vscode-errorForeground);
+    border-color: var(--vscode-errorForeground); }
+  .chip.chip-reclassified[data-active] {
+    background: var(--vscode-editorWarning-foreground, #c87f0a);
+    border-color: var(--vscode-editorWarning-foreground, #c87f0a); }
+  .chip.chip-grouped[data-active] { background: #8b5cf6;
+    border-color: #8b5cf6; }
+  .chip.chip-sub { font-size: 0.72em; padding: 0.1rem 0.4rem; }
+  .finding[hidden] { display: none !important; }
+  h3.section[hidden] { display: none !important; }
 `;
 
 /** Formatea la confidence (0..1) como porcentaje entero ("95%"). */
@@ -363,11 +403,19 @@ function renderCard(finding: ExtensionFinding): string {
         `title="Priority: ${escapeHtml(priority)} (severity ${escapeHtml(severity)} + ${escapeHtml(state)} triage state)">` +
         `${escapeHtml(priority)}</span>`
       : '';
+  // DG-133 A Sub-A2 (Cycle 120 FASE IV R25): data-diff-status + data-grouped
+  // attributes para el chip filter JS. Computed one-shot en render — sin
+  // backend round-trip. El JS del webview filtra findings show/hide via
+  // CSS `hidden` attribute sin re-render.
+  const diffStatus = computeDiffStatus(finding);
+  const groupedAttr = finding.groupId !== undefined ? 'true' : 'false';
   const parts = [
     `<div class="finding sev-${escapeHtml(severity)} state-${state}" ` +
       `data-path="${escapeHtml(finding.location.path)}" ` +
       `data-line="${String(finding.location.startLine)}" ` +
       `data-state="${state}" ` +
+      `data-diff-status="${escapeHtml(diffStatus)}" ` +
+      `data-grouped="${groupedAttr}" ` +
       `tabindex="0" role="button">`,
     `<div class="head"><span class="badge badge-${escapeHtml(severity)}">` +
       `${escapeHtml(severity)}</span>` +
@@ -640,6 +688,148 @@ export function renderCostCard(summary: CostSummary): string {
 }
 
 /**
+ * DG-133 A Sub-A2 (Cycle 120 FASE IV R25): status diff-aware por finding para
+ * el chip filter interactivo. Deriva del `previouslyVerdicts` (append-only
+ * cross-scan del DG-130 A) sin requerir cambios de backend.
+ *
+ * Categorías (mutuamente exclusivas):
+ *   - `new`: primer triage del fingerprint (history.length === 1)
+ *   - `reclassified-class`: classification cambió vs previous
+ *   - `reclassified-provider`: providerLabel cambió (misma class)
+ *   - `reclassified-confidence`: |Δ confidence| ≥ threshold (mismo class + provider)
+ *   - `unchanged`: mismo class + provider + delta < threshold
+ *   - `untriaged`: sin history (never triaged)
+ *
+ * Precedencia matches DG-132 A CLI logic (class > provider > confidence).
+ */
+export type DiffStatus =
+  | 'new'
+  | 'reclassified-class'
+  | 'reclassified-provider'
+  | 'reclassified-confidence'
+  | 'unchanged'
+  | 'untriaged';
+
+export function computeDiffStatus(
+  finding: ExtensionFinding,
+  confidenceDeltaThreshold: number = 0.15,
+): DiffStatus {
+  const history = finding.previouslyVerdicts;
+  if (history === undefined || history.length === 0) return 'untriaged';
+  if (history.length === 1) return 'new';
+  const current = history[0];
+  const previous = history[1];
+  if (current === undefined || previous === undefined) return 'unchanged';
+  const classChanged = current.classification !== previous.classification;
+  const providerChanged = current.providerLabel !== previous.providerLabel;
+  const confidenceDelta = Math.abs(current.confidence - previous.confidence);
+  const confidenceExceedsThreshold = confidenceDelta >= confidenceDeltaThreshold;
+  if (classChanged) return 'reclassified-class';
+  if (providerChanged) return 'reclassified-provider';
+  if (confidenceExceedsThreshold) return 'reclassified-confidence';
+  return 'unchanged';
+}
+
+/**
+ * DG-133 A Sub-A2: conteos por categoría para chip badges. Los numbers deben
+ * matchear exactamente el `scanDiff.reclassifiedByReason` breakdown del
+ * DG-132 A summary line — sin drift de contabilidad cross-render.
+ */
+export interface ChipCounts {
+  readonly new: number;
+  readonly reclassifiedTotal: number;
+  readonly reclassifiedClass: number;
+  readonly reclassifiedConfidence: number;
+  readonly reclassifiedProvider: number;
+  readonly unchanged: number;
+  readonly grouped: number;
+  readonly untriaged: number;
+}
+
+export function computeChipCounts(findings: readonly ExtensionFinding[]): ChipCounts {
+  let neu = 0;
+  let rClass = 0;
+  let rConf = 0;
+  let rProv = 0;
+  let unch = 0;
+  let unt = 0;
+  let grp = 0;
+  for (const f of findings) {
+    const status = computeDiffStatus(f);
+    if (status === 'new') neu += 1;
+    else if (status === 'reclassified-class') rClass += 1;
+    else if (status === 'reclassified-confidence') rConf += 1;
+    else if (status === 'reclassified-provider') rProv += 1;
+    else if (status === 'unchanged') unch += 1;
+    else if (status === 'untriaged') unt += 1;
+    if (f.groupId !== undefined) grp += 1;
+  }
+  return {
+    new: neu,
+    reclassifiedTotal: rClass + rConf + rProv,
+    reclassifiedClass: rClass,
+    reclassifiedConfidence: rConf,
+    reclassifiedProvider: rProv,
+    unchanged: unch,
+    grouped: grp,
+    untriaged: unt,
+  };
+}
+
+/**
+ * DG-133 A Sub-A2: renderiza el chip filter row en la summary card.
+ *
+ * Emite '' cuando no hay actividad diff observable (todos untriaged o
+ * unchanged con cero delta) — evita ruido visual en scenarios sin diff.
+ *
+ * Chip semantics:
+ *   - Chips base (diff-status): new / reclassified / unchanged / untriaged
+ *   - Sub-chips reclassified (class / confidence / provider) visibles solo
+ *     cuando `reclassified` OR una sub-chip está activa
+ *   - Chip `grouped` es filter orthogonal (AND con diff-status)
+ *   - Chip `× clear` reset all — visible solo cuando ≥ 1 chip activa
+ *   - Chip count badges muestran el número de findings en cada bucket
+ */
+function renderChipFilter(counts: ChipCounts, totalFindings: number): string {
+  // Chip row solo aparece cuando el filter es útil — hay findings CON history
+  // (new/reclassified/unchanged) O findings agrupados. Si todos son untriaged
+  // + no-grouped, filtrar no hace nada útil → no emitir chip row.
+  const hasFilterableActivity =
+    counts.new + counts.reclassifiedTotal + counts.unchanged > 0 || counts.grouped > 0;
+  if (!hasFilterableActivity) return '';
+  const chip = (id: string, label: string, count: number, extraClass: string = ''): string => {
+    const cls = extraClass !== '' ? `chip ${extraClass}` : 'chip';
+    return (
+      `<button class="${cls}" data-chip="${escapeHtml(id)}" ` +
+      `title="Toggle filter: ${escapeHtml(label)} (${String(count)} of ${String(totalFindings)})">` +
+      `${escapeHtml(label)}<span class="chip-count">${String(count)}</span>` +
+      `</button>`
+    );
+  };
+  const baseChips =
+    chip('new', 'new', counts.new) +
+    chip('reclassified', 'reclassified', counts.reclassifiedTotal, 'chip-reclassified') +
+    chip('unchanged', 'unchanged', counts.unchanged) +
+    chip('grouped', 'grouped', counts.grouped, 'chip-grouped') +
+    chip('untriaged', 'untriaged', counts.untriaged);
+  const subChips =
+    `<div class="chip-subrow" data-sub="reclassified" hidden>` +
+    `<span class="chip-sub-label">reason:</span>` +
+    chip('reclassified-class', 'class', counts.reclassifiedClass, 'chip-sub') +
+    chip('reclassified-confidence', 'confidence', counts.reclassifiedConfidence, 'chip-sub') +
+    chip('reclassified-provider', 'provider', counts.reclassifiedProvider, 'chip-sub') +
+    `</div>`;
+  return (
+    `<div class="chip-row">` +
+    `<button class="chip chip-clear" data-chip="clear" hidden ` +
+    `title="Clear all filters — show all findings">× clear</button>` +
+    baseChips +
+    `</div>` +
+    subChips
+  );
+}
+
+/**
  * Renderiza la summary card del header con el breakdown por triage state.
  *
  * DG-101 A: si hay findings untriaged (bucket NEW > 0), agrega un boton
@@ -652,6 +842,7 @@ export function renderCostCard(summary: CostSummary): string {
 function renderSummary(
   buckets: Readonly<Record<TriageState, readonly ExtensionFinding[]>>,
   scanDiff?: ExtensionScanDiff,
+  chipCounts?: ChipCounts,
 ): string {
   const total = STATE_ORDER.reduce((acc, s) => acc + buckets[s].length, 0);
   const untriagedCount = buckets.untriaged.length;
@@ -688,6 +879,9 @@ function renderSummary(
   // card. Solo se emite si el tomo trae scanDiff y hay AL MENOS un finding
   // en algún bucket del diff (evita ruido en el primer scan-ever).
   const scanDiffHtml = renderScanDiffLine(scanDiff);
+  // DG-133 A Sub-A2 (Cycle 120 FASE IV R25): chip filter row post scan-diff
+  // line. Emite '' si no hay actividad diff (ej. primer scan sin history).
+  const chipFilterHtml = chipCounts !== undefined ? renderChipFilter(chipCounts, total) : '';
   return (
     `<div class="summary">` +
     `<span class="total">${String(total)} finding${total === 1 ? '' : 's'}</span>` +
@@ -697,7 +891,8 @@ function renderSummary(
     triageRemainingBtn +
     reTriageBtn +
     scanDiffHtml +
-    `<div class="loc">click a card to open the file</div>` +
+    chipFilterHtml +
+    `<div class="loc">click a card to open the file${chipFilterHtml !== '' ? ' · use chips to filter' : ''}</div>` +
     `</div>`
   );
 }
@@ -1044,7 +1239,11 @@ export function renderTomoWebviewHtml(
           `</h3>` +
           groups.map(renderFindingGroupCard).join('')
         : '';
-    body = renderSummary(buckets, scanDiff) + costHtml + groupsHtml + sections.join('');
+    // DG-133 A Sub-A2 (Cycle 120 FASE IV R25): compute chip counts one-shot
+    // desde el findings array (before bucket grouping). El chip filter row
+    // solo se emite si hay actividad diff observable.
+    const chipCounts = computeChipCounts(findings);
+    body = renderSummary(buckets, scanDiff, chipCounts) + costHtml + groupsHtml + sections.join('');
   }
 
   // El script: al hacer click en una tarjeta, pide a la extension abrir el
@@ -1088,7 +1287,64 @@ export function renderTomoWebviewHtml(
     `if (pre) { const sel = window.getSelection(); if (sel) { sel.removeAllRanges(); ` +
     `const r = document.createRange(); r.selectNodeContents(pre); sel.addRange(r); } done(); }` +
     `}` +
-    `});}`;
+    `});}` +
+    // DG-133 A Sub-A2 (Cycle 120 FASE IV R25): chip filter state + logic.
+    // Set<string> de active chip IDs. Empty set = show all (default).
+    // Diff-status chips (new/reclassified/unchanged/untriaged): OR within.
+    // Sub-chips reclassified (class/confidence/provider): OR within reclassified,
+    // OVERRIDE parent chip cuando active. Grouped chip: AND filter orthogonal.
+    // Reset button: chip[data-chip="clear"] → activeChips.clear().
+    `const activeChips = new Set();` +
+    `const subChipIds = ['reclassified-class', 'reclassified-confidence', 'reclassified-provider'];` +
+    `const diffChipIds = ['new', 'reclassified', 'unchanged', 'untriaged'];` +
+    `function anySubActive() { return subChipIds.some(function(c) { return activeChips.has(c); }); }` +
+    `function anyDiffActive() {` +
+    `return anySubActive() || diffChipIds.some(function(c) { return activeChips.has(c); });` +
+    `}` +
+    `function isVisible(el) {` +
+    `if (activeChips.size === 0) return true;` +
+    `const diffStatus = el.dataset.diffStatus || 'none';` +
+    `const grouped = el.dataset.grouped === 'true';` +
+    `if (activeChips.has('grouped') && !grouped) return false;` +
+    `if (!anyDiffActive()) return true;` +
+    `if (anySubActive()) { return activeChips.has(diffStatus); }` +
+    `if (activeChips.has(diffStatus)) return true;` +
+    `if (activeChips.has('reclassified') && diffStatus.indexOf('reclassified') === 0) return true;` +
+    `return false;` +
+    `}` +
+    `function updateSectionVisibility() {` +
+    `const sections = document.querySelectorAll('h3.section');` +
+    `for (const section of sections) {` +
+    `let sibling = section.nextElementSibling;` +
+    `let hasVisible = false;` +
+    `while (sibling && !sibling.matches('h3.section')) {` +
+    `if (sibling.classList.contains('finding') && !sibling.hidden) { hasVisible = true; break; }` +
+    `sibling = sibling.nextElementSibling;` +
+    `}` +
+    `section.hidden = !hasVisible;` +
+    `}` +
+    `}` +
+    `function applyFilter() {` +
+    `for (const el of document.querySelectorAll('.finding')) { el.hidden = !isVisible(el); }` +
+    `updateSectionVisibility();` +
+    `for (const c of document.querySelectorAll('.chip[data-chip]')) {` +
+    `if (activeChips.has(c.dataset.chip)) c.setAttribute('data-active', '');` +
+    `else c.removeAttribute('data-active');` +
+    `}` +
+    `const clearBtn = document.querySelector('.chip-clear');` +
+    `if (clearBtn) clearBtn.hidden = activeChips.size === 0;` +
+    `const subRow = document.querySelector('.chip-subrow[data-sub="reclassified"]');` +
+    `if (subRow) subRow.hidden = !activeChips.has('reclassified') && !anySubActive();` +
+    `}` +
+    `for (const chipEl of document.querySelectorAll('.chip[data-chip]')) {` +
+    `chipEl.addEventListener('click', function(ev) {` +
+    `ev.stopPropagation();` +
+    `const id = chipEl.dataset.chip;` +
+    `if (id === 'clear') { activeChips.clear(); }` +
+    `else { if (activeChips.has(id)) activeChips.delete(id); else activeChips.add(id); }` +
+    `applyFilter();` +
+    `});` +
+    `}`;
 
   return `<!doctype html>
 <html lang="en">

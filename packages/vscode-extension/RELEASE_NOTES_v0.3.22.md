@@ -71,13 +71,13 @@ Example: `synaptic-sentinel triage --re-triage --fail-on-new-tp-critical 0 --fai
 
 FASE III collected a dramatic real-world data point in SYNAPTIC_SAAS. The same finding (`fast-xml-parser CVE-2026-41650`, same code, same lockfile) drifted like this across 5 scans and 2 providers:
 
-| Baseline | Provider              | Verdict         | Confidence |
-| -------- | --------------------- | --------------- | ---------- |
-| 14a      | deepseek/v4-flash     | Inconclusive    | 0.50       |
-| 14b      | deepseek/v4-flash     | Inconclusive    | 1.00       |
-| 15       | deepseek/v4-flash     | Inconclusive    | 0.90       |
-| 03:11    | deepseek/v4-pro       | Inconclusive    | 1.00       |
-| 16       | deepseek/v4-pro       | Inconclusive    | 0.00 (JsonParseError) |
+| Baseline | Provider          | Verdict      | Confidence            |
+| -------- | ----------------- | ------------ | --------------------- |
+| 14a      | deepseek/v4-flash | Inconclusive | 0.50                  |
+| 14b      | deepseek/v4-flash | Inconclusive | 1.00                  |
+| 15       | deepseek/v4-flash | Inconclusive | 0.90                  |
+| 03:11    | deepseek/v4-pro   | Inconclusive | 1.00                  |
+| 16       | deepseek/v4-pro   | Inconclusive | 0.00 (JsonParseError) |
 
 Before v0.3.22 this shift would be invisible — the sidebar would just show the latest verdict and users would either trust it or not. Now the Previously section shows the entire trajectory, the banner explains the delta, and the diff summary counts it correctly. Trust cross-session is not a slogan; it is a measurable UX property.
 
